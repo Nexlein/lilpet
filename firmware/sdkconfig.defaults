@@ -6,3 +6,5 @@ CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 # Logs on the USB-C port (the chip's own USB, no USB-to-serial adapter on these boards)
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# 1 ms ticks, for frame pacing and display timeouts (Waveshare's demos use the same)
+CONFIG_FREERTOS_HZ=1000
