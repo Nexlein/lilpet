@@ -137,6 +137,13 @@ firmware : veille de la caméra, luminosité, mise en veille quand personne ne r
 empilé, moins si la caméra est déportée en façade par sa nappe et la carte vision couchée à côté de la batterie. Le
 boîtier se dessinera une fois les pièces reçues et mesurées.
 
+## Déjà en ma possession
+
+- **M5Stamp S3A** (M5Stack) : ESP32-S3FN8, 8 Mo de flash, pas de PSRAM, 26 × 18 × 4,7 mm, USB-C
+  ([documentation](https://docs.m5stack.com/en/core/Stamp-S3A)). Même puce que la carte écran, mais sans PSRAM ni écran,
+  donc elle ne remplace rien dans la commande. Sert à mesurer le moteur sur une vraie puce avant de recevoir le
+  matériel, puis pourra simuler la carte vision sur la liaison série.
+
 ## Liste à commander
 
 À commander maintenant (environ 60 à 80 € avec les frais de port, estimation) :

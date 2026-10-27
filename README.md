@@ -67,6 +67,27 @@ mise run engine:bench
 
 La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP32-S3.
 
+## Tester sur un ESP32-S3
+
+Pour l'instant, le firmware mesure la vitesse du moteur directement sur la puce. Il n'a besoin ni d'écran ni de PSRAM :
+une M5Stamp S3A suffit. La compilation passe par Docker et le flash par `uv`, sans installer ESP-IDF :
+
+```bash
+mise run firmware:build
+```
+
+```bash
+mise run firmware:flash
+```
+
+```bash
+mise run firmware:monitor
+```
+
+Le résultat s'affiche toutes les 5 secondes (quitter avec Ctrl+]). Sous Linux, l'utilisateur doit être dans le groupe
+`dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
+la rebrancher. La CI garde aussi le binaire (`firmware-esp32s3` dans les artefacts du job ESP32-S3).
+
 ## Arborescence
 
 | Dossier           | Contenu                                                                                 |
@@ -76,5 +97,5 @@ La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP3
 | `eyes/looks.json` | Définition des looks (couleur, type de pupille, couleurs des pupilles)                  |
 | `prototype/`      | Référence de design : rendu des yeux (`eyes.js`), page interactive, scènes de référence |
 | `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                |
-| `firmware/`       | Application ESP32-S3 (pour l'instant : vérifie seulement que le moteur compile)         |
+| `firmware/`       | Application ESP32-S3 (pour l'instant : mesure la vitesse du moteur sur la puce)         |
 | `scripts/`        | Validation des données                                                                  |
