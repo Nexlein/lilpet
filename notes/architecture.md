@@ -33,7 +33,12 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 - **Dessin ligne par ligne, sans bibliothèque graphique.** Les yeux ne sont que des ellipses découpées par des droites
   (paupières) et d'autres ellipses (joie, croissant). Pour chaque ligne de l'écran, on calcule directement les segments
   à remplir, avec un lissage des bords calculé à partir de la couverture du pixel.
-- **Image en RGB565** (2 octets par pixel, environ 434 Ko pour l'écran entier), en PSRAM sur l'ESP32.
+- **Image en RGB565** (2 octets par pixel, environ 434 Ko pour l'écran entier).
+- **Dessin par bandes, sans image entière en mémoire.** Le moteur ne relit jamais l'image précédente : chaque ligne de
+  la zone modifiée est redessinée de zéro. Sur l'objet, il dessine donc quelques lignes à la fois (30 lignes, 28 Ko,
+  comme les démos Waveshare) en mémoire interne, plus rapide que la PSRAM, et chaque bande part vers l'écran pendant
+  qu'il dessine la suivante (`lp_render_begin` puis `lp_render_rows`). `lp_render` dessine l'image entière d'un coup,
+  pour le PC, le WebAssembly et les tests.
 - **Ne renvoyer que ce qui bouge** (zones modifiées). À 40 MHz en QSPI, l'horloge utilisée pour cet écran
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonne vers
   45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 42 % de l'écran en moyenne
@@ -55,14 +60,14 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 ## Organisation cible du dépôt
 
-| Dossier      | Rôle                                                                           | État                   |
-| ------------ | ------------------------------------------------------------------------------ | ---------------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                   |
-| `eyes/`      | Données des looks (puis des animations)                                        | Fait                   |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)         |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a) |
-| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                   |
+| Dossier      | Rôle                                                                           | État             |
+| ------------ | ------------------------------------------------------------------------------ | ---------------- |
+| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait             |
+| `eyes/`      | Données des looks (puis des animations)                                        | Fait             |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)   |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4          |
+| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Mesure du moteur |
+| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait             |
 
 ## Règle de parité
 
@@ -92,8 +97,11 @@ comme en `double`.
 - **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
 - **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache.
-- **ESP-IDF seulement en CI** pour l'instant (`espressif/esp-idf-ci-action`, dernière version d'ESP-IDF) : la
-  mini-app `firmware/` prouve que le moteur compile pour l'ESP32-S3, sans matériel.
+- **ESP-IDF dans Docker** (image officielle `espressif/idf:latest`), en local (`mise run firmware:build`) comme en
+  CI (`espressif/esp-idf-ci-action`). Le tag `latest` suit la branche `master` d'ESP-IDF, pas la dernière version
+  publiée ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
+  La CI garde le binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer
+  ESP-IDF.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
 - Tout suit la dernière version (`latest`), comme Node avec `lts`.
 
@@ -110,3 +118,12 @@ comme en `double`.
   pupilles « gland », dessinées comme des polygones, coûtent environ 65 % de plus que les autres.
 - Ces chiffres ne servent qu'à repérer les régressions : l'ESP32-S3 (240 MHz) est beaucoup plus lent qu'un PC. La
   vraie mesure se fera sur l'objet, avec le firmware.
+
+### Sur la puce
+
+- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware joue la même animation que la
+  mesure sur PC (`engine/tools/bench_script.h`), dessine par bandes comme sur l'objet et affiche le temps par image sur
+  le port USB, toutes les 5 secondes, pour un look à pupille ronde et un look à pupille « gland ».
+- Il n'a besoin ni d'écran ni de PSRAM : il tourne sur la M5Stamp S3A déjà en ma possession (ESP32-S3, 8 Mo de flash,
+  pas de PSRAM) comme sur la carte écran 1,32". Le temps d'envoi à l'écran n'est pas compté : il sera mesuré avec le
+  pilote d'écran.
