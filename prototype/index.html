@@ -56,7 +56,7 @@
     <label class="check"><input type="checkbox" id="follow" checked> Suivre la souris (simule le suivi du visage)</label>
   </section>
 
-  <p class="hint">Clic sur l'écran = caresse. <kbd>1</kbd>–<kbd>6</kbd> = émotions.</p>
+  <p class="hint">Clic sur l'écran = caresse. <kbd>1</kbd>–<kbd>9</kbd> = émotions.</p>
 </div>
 
 <script>
@@ -71,15 +71,24 @@ ctx.scale(dpr, dpr);
 
 // --- Emotions: eyelid shapes and pupil size ---------------------------------
 // tl: top lid closure (0-1), ts: top lid slope (+ = inner corner lower, - = outer corner lower)
-// bl: bottom lid closure (curved, "happy" shape), ps: pupil scale, es: eye scale, gy: gaze bias down
+// bl: bottom lid closure (curved, "happy" shape), sq: vertical squash (squint into a rounded bar)
+// cr: crescent cut (0-1, only the top arc of the eye remains, like a frown)
+// rot: extra eye rotation, inner corner down (rad), hl: force the pupil glint (0/1)
+// ps: pupil scale, es: eye scale, gy: gaze bias down
+// emit: particles spawned while the emotion is on ({ type, rate per second })
+const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0 };
 const EMOTIONS = {
-  neutral:   { label: 'Neutre',   tl: 0,    ts: 0,    bl: 0,    ps: 1,    es: 1,    gy: 0 },
-  happy:     { label: 'Content',  tl: 0,    ts: 0,    bl: 0.42, ps: 1.08, es: 1.02, gy: 0 },
-  angry:     { label: 'Fâché',    tl: 0.22, ts: 0.55, bl: 0.1,  ps: 0.75, es: 0.96, gy: 0.1 },
-  sad:       { label: 'Triste',   tl: 0.2,  ts: -0.5, bl: 0,    ps: 1.15, es: 0.98, gy: 0.45 },
-  surprised: { label: 'Surpris',  tl: 0,    ts: 0,    bl: 0,    ps: 0.6,  es: 1.12, gy: 0 },
-  sleepy:    { label: 'Endormi',  tl: 0.55, ts: -0.1, bl: 0.05, ps: 1,    es: 1,    gy: 0.35 },
+  neutral:   { label: 'Neutre' },
+  happy:     { label: 'Content',   bl: 0.42, ps: 1.08, es: 1.02, emit: { type: 'sparkle', rate: 1.2 } },
+  love:      { label: 'Amoureux',  bl: 0.45, ps: 1.1, es: 1.04, gy: -0.45, hl: 1, emit: { type: 'heart', rate: 3 } },
+  angry:     { label: 'Fâché',     tl: 0.25, ts: 0.7, ps: 0.6, es: 0.96, gy: 0.15 },
+  squint:    { label: 'Plissé',    tl: 0.12, sq: 0.68, rot: 0.12, ps: 0.8, es: 1.04 },
+  frown:     { label: 'Renfrogné', cr: 0.72, rot: 0.4, ps: 0.8, es: 1.04 },
+  sad:       { label: 'Triste',    tl: 0.2, ts: -0.5, ps: 1.15, es: 0.98, gy: 0.45 },
+  surprised: { label: 'Surpris',   ps: 0.6, es: 1.12 },
+  sleepy:    { label: 'Endormi',   tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } },
 };
+for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // --- State ----------------------------------------------------------------------
 let looks = [];
@@ -93,6 +102,75 @@ const gaze = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 };
 // the far one smaller and flatter, tilting rotates the pair. The head follows the gaze, slower.
 const head = { yaw: 0, pitch: 0, roll: 0, rollT: 0 };
 let nextRoll = 0;
+
+// --- Particles: hearts rising from the bottom, twinkling 4-point sparkles ---------------
+const particles = [];
+let emitDebt = 0;                           // fractional particles owed by the current emitter
+
+function spawn(type) {
+  if (type === 'heart') {
+    particles.push({ type, x: C + (Math.random() - 0.5) * 300, y: SIZE - 40 + Math.random() * 30,
+                     vy: -(45 + Math.random() * 35), sway: Math.random() * Math.PI * 2,
+                     size: 12 + Math.random() * 7, age: 0, life: 2.6 + Math.random() * 1.4 });
+  } else {
+    // Sparkles pop around the eyes, never on top of them
+    const a = Math.random() * Math.PI * 2, r = 150 + Math.random() * 60;
+    particles.push({ type, x: C + Math.cos(a) * r, y: C + Math.sin(a) * r * 0.8,
+                     size: 6 + Math.random() * 7, spin: (Math.random() - 0.5) * 2,
+                     age: 0, life: 0.6 + Math.random() * 0.5 });
+  }
+}
+
+function updateParticles(dt) {
+  const emit = EMOTIONS[emotion].emit;
+  if (emit) {
+    emitDebt += emit.rate * dt;
+    for (; emitDebt >= 1; emitDebt--) spawn(emit.type);
+  } else emitDebt = 0;
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.age += dt;
+    if (p.age > p.life) { particles.splice(i, 1); continue; }
+    if (p.type === 'heart') { p.y += p.vy * dt; p.x += Math.sin(p.age * 3 + p.sway) * 18 * dt; }
+  }
+}
+
+function drawHeart(s) {
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.9);
+  ctx.bezierCurveTo(-s * 1.4, 0, -s * 0.9, -s * 1.1, 0, -s * 0.35);
+  ctx.bezierCurveTo(s * 0.9, -s * 1.1, s * 1.4, 0, 0, s * 0.9);
+  ctx.fill();
+}
+
+function drawSparkle(s) {
+  ctx.beginPath();
+  ctx.moveTo(0, -s);
+  ctx.quadraticCurveTo(0, 0, s, 0);
+  ctx.quadraticCurveTo(0, 0, 0, s);
+  ctx.quadraticCurveTo(0, 0, -s, 0);
+  ctx.quadraticCurveTo(0, 0, 0, -s);
+  ctx.fill();
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const k = p.age / p.life;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (p.type === 'heart') {
+      ctx.globalAlpha = Math.min(k * 6, 1, (1 - k) * 4);   // quick fade in, fade out at the end
+      ctx.fillStyle = '#FF2A3A';
+      drawHeart(p.size);
+    } else {
+      const twinkle = Math.sin(k * Math.PI);                // grow then shrink
+      ctx.rotate(p.spin * p.age);
+      ctx.fillStyle = '#FFFFFF';
+      drawSparkle(p.size * twinkle);
+    }
+    ctx.restore();
+  }
+}
 const FACE = { depth: 130, camera: 600, outward: 0.35 };   // eye depth, camera distance, eyes facing slightly out
 let mouse = null;                           // normalized mouse position, null when outside
 let nextSaccade = 0, nextBlink = 1.5;
@@ -215,7 +293,7 @@ const approach = (v, target, k, dt) => v + (target - v) * (1 - Math.exp(-k * dt)
 function update(dt, t) {
   // Emotion values ease toward their target
   const target = EMOTIONS[emotion];
-  for (const key of ['tl', 'ts', 'bl', 'ps', 'es', 'gy']) cur[key] = approach(cur[key], target[key], 9, dt);
+  for (const key in BASE) cur[key] = approach(cur[key], target[key], 9, dt);
   if (emotionTimer > 0 && (emotionTimer -= dt) <= 0) setEmotion('neutral');
 
   // Gaze target: mouse (face tracking stand-in) or idle saccades
@@ -248,6 +326,7 @@ function update(dt, t) {
     nextBlink = t + (emotion === 'sleepy' ? 1.5 : 2) + Math.random() * 4;
   }
   updateBlink(dt, t);
+  updateParticles(dt);
 
   // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
   const amount = +document.getElementById('head').value / 100;
@@ -319,8 +398,8 @@ function drawEye(side, s, bp, squash) {
   ctx.translate(pose.x, pose.y);
   ctx.rotate(head.roll);
   ctx.scale(pose.persp * pose.fx, pose.persp * pose.fy);
-  ctx.rotate(inner * -tilt);
-  ctx.scale(cur.es * squash.x * bp.sx, cur.es * squash.y * bp.sy);
+  ctx.rotate(inner * (cur.rot - tilt));
+  ctx.scale(cur.es * squash.x * bp.sx * (1 + cur.sq * 0.1), cur.es * squash.y * bp.sy * (1 - cur.sq));
 
   if (bp.closed) { drawClosedEye(RX, RY); ctx.restore(); return; }
 
@@ -339,6 +418,14 @@ function drawEye(side, s, bp, squash) {
   const y0 = -RY + cur.tl * 2 * RY;
   keepBelow(x => y0 + cur.ts * RY * (x * inner / RX));
 
+  // Crescent: a copy of the eye shifted down cuts it, leaving only the top arc
+  if (cur.cr > 0.002) {
+    ctx.beginPath();
+    ctx.rect(-FAR, -FAR, 2 * FAR, 2 * FAR);
+    ctx.ellipse(0, 2 * RY * (1 - cur.cr), RX * 1.05, RY, 0, 0, Math.PI * 2);
+    ctx.clip('evenodd');
+  }
+
   if (cur.bl > 0.002) {
     // Big ellipse rising from below gives the curved "^^" happy shape
     const R = RY * 1.1;
@@ -351,13 +438,13 @@ function drawEye(side, s, bp, squash) {
   // Blink lid: straight edge coming down from the top, pupils stay put and get covered.
   // The edge stays level with the face, so it cancels the eye tilt.
   if (bp.lid > 0) {
-    const m = Math.tan(inner * tilt), slack = Math.abs(m) * W;
+    const m = Math.tan(inner * (tilt - cur.rot)), slack = Math.abs(m) * W;
     keepBelow(x => -RY - slack + bp.lid * (2 * RY + 2 * slack) + m * x);
   }
 
   ctx.fillStyle = look.sclera;
   ctx.fillRect(-FAR, -FAR, 2 * FAR, 2 * FAR);
-  drawPupil(look.pupil, look.pupilColor[side < 0 ? 0 : 1], RX, RY, cur.ps, look.highlight);
+  drawPupil(look.pupil, look.pupilColor[side < 0 ? 0 : 1], RX, RY, cur.ps, look.highlight || cur.hl > 0.5);
   ctx.restore();
 }
 
@@ -377,6 +464,7 @@ function render(t) {
 
   drawEye(-1, s, bp, squash);
   drawEye(1, s, bp, squash);
+  drawParticles();
 }
 
 let last = performance.now();
@@ -413,7 +501,10 @@ canvas.addEventListener('mousemove', e => {
   mouse = { x, y };
 });
 canvas.addEventListener('mouseleave', () => { mouse = null; });
-canvas.addEventListener('click', () => setEmotion('happy', 1.8));   // petting
+canvas.addEventListener('click', () => {                            // petting
+  setEmotion('happy', 1.8);
+  for (let i = 0; i < 4; i++) spawn('sparkle');
+});
 
 document.getElementById('randomLook').onclick = randomLook;
 document.getElementById('blinkBtn').onclick = startBlink;
