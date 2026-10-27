@@ -19,3 +19,7 @@ engine/build/
 firmware/build/
 firmware/sdkconfig
 firmware/sdkconfig.old
+
+# Playwright
+playwright-report/
+test-results/

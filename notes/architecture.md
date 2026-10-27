@@ -70,6 +70,11 @@ rendue de la même façon par le moteur. Les bords lissés ne seront pas identiq
 dessin ligne par ligne lissent différemment), donc la comparaison tolère un petit écart. Une fois une fonction portée,
 le moteur devient la source de vérité pour elle.
 
+Pour l'image, `prototype/reference.html` rend chaque scène avec le prototype et avec le moteur compilé en WebAssembly,
+côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 2 sur 255 par canal, et au plus 0,5 % de pixels qui
+diffèrent de plus de 32. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si une scène sort de la
+tolérance (fin octobre 2026 : 33/33, écart moyen le plus haut 1,24).
+
 Pour la logique (hasard, émotions, clignement, regard, tête, particules), la comparaison est **exacte** : le script
 `scripts/gen-engine-vectors.mjs` fait tourner le prototype et écrit les valeurs attendues dans
 `engine/tests/js_vectors.h`, que les tests C vérifient. Le hasard donne les mêmes nombres dans les deux langages (24

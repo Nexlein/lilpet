@@ -13,7 +13,7 @@
     "rules": {},
     "overrides": [
         {
-            "files": ["scripts/**", "engine/**/*.mjs"],
+            "files": ["scripts/**", "engine/**/*.mjs", "tests/**", "playwright.config.mjs"],
             "env": { "node": true }
         },
         {
