@@ -39,3 +39,8 @@ add_test(NAME lilpet_tests COMMAND lilpet_tests)
 # Writes every reference scene as an image, to compare with prototype/reference.html (mise run engine:scenes)
 add_executable(lilpet_render_scenes tools/render_scenes.c)
 target_link_libraries(lilpet_render_scenes PRIVATE lilpet lilpet_warnings m)
+
+# Renderer timings per reference scene and over an animation, in the host-release build (mise run engine:bench)
+add_executable(lilpet_bench tools/bench.c)
+target_compile_definitions(lilpet_bench PRIVATE _POSIX_C_SOURCE=200809L) # clock_gettime
+target_link_libraries(lilpet_bench PRIVATE lilpet lilpet_warnings m)
