@@ -176,10 +176,18 @@ out(
     ''
 );
 
-// --- Reference scenes: state right after setScene ------------------------------------------------------
-const looks = new Map(JSON.parse(readFileSync('eyes/looks.json', 'utf8')).looks.map((l) => [l.id, l]));
+// --- Reference scenes: looks, and the state right after setScene ---------------------------------------
+const lookList = JSON.parse(readFileSync('eyes/looks.json', 'utf8')).looks;
+const looks = new Map(lookList.map((l) => [l.id, l]));
+const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
+out(`static const lp_look LPV_LOOKS[${lookList.length}] = {`);
+for (const l of lookList)
+    out(
+        `    {${hex(l.sclera)}, LP_PUPIL_${l.pupil.toUpperCase()}, {${hex(l.pupilColor[0])}, ${hex(l.pupilColor[1])}}, ${l.highlight}}, /* ${l.id} */`
+    );
+out('};', '');
 const scenes = JSON.parse(readFileSync('prototype/scenes.json', 'utf8')).scenes;
-out('typedef struct { const char *id; lp_scene scene; lpv_state expected; } lpv_scene;');
+out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;');
 out(`static const lpv_scene LPV_SCENES[${scenes.length}] = {`);
 for (const scene of scenes) {
     const eyes = new Eyes(null, { seed: 1 });
@@ -197,7 +205,8 @@ for (const scene of scenes) {
         `${scene.particles?.seed ?? 0}u`,
         num(scene.particles?.time ?? 0)
     ];
-    out(`    {"${scene.id}", {${sc.join(', ')}}, {${snapshot(eyes, 0).join(', ')}}},`);
+    const lookIndex = lookList.findIndex((l) => l.id === scene.look);
+    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes, 0).join(', ')}}},`);
 }
 out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');
 

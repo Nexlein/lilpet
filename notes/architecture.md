@@ -53,14 +53,14 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 ## Organisation cible du dépôt
 
-| Dossier      | Rôle                                                                           | État                   |
-| ------------ | ------------------------------------------------------------------------------ | ---------------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                   |
-| `eyes/`      | Données des looks (puis des animations)                                        | Fait                   |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | État + animations (2b) |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a) |
-| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                   |
+| Dossier      | Rôle                                                                           | État                         |
+| ------------ | ------------------------------------------------------------------------------ | ---------------------------- |
+| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                         |
+| `eyes/`      | Données des looks (puis des animations)                                        | Fait                         |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | État, animations, rendu (2c) |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                      |
+| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a)       |
+| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                         |
 
 ## Règle de parité
 

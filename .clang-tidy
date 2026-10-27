@@ -9,6 +9,7 @@ Checks: >
     portability-*,
     readability-*,
     -bugprone-easily-swappable-parameters,
+    -bugprone-implicit-widening-of-multiplication-result,
     -cert-err33-c,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -misc-include-cleaner,
@@ -21,6 +22,7 @@ Checks: >
     -readability-magic-numbers,
     -readability-uppercase-literal-suffix
 # bugprone-easily-swappable-parameters: geometry functions take many floats by design
+# bugprone-implicit-widening-of-multiplication-result: indexes stay far below INT_MAX (466 x 466 frame at most)
 # cert-err33-c: printf return values in tests are not worth checking
 # DeprecatedOrUnsafeBufferHandling: asks for the C11 Annex K *_s functions, which glibc and ESP-IDF do not provide
 # misc-include-cleaner: wants one include per symbol, too strict for a tiny public header
