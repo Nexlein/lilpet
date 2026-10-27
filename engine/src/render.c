@@ -481,7 +481,7 @@ static uint16_t pack565(const float *px)
     return (uint16_t)(r << 11u | g << 5u | b);
 }
 
-lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame)
+lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
 {
     lp_renderer *r = renderer;
     const lp_blink_pose bp = lp_eyes_blink_pose(eyes);
@@ -503,19 +503,37 @@ lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame)
     for (int i = 0; i < r->particle_count; i++)
         now = rect_union(now, r->particles[i].box);
     const lp_rect full = {0, 0, LP_SCREEN_SIZE, LP_SCREEN_SIZE};
-    const lp_rect dirty = r->drawn ? rect_union(now, r->prev) : full;
+    r->dirty = r->drawn ? rect_union(now, r->prev) : full;
     r->prev = now;
     r->drawn = true;
+    return r->dirty;
+}
 
-    for (int y = dirty.y0; y < dirty.y1; y++) {
-        memset(&r->line[3 * dirty.x0], 0, (size_t)(dirty.x1 - dirty.x0) * 3 * sizeof r->line[0]);
-        draw_eye_row(r, &r->eyes[0], y);
-        draw_eye_row(r, &r->eyes[1], y);
-        for (int i = 0; i < r->particle_count; i++)
-            draw_polygon_row(r, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
-        uint16_t *row = &frame[y * LP_SCREEN_SIZE];
-        for (int x = dirty.x0; x < dirty.x1; x++)
-            row[x] = pack565(&r->line[3 * x]);
-    }
+/* Composes row y of the dirty region and writes its pixels, from dirty.x0 to dirty.x1, to `out` */
+static void draw_row(lp_renderer *r, int y, uint16_t *out)
+{
+    const lp_rect d = r->dirty;
+    memset(&r->line[3 * d.x0], 0, (size_t)(d.x1 - d.x0) * 3 * sizeof r->line[0]);
+    draw_eye_row(r, &r->eyes[0], y);
+    draw_eye_row(r, &r->eyes[1], y);
+    for (int i = 0; i < r->particle_count; i++)
+        draw_polygon_row(r, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
+    for (int x = d.x0; x < d.x1; x++)
+        out[x - d.x0] = pack565(&r->line[3 * x]);
+}
+
+void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band)
+{
+    const lp_rect d = renderer->dirty;
+    const int width = d.x1 - d.x0;
+    for (int y = y0 > d.y0 ? y0 : d.y0; y < y1 && y < d.y1; y++)
+        draw_row(renderer, y, &band[(y - y0) * width]);
+}
+
+lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame)
+{
+    const lp_rect dirty = lp_render_begin(renderer, eyes);
+    for (int y = dirty.y0; y < dirty.y1; y++)
+        draw_row(renderer, y, &frame[y * LP_SCREEN_SIZE + dirty.x0]);
     return dirty;
 }
