@@ -9,12 +9,12 @@ Analyse faite à partir de [references/starboy-eye-looks.png](../references/star
 
 ## Les 4 types de pupilles
 
-| Type | Clé | Description | Exemples sur la capture |
-|---|---|---|---|
-| Point | `dot` | Toute petite pupille ronde | Rouge, jaune, cyan, violet |
-| Fente | `slit` | Ovale vertical fin, façon chat | Blanc et rouge, vert, jaune et noir |
-| Gland (nom officiel) | `acorn` | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose |
-| Ronde moyenne | `round` | Souvent avec un petit reflet blanc | Vert, kaki et bleu |
+| Type                 | Clé     | Description                                                                   | Exemples sur la capture             |
+| -------------------- | ------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| Point                | `dot`   | Toute petite pupille ronde                                                    | Rouge, jaune, cyan, violet          |
+| Fente                | `slit`  | Ovale vertical fin, façon chat                                                | Blanc et rouge, vert, jaune et noir |
+| Gland (nom officiel) | `acorn` | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose             |
+| Ronde moyenne        | `round` | Souvent avec un petit reflet blanc                                            | Vert, kaki et bleu                  |
 
 ## Variantes
 
@@ -34,9 +34,9 @@ Idées tirées des techniques classiques d'animation d'yeux :
 - **Suivi du visage** repéré par la caméra.
 - **Squash & stretch** : l'œil s'écrase et s'étire pendant les mouvements.
 - **Paupières** : caches noirs qui coupent l'ovale pour les émotions.
-  - Colère : coin intérieur coupé en haut.
-  - Tristesse : coin extérieur coupé en haut.
-  - Joie (^^) : bas de l'œil coupé en arc.
+    - Colère : coin intérieur coupé en haut.
+    - Tristesse : coin extérieur coupé en haut.
+    - Joie (^^) : bas de l'œil coupé en arc.
 - **Pupilles** qui grossissent ou rétrécissent selon l'humeur.
 
 ## Analyse vidéo de la galerie officielle (2026-10-27)
@@ -54,9 +54,9 @@ Planches : [vue d'ensemble](../references/eyes-gallery-overview.png), [clignemen
 - Aplats de couleur, bords nets, aucun contour, aucun reflet.
 - Les yeux sont **gros** : chacun fait environ 40 % du diamètre de l'écran, et les deux se touchent presque.
 - Les yeux se placent comme sur un **visage en 3D** :
-  - la tête qui tourne fait grossir l'œil proche et rapetisser l'œil éloigné ;
-  - la tête qui penche fait tourner toute la paire ;
-  - quand la tête se tourne, les ovales s'aplatissent (perspective).
+    - la tête qui tourne fait grossir l'œil proche et rapetisser l'œil éloigné ;
+    - la tête qui penche fait tourner toute la paire ;
+    - quand la tête se tourne, les ovales s'aplatissent (perspective).
 - Les pupilles `acorn` sont de grands ovales verticaux, placés en bas vers l'intérieur et **coupés par le bord de l'œil** : c'est ce qui leur donne leur forme de gland.
 - Les pupilles `dot` sont de petits ovales verticaux, tournés vers l'intérieur : un regard légèrement louchon, mignon.
 
@@ -77,9 +77,9 @@ Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../refe
 
 - **Amoureux** : les yeux plissés de joie, collés en haut de l'écran, avec un petit reflet blanc. Des **cœurs rouges** montent du bas de l'écran en dérivant.
 - **Colère** (doigt d'honneur, ou tenu à l'envers) :
-  - d'abord un **plissement extrême** : les deux paupières se ferment jusqu'à une barre horizontale épaisse aux bouts arrondis ;
-  - puis des yeux réduits à des **croissants du haut** (⌒⌒), coins intérieurs vers le bas, comme des sourcils froncés ;
-  - ou bien une paupière en diagonale très marquée (▼▼) avec de petites pupilles blanches en bas, côté intérieur.
+    - d'abord un **plissement extrême** : les deux paupières se ferment jusqu'à une barre horizontale épaisse aux bouts arrondis ;
+    - puis des yeux réduits à des **croissants du haut** (⌒⌒), coins intérieurs vers le bas, comme des sourcils froncés ;
+    - ou bien une paupière en diagonale très marquée (▼▼) avec de petites pupilles blanches en bas, côté intérieur.
 - **Fermé, endormi** : deux traits courbes ‿‿, parfois avec une étincelle à côté.
 - **Content, satisfait** : œil en dôme, avec le bas coupé à plat.
 - **Méfiant ou endormi** : paupière du haut plate, à mi-hauteur.

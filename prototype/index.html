@@ -1,64 +1,174 @@
 <!doctype html>
 <html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>lilpet · prototype des yeux</title>
-<style>
-  :root { --bg: #111214; --panel: #1b1c20; --line: #2c2e34; --text: #e8e8ea; --muted: #8b8d94; --accent: #f2e94e; }
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
-         font: 14px/1.4 system-ui, sans-serif; display: flex; gap: 40px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 24px; }
-  .device { width: min(498px, 92vw); aspect-ratio: 1; border-radius: 50%; padding: 16px;
-            background: linear-gradient(145deg, #3a3c42, #17181b); box-shadow: 0 20px 60px #0008, inset 0 1px 0 #fff2; }
-  canvas { display: block; width: 100%; height: 100%; border-radius: 50%; background: #000; cursor: pointer; }
-  .panel { width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
-  h2 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  section + section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
-  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  button, select { background: #26282d; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer; }
-  button:hover, select:hover { border-color: #4a4d55; }
-  button.on { border-color: var(--accent); color: var(--accent); }
-  select { width: 100%; margin-top: 8px; }
-  label { display: grid; grid-template-columns: 70px 1fr 40px; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); }
-  label output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
-  .check { display: flex; gap: 8px; grid-template-columns: none; }
-  #lookInfo { margin-top: 8px; color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; }
-  .hint { margin-top: 12px; color: var(--muted); font-size: 12px; }
-  kbd { background: #26282d; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
-</style>
-</head>
-<body>
-<div class="device"><canvas id="screen" width="466" height="466"></canvas></div>
+    <head>
+        <meta charset="utf-8" />
+        <title>lilpet · prototype des yeux</title>
+        <style>
+            :root {
+                --bg: #111214;
+                --panel: #1b1c20;
+                --line: #2c2e34;
+                --text: #e8e8ea;
+                --muted: #8b8d94;
+                --accent: #f2e94e;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                background: var(--bg);
+                color: var(--text);
+                font:
+                    14px/1.4 system-ui,
+                    sans-serif;
+                display: flex;
+                gap: 40px;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: wrap;
+                padding: 24px;
+            }
+            .device {
+                width: min(498px, 92vw);
+                aspect-ratio: 1;
+                border-radius: 50%;
+                padding: 16px;
+                background: linear-gradient(145deg, #3a3c42, #17181b);
+                box-shadow:
+                    0 20px 60px #0008,
+                    inset 0 1px 0 #fff2;
+            }
+            canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background: #000;
+                cursor: pointer;
+            }
+            .panel {
+                width: 300px;
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                padding: 18px;
+            }
+            h2 {
+                margin: 0 0 4px;
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--muted);
+            }
+            section + section {
+                margin-top: 18px;
+                padding-top: 16px;
+                border-top: 1px solid var(--line);
+            }
+            .row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+                margin-top: 8px;
+            }
+            button,
+            select {
+                background: #26282d;
+                color: var(--text);
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                padding: 6px 10px;
+                font: inherit;
+                cursor: pointer;
+            }
+            button:hover,
+            select:hover {
+                border-color: #4a4d55;
+            }
+            button.on {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+            select {
+                width: 100%;
+                margin-top: 8px;
+            }
+            label {
+                display: grid;
+                grid-template-columns: 70px 1fr 40px;
+                align-items: center;
+                gap: 8px;
+                margin-top: 8px;
+                color: var(--muted);
+            }
+            label output {
+                text-align: right;
+                color: var(--text);
+                font-variant-numeric: tabular-nums;
+            }
+            .check {
+                display: flex;
+                gap: 8px;
+                grid-template-columns: none;
+            }
+            #lookInfo {
+                margin-top: 8px;
+                color: var(--muted);
+                font-size: 12px;
+                font-family: ui-monospace, monospace;
+            }
+            .hint {
+                margin-top: 12px;
+                color: var(--muted);
+                font-size: 12px;
+            }
+            kbd {
+                background: #26282d;
+                border: 1px solid var(--line);
+                border-radius: 4px;
+                padding: 0 4px;
+                font-size: 11px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="device"><canvas id="screen" width="466" height="466"></canvas></div>
 
-<div class="panel">
-  <section>
-    <h2>Look</h2>
-    <select id="lookSelect"></select>
-    <div class="row">
-      <button id="randomLook">Look aléatoire <kbd>R</kbd></button>
-      <button id="blinkBtn">Cligner <kbd>Espace</kbd></button>
-    </div>
-    <div id="lookInfo"></div>
-  </section>
+        <div class="panel">
+            <section>
+                <h2>Look</h2>
+                <select id="lookSelect"></select>
+                <div class="row">
+                    <button id="randomLook">Look aléatoire <kbd>R</kbd></button>
+                    <button id="blinkBtn">Cligner <kbd>Espace</kbd></button>
+                </div>
+                <div id="lookInfo"></div>
+            </section>
 
-  <section>
-    <h2>Émotion</h2>
-    <div class="row" id="emotions"></div>
-  </section>
+            <section>
+                <h2>Émotion</h2>
+                <div class="row" id="emotions"></div>
+            </section>
 
-  <section>
-    <h2>Forme</h2>
-    <label>Largeur <input type="range" id="rx" min="40" max="120" value="93"><output></output></label>
-    <label>Hauteur <input type="range" id="ry" min="40" max="140" value="109"><output></output></label>
-    <label>Écart <input type="range" id="gap" min="50" max="140" value="101"><output></output></label>
-    <label>Inclinaison <input type="range" id="tilt" min="-50" max="60" value="37"><output></output></label>
-    <label>Tête 3D <input type="range" id="head" min="0" max="100" value="60"><output></output></label>
-    <label class="check"><input type="checkbox" id="follow" checked> Suivre la souris (simule le suivi du visage)</label>
-  </section>
+            <section>
+                <h2>Forme</h2>
+                <label>Largeur <input type="range" id="rx" min="40" max="120" value="93" /><output></output></label>
+                <label>Hauteur <input type="range" id="ry" min="40" max="140" value="109" /><output></output></label>
+                <label>Écart <input type="range" id="gap" min="50" max="140" value="101" /><output></output></label>
+                <label
+                    >Inclinaison <input type="range" id="tilt" min="-50" max="60" value="37" /><output></output
+                ></label>
+                <label>Tête 3D <input type="range" id="head" min="0" max="100" value="60" /><output></output></label>
+                <label class="check"
+                    ><input type="checkbox" id="follow" checked /> Suivre la souris (simule le suivi du visage)</label
+                >
+            </section>
 
-  <p class="hint">Clic sur l'écran = caresse. <kbd>1</kbd>–<kbd>9</kbd> = émotions.</p>
-</div>
+            <p class="hint">Clic sur l'écran = caresse. <kbd>1</kbd>–<kbd>9</kbd> = émotions.</p>
+        </div>
 
-<script src="main.js"></script>
-</body>
+        <script src="main.js"></script>
+    </body>
 </html>

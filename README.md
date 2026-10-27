@@ -29,9 +29,9 @@ Depuis la racine du repo, puis ouvrir http://127.0.0.1:8466/prototype/ (un serve
 
 ## Arborescence
 
-| Dossier | Contenu |
-|---|---|
-| `notes/` | Notes de recherche, matériel, yeux |
-| `references/` | Captures d'inspiration |
+| Dossier           | Contenu                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| `notes/`          | Notes de recherche, matériel, yeux                                     |
+| `references/`     | Captures d'inspiration                                                 |
 | `eyes/looks.json` | Définition des looks (couleur, type de pupille, couleurs des pupilles) |
-| `prototype/` | Rendu des yeux dans le navigateur (466×466) |
+| `prototype/`      | Rendu des yeux dans le navigateur (466×466)                            |

@@ -15,11 +15,11 @@ Avantage : chaque puce garde toute sa puissance pour une seule tâche.
 
 ### Carte écran (Waveshare ESP32-S3 AMOLED, 466×466)
 
-| Carte | Points clés | Lien |
-|---|---|---|
+| Carte                      | Points clés                                                                    | Lien                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | ESP32-S3-Touch-AMOLED-1.43 | IMU QMI8658, connecteur batterie, RTC, carte SD. **Favori pour un porte-clé.** | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.43.htm) |
-| ESP32-S3-Touch-AMOLED-1.32 | Micro, gestion d'alimentation, 8 Mo PSRAM | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm) |
-| ESP32-S3-Touch-AMOLED-1.75 | Deux micros, IMU, AXP2101. Plus grand. | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm) |
+| ESP32-S3-Touch-AMOLED-1.32 | Micro, gestion d'alimentation, 8 Mo PSRAM                                      | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm) |
+| ESP32-S3-Touch-AMOLED-1.75 | Deux micros, IMU, AXP2101. Plus grand.                                         | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm) |
 
 Prix à vérifier.
 
