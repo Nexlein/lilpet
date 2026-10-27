@@ -42,9 +42,11 @@ reference until the engine takes over each feature.
   it. Random numbers are drawn in the same order in JS and C: keep it that way when changing either side.
 - `engine/wasm/` — WebAssembly bindings (`bindings.c`, `lpw_*` functions) and `engine.mjs`, the JS wrapper that
   loads `engine/build/wasm/lilpet.mjs` and takes the same scene and look objects as the prototype.
-- `firmware/` — ESP-IDF app for the ESP32-S3; `components/lilpet` wraps the engine. For now `main/main.c`
-  benchmarks the renderer on the chip, band by band like the device will draw (no whole frame in memory, so it also
-  runs without PSRAM, e.g. on an M5Stamp S3A), and prints the timings over USB.
+- `firmware/` — ESP-IDF app for the ESP32-S3; `components/lilpet` wraps the engine. `main/display.c` drives the
+  1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from Waveshare's demo, not yet run on the board).
+  `main/main.c` shows the eyes live: each frame waits for the display's TE signal, draws band by band into two DMA
+  buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
+  (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.
 - `eyes/looks.json` — eye looks (sclera color, pupil type `dot | slit | acorn | round`, left/right pupil colors,
   glint).
 - `scripts/validate-data.mjs` — validates `looks.json` and `scenes.json` (ids, colors, known emotions, ranges).
