@@ -5,20 +5,19 @@
  *
  * - Each reference scene is drawn on a fresh renderer (whole screen, like the first frame), then drawn again (only
  *   the region of the eyes and particles, like a still frame on the device). Median of RUNS renders.
- * - Animation: one second per emotion, with idle saccades, blinks and particles, then the gaze follows a face moving
- *   in a circle. Each frame redraws only its dirty region, as on the device, and keeps its fastest time over PASSES
- *   identical passes, which filters out noise from the rest of the system.
+ * - Animation (bench_script.h, the same as on the chip): each frame redraws only its dirty region, as on the device,
+ *   and keeps its fastest time over PASSES identical passes, which filters out noise from the rest of the system.
  */
 #include "../tests/js_vectors.h"
+#include "bench_script.h"
 #include "lilpet/lilpet.h"
 
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-enum { RUNS = 31, PASSES = 5, FPS = 60, FOLLOW_FRAMES = 3 * FPS, ANIM_FRAMES = LP_EMOTION_COUNT * FPS + FOLLOW_FRAMES };
+enum { RUNS = 31, PASSES = 5, ANIM_FRAMES = LP_BENCH_FRAMES };
 
 static lp_eyes eyes;
 static lp_renderer renderer;
@@ -106,17 +105,6 @@ static void bench_scenes(void)
     }
 }
 
-/* One second per emotion, then the gaze follows a face moving in a circle */
-static void script(int f)
-{
-    if (f % FPS == 0 && f / FPS < LP_EMOTION_COUNT)
-        lp_eyes_set_emotion(&eyes, (lp_emotion)(f / FPS), 0.0f);
-    if (f >= LP_EMOTION_COUNT * FPS) {
-        const float a = (float)f * 0.05f;
-        lp_eyes_set_pointer(&eyes, true, 0.8f * cosf(a), 0.6f * sinf(a));
-    }
-}
-
 static void bench_animation(void)
 {
     for (int pass = 0; pass < PASSES; pass++) {
@@ -125,9 +113,9 @@ static void bench_animation(void)
         lp_renderer_init(&renderer);
         lp_render(&renderer, &eyes, frame); /* the first frame clears the whole screen: not counted */
         for (int f = 0; f < ANIM_FRAMES; f++) {
-            script(f);
+            lp_bench_script(&eyes, f);
             const int64_t t0 = now_ns();
-            lp_eyes_update(&eyes, 1.0f / (float)FPS);
+            lp_eyes_update(&eyes, 1.0f / (float)LP_BENCH_FPS);
             const int64_t t1 = now_ns();
             const lp_rect dirty = lp_render(&renderer, &eyes, frame);
             const int64_t t2 = now_ns();
@@ -138,7 +126,7 @@ static void bench_animation(void)
             redrawn[f] = rect_area(dirty);
         }
     }
-    printf("| Animation, %d frames at %d frames/s | Mean | 95th percentile | Max |\n", ANIM_FRAMES, FPS);
+    printf("| Animation, %d frames at %d frames/s | Mean | 95th percentile | Max |\n", ANIM_FRAMES, LP_BENCH_FPS);
     printf("| --- | ---: | ---: | ---: |\n");
     print_stats("Update (µs)", update_ns, print_us);
     print_stats("Render (µs)", render_ns, print_us);

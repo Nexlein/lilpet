@@ -65,12 +65,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Latest ESP-IDF release; proves the engine compiles for the chip (no hardware needed)
+      # Latest ESP-IDF image, same as mise run firmware:build; proves the engine compiles for the chip (no hardware
+      # needed) and gives a binary ready to flash
       - uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: latest
           target: esp32s3
           path: firmware
+          command: idf.py build merge-bin
+
+      # Flash with: uvx esptool --chip esp32s3 write-flash 0x0 merged-binary.bin
+      - uses: actions/upload-artifact@v7
+        with:
+          name: firmware-esp32s3
+          path: firmware/build/merged-binary.bin
+          retention-days: 30
 
   parity:
     name: Parity, C engine vs prototype (Playwright)

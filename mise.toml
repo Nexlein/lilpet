@@ -10,7 +10,7 @@ ninja = "latest"
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
 [env]
-LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.c engine/wasm/*.[ch] firmware/main/*.c"
+LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.c"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -60,3 +60,18 @@ run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
 depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
+
+# --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
+[tasks."firmware:build"]
+description = "Build the firmware in the official ESP-IDF image (same as CI) into firmware/build/merged-binary.bin"
+# Docker instead of a local ESP-IDF install, like the WebAssembly build. The image is pulled on first use.
+run = 'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/project" -w /project/firmware espressif/idf:latest idf.py build merge-bin'
+
+[tasks."firmware:flash"]
+description = "Flash the firmware to the board plugged in over USB (esptool through uvx finds the port)"
+run = "uvx esptool --chip esp32s3 write-flash 0x0 firmware/build/merged-binary.bin"
+
+[tasks."firmware:monitor"]
+description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
+# RTS and DTR stay low so opening the port does not reset the chip into download mode
+run = 'uvx --from pyserial pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'

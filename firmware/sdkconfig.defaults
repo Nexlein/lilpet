@@ -1,1 +1,8 @@
 CONFIG_IDF_TARGET="esp32s3"
+# Full speed and optimized code: the renderer benchmark measures what the device will run
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+# Both target boards (Waveshare ESP32-S3-Touch-AMOLED-1.32, M5Stamp S3A) have 8 MB of flash
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# Logs on the USB-C port (the chip's own USB, no USB-to-serial adapter on these boards)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
