@@ -13,7 +13,7 @@ Analyse faite à partir de [references/starboy-eye-looks.png](../references/star
 |---|---|---|---|
 | Point | `dot` | Toute petite pupille ronde | Rouge, jaune, cyan, violet |
 | Fente | `slit` | Ovale vertical fin, façon chat | Blanc et rouge, vert, jaune et noir |
-| Grande ovale | `large` | Remplit la majeure partie de l'œil | Turquoise, bleu et rose |
+| Gland (nom officiel) | `acorn` | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose |
 | Ronde moyenne | `round` | Souvent avec un petit reflet blanc | Vert, kaki et bleu |
 
 ## Variantes
