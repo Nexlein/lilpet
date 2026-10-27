@@ -36,7 +36,9 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 - **Image en RGB565** (2 octets par pixel, environ 434 Ko pour l'écran entier), en PSRAM sur l'ESP32.
 - **Ne renvoyer que ce qui bouge** (zones modifiées). À 40 MHz en QSPI, l'horloge utilisée pour cet écran
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonne vers
-  45 images/s (estimation) ; la zone des yeux seule (environ 30 % de l'écran) laisse de la marge pour 60 images/s.
+  45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 42 % de l'écran en moyenne
+  et 67 % au pire (particules du mode amoureux), soit environ 9 ms et 15 ms d'envoi par image (estimation), sous les
+  16,7 ms d'une image à 60 images/s, mais avec peu de marge au pire.
 - **`float` et entiers, jamais `double`** : sur l'ESP32-S3, les `double` sont émulés en logiciel et très lents, et même
   les `float` restent plus lents que les entiers
   ([guide de performance ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/performance/speed.html)).
@@ -53,14 +55,14 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 ## Organisation cible du dépôt
 
-| Dossier      | Rôle                                                                           | État                         |
-| ------------ | ------------------------------------------------------------------------------ | ---------------------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                         |
-| `eyes/`      | Données des looks (puis des animations)                                        | Fait                         |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | État, animations, rendu (2c) |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                      |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a)       |
-| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                         |
+| Dossier      | Rôle                                                                           | État                   |
+| ------------ | ------------------------------------------------------------------------------ | ---------------------- |
+| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                   |
+| `eyes/`      | Données des looks (puis des animations)                                        | Fait                   |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)         |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                |
+| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a) |
+| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                   |
 
 ## Règle de parité
 
@@ -94,3 +96,17 @@ comme en `double`.
   mini-app `firmware/` prouve que le moteur compile pour l'ESP32-S3, sans matériel.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
 - Tout suit la dernière version (`latest`), comme Node avec `lts`.
+
+## Performance (mise en place en 2e)
+
+- `mise run engine:bench` compile le moteur en mode optimisé et mesure le temps de rendu :
+    - pour chaque scène de référence, l'écran entier (première image) puis les yeux seuls (image suivante) ;
+    - sur une animation de 12 s à 60 images/s : chaque émotion pendant une seconde, avec saccades, clignements et
+      particules, puis le regard qui suit un visage. Chaque image ne redessine que sa zone modifiée, comme sur
+      l'objet.
+- En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d'un commit à l'autre. Il n'y a pas de
+  seuil qui fait échouer la CI : les machines partagées de GitHub sont trop irrégulières pour ça.
+- Fin octobre 2026, sur un AMD Ryzen 7 7730U : 0,34 ms par image en moyenne sur l'animation, 0,51 ms au pire. Les
+  pupilles « gland », dessinées comme des polygones, coûtent environ 65 % de plus que les autres.
+- Ces chiffres ne servent qu'à repérer les régressions : l'ESP32-S3 (240 MHz) est beaucoup plus lent qu'un PC. La
+  vraie mesure se fera sur l'objet, avec le firmware.
