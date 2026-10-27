@@ -53,14 +53,14 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 ## Organisation cible du dépôt
 
-| Dossier      | Rôle                                                                           | État                    |
-| ------------ | ------------------------------------------------------------------------------ | ----------------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                    |
-| `eyes/`      | Données des looks (puis des animations)                                        | Fait                    |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Étape 2                 |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                 |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | À l'arrivée du matériel |
-| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                    |
+| Dossier      | Rôle                                                                           | État                   |
+| ------------ | ------------------------------------------------------------------------------ | ---------------------- |
+| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                   |
+| `eyes/`      | Données des looks (puis des animations)                                        | Fait                   |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Outillage fait (2a)    |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                |
+| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a) |
+| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                   |
 
 ## Règle de parité
 
@@ -70,11 +70,16 @@ rendue de la même façon par le moteur. Les bords lissés ne seront pas identiq
 dessin ligne par ligne lissent différemment), donc la comparaison tolère un petit écart. Une fois une fonction portée,
 le moteur devient la source de vérité pour elle.
 
-## Outils prévus à l'étape 2
+## Outillage du moteur (mis en place en 2a)
 
-- **CMake** (déjà dans mise), utilisé par ESP-IDF et par Emscripten.
-- **Emscripten** pour la version WebAssembly.
-- **clang-format** (formatage) et **clang-tidy** (analyse), l'équivalent de prettier et oxlint côté C.
-- **Tests unitaires** du moteur lancés sur le PC.
-- **CI** : formatage et analyse du C, tests, compilation WebAssembly, puis compilation du firmware avec ESP-IDF.
-- Versions des outils déclarées dans `mise.toml` quand c'est possible, comme Node.
+- **CMake + Ninja**, avec des presets : `host-debug` (tests avec AddressSanitizer et UBSan), `host-release`, `wasm`.
+- **clang-format** et **clang-tidy**, l'équivalent de prettier et oxlint côté C. Installés par mise depuis leurs
+  paquets PyPI, pour avoir la même version en local et en CI (le clang-format du système était en retard).
+- **Avertissements traités comme des erreurs**, dont `-Wdouble-promotion` qui refuse tout `double` implicite.
+- **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
+- **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
+  ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache.
+- **ESP-IDF seulement en CI** pour l'instant (`espressif/esp-idf-ci-action`, dernière version d'ESP-IDF) : la
+  mini-app `firmware/` prouve que le moteur compile pour l'ESP32-S3, sans matériel.
+- **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
+- Tout suit la dernière version (`latest`), comme Node avec `lts`.

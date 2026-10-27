@@ -20,8 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Installs the tools from mise.toml (Node LTS), same as local development
+      # Installs the tools from mise.toml, same as local development (only Node is needed here)
       - uses: jdx/mise-action@v5
+        with:
+          install_args: node
 
       - run: npm ci
 
@@ -33,3 +35,30 @@ jobs:
 
       - name: Validate looks and scenes
         run: npm run check:data
+
+  engine:
+    name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
+      - uses: jdx/mise-action@v5
+
+      - name: Check the engine
+        run: mise run engine:check
+
+  esp32:
+    name: ESP32-S3 firmware build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # Latest ESP-IDF release; proves the engine compiles for the chip (no hardware needed)
+      - uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: latest
+          target: esp32s3
+          path: firmware

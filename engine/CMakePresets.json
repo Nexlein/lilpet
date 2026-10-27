@@ -1,0 +1,78 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "host-debug",
+            "displayName": "Host, debug, AddressSanitizer + UndefinedBehaviorSanitizer",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+            }
+        },
+        {
+            "name": "host-release",
+            "displayName": "Host, optimized",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "wasm",
+            "displayName": "WebAssembly (Emscripten), run inside the emscripten/emsdk image (mise run engine:wasm)",
+            "inherits": "base",
+            "generator": "Unix Makefiles",
+            "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "host-debug", "configurePreset": "host-debug" },
+        { "name": "host-release", "configurePreset": "host-release" },
+        { "name": "wasm", "configurePreset": "wasm" }
+    ],
+    "testPresets": [
+        { "name": "host-debug", "configurePreset": "host-debug", "output": { "outputOnFailure": true } },
+        { "name": "host-release", "configurePreset": "host-release", "output": { "outputOnFailure": true } }
+    ],
+    "workflowPresets": [
+        {
+            "name": "host-debug",
+            "steps": [
+                { "type": "configure", "name": "host-debug" },
+                { "type": "build", "name": "host-debug" },
+                { "type": "test", "name": "host-debug" }
+            ]
+        },
+        {
+            "name": "host-release",
+            "steps": [
+                { "type": "configure", "name": "host-release" },
+                { "type": "build", "name": "host-release" },
+                { "type": "test", "name": "host-release" }
+            ]
+        },
+        {
+            "name": "wasm",
+            "steps": [
+                { "type": "configure", "name": "wasm" },
+                { "type": "build", "name": "wasm" }
+            ]
+        }
+    ]
+}

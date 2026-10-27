@@ -13,3 +13,9 @@ node_modules/
 
 # Claude Code: personal settings stay local
 .claude/settings.local.json
+
+# C engine and firmware build outputs
+engine/build/
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old

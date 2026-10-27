@@ -20,6 +20,11 @@ reference until the engine takes over each feature.
     - `ui.js` + `index.html` — interactive page. `window.eyes` exposes the renderer for console debugging.
     - `scenes.json` + `reference.html`/`reference.js` — frozen reference scenes (look, emotion, blink phase, head,
       gaze, seeded particles) rendered with `Eyes.renderScene`. The C engine must reproduce them (parity rule).
+- `engine/` — C17 eye engine (only the skeleton so far). `sources.cmake` lists sources and warning flags shared by
+  the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the ESP-IDF component. Tests use the
+  tiny runner in `tests/test.h` (list new tests in `LP_TESTS`). Presets: `host-debug` (ASan + UBSan), `host-release`,
+  `wasm`.
+- `firmware/` — ESP-IDF app for the ESP32-S3; `components/lilpet` wraps the engine. Only a compile check for now.
 - `eyes/looks.json` — eye looks (sclera color, pupil type `dot | slit | acorn | round`, left/right pupil colors,
   glint).
 - `scripts/validate-data.mjs` — validates `looks.json` and `scenes.json` (ids, colors, known emotions, ranges).
@@ -32,13 +37,20 @@ reference until the engine takes over each feature.
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
 - `npm run check` — Prettier check, oxlint, data validation. Same as CI (`.github/workflows/ci.yml`).
 - `npm run format` / `npm run lint:fix` — auto-fix.
+- `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
+  build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
+- The WebAssembly build runs in the `emscripten/emsdk` Docker image. Do not install emsdk through mise: its clang
+  and node shadow the system ones and send ccache into a loop.
+- The ESP32-S3 build only runs in CI (`espressif/esp-idf-ci-action`, latest ESP-IDF).
 
 ## Conventions
 
 - Code, comments, commits: English. Notes and README: French.
+- C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS.
 - Tool versions live in `mise.toml` (Node follows the LTS), used locally and by CI through `jdx/mise-action`.
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
   assets.
 - A visual change to the prototype that the engine must follow goes with a scene in `prototype/scenes.json`.
-- Done means: `npm run check` passes, and `prototype/` and `prototype/reference.html` load with no console error.
+- Done means: `npm run check` and `mise run engine:check` pass, and `prototype/` and `prototype/reference.html` load
+  with no console error.
