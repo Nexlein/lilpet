@@ -149,14 +149,35 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
 
 ## Liste à commander
 
-À commander maintenant (environ 60 à 80 € avec les frais de port, estimation) :
+Prix relevés le 2026-10-27, TTC, livraison en France. Recommandation : **AliExpress pour les deux cartes** (boutique de
+Seeed et revendeur agréé Waveshare, port gratuit, TVA incluse), **Amazon.fr pour la batterie et les câbles** (expédiés
+par Amazon, livrés en deux ou trois jours).
 
-| Article                                                                                   | Qté   | Où                                                                                                                                                                                  | Prix indicatif        |
-| ----------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| Waveshare ESP32-S3-Touch-AMOLED-1.32 (livrée avec haut-parleur et câble SH1.0 12 broches) | 1     | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm)                                                                                                           | 21,99 $ + port et TVA |
-| Seeed XIAO ESP32S3 Sense                                                                  | 1     | [Reichelt](https://www.reichelt.com/de/en/shop/product/xiao_esp32s3_sense_wifi_bt_camera_ov3660_without_header-358353) (en stock, OV3660)                                           | 15,40 € TTC           |
-| LiPo 602030 300 mAh avec protection, fiche 1,25 mm 2 broches (sinon souder un câble)      | 1     | [Amazon.fr](https://www.amazon.fr/602030-Liter-Rechargeable-thermistance-Radiocommande/dp/B0CY8NS7ZM) ou [Ampul](https://ampul.eu/en/battery/4156-li-pol-battery-300mah-37v-602030) | environ 7 €           |
-| Câbles avec fiche 1,25 mm 2 broches (MX1.25 / PicoBlade, pas JST-SH 1 mm)                 | 1 lot | [Amazon.fr](https://www.amazon.fr/YIXISI-Connecteur-Broches-Femelle-Adaptateur/dp/B08JV96C4N)                                                                                       | environ 8-10 €        |
+| Article                                                                            | Où                                                                                                            | Prix                 | Livraison    |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- | ------------ |
+| Waveshare ESP32-S3-Touch-AMOLED-1.32                                               | [AliExpress, FireChip Hardware Store](https://fr.aliexpress.com/item/1005012964258234.html) (revendeur agréé) | 22,19 € port compris | 4 au 11 nov. |
+| Seeed XIAO ESP32S3 Sense (caméra OV3660)                                           | [AliExpress, Seeedstudio AI Hardware Store](https://fr.aliexpress.com/item/1005006988111963.html)             | 16,83 € port compris | 4 au 11 nov. |
+| LiPo 602030 300 mAh, fiche 1,25 mm 2 broches, protection contre la surcharge       | [Amazon.fr](https://www.amazon.fr/dp/B0H32T667J) (vendu par mishao, expédié par Amazon)                       | 8,90 €               | 31 oct.      |
+| 25 paires de câbles à fiche 1,25 mm 2 broches, pour inverser la polarité si besoin | [Amazon.fr](https://www.amazon.fr/dp/B08JV96C4N)                                                              | 7,99 €               | 30 oct.      |
+
+Total : 55,91 € (47,92 € sans les câbles). À vérifier au paiement :
+
+- Depuis le 1er juillet 2026, un droit de douane forfaitaire de 3 € s'applique aux colis venant de hors UE sous 150 €
+  ([Conseil de l'UE](https://www.consilium.europa.eu/en/press/press-releases/2025/12/12/customs-council-agrees-to-levy-customs-duty-on-small-parcels-as-of-1-july-2026/)).
+  AliExpress l'affiche au paiement (« des frais d'importation s'appliquent aux envois hors UE ») : jusqu'à 6 € de
+  plus pour deux vendeurs.
+- Amazon offre la livraison sur la première commande ; sinon des frais peuvent s'ajouter (non vérifié).
+- **La polarité de la batterie** n'est pas standard sur ces fiches : la vérifier au multimètre avant de la brancher.
+
+Autres options comparées le même jour :
+
+| Option                                | Total estimé                  | Remarques                                                                                                                                                  |
+| ------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tout sur Amazon.fr                    | 74,79 € (82,78 € avec câbles) | Écran 32,99 € ([vendu par Waveshare](https://www.amazon.fr/dp/B0G141GV48), 5 au 14 nov.), caméra 32,90 €                                                   |
+| waveshare.com + Reichelt              | 55 à 65 €                     | Port, TVA et douane de Waveshare connus seulement au panier ; 1 à 3 semaines ([expédition](https://www.waveshare.com/shipping))                            |
+| Eckstein (Allemagne), les deux cartes | 46,94 € + port                | Stock incertain pour les deux, caméra annoncée en OV2640 ([écran](https://eckstein-shop.de/esp32-s3-touch-amoled-132-development-board_1))                 |
+| Opencircuit (Pays-Bas) + Gotronic     | 57 à 58 €                     | Pas de douane ; écran disponible le 11 nov., caméra de retour vers le 30 oct. ([Gotronic](https://www.gotronic.fr/art-carte-xiao-esp32s3-sense-37063.htm)) |
+| DigiKey, Mouser ou Farnell (caméra)   | 14,50 à 15 € + port           | Port de 12 à 25 € sous 75 € de commande : intéressant seulement avec d'autres achats                                                                       |
 
 Plus tard, avec le boîtier :
 
