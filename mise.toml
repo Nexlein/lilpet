@@ -1,0 +1,3 @@
+[tools]
+# Follows the current Node LTS, like the global mise config; CI installs the same through jdx/mise-action
+node = "lts"
