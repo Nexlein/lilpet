@@ -35,6 +35,15 @@ run = [
     "ffmpeg -v error -y -pattern_type glob -i 'engine/build/scenes/*.ppm' -vf 'scale=233:-1,tile=6x6' -frames:v 1 engine/build/scenes.png",
 ]
 
+[tasks."engine:bench"]
+description = "Time the renderer per reference scene and over an animation (Release build); compare on one machine"
+dir = "engine"
+# In CI the tables also go to the job summary
+run = [
+    "cmake --workflow --preset host-release",
+    'build/host-release/lilpet_bench | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"',
+]
+
 [tasks."engine:format"]
 description = "Format the C sources"
 run = "clang-format -i $LILPET_C_SOURCES"

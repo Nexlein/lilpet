@@ -53,6 +53,11 @@ jobs:
       - name: Check the engine
         run: mise run engine:check
 
+      # Timings go to the job summary, to follow from commit to commit. Not a pass/fail check: shared runners are
+      # too noisy for a time limit. Also runs the tests on the optimized build.
+      - name: Benchmark the renderer
+        run: mise run engine:bench
+
   esp32:
     name: ESP32-S3 firmware build
     runs-on: ubuntu-latest
