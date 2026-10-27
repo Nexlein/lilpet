@@ -20,10 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
+      # Installs the tools from mise.toml (Node LTS), same as local development
+      - uses: jdx/mise-action@v5
 
       - run: npm ci
 

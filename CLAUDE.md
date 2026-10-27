@@ -23,6 +23,7 @@ expressive eyes that react through a camera. Stage: browser prototype of the eye
 
 - Code, comments, commits: English. Notes and README: French.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS.
+- Tool versions live in `mise.toml` (Node follows the LTS), used locally and by CI through `jdx/mise-action`.
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
   assets.
 - Done means: `npm run check` passes and the prototype loads with no console error.
