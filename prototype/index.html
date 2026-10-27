@@ -52,6 +52,7 @@
     <label>Hauteur <input type="range" id="ry" min="40" max="130" value="96"><output></output></label>
     <label>Écart <input type="range" id="gap" min="50" max="140" value="86"><output></output></label>
     <label>Inclinaison <input type="range" id="tilt" min="-50" max="50" value="12"><output></output></label>
+    <label>Tête 3D <input type="range" id="head" min="0" max="100" value="60"><output></output></label>
     <label class="check"><input type="checkbox" id="follow" checked> Suivre la souris (simule le suivi du visage)</label>
   </section>
 
@@ -87,6 +88,12 @@ let emotion = 'neutral';
 let emotionTimer = 0;                       // > 0: temporary emotion, back to neutral when it hits 0
 const cur = { ...EMOTIONS.neutral };        // animated emotion values
 const gaze = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 };
+
+// Head pose (radians). Eyes sit on a virtual 3D face: turning makes the near eye bigger and
+// the far one smaller and flatter, tilting rotates the pair. The head follows the gaze, slower.
+const head = { yaw: 0, pitch: 0, roll: 0, rollT: 0 };
+let nextRoll = 0;
+const FACE = { depth: 130, camera: 600, outward: 0.35 };   // eye depth, camera distance, eyes facing slightly out
 let mouse = null;                           // normalized mouse position, null when outside
 let nextSaccade = 0, nextBlink = 1.5;
 let pendingGaze = null;                     // gaze change hidden behind the next blink
@@ -241,6 +248,14 @@ function update(dt, t) {
     nextBlink = t + (emotion === 'sleepy' ? 1.5 : 2) + Math.random() * 4;
   }
   updateBlink(dt, t);
+
+  // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
+  const amount = +document.getElementById('head').value / 100;
+  const hk = blinkState.phase ? 12 : 4;
+  head.yaw = approach(head.yaw, gaze.tx * 0.55 * amount, hk, dt);
+  head.pitch = approach(head.pitch, (gaze.ty + cur.gy) * 0.4 * amount, hk, dt);
+  if (t > nextRoll) { head.rollT = (Math.random() - 0.5) * 0.4; nextRoll = t + 2 + Math.random() * 4; }
+  head.roll = approach(head.roll, head.rollT * amount - head.yaw * 0.4, 3, dt);
 }
 
 // --- Rendering ------------------------------------------------------------------
@@ -274,12 +289,36 @@ function drawClosedEye(RX, RY) {
   ctx.fillStyle = look.sclera; ctx.fill();
 }
 
+// Screen position, perspective scale and foreshortening of one eye for the current head pose
+function eyePose(side, gap) {
+  const { depth, camera, outward } = FACE;
+  const cy = Math.cos(head.yaw), sy = Math.sin(head.yaw), cp = Math.cos(head.pitch), sp = Math.sin(head.pitch);
+  const rotate = (x, y, z) => {
+    const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;          // yaw
+    return [x1, y * cp + z1 * sp, -y * sp + z1 * cp];           // pitch
+  };
+  const [x, y, z] = rotate(side * gap, 0, depth);
+  const persp = (camera / (camera - z)) / (camera / (camera - depth));   // 1 at rest
+  // Eye surface normal: flatter on screen as it turns away from the viewer
+  const n = Math.hypot(outward, 1);
+  const [nx, ny] = rotate(side * outward / n, 0, 1 / n);
+  const fx = Math.sqrt(1 - nx * nx) / Math.sqrt(1 - (outward / n) ** 2);
+  const fy = Math.sqrt(1 - ny * ny);
+  // Roll turns the whole face around the screen center
+  const cr = Math.cos(head.roll), sr = Math.sin(head.roll);
+  const px = x * persp, py = y * persp;
+  return { x: C + px * cr - py * sr, y: C + px * sr + py * cr, persp, fx, fy };
+}
+
 function drawEye(side, s, bp, squash) {
   // side: -1 = left eye, +1 = right eye. "Inner" corner is toward the screen center.
   const { rx: RX, ry: RY, gap, tilt } = s;
   const inner = -side;
+  const pose = eyePose(side, gap);
   ctx.save();
-  ctx.translate(C + side * gap + gaze.x * 14, C + gaze.y * 10);
+  ctx.translate(pose.x, pose.y);
+  ctx.rotate(head.roll);
+  ctx.scale(pose.persp * pose.fx, pose.persp * pose.fy);
   ctx.rotate(inner * -tilt);
   ctx.scale(cur.es * squash.x * bp.sx, cur.es * squash.y * bp.sy);
 
