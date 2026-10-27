@@ -14,9 +14,11 @@
         "check:data": "node scripts/validate-data.mjs",
         "check:vectors": "node scripts/gen-engine-vectors.mjs --check",
         "vectors": "node scripts/gen-engine-vectors.mjs",
+        "test:parity": "playwright test",
         "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors"
     },
     "devDependencies": {
+        "@playwright/test": "^1.64.1",
         "oxlint": "^1.89.0",
         "prettier": "^3.9.10"
     }

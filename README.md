@@ -50,7 +50,15 @@ mise run engine:check
 ```
 
 Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
-compilation WebAssembly. La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP32-S3.
+compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène (première fois :
+`npx playwright install chromium`) :
+
+```bash
+npm run test:parity
+```
+
+La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. La CI GitHub lance tout ça à chaque
+push, plus la compilation du firmware ESP32-S3.
 
 ## Arborescence
 

@@ -66,3 +66,32 @@ jobs:
           esp_idf_version: latest
           target: esp32s3
           path: firmware
+
+  parity:
+    name: Parity, C engine vs prototype (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # All tools from mise.toml: the engine:wasm task runs through mise
+      - uses: jdx/mise-action@v5
+
+      - run: npm ci
+
+      # WebAssembly build in the official Emscripten image, same as locally
+      - name: Build the engine for the browser
+        run: mise run engine:wasm
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Compare every reference scene
+        run: npm run test:parity
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
