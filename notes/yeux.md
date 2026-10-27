@@ -68,6 +68,32 @@ Planches : [vue d'ensemble](../references/eyes-gallery-overview.png), [clignemen
 4. **Ouverture plus lente** (4-6 images, environ 150-220 ms) : la paupière remonte.
 5. Le clignement sert souvent à **masquer un grand changement de regard ou de tête** : les yeux se ferment dans une pose et se rouvrent dans une autre.
 
+## Analyse de deux TikTok d'utilisateurs (2026-10-27)
+
+Sources : vidéos @lilguynet et @pikespicks, fournies par Nielsen (non versionnées).
+Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../references/tiktok-tilt.png), [colère](../references/tiktok-angry.png), [choix des yeux](../references/tiktok-eye-picking.png), [réaction au geste](../references/tiktok-gesture-reaction.png).
+
+### Nouvelles expressions
+
+- **Amoureux** : les yeux plissés de joie, collés en haut de l'écran, avec un petit reflet blanc. Des **cœurs rouges** montent du bas de l'écran en dérivant.
+- **Colère** (doigt d'honneur, ou tenu à l'envers) :
+  - d'abord un **plissement extrême** : les deux paupières se ferment jusqu'à une barre horizontale épaisse aux bouts arrondis ;
+  - puis des yeux réduits à des **croissants du haut** (⌒⌒), coins intérieurs vers le bas, comme des sourcils froncés ;
+  - ou bien une paupière en diagonale très marquée (▼▼) avec de petites pupilles blanches en bas, côté intérieur.
+- **Fermé, endormi** : deux traits courbes ‿‿, parfois avec une étincelle à côté.
+- **Content, satisfait** : œil en dôme, avec le bas coupé à plat.
+- **Méfiant ou endormi** : paupière du haut plate, à mi-hauteur.
+
+### Effets et comportements
+
+- **Particules** : cœurs qui montent, **étincelles** blanches à 4 branches (✦) qui scintillent autour des yeux.
+- **Choix des yeux** (premier démarrage, « picking his eyes for life ») : défilé rapide de looks façon machine à sous, avec des étincelles, puis arrêt sur le look définitif.
+- **Formes spéciales** : des yeux en forme de **flammes** (jaune et orange), et des flammes posées au-dessus des yeux.
+- **Hétérochromie** visible : yeux blancs, pupille orange à gauche, cyan à droite.
+- **Inclinaison** : quand on penche l'objet, les yeux glissent et tournent selon la gravité (accéléromètre).
+- **Taille** : les yeux occupent presque tout l'écran et se touchent souvent.
+- Sur l'écran réel, les couleurs « bavent » un peu (lueur OLED à travers le verre bombé).
+
 ## Idées perso
 
 _(à remplir)_
