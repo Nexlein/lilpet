@@ -97,11 +97,12 @@ comme en `double`.
 - **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
 - **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache.
-- **ESP-IDF dans Docker** (image officielle `espressif/idf:latest`), en local (`mise run firmware:build`) comme en
-  CI (`espressif/esp-idf-ci-action`). Le tag `latest` suit la branche `master` d'ESP-IDF, pas la dernière version
-  publiée ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
-  La CI garde le binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer
-  ESP-IDF.
+- **ESP-IDF dans Docker**, avec la même commande en local et en CI (`mise run firmware:build`). La version est
+  épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
+  `latest` de l'image officielle suit la branche de développement (`master`), trop instable pour flasher une vraie
+  carte ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
+  Dependabot ouvre une pull request à chaque nouvelle version, que la CI vérifie avant qu'on l'accepte. La CI garde le
+  binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer ESP-IDF.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
 - Tout suit la dernière version (`latest`), comme Node avec `lts`.
 
