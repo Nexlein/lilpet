@@ -2,7 +2,7 @@
   "schema": {
     "id": "unique look name",
     "sclera": "eye color (hex)",
-    "pupil": "dot | slit | large | round",
+    "pupil": "dot | slit | acorn | round",
     "pupilColor": "[left, right] hex colors, may differ",
     "highlight": "white glint on the pupil (bool)"
   },
@@ -14,9 +14,9 @@
     { "id": "snow",     "sclera": "#F5F1E8", "pupil": "slit",  "pupilColor": ["#E5121A", "#E5121A"], "highlight": false },
     { "id": "ember",    "sclera": "#E51A1A", "pupil": "slit",  "pupilColor": ["#FFFFFF", "#FFFFFF"], "highlight": false },
     { "id": "lime",     "sclera": "#46D21E", "pupil": "slit",  "pupilColor": ["#0E2A0A", "#0E2A0A"], "highlight": false },
-    { "id": "mint",     "sclera": "#6EF2CF", "pupil": "large", "pupilColor": ["#167358", "#167358"], "highlight": false },
-    { "id": "azure",    "sclera": "#1E5AF0", "pupil": "large", "pupilColor": ["#F24BB5", "#F24BB5"], "highlight": false },
-    { "id": "sky",      "sclera": "#6F96F2", "pupil": "large", "pupilColor": ["#1E3CA0", "#1E3CA0"], "highlight": false },
+    { "id": "mint",     "sclera": "#6EF2CF", "pupil": "acorn", "pupilColor": ["#167358", "#167358"], "highlight": false },
+    { "id": "azure",    "sclera": "#1E5AF0", "pupil": "acorn", "pupilColor": ["#F24BB5", "#F24BB5"], "highlight": false },
+    { "id": "sky",      "sclera": "#6F96F2", "pupil": "acorn", "pupilColor": ["#1E3CA0", "#1E3CA0"], "highlight": false },
     { "id": "acid",     "sclera": "#2BE01E", "pupil": "round", "pupilColor": ["#0A2E0A", "#0A2E0A"], "highlight": true },
     { "id": "olive",    "sclera": "#8C8A1E", "pupil": "round", "pupilColor": ["#2B4CC8", "#2B4CC8"], "highlight": true }
   ]

@@ -48,10 +48,10 @@
 
   <section>
     <h2>Forme</h2>
-    <label>Largeur <input type="range" id="rx" min="40" max="110" value="78"><output></output></label>
-    <label>Hauteur <input type="range" id="ry" min="40" max="130" value="96"><output></output></label>
-    <label>Écart <input type="range" id="gap" min="50" max="140" value="86"><output></output></label>
-    <label>Inclinaison <input type="range" id="tilt" min="-50" max="50" value="12"><output></output></label>
+    <label>Largeur <input type="range" id="rx" min="40" max="120" value="93"><output></output></label>
+    <label>Hauteur <input type="range" id="ry" min="40" max="140" value="109"><output></output></label>
+    <label>Écart <input type="range" id="gap" min="50" max="140" value="101"><output></output></label>
+    <label>Inclinaison <input type="range" id="tilt" min="-50" max="60" value="37"><output></output></label>
     <label>Tête 3D <input type="range" id="head" min="0" max="100" value="60"><output></output></label>
     <label class="check"><input type="checkbox" id="follow" checked> Suivre la souris (simule le suivi du visage)</label>
   </section>
@@ -73,7 +73,7 @@ ctx.scale(dpr, dpr);
 // tl: top lid closure (0-1), ts: top lid slope (+ = inner corner lower, - = outer corner lower)
 // bl: bottom lid closure (curved, "happy" shape), sq: vertical squash (squint into a rounded bar)
 // cr: crescent cut (0-1, only the top arc of the eye remains, like a frown)
-// rot: extra eye rotation, inner corner down (rad), hl: force the pupil glint (0/1)
+// rot: extra eye rotation, inner corner down (rad, tuned for the default 0.37 tilt), hl: force the pupil glint (0/1)
 // ps: pupil scale, es: eye scale, gy: gaze bias down
 // emit: particles spawned while the emotion is on ({ type, rate per second })
 const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0 };
@@ -82,8 +82,8 @@ const EMOTIONS = {
   happy:     { label: 'Content',   bl: 0.42, ps: 1.08, es: 1.02, emit: { type: 'sparkle', rate: 1.2 } },
   love:      { label: 'Amoureux',  bl: 0.45, ps: 1.1, es: 1.04, gy: -0.45, hl: 1, emit: { type: 'heart', rate: 3 } },
   angry:     { label: 'Fâché',     tl: 0.25, ts: 0.7, ps: 0.6, es: 0.96, gy: 0.15 },
-  squint:    { label: 'Plissé',    tl: 0.12, sq: 0.68, rot: 0.12, ps: 0.8, es: 1.04 },
-  frown:     { label: 'Renfrogné', cr: 0.72, rot: 0.4, ps: 0.8, es: 1.04 },
+  squint:    { label: 'Plissé',    tl: 0.12, sq: 0.68, rot: 0.37, ps: 0.8, es: 1.04 },
+  frown:     { label: 'Renfrogné', cr: 0.72, rot: 0.65, ps: 0.8, es: 1.04 },
   sad:       { label: 'Triste',    tl: 0.2, ts: -0.5, ps: 1.15, es: 0.98, gy: 0.45 },
   surprised: { label: 'Surpris',   ps: 0.6, es: 1.12 },
   sleepy:    { label: 'Endormi',   tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } },
@@ -195,7 +195,7 @@ async function loadLooks() {
     looks = (await res.json()).looks;
   } catch (err) {
     console.error('Cannot load looks.json, serve the repo root over HTTP', err);
-    looks = [{ id: 'fallback', sclera: '#6EF2CF', pupil: 'large', pupilColor: ['#167358', '#167358'], highlight: false }];
+    looks = [{ id: 'fallback', sclera: '#6EF2CF', pupil: 'acorn', pupilColor: ['#167358', '#167358'], highlight: false }];
   }
   const select = document.getElementById('lookSelect');
   select.innerHTML = looks.map((l, i) => `<option value="${i}">${l.id} · ${l.pupil}</option>`).join('');
@@ -218,7 +218,7 @@ const hsl = (h, s, l) => {
 };
 
 function randomLook() {
-  const types = ['dot', 'slit', 'large', 'round'];
+  const types = ['dot', 'slit', 'acorn', 'round'];
   const h = Math.random() * 360;
   const pupil = types[Math.floor(Math.random() * types.length)];
   const sclera = Math.random() < 0.12 ? '#F5F1E8' : hsl(h, 70 + Math.random() * 30, 45 + Math.random() * 30);
@@ -338,19 +338,41 @@ function update(dt, t) {
 }
 
 // --- Rendering ------------------------------------------------------------------
-function drawPupil(type, color, RX, RY, ps, highlight) {
+// Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
+// Measured on the official gallery: pupils converge, a slightly cross-eyed look.
+const PUPIL_REST = { dot: [0.5, 0], slit: [0.35, 0], round: [0.3, 0.05], acorn: [0.15, 0.2] };
+
+// Egg shape, wider at the bottom (official "acorn" pupil)
+function acornPath(x, y, w, h) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - h);
+  ctx.bezierCurveTo(x + w * 0.75, y - h, x + w, y + h * 0.1, x + w, y + h * 0.35);
+  ctx.bezierCurveTo(x + w, y + h * 0.85, x + w * 0.5, y + h, x, y + h);
+  ctx.bezierCurveTo(x - w * 0.5, y + h, x - w, y + h * 0.85, x - w, y + h * 0.35);
+  ctx.bezierCurveTo(x - w, y + h * 0.1, x - w * 0.75, y - h, x, y - h);
+}
+
+function drawPupil(type, color, RX, RY, ps, highlight, inner, uprightAngle) {
   let prx, pry;
   switch (type) {
-    case 'dot':   prx = pry = RX * 0.13 * ps; break;
-    case 'slit':  prx = RX * 0.17 * ps; pry = RY * 0.72; break;
-    case 'large': prx = RX * 0.6 * ps;  pry = RY * 0.74 * Math.min(ps, 1.05); break;
+    case 'dot':   prx = RX * 0.105 * ps; pry = RY * 0.13 * ps; break;
+    case 'slit':  prx = RX * 0.17 * ps;  pry = RY * 0.72; break;
+    case 'acorn': prx = RX * 0.5 * ps;   pry = RY * 0.88 * Math.min(ps, 1.05); break;
     case 'round': prx = pry = RX * 0.42 * ps; break;
   }
-  // Pupil travel is limited by how much room is left inside the eye
-  const x = gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85;
-  const y = gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85;
+  // Pupil travel is limited by how much room is left inside the eye. Big acorn pupils may
+  // run past the edge and get clipped, small ones stay fully visible.
+  const [rx0, ry0] = PUPIL_REST[type];
+  const limX = type === 'acorn' ? RX : RX - prx - 3, limY = type === 'acorn' ? RY : RY - pry - 3;
+  const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+  const x = clamp(inner * rx0 * RX + gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85, limX);
+  const y = clamp(ry0 * RY + gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85, limY);
+  // The eye is tilted but pupils stay upright on the original: cancel the eye rotation
+  ctx.rotate(-uprightAngle);
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.ellipse(x, y, prx, pry, 0, 0, Math.PI * 2); ctx.fill();
+  if (type === 'acorn') acornPath(x, y, prx, pry);
+  else { ctx.beginPath(); ctx.ellipse(x, y, prx, pry, 0, 0, Math.PI * 2); }
+  ctx.fill();
   if (highlight) {
     const r = Math.max(Math.min(prx, pry) * 0.28, 4);
     ctx.fillStyle = '#fff';
@@ -444,7 +466,7 @@ function drawEye(side, s, bp, squash) {
 
   ctx.fillStyle = look.sclera;
   ctx.fillRect(-FAR, -FAR, 2 * FAR, 2 * FAR);
-  drawPupil(look.pupil, look.pupilColor[side < 0 ? 0 : 1], RX, RY, cur.ps, look.highlight || cur.hl > 0.5);
+  drawPupil(look.pupil, look.pupilColor[side < 0 ? 0 : 1], RX, RY, cur.ps, look.highlight || cur.hl > 0.5, inner, inner * (cur.rot - tilt));
   ctx.restore();
 }
 
