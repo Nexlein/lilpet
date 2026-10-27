@@ -13,6 +13,15 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
 
+  # ESP-IDF release used to build the firmware (firmware/Dockerfile)
+  - package-ecosystem: docker
+    directory: /firmware
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: build(deps)
+
   # GitHub Actions workflows
   - package-ecosystem: github-actions
     directory: /
