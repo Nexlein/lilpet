@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    name: Format, lint, looks.json
+    name: Format, lint, data
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -31,5 +31,5 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Validate eyes/looks.json
-        run: npm run check:looks
+      - name: Validate looks and scenes
+        run: npm run check:data
