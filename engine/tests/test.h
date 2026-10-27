@@ -10,7 +10,19 @@
 #include <string.h>
 
 /* Every test function, one per line */
-#define LP_TESTS(X) X(test_version_matches_macros)
+#define LP_TESTS(X)                                                                                                    \
+    X(test_version_matches_macros)                                                                                     \
+    X(test_rng_matches_prototype)                                                                                      \
+    X(test_emotions_match_prototype)                                                                                   \
+    X(test_blink_poses_match_prototype)                                                                                \
+    X(test_eye_poses_match_prototype)                                                                                  \
+    X(test_simulations_match_prototype)                                                                                \
+    X(test_scenes_match_prototype)                                                                                     \
+    X(test_unknown_emotion_is_rejected)                                                                                \
+    X(test_particle_pool_drops_extra_particles)                                                                        \
+    X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
+    X(test_timed_emotion_returns_to_neutral)                                                                           \
+    X(test_blink_does_not_restart_while_running)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)
@@ -41,7 +53,8 @@ extern int lp_test_failures;
 
 #define CHECK_NEAR(actual, expected, tolerance)                                                                        \
     do {                                                                                                               \
-        float a_ = (actual), e_ = (expected);                                                                          \
+        float a_ = (actual);                                                                                           \
+        float e_ = (expected);                                                                                         \
         if (fabsf(a_ - e_) > (tolerance))                                                                              \
             LP_FAIL("%s is %g, expected %g", #actual, (double)a_, (double)e_);                                         \
     } while (0)
