@@ -64,8 +64,8 @@ reference until the engine takes over each feature.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
 - The WebAssembly build runs in the `emscripten/emsdk` Docker image. Do not install emsdk through mise: its clang
   and node shadow the system ones and send ccache into a loop.
-- `mise run firmware:build` — firmware in the `espressif/idf:latest` Docker image (tracks ESP-IDF `master`), into
-  `firmware/build/merged-binary.bin`; CI builds the same with `espressif/esp-idf-ci-action` and keeps the binary.
+- `mise run firmware:build` — firmware into `firmware/build/merged-binary.bin`, in the ESP-IDF image pinned in
+  `firmware/Dockerfile` (latest release; Dependabot proposes new ones). CI runs the same task and keeps the binary.
   `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install.
 
 ## Conventions
