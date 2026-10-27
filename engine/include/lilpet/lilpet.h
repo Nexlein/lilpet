@@ -16,7 +16,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 3
+#define LP_VERSION_MINOR 4
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -245,8 +245,9 @@ typedef struct {
 
 /* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque in practice. */
 typedef struct {
-    lp_rect prev; /* region covered by the previous frame */
-    bool drawn;   /* a frame was drawn before (otherwise the whole screen is redrawn) */
+    lp_rect prev;  /* region covered by the previous frame */
+    lp_rect dirty; /* region of the frame being drawn, set by lp_render_begin */
+    bool drawn;    /* a frame was drawn before (otherwise the whole screen is redrawn) */
     lp_eye_geometry eyes[2];
     lp_polygon particles[LP_MAX_PARTICLES];
     uint32_t particle_color[LP_MAX_PARTICLES];
@@ -264,6 +265,18 @@ uint16_t lp_rgb565(uint32_t rgb);
  * changed since the previous call, the only part to send to the display. The first call redraws the whole screen.
  */
 lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);
+
+/*
+ * The same in bands, without a whole frame in memory: the renderer never reads the previous frame back, so the
+ * device can draw a few rows at a time into a small buffer and send each band while drawing the next one.
+ *
+ * lp_render_begin prepares a frame and returns the region that changed since the previous frame (the whole screen the
+ * first time). lp_render_rows then draws rows y0 to y1 (excluded) of that region into `band`: one row after the other,
+ * each (dirty.x1 - dirty.x0) pixels wide, the layout a display expects for a window. Rows outside the region are
+ * skipped (their place in `band` is left as is). Draw every row of the region before the next lp_render_begin.
+ */
+lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes);
+void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band);
 
 #ifdef __cplusplus
 }

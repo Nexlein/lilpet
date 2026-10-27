@@ -173,6 +173,41 @@ void test_dirty_region_stays_inside_the_screen(void)
     CHECK(dirty.x0 > 0 || dirty.x1 < SIZE); /* not the whole screen once a frame was drawn */
 }
 
+void test_band_rendering_matches_whole_frame(void)
+{
+    enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
+    static uint16_t band[SIZE * BAND_ROWS];
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &LPV_LOOKS[7]);            /* acorn pupil: polygons */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts */
+    lp_renderer_init(&renderer);
+    lp_renderer_init(&other);
+    memset(reference, 0, sizeof reference);
+    memset(frame, 0, sizeof frame);
+    lp_rect dirty = {0, 0, 0, 0};
+    for (int f = 0; f < 90; f++) {
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        const lp_rect whole = lp_render(&renderer, &eyes, reference);
+        dirty = lp_render_begin(&other, &eyes);
+        CHECK(dirty.x0 == whole.x0 && dirty.y0 == whole.y0 && dirty.x1 == whole.x1 && dirty.y1 == whole.y1);
+        const int width = dirty.x1 - dirty.x0;
+        for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
+            lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
+            for (int y = y0; y < y0 + BAND_ROWS && y < dirty.y1; y++)
+                memcpy(&frame[y * SIZE + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
+        }
+        CHECK(memcmp(frame, reference, sizeof frame) == 0);
+    }
+
+    /* Rows outside the region leave the band untouched */
+    CHECK(dirty.y0 > 0);
+    for (int i = 0; i < SIZE * BAND_ROWS; i++)
+        band[i] = 0xABCD;
+    lp_render_rows(&other, dirty.y0 - BAND_ROWS, dirty.y0, band);
+    for (int i = 0; i < SIZE * BAND_ROWS; i++)
+        CHECK(band[i] == 0xABCD);
+}
+
 void test_extreme_poses_render_inside_the_frame(void)
 {
     /* AddressSanitizer catches any write outside the frame */
