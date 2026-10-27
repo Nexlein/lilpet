@@ -48,6 +48,10 @@ const CLOSED = { halfWidth: 0.76, bottom: 0.7, depth: 0.245, thickness: 4.5 };
 // Virtual 3D face: eye depth, camera distance, eyes facing slightly outward
 const FACE = { depth: 130, camera: 600, outward: 0.35 };
 
+// The emitter debt often reaches exactly 1 (rate × dt sums), where float (C) and double (JS) rounding disagree:
+// the margin makes both spawn on the same frame.
+const EMIT_EPSILON = 1e-4;
+
 // Seeded PRNG (mulberry32): the C engine uses the same algorithm, so a seed gives the same sequence in both.
 export function createRng(seed) {
     let a = seed >>> 0;
@@ -56,7 +60,7 @@ export function createRng(seed) {
         let t = a;
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        return ((t ^ (t >>> 14)) >>> 8) / 16777216; // top 24 bits: exact in a C float, so JS and C agree
     };
 }
 
@@ -248,7 +252,7 @@ export class Eyes {
         ctx.fillRect(0, 0, SIZE, SIZE);
         if (!this.look) return;
 
-        const bp = this.#blinkPose();
+        const bp = this.blinkPose();
         // Squash & stretch along the gaze movement, plus a slow "breathing"
         const { vx, vy } = this.gaze;
         const speed = Math.hypot(vx, vy);
@@ -264,8 +268,14 @@ export class Eyes {
     }
 
     // Renders one reference scene, fully determined by its fields (format: prototype/scenes.json).
-    // Emotion values are settled, the gaze is still and particles are replayed from a fixed seed.
     renderScene(scene, look) {
+        this.setScene(scene, look);
+        this.render(0);
+    }
+
+    // Puts the renderer in the state of a scene: emotion values settled, gaze still, particles replayed
+    // from a fixed seed. Same as lp_eyes_set_scene in the C engine.
+    setScene(scene, look) {
         const emotion = scene.emotion ?? 'neutral';
         this.look = look;
         this.emotion = emotion;
@@ -289,7 +299,6 @@ export class Eyes {
             const steps = Math.round(scene.particles.time * 60);
             for (let i = 0; i < steps; i++) this.#updateParticles(1 / 60);
         }
-        this.render(0);
     }
 
     #updateBlink(dt, t) {
@@ -325,7 +334,7 @@ export class Eyes {
         const emit = EMOTIONS[this.emotion].emit;
         if (emit) {
             this.emitDebt += emit.rate * dt;
-            for (; this.emitDebt >= 1; this.emitDebt--) this.spawn(emit.type);
+            for (; this.emitDebt >= 1 - EMIT_EPSILON; this.emitDebt--) this.spawn(emit.type);
         } else this.emitDebt = 0;
         const ps = this.particles;
         for (let i = ps.length - 1; i >= 0; i--) {
@@ -343,7 +352,7 @@ export class Eyes {
     }
 
     // Lid closure (0 open, 1 shut) and eye scale for the current blink frame
-    #blinkPose() {
+    blinkPose() {
         const { phase, t, open } = this.blinkState;
         switch (phase) {
             case 'anticip': {
@@ -366,7 +375,7 @@ export class Eyes {
     }
 
     // Screen position, perspective scale and foreshortening of one eye for the current head pose
-    #eyePose(side) {
+    eyePose(side) {
         const { depth, camera, outward } = FACE;
         const { yaw, pitch, roll } = this.head;
         const cy = Math.cos(yaw),
@@ -398,7 +407,7 @@ export class Eyes {
         const { ctx, cur, look } = this;
         const { rx: RX, ry: RY, tilt } = this.shape;
         const inner = -side;
-        const pose = this.#eyePose(side);
+        const pose = this.eyePose(side);
         ctx.save();
         ctx.translate(pose.x, pose.y);
         ctx.rotate(this.head.roll);
