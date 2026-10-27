@@ -26,11 +26,11 @@ Recherche faite le 2026-10-27.
 - Yeux : « plus de 5 000 looks » au lancement, « plus de 400 looks » sur le site actuel. Chaque look a une rareté et il est tiré au hasard.
 - Reconnaissance par machine learning des visages et d'environ 30 gestes de la main.
 - Réactions citées :
-  - pouce levé : affiche la batterie ;
-  - doigt d'honneur : il se met en colère ;
-  - secoué : il a le tournis ;
-  - froid prolongé : il grelotte ;
-  - musique forte : il devient anxieux.
+    - pouce levé : affiche la batterie ;
+    - doigt d'honneur : il se met en colère ;
+    - secoué : il a le tournis ;
+    - froid prolongé : il grelotte ;
+    - musique forte : il devient anxieux.
 - Défaut constaté : il a souvent du mal à voir les visages et les gestes, avec un temps de retard.
   Source : [Gizmodo (test)](https://gizmodo.com/starboy-ai-keychain-is-pointless-extravagant-and-weirdly-lovable-2000740949)
 
