@@ -19,6 +19,14 @@ Projet strictement personnel, non commercial.
 - [ ] Firmware ESP32 (`firmware/`, créé le moment venu)
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
 
+## Lancer le prototype
+
+```bash
+python3 -m http.server 8466 --bind 127.0.0.1
+```
+
+Depuis la racine du repo, puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger `eyes/looks.json`).
+
 ## Arborescence
 
 | Dossier | Contenu |
