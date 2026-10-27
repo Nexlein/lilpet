@@ -60,6 +60,9 @@ Ce qu'on perd :
 
 À vérifier à la réception :
 
+- **Le premier affichage** : le pilote de l'écran a été écrit d'après la démo Waveshare, sans la carte. Vérifier le
+  sens de l'image, le décalage de colonnes, les couleurs et l'absence de déchirure (voir
+  [architecture.md](architecture.md)).
 - **La puce de charge et son courant de charge** : non publiés. Il faut les connaître avant de choisir définitivement la
   batterie (voir plus bas).
 - **Le brochage du connecteur d'extension SH1.0 12 broches** (câble fourni) : non publié en texte. D'après le tableau

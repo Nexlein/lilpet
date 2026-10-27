@@ -38,11 +38,12 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
   la zone modifiée est redessinée de zéro. Sur l'objet, il dessine donc quelques lignes à la fois (30 lignes, 28 Ko,
   comme les démos Waveshare) en mémoire interne, plus rapide que la PSRAM, et chaque bande part vers l'écran pendant
   qu'il dessine la suivante (`lp_render_begin` puis `lp_render_rows`). `lp_render` dessine l'image entière d'un coup,
-  pour le PC, le WebAssembly et les tests.
+  pour le PC, le WebAssembly et les tests. La zone modifiée a toujours des coordonnées paires : le contrôleur de
+  l'écran (CO5300) n'accepte que des fenêtres qui commencent sur un pixel pair et de taille paire.
 - **Ne renvoyer que ce qui bouge** (zones modifiées). À 40 MHz en QSPI, l'horloge utilisée pour cet écran
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonne vers
   45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 42 % de l'écran en moyenne
-  et 67 % au pire (particules du mode amoureux), soit environ 9 ms et 15 ms d'envoi par image (estimation), sous les
+  et 68 % au pire (particules du mode amoureux), soit environ 9 ms et 15 ms d'envoi par image (estimation), sous les
   16,7 ms d'une image à 60 images/s, mais avec peu de marge au pire.
 - **`float` et entiers, jamais `double`** : sur l'ESP32-S3, les `double` sont émulés en logiciel et très lents, et même
   les `float` restent plus lents que les entiers
@@ -66,7 +67,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait             |
 | `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)   |
 | `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4          |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Mesure du moteur |
+| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Écran (à tester) |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait             |
 
 ## Règle de parité
@@ -122,9 +123,16 @@ comme en `double`.
 
 ### Sur la puce
 
-- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware joue la même animation que la
-  mesure sur PC (`engine/tools/bench_script.h`), dessine par bandes comme sur l'objet et affiche le temps par image sur
-  le port USB, toutes les 5 secondes, pour un look à pupille ronde et un look à pupille « gland ».
-- Il n'a besoin ni d'écran ni de PSRAM : il tourne sur la M5Stamp S3A déjà en ma possession (ESP32-S3, 8 Mo de flash,
-  pas de PSRAM) comme sur la carte écran 1,32". Le temps d'envoi à l'écran n'est pas compté : il sera mesuré avec le
-  pilote d'écran.
+- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, avec
+  la même animation que la mesure sur PC (`engine/tools/bench_script.h`) en boucle, en alternant un look à pupille
+  ronde et un look à pupille « gland ». Toutes les 10 secondes, il écrit sur le port USB le nombre d'images par
+  seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran redessinée.
+- Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
+  partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
+- Le pilote de l'écran (`firmware/main/display.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
+  1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
+  ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
+  Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs
+  et l'absence de déchirure.
+- Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
+  TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
