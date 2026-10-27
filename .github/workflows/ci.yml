@@ -100,8 +100,10 @@ jobs:
       - name: Build the engine for the browser
         run: mise run engine:wasm
 
+      # Headless shell only, without --with-deps: the runner image already has its libraries, and the apt fonts that
+      # option adds took about 11 minutes to download
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --only-shell chromium
 
       - name: Compare every reference scene
         run: npm run test:parity

@@ -60,7 +60,7 @@ reference until the engine takes over each feature.
 - `npm run check` — Prettier check, oxlint, data validation. Same as CI (`.github/workflows/ci.yml`).
 - `npm run format` / `npm run lint:fix` — auto-fix.
 - `npm run test:parity` — Playwright parity test (needs `mise run engine:wasm` first; first time:
-  `npx playwright install chromium`).
+  `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.

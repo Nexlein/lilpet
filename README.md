@@ -52,7 +52,7 @@ mise run engine:check
 
 Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
 compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène (première fois :
-`npx playwright install chromium`) :
+`npx playwright install --only-shell chromium`) :
 
 ```bash
 npm run test:parity
