@@ -65,14 +65,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Latest ESP-IDF image, same as mise run firmware:build; proves the engine compiles for the chip (no hardware
-      # needed) and gives a binary ready to flash
-      - uses: espressif/esp-idf-ci-action@v1
+      # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
+      - uses: jdx/mise-action@v5
         with:
-          esp_idf_version: latest
-          target: esp32s3
-          path: firmware
-          command: idf.py build merge-bin
+          install: false
+
+      # Same command as locally; proves the engine compiles for the chip (no hardware needed) and gives a binary
+      # ready to flash
+      - name: Build the firmware
+        run: mise run firmware:build
+        env:
+          MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
 
       # Flash with: uvx esptool --chip esp32s3 write-flash 0x0 merged-binary.bin
       - uses: actions/upload-artifact@v7
