@@ -40,6 +40,11 @@ const PUPIL_REST = { dot: [0.5, 0], slit: [0.35, 0], round: [0.3, 0.05], acorn: 
 // top lid, thin arc while closed, slower reopening. See notes/yeux.md.
 const BLINK = { anticip: 0.06, close: 0.1 };
 
+// Closed eye, measured on 7 frames of the official footage: the lower half of a flat, level ellipse (flat
+// bottom, tips turning up), drawn as a stroke of even thickness with round tips. Fractions of the eye
+// radii: half width of RX, lowest point and depth of RY (outer edge); thickness in pixels.
+const CLOSED = { halfWidth: 0.76, bottom: 0.7, depth: 0.245, thickness: 4.5 };
+
 // Virtual 3D face: eye depth, camera distance, eyes facing slightly outward
 const FACE = { depth: 130, camera: 600, outward: 0.35 };
 
@@ -402,7 +407,7 @@ export class Eyes {
         ctx.scale(cur.es * squash.x * bp.sx * (1 + cur.sq * 0.1), cur.es * squash.y * bp.sy * (1 - cur.sq));
 
         if (bp.closed) {
-            this.#drawClosedEye(RX, RY);
+            this.#drawClosedEye(RX, RY, inner * (cur.rot - tilt));
             ctx.restore();
             return;
         }
@@ -506,18 +511,20 @@ export class Eyes {
         }
     }
 
-    // Closed eye: thin crescent along the bottom of the eye, tapering toward the ends
-    #drawClosedEye(RX, RY) {
+    // Closed eye: lower half of a flat ellipse, level with the face, stroked with round tips
+    #drawClosedEye(RX, RY, uprightAngle) {
         const ctx = this.ctx;
-        const th = 4,
-            a0 = Math.PI * 0.12,
-            a1 = Math.PI * 0.88;
+        const th = CLOSED.thickness,
+            a = CLOSED.halfWidth * RX,
+            b = CLOSED.depth * RY,
+            yc = (CLOSED.bottom - CLOSED.depth) * RY;
+        ctx.rotate(-uprightAngle);
         ctx.beginPath();
-        ctx.ellipse(0, 0, RX, RY, 0, a0, a1);
-        ctx.ellipse(0, 0, RX, RY - th, 0, a1, a0, true);
-        ctx.closePath();
-        ctx.fillStyle = this.look.sclera;
-        ctx.fill();
+        ctx.ellipse(0, yc, a, b - th / 2, 0, 0, Math.PI); // centerline: the outer edge sits at depth b
+        ctx.lineWidth = th;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = this.look.sclera;
+        ctx.stroke();
     }
 
     #drawParticles() {
