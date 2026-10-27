@@ -53,6 +53,9 @@ Planches : [vue d'ensemble](../references/eyes-gallery-overview.png), [clignemen
 
 - Aplats de couleur, bords nets, aucun contour, aucun reflet.
 - Les yeux sont **gros** : chacun fait environ 40 % du diamètre de l'écran, et les deux se touchent presque.
+- Mesures de face (en fraction du diamètre de l'écran D) : demi-axes 0,20 D × 0,235 D, centres à ±0,22 D, inclinés
+  d'environ 21° vers l'extérieur. Le contour est une **vraie ellipse** (écart ≤ 2 % sur tout le tour) : pas de forme
+  d'œuf, l'impression vient de l'inclinaison et des pupilles `acorn` coupées par le bord.
 - Les yeux se placent comme sur un **visage en 3D** :
     - la tête qui tourne fait grossir l'œil proche et rapetisser l'œil éloigné ;
     - la tête qui penche fait tourner toute la paire ;
