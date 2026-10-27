@@ -83,6 +83,17 @@ static lp_rect rect_union(lp_rect r, lp_rect s)
                      .y1 = r.y1 > s.y1 ? r.y1 : s.y1};
 }
 
+/*
+ * Grows a rectangle to even coordinates: the AMOLED controller (CO5300) takes windows that start on an even pixel and
+ * have an even size (see the rounder of Waveshare's display demo). The screen size is even, so it stays inside.
+ */
+static lp_rect align_even(lp_rect r)
+{
+    if (rect_is_empty(r))
+        return r;
+    return (lp_rect){.x0 = r.x0 - r.x0 % 2, .y0 = r.y0 - r.y0 % 2, .x1 = r.x1 + r.x1 % 2, .y1 = r.y1 + r.y1 % 2};
+}
+
 /* Pixel box around a float box, with a one-pixel margin for anti-aliasing, clamped to the screen */
 static lp_rect rect_around(float x0, float y0, float x1, float y1)
 {
@@ -503,7 +514,7 @@ lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
     for (int i = 0; i < r->particle_count; i++)
         now = rect_union(now, r->particles[i].box);
     const lp_rect full = {0, 0, LP_SCREEN_SIZE, LP_SCREEN_SIZE};
-    r->dirty = r->drawn ? rect_union(now, r->prev) : full;
+    r->dirty = r->drawn ? align_even(rect_union(now, r->prev)) : full;
     r->prev = now;
     r->drawn = true;
     return r->dirty;
