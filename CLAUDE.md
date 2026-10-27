@@ -20,8 +20,12 @@ reference until the engine takes over each feature.
     - `ui.js` + `index.html` — interactive page. `window.eyes` exposes the renderer for console debugging.
     - `scenes.json` + `reference.html`/`reference.js` — frozen reference scenes (look, emotion, blink phase, head,
       gaze, seeded particles) rendered with `Eyes.renderScene`. The C engine must reproduce them (parity rule).
-- `engine/` — C17 eye engine. Done: state and animation (`src/eyes.c`: emotions, gaze, head, blink, particles;
-  `src/pose.c`: blink pose, eye pose on the 3D head; `src/rng.c`: mulberry32). Next: rendering. Public API in
+- `engine/` — C17 eye engine. State and animation: `src/eyes.c` (emotions, gaze, head, blink, particles),
+  `src/pose.c` (blink pose, eye pose on the 3D head), `src/rng.c` (mulberry32). Rendering: `src/render.c` builds
+  each eye's geometry (same transform chain as the prototype) and composes the frame row by row into RGB565, redrawing
+  only the dirty region; `src/raster.c` turns ellipses, lids, cuts and polygons into sub-row spans and exact
+  horizontal coverage (`LP_SUBROWS` vertical samples). `tools/render_scenes.c` + `mise run engine:scenes` write
+  every reference scene to `engine/build/scenes/` to compare with `prototype/reference.html`. Public API in
   `include/lilpet/lilpet.h`; the caller owns `lp_eyes`. `sources.cmake` lists sources and warning flags shared by
   the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the ESP-IDF component. Tests use the
   tiny runner in `tests/test.h` (list new tests in `LP_TESTS`). Presets: `host-debug` (ASan + UBSan), `host-release`,

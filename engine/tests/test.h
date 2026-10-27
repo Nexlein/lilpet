@@ -22,7 +22,16 @@
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
-    X(test_blink_does_not_restart_while_running)
+    X(test_blink_does_not_restart_while_running)                                                                       \
+    X(test_rgb565_conversion)                                                                                          \
+    X(test_render_first_frame_is_full_screen)                                                                          \
+    X(test_render_puts_colors_where_they_belong)                                                                       \
+    X(test_render_glint_is_white)                                                                                      \
+    X(test_closed_eye_shows_only_the_stroke)                                                                           \
+    X(test_render_is_deterministic)                                                                                    \
+    X(test_dirty_region_redraws_everything_that_changed)                                                               \
+    X(test_dirty_region_stays_inside_the_screen)                                                                       \
+    X(test_extreme_poses_render_inside_the_frame)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)

@@ -16,7 +16,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 2
+#define LP_VERSION_MINOR 3
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -205,6 +205,65 @@ typedef struct {
 lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes);
 /* side: -1 left eye, +1 right eye */
 lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
+
+/* --- Rendering into an RGB565 frame ------------------------------------------------------------- */
+
+/* Pixel rectangle, x1 and y1 excluded; empty when x0 >= x1 or y0 >= y1 */
+typedef struct {
+    int x0, y0, x1, y1;
+} lp_rect;
+
+#define LP_POLY_MAX 64 /* points per polygon */
+
+/* A filled shape in screen coordinates (internal to the renderer) */
+typedef struct {
+    int count;
+    float pts[2 * LP_POLY_MAX]; /* x0 y0 x1 y1 ... */
+    lp_rect box;
+} lp_polygon;
+
+/* Geometry of one eye for the frame being drawn (internal to the renderer) */
+typedef struct {
+    bool closed;
+    lp_rect box;
+    float inv_eye[6];   /* screen -> eye frame (affine a b c d tx ty) */
+    float inv_pupil[6]; /* screen -> pupil frame, which stays upright */
+    float rx, ry;
+    float lid_m, lid_c; /* emotion top lid: keep v >= lid_m u + lid_c */
+    bool blink_lid;
+    float blink_m, blink_c;
+    bool crescent, happy; /* cut by an ellipse (center 0, cv; radii ra, rb) */
+    float crescent_cv, crescent_ra, crescent_rb;
+    float happy_cv, happy_ra, happy_rb;
+    bool pupil_polygon; /* acorn: `shape` holds the pupil; otherwise an ellipse in the pupil frame */
+    float px, py, prx, pry;
+    bool glint;
+    float gx, gy, gr;
+    uint32_t sclera, pupil_color;
+    lp_polygon shape; /* acorn pupil, or the closed-eye stroke */
+} lp_eye_geometry;
+
+/* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque in practice. */
+typedef struct {
+    lp_rect prev; /* region covered by the previous frame */
+    bool drawn;   /* a frame was drawn before (otherwise the whole screen is redrawn) */
+    lp_eye_geometry eyes[2];
+    lp_polygon particles[LP_MAX_PARTICLES];
+    uint32_t particle_color[LP_MAX_PARTICLES];
+    float particle_alpha[LP_MAX_PARTICLES];
+    int particle_count;
+    float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
+    float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
+} lp_renderer;
+
+void lp_renderer_init(lp_renderer *renderer);
+/* 0xRRGGBB to RGB565 (native byte order) */
+uint16_t lp_rgb565(uint32_t rgb);
+/*
+ * Draws the eyes into `frame` (LP_SCREEN_SIZE x LP_SCREEN_SIZE RGB565 pixels, row-major) and returns the region that
+ * changed since the previous call, the only part to send to the display. The first call redraws the whole screen.
+ */
+lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);
 
 #ifdef __cplusplus
 }
