@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# misc
+.DS_Store
+.env
+.env.*
+
+# editor directories and files
+.idea
+.vscode
+*.sw?
+
+# Claude Code: personal settings stay local
+.claude/settings.local.json

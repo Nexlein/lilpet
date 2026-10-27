@@ -1,0 +1,20 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["unicorn", "oxc"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "error",
+        "perf": "warn"
+    },
+    "env": {
+        "browser": true,
+        "builtin": true
+    },
+    "rules": {},
+    "overrides": [
+        {
+            "files": ["scripts/**"],
+            "env": { "node": true }
+        }
+    ]
+}

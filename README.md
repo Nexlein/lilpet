@@ -22,10 +22,19 @@ Projet strictement personnel, non commercial.
 ## Lancer le prototype
 
 ```bash
-python3 -m http.server 8466 --bind 127.0.0.1
+npm run serve
 ```
 
-Depuis la racine du repo, puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger `eyes/looks.json`).
+Puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger `eyes/looks.json`).
+
+## Vérifier avant de commiter
+
+```bash
+npm install
+npm run check
+```
+
+Vérifie le formatage (Prettier), le code (oxlint) et `eyes/looks.json`. La CI GitHub lance la même chose à chaque push.
 
 ## Arborescence
 
