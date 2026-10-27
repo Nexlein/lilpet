@@ -162,7 +162,7 @@ async function loadLooks() {
     }
     const select = document.getElementById('lookSelect');
     select.innerHTML = looks.map((l, i) => `<option value="${i}">${l.id} · ${l.pupil}</option>`).join('');
-    select.onchange = () => setLook(looks[select.value]);
+    select.addEventListener('change', () => setLook(looks[select.value]));
     setLook(looks[0]);
 }
 
@@ -342,6 +342,8 @@ function update(dt, t) {
 // Measured on the official gallery: pupils converge, a slightly cross-eyed look.
 const PUPIL_REST = { dot: [0.5, 0], slit: [0.35, 0], round: [0.3, 0.05], acorn: [0.15, 0.2] };
 
+const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+
 // Egg shape, wider at the bottom (official "acorn" pupil)
 function acornPath(x, y, w, h) {
     ctx.beginPath();
@@ -376,7 +378,6 @@ function drawPupil(type, color, RX, RY, ps, highlight, inner, uprightAngle) {
     const [rx0, ry0] = PUPIL_REST[type];
     const limX = type === 'acorn' ? RX : RX - prx - 3,
         limY = type === 'acorn' ? RY : RY - pry - 3;
-    const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
     const x = clamp(inner * rx0 * RX + gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85, limX);
     const y = clamp(ry0 * RY + gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85, limY);
     // The eye is tilted but pupils stay upright on the original: cancel the eye rotation
@@ -551,14 +552,14 @@ Object.entries(EMOTIONS).forEach(([name, e], i) => {
     const b = document.createElement('button');
     b.dataset.e = name;
     b.innerHTML = `${e.label} <kbd>${i + 1}</kbd>`;
-    b.onclick = () => setEmotion(name);
+    b.addEventListener('click', () => setEmotion(name));
     emotionsEl.append(b);
 });
 
 document.querySelectorAll('input[type=range]').forEach((input) => {
     const out = input.nextElementSibling;
     const sync = () => (out.textContent = input.value);
-    input.oninput = sync;
+    input.addEventListener('input', sync);
     sync();
 });
 
@@ -582,8 +583,8 @@ canvas.addEventListener('click', () => {
     for (let i = 0; i < 4; i++) spawn('sparkle');
 });
 
-document.getElementById('randomLook').onclick = randomLook;
-document.getElementById('blinkBtn').onclick = startBlink;
+document.getElementById('randomLook').addEventListener('click', randomLook);
+document.getElementById('blinkBtn').addEventListener('click', startBlink);
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'SELECT') return;
     const names = Object.keys(EMOTIONS);
