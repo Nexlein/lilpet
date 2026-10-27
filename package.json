@@ -12,7 +12,9 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "check:data": "node scripts/validate-data.mjs",
-        "check": "npm run format:check && npm run lint && npm run check:data"
+        "check:vectors": "node scripts/gen-engine-vectors.mjs --check",
+        "vectors": "node scripts/gen-engine-vectors.mjs",
+        "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors"
     },
     "devDependencies": {
         "oxlint": "^1.89.0",

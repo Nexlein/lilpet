@@ -57,7 +57,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | ------------ | ------------------------------------------------------------------------------ | ---------------------- |
 | `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait                   |
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait                   |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Outillage fait (2a)    |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | État + animations (2b) |
 | `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4                |
 | `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Compilation seule (2a) |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait                   |
@@ -69,6 +69,12 @@ Le prototype JS est la référence visuelle tant que le moteur C n'a pas tout re
 rendue de la même façon par le moteur. Les bords lissés ne seront pas identiques au pixel près (Canvas 2D et notre
 dessin ligne par ligne lissent différemment), donc la comparaison tolère un petit écart. Une fois une fonction portée,
 le moteur devient la source de vérité pour elle.
+
+Pour la logique (hasard, émotions, clignement, regard, tête, particules), la comparaison est **exacte** : le script
+`scripts/gen-engine-vectors.mjs` fait tourner le prototype et écrit les valeurs attendues dans
+`engine/tests/js_vectors.h`, que les tests C vérifient. Le hasard donne les mêmes nombres dans les deux langages (24
+bits, exacts dans un `float`), et les simulations avancent par pas de 1/64 s pour que le temps soit exact en `float`
+comme en `double`.
 
 ## Outillage du moteur (mis en place en 2a)
 

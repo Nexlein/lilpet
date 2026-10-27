@@ -36,6 +36,10 @@ jobs:
       - name: Validate looks and scenes
         run: npm run check:data
 
+      # engine/tests/js_vectors.h must match what the prototype computes today
+      - name: Engine test values up to date
+        run: npm run check:vectors
+
   engine:
     name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)
     runs-on: ubuntu-latest

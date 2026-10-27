@@ -14,6 +14,9 @@ Checks: >
     -misc-include-cleaner,
     -readability-braces-around-statements,
     -readability-function-cognitive-complexity,
+    -readability-implicit-bool-conversion,
+    -readability-math-missing-parentheses,
+    -readability-trailing-comma,
     -readability-identifier-length,
     -readability-magic-numbers,
     -readability-uppercase-literal-suffix
@@ -23,6 +26,9 @@ Checks: >
 # misc-include-cleaner: wants one include per symbol, too strict for a tiny public header
 # readability-braces-around-statements: single-line ifs are fine, clang-format keeps them readable
 # readability-function-cognitive-complexity: the rasterizer has long, flat loops on purpose
+# readability-implicit-bool-conversion: in C, comparisons and && already produce int
+# readability-math-missing-parentheses: a + b * c is plain math, extra parentheses hide the formulas
+# readability-trailing-comma: layout is clang-format's job; forced commas split one-line initializers
 # readability-identifier-length / magic-numbers: math code uses x, y, a, b and measured constants
 # readability-uppercase-literal-suffix: 0.5f reads better than 0.5F
 WarningsAsErrors: '*'
