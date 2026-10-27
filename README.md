@@ -18,7 +18,7 @@ Projet strictement personnel, non commercial.
 - [x] Analyse des yeux → [notes/yeux.md](notes/yeux.md)
 - [x] Prototype des yeux dans le navigateur, figé comme référence de design → `prototype/`
 - [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
-- [ ] Moteur des yeux en C, compilé pour l'ESP32 et en WebAssembly (`engine/`)
+- [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [ ] Choix final du matériel et commande → [notes/materiel.md](notes/materiel.md)
 - [ ] Firmware ESP32 (`firmware/`, créé le moment venu)
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
@@ -57,8 +57,14 @@ compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène 
 npm run test:parity
 ```
 
-La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. La CI GitHub lance tout ça à chaque
-push, plus la compilation du firmware ESP32-S3.
+La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. Pour mesurer la vitesse du rendu
+(temps par image, à comparer sur une même machine) :
+
+```bash
+mise run engine:bench
+```
+
+La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP32-S3.
 
 ## Arborescence
 
@@ -68,6 +74,6 @@ push, plus la compilation du firmware ESP32-S3.
 | `references/`     | Captures d'inspiration                                                                  |
 | `eyes/looks.json` | Définition des looks (couleur, type de pupille, couleurs des pupilles)                  |
 | `prototype/`      | Référence de design : rendu des yeux (`eyes.js`), page interactive, scènes de référence |
-| `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (en cours)     |
+| `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                |
 | `firmware/`       | Application ESP32-S3 (pour l'instant : vérifie seulement que le moteur compile)         |
 | `scripts/`        | Validation des données                                                                  |
