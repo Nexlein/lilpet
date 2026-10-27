@@ -208,6 +208,19 @@ void test_band_rendering_matches_whole_frame(void)
         CHECK(band[i] == 0xABCD);
 }
 
+void test_dirty_region_has_even_coordinates(void)
+{
+    lp_eyes_init(&eyes, 3);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts move the region every frame */
+    lp_renderer_init(&renderer);
+    for (int f = 0; f < 120; f++) {
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        const lp_rect d = lp_render_begin(&renderer, &eyes);
+        CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
+        CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SIZE && d.y1 <= SIZE);
+    }
+}
+
 void test_extreme_poses_render_inside_the_frame(void)
 {
     /* AddressSanitizer catches any write outside the frame */

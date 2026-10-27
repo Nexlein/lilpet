@@ -263,6 +263,7 @@ uint16_t lp_rgb565(uint32_t rgb);
 /*
  * Draws the eyes into `frame` (LP_SCREEN_SIZE x LP_SCREEN_SIZE RGB565 pixels, row-major) and returns the region that
  * changed since the previous call, the only part to send to the display. The first call redraws the whole screen.
+ * The region's coordinates are even, as the AMOLED controller requires for a window.
  */
 lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);
 
