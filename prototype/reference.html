@@ -42,7 +42,7 @@
             }
             #grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
                 gap: 16px;
             }
             figure {
@@ -52,12 +52,39 @@
                 border: 1px solid var(--line);
                 border-radius: 12px;
             }
+            .pair {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .pair span {
+                display: block;
+                margin-bottom: 4px;
+                font-size: 11px;
+                color: var(--muted);
+                text-align: center;
+            }
             canvas {
                 display: block;
                 width: 100%;
                 aspect-ratio: 1;
                 border-radius: 50%;
                 background: #000;
+            }
+            .score {
+                margin-top: 6px;
+                font:
+                    12px ui-monospace,
+                    monospace;
+            }
+            .pass {
+                color: #6ee7a8;
+            }
+            .fail {
+                color: #ff6b6b;
+            }
+            #summary {
+                margin: 0 0 16px;
             }
             figcaption {
                 margin-top: 8px;
@@ -79,10 +106,14 @@
     <body>
         <header>
             <h1>Scènes de référence</h1>
-            <p>Rendu figé de chaque scène de <code>scenes.json</code>, que le moteur C devra reproduire.</p>
+            <p>
+                Chaque scène de <code>scenes.json</code>, rendue par le prototype (JS) et par le moteur C (WebAssembly),
+                avec l'écart entre les deux.
+            </p>
             <a href="./">Prototype</a>
         </header>
         <p id="error" hidden></p>
+        <p id="summary"></p>
         <main id="grid"></main>
         <script type="module" src="reference.js"></script>
     </body>
