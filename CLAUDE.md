@@ -2,7 +2,8 @@
 
 Personal, non-commercial keychain "digital pet" inspired by the Starboy (lilguy / CREATURE): a round screen with
 expressive eyes that react through a camera. Stage: eye engine in C done (host, WebAssembly, ESP32-S3 compile
-check); hardware not bought yet.
+check); hardware chosen in `notes/materiel.md` (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera
+over UART), not bought yet.
 No rarity or random eye draw: the owner picks. Long-term, a small PC app edits the eyes and animations and sends
 them to the device, so keep looks (and later animations) as data, not code.
 
