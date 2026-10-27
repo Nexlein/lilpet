@@ -13,8 +13,12 @@
     "rules": {},
     "overrides": [
         {
-            "files": ["scripts/**"],
+            "files": ["scripts/**", "engine/**/*.mjs"],
             "env": { "node": true }
+        },
+        {
+            "files": ["engine/**/*.mjs"],
+            "rules": { "no-underscore-dangle": "off" }
         }
     ]
 }

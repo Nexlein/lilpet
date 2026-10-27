@@ -1,3 +1,44 @@
 [tools]
-# Follows the current Node LTS, like the global mise config; CI installs the same through jdx/mise-action
+# Same versions locally and in CI (jdx/mise-action). Everything follows the latest release.
 node = "lts"
+# C engine: build (CMake + Ninja), formatting and static analysis
+cmake = "latest"
+ninja = "latest"
+"pypi:clang-format" = "latest"
+"pypi:clang-tidy" = "latest"
+
+# --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
+# Sources checked by clang-format and clang-tidy
+[env]
+LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.c engine/tests/*.[ch] firmware/main/*.c"
+
+[tasks."engine:test"]
+description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
+dir = "engine"
+run = "cmake --workflow --preset host-debug"
+
+[tasks."engine:wasm"]
+description = "Build the WebAssembly module (official Emscripten image, same as CI) and check it loads in Node"
+# Docker instead of mise: emsdk installed through mise ships its own clang and node, which shadow the system
+# ones and break ccache. The image is pulled on first use.
+run = [
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine emscripten/emsdk:latest cmake --workflow --preset wasm',
+    "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
+]
+
+[tasks."engine:format"]
+description = "Format the C sources"
+run = "clang-format -i $LILPET_C_SOURCES"
+
+[tasks."engine:format-check"]
+description = "Fail if a C source is not formatted"
+run = "clang-format --dry-run --Werror $LILPET_C_SOURCES"
+
+[tasks."engine:tidy"]
+description = "Static analysis of the engine (needs engine:test first for compile_commands.json)"
+depends = ["engine:test"]
+run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c"
+
+[tasks."engine:check"]
+description = "Everything CI checks on the engine"
+depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]

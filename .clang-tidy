@@ -1,0 +1,29 @@
+# Static analysis for engine/ (C17). Noisy checks that fight a small C codebase are turned off with a reason.
+Checks: >
+    -*,
+    bugprone-*,
+    cert-*,
+    clang-analyzer-*,
+    misc-*,
+    performance-*,
+    portability-*,
+    readability-*,
+    -bugprone-easily-swappable-parameters,
+    -cert-err33-c,
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+    -misc-include-cleaner,
+    -readability-braces-around-statements,
+    -readability-function-cognitive-complexity,
+    -readability-identifier-length,
+    -readability-magic-numbers,
+    -readability-uppercase-literal-suffix
+# bugprone-easily-swappable-parameters: geometry functions take many floats by design
+# cert-err33-c: printf return values in tests are not worth checking
+# DeprecatedOrUnsafeBufferHandling: asks for the C11 Annex K *_s functions, which glibc and ESP-IDF do not provide
+# misc-include-cleaner: wants one include per symbol, too strict for a tiny public header
+# readability-braces-around-statements: single-line ifs are fine, clang-format keeps them readable
+# readability-function-cognitive-complexity: the rasterizer has long, flat loops on purpose
+# readability-identifier-length / magic-numbers: math code uses x, y, a, b and measured constants
+# readability-uppercase-literal-suffix: 0.5f reads better than 0.5F
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'engine/(include|src|tests)/.*'

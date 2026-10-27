@@ -41,8 +41,16 @@ npm install
 npm run check
 ```
 
-Vérifie le formatage (Prettier), le code (oxlint), `eyes/looks.json` et `prototype/scenes.json`. La CI GitHub lance la
-même chose à chaque push.
+Vérifie le formatage (Prettier), le code (oxlint), `eyes/looks.json` et `prototype/scenes.json`.
+
+Pour le moteur C (outils installés par `mise install`, Docker nécessaire pour le WebAssembly) :
+
+```bash
+mise run engine:check
+```
+
+Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
+compilation WebAssembly. La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP32-S3.
 
 ## Arborescence
 
@@ -52,4 +60,6 @@ même chose à chaque push.
 | `references/`     | Captures d'inspiration                                                                  |
 | `eyes/looks.json` | Définition des looks (couleur, type de pupille, couleurs des pupilles)                  |
 | `prototype/`      | Référence de design : rendu des yeux (`eyes.js`), page interactive, scènes de référence |
+| `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (en cours)     |
+| `firmware/`       | Application ESP32-S3 (pour l'instant : vérifie seulement que le moteur compile)         |
 | `scripts/`        | Validation des données                                                                  |
