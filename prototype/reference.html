@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8" />
+        <title>lilpet · scènes de référence</title>
+        <style>
+            :root {
+                --bg: #111214;
+                --panel: #1b1c20;
+                --line: #2c2e34;
+                --text: #e8e8ea;
+                --muted: #8b8d94;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                padding: 24px;
+                background: var(--bg);
+                color: var(--text);
+                font:
+                    14px/1.4 system-ui,
+                    sans-serif;
+            }
+            header {
+                display: flex;
+                align-items: baseline;
+                gap: 16px;
+                margin-bottom: 20px;
+            }
+            h1 {
+                margin: 0;
+                font-size: 18px;
+            }
+            header p {
+                margin: 0;
+                color: var(--muted);
+            }
+            a {
+                color: var(--muted);
+            }
+            #grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 16px;
+            }
+            figure {
+                margin: 0;
+                padding: 10px;
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: 12px;
+            }
+            canvas {
+                display: block;
+                width: 100%;
+                aspect-ratio: 1;
+                border-radius: 50%;
+                background: #000;
+            }
+            figcaption {
+                margin-top: 8px;
+                font:
+                    12px ui-monospace,
+                    monospace;
+                color: var(--muted);
+                overflow-wrap: anywhere;
+            }
+            figcaption b {
+                color: var(--text);
+                font-weight: 600;
+            }
+            #error {
+                color: #ff6b6b;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Scènes de référence</h1>
+            <p>Rendu figé de chaque scène de <code>scenes.json</code>, que le moteur C devra reproduire.</p>
+            <a href="./">Prototype</a>
+        </header>
+        <p id="error" hidden></p>
+        <main id="grid"></main>
+        <script type="module" src="reference.js"></script>
+    </body>
+</html>
