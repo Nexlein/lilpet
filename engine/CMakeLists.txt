@@ -11,8 +11,9 @@ add_library(lilpet_warnings INTERFACE)
 target_compile_options(lilpet_warnings INTERFACE ${LILPET_WARNINGS})
 
 if(EMSCRIPTEN)
-    # ES module exposing the C API to JavaScript (browser and Node): lilpet.mjs + lilpet.wasm
-    add_executable(lilpet_wasm ${LILPET_SOURCES})
+    # ES module exposing the C API to JavaScript (browser and Node): lilpet.mjs + lilpet.wasm.
+    # wasm/bindings.c exports the lpw_* functions (EMSCRIPTEN_KEEPALIVE); engine/wasm/engine.mjs wraps them.
+    add_executable(lilpet_wasm ${LILPET_SOURCES} wasm/bindings.c)
     target_include_directories(lilpet_wasm PRIVATE include)
     target_link_libraries(lilpet_wasm PRIVATE lilpet_warnings)
     set_target_properties(lilpet_wasm PROPERTIES OUTPUT_NAME lilpet SUFFIX ".mjs")
@@ -21,7 +22,7 @@ if(EMSCRIPTEN)
         -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createLilpet
         -sENVIRONMENT=web,node
         -sEXPORTED_FUNCTIONS=_lp_version
-        -sEXPORTED_RUNTIME_METHODS=UTF8ToString)
+        -sEXPORTED_RUNTIME_METHODS=UTF8ToString,HEAPU8)
     return()
 endif()
 

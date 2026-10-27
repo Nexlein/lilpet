@@ -10,7 +10,7 @@ ninja = "latest"
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
 [env]
-LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.c firmware/main/*.c"
+LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.c engine/wasm/*.[ch] firmware/main/*.c"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
