@@ -19,7 +19,8 @@ Projet strictement personnel, non commercial.
 - [x] Prototype des yeux dans le navigateur, figé comme référence de design → `prototype/`
 - [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
-- [ ] Choix final du matériel et commande → [notes/materiel.md](notes/materiel.md)
+- [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
+- [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`, créé le moment venu)
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
 - [ ] App PC pour changer les yeux et les animations

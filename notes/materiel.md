@@ -1,47 +1,166 @@
 # Matériel
 
-Statut : rien n'est commandé. Architecture proposée, pas encore validée.
+Statut : choix arrêté le 2026-10-27, rien n'est encore commandé. Prix et stocks relevés à cette date.
 
-## Architecture proposée : deux cartes reliées en UART
+## Architecture : deux cartes reliées en UART
 
-Aucune carte grand public ne combine un écran rond AMOLED et une caméra. On sépare donc les rôles.
+Aucune carte trouvée ne combine un écran rond AMOLED et une caméra (recherche d'octobre 2026 chez Waveshare, Spotpear,
+Seeed, LilyGO, M5Stack, Viewe et Tailor Pixels). On garde donc deux cartes :
 
-1. **Carte écran** : rendu des yeux et animations, accéléromètre, batterie.
-2. **Carte vision** : caméra, détection du visage et des gestes. Elle envoie des événements à la carte écran (`face_seen`, `thumbs_up`…).
+1. **Carte écran** : rendu des yeux et animations, batterie, bouton marche/arrêt.
+2. **Carte vision** : caméra, détection du visage et des gestes. Elle envoie des événements à la carte écran
+   (`face_seen`, `thumbs_up`…) par UART.
 
-Avantage : chaque puce garde toute sa puissance pour une seule tâche.
+Chaque puce garde toute sa puissance pour une seule tâche. Partager les deux sur une carte n'est pas possible : la carte
+écran n'a pas assez de broches libres pour une caméra (il en faut une douzaine).
 
-## Candidats
+## Carte écran : Waveshare ESP32-S3-Touch-AMOLED-1.32
 
-### Carte écran (Waveshare ESP32-S3 AMOLED, 466×466)
+Comparaison des trois cartes rondes AMOLED de Waveshare, toutes en 466×466 :
 
-| Carte                      | Points clés                                                                    | Lien                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| ESP32-S3-Touch-AMOLED-1.43 | IMU QMI8658, connecteur batterie, RTC, carte SD. **Favori pour un porte-clé.** | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.43.htm) |
-| ESP32-S3-Touch-AMOLED-1.32 | Micro, gestion d'alimentation, 8 Mo PSRAM                                      | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm) |
-| ESP32-S3-Touch-AMOLED-1.75 | Deux micros, IMU, AXP2101. Plus grand.                                         | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm) |
+| Carte                              | 1,32"                                    | 1,43" (favorite jusqu'ici)                       | 1,75"                                     |
+| ---------------------------------- | ---------------------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| Surface affichée                   | Ø33,75 mm                                | Ø36,75 mm                                        | Ø43,76 mm                                 |
+| Verre (taille extérieure)          | Ø36,4 mm                                 | Ø46 mm                                           | Ø48,96 mm                                 |
+| Épaisseur                          | 10 mm                                    | environ 10,2 mm                                  | 10,4 mm                                   |
+| Puce, flash, PSRAM                 | ESP32-S3-PICO-1-N8R8 : 8 Mo, 8 Mo        | ESP32-S3R8 : 16 Mo, 8 Mo                         | ESP32-S3R8 : 16 Mo, 8 Mo                  |
+| Capteurs, audio                    | Micro, codec ES8311, haut-parleur fourni | Accéléromètre QMI8658, horloge PCF85063, microSD | Accéléromètre, horloge, microSD, 2 micros |
+| Bouton marche/arrêt                | Oui                                      | Non (BOOT et RST seulement)                      | Oui                                       |
+| Signal TE de l'écran relié à l'ESP | Oui (GPIO9)                              | Non                                              | Oui (GPIO13)                              |
+| Prix sur waveshare.com             | 21,99 $                                  | 26,99 à 31,99 $                                  | 29,99 à 39,99 $                           |
 
-Prix à vérifier.
+Sources : 1,32" [page produit](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm),
+[plan coté](https://docs.waveshare.com/assets/images/ESP32-S3-Touch-AMOLED-1.32-ProductSize-1b4badf1cf52c297442bedbd100abfe5.webp),
+[tableau des broches](https://docs.waveshare.com/assets/images/ESP32-S3-Touch-AMOLED-1.32-IntfIntro-c23d0503601aa0db6533daedd2c49bd4.webp) ;
+1,43" [page produit](https://www.waveshare.com/esp32-s3-touch-amoled-1.43.htm),
+[plan coté](https://docs.waveshare.com/assets/images/600px-ESP32-S3-Touch-AMOLED-1.43-details-size-cba612bed3eb78da9bb8398e40e496c9.webp),
+[documentation](https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.43) ; 1,75"
+[page produit](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm),
+[plan coté](https://docs.waveshare.com/assets/images/ESP32-S3-Touch-AMOLED-1.75-details-size-75dc998071807f62c5915afad69d7e80.webp),
+[référence matérielle](https://raw.githubusercontent.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/main/HARDWARE_REFERENCE.md).
 
-### Carte vision
+Pourquoi la 1,32" (recommandation) :
 
-- **Seeed XIAO ESP32S3 Sense** : 13,99 $, 21×17,5×15 mm. ESP32-S3 avec 8 Mo PSRAM, caméra OV2640 (OV5640 compatible), micro, BLE 5.
-  Consommation de la caméra : environ 138 mA en continu, donc à mettre en veille intelligemment.
-  Sources : [Seeed](https://www.seeedstudio.com/XIAO-ESP32S3-Sense-p-5639.html), [CNX Software](https://www.cnx-software.com/2023/03/29/xiao-esp32s3-sense-camera-and-a-microphone-round-touchscreen-display/)
+- **La taille.** Même résolution, et seulement 3 mm de surface affichée en moins que la 1,43", mais 10 mm de moins en
+  diamètre extérieur : la 1,43" a une large bordure noire. Avec la caméra en façade, le galet reste vers 48-50 mm avec
+  la 1,32", contre au moins 55-58 mm avec la 1,43".
+- **Le signal TE** (début du rafraîchissement de l'écran) arrive sur une broche de l'ESP32 : on pourra envoyer les zones
+  modifiées au bon moment, sans déchirure de l'image.
+- **Le bouton marche/arrêt** sur batterie (`PWR_KEY` sur GPIO17, coupure batterie `BAT_EN` sur GPIO18).
+- **Le micro et le haut-parleur ne sont pas nécessaires au départ.** Le haut-parleur est une pièce à part : on ne le
+  branche pas. Le codec audio se coupe par logiciel (`Codec_EN` sur GPIO16). Le micro pourra servir plus tard à réagir
+  aux bruits, comme l'original (voir [recherche.md](recherche.md)).
 
-### Plan B : une seule carte, écran moins beau
+Ce qu'on perd :
 
-- XIAO ESP32S3 Sense + Round Display for XIAO (LCD tactile 1,28", 240×240, 18 $).
+- **L'accéléromètre**, utile pour réagir quand on secoue ou penche l'objet. Un petit module I2C pourra s'ajouter plus
+  tard sur le connecteur d'extension.
+- La microSD : inutile, les looks et les animations tiennent dans la flash.
+- 8 Mo de flash au lieu de 16 : largement assez pour le moteur et les données.
 
-### À ajouter
+À vérifier à la réception :
 
-- Petite LiPo
-- Vibreur
-- Capteur de température (ou celui de l'IMU)
-- Boîtier imprimé en 3D
+- **La puce de charge et son courant de charge** : non publiés. Il faut les connaître avant de choisir définitivement la
+  batterie (voir plus bas).
+- **Le brochage du connecteur d'extension SH1.0 12 broches** (câble fourni) : non publié en texte. D'après le tableau
+  des broches, GPIO43 et GPIO44 (l'UART) sont libres, ainsi que GPIO0 à 3, 5, 21 et 45.
+- Disponibilité : vendue sur waveshare.com, aucun revendeur européen trouvé. Frais de port et TVA à voir au panier.
 
-## Logiciel vision
+Les démos ESP-IDF de Waveshare pour cette carte utilisent le pilote `esp_lcd_sh8601` et une horloge QSPI de 40 MHz
+([démo LVGL 9](https://raw.githubusercontent.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)),
+l'hypothèse déjà prise dans [architecture.md](architecture.md).
 
-- Modèles Espressif `espressif/hand_detect` et `espressif/hand_gesture_recognition` (ESP-DL).
-  10 gestes : one, two, three, four, five, like, ok, no_gesture, call, dislike.
-- Le doigt d'honneur n'en fait pas partie : il faudra entraîner un modèle perso si on le veut.
+## Carte vision : Seeed XIAO ESP32S3 Sense
+
+- 21 × 17,8 × 15 mm avec sa carte caméra, ESP32-S3 avec 8 Mo de PSRAM et 8 Mo de flash, micro, chargeur de batterie
+  intégré ([wiki Seeed](https://github.com/Seeed-Studio/wiki-documents/blob/docusaurus-version/sites/en/docs/Sensor/SeeedStudio_XIAO/SeeedStudio_XIAO_ESP32S3/XIAO_ESP32S3_Getting_Started.md)).
+- **La caméra a changé** : l'OV2640 est arrêtée, la carte est livrée avec une OV3660 ou une OV5640 selon le stock
+  ([fiche technique, octobre 2026](https://files.seeedstudio.com/Bazaar/product_pdf/113991115.pdf)). Les deux
+  conviennent. Certains revendeurs affichent encore « OV2640 » dans le titre.
+- Consommation mesurée par Seeed sous 3,8 V : 43 mA au repos, 5 mA en veille légère, 3 mA en veille profonde, 155 mA en
+  moyenne en filmant ([wiki Seeed](https://github.com/Seeed-Studio/wiki-documents/blob/docusaurus-version/sites/en/docs/Sensor/SeeedStudio_XIAO/SeeedStudio_XIAO_ESP32S3/XIAO_ESP32S3_Getting_Started.md)).
+- UART : D6 (TX, GPIO43) et D7 (RX, GPIO44), libres même caméra active
+  ([brochage](https://www.espboards.dev/esp32/xiao-esp32s3-sense/)). À croiser avec GPIO44 et GPIO43 de la carte
+  écran.
+- La caméra est reliée à sa carte par une nappe : l'objectif peut être placé en façade, à côté de l'écran, comme sur
+  l'original. Longueur de la nappe à mesurer à la réception.
+
+Alternative écartée : M5Stack AtomS3R-CAM (24 × 24 × 13,5 mm, caméra 0,3 Mpx, pas de chargeur), caméra moins bonne
+et objectif fixé sur la carte ([documentation](https://docs.m5stack.com/en/core/AtomS3R%20Cam)).
+
+### Vision sur la puce
+
+Modèles Espressif ESP-DL, temps mesurés par Espressif sur ESP32-S3 :
+
+| Modèle                                                                                                     | Entrée  | Temps par image |
+| ---------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| [human_face_detect](https://components.espressif.com/components/espressif/human_face_detect) (MSR + MNP)   | 120×160 | 36,5 + 6,6 ms   |
+| [hand_detect](https://components.espressif.com/components/espressif/hand_detect)                           | 224×224 | 128,6 ms        |
+| [hand_gesture_recognition](https://components.espressif.com/components/espressif/hand_gesture_recognition) | 128×128 | 73,9 ms         |
+
+Calcul (non publié) : environ 20 détections de visage par seconde au plus, et environ 5 gestes par seconde si on cherche
+la main puis le geste à chaque image. Assez pour des réactions.
+
+10 gestes reconnus : one, two, three, four, five, like, ok, no_gesture, call, dislike
+([exemple ESP-DL](https://github.com/espressif/esp-dl/blob/master/examples/hand_gesture_recognition/README.md)). Le
+doigt d'honneur n'en fait pas partie : il faudra entraîner un modèle perso si on le veut.
+
+## Batterie
+
+- **LiPo 1S 3,7 V avec circuit de protection, fiche 1,25 mm 2 broches (MX1.25)**, le connecteur de la carte écran. Les
+  batteries Adafruit (JST-PH 2 mm) ne rentrent pas. **La polarité varie selon les vendeurs : la vérifier au multimètre
+  avant de brancher.**
+- Taille conseillée : **602030** (300 mAh, 30 × 20 × 6 mm), qui tient derrière l'écran
+  ([Ampul](https://ampul.eu/en/battery/4156-li-pol-battery-300mah-37v-602030), 6,82 € TTC ;
+  [Amazon.fr](https://www.amazon.fr/602030-Liter-Rechargeable-thermistance-Radiocommande/dp/B0CY8NS7ZM)). Plus petite
+  si le boîtier manque de place : 502030 (250 mAh, 5 mm d'épaisseur).
+- Charger à 1C au plus, donc 300 mA pour 300 mAh ([guide Adafruit](https://cdn-learn.adafruit.com/downloads/pdf/li-ion-and-lipoly-batteries.pdf)).
+  Le courant de charge de la carte n'est pas publié : à vérifier avant d'y laisser la batterie en charge.
+- Une seule batterie, un seul chargeur (celui de la carte écran) : ne pas relier aussi la batterie au chargeur de la
+  carte vision. L'alimentation de la carte vision (3,3 V de la carte écran ou directement la batterie) sera choisie au
+  montage, selon ce que le régulateur de la carte écran peut fournir (la caméra monte à 366 mA en pointe).
+- Ne pas percer ni écraser la batterie ; lui laisser un peu de marge dans le boîtier.
+
+**Autonomie estimée : courte.** Estimation grossière, avec 60 mA supposés pour l'écran (non mesuré, yeux sur fond
+noir) :
+
+- environ 2 h avec 300 mAh si la caméra analyse souvent ;
+- environ 3,5 h si la carte vision dort la plupart du temps.
+
+Pour comparaison, Waveshare annonce environ 1 h à pleine luminosité et 3 à 4 h écran éteint avec 400 mAh sur sa carte
+1,8" ([wiki](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.8)). Ce sera un point à travailler dans le
+firmware : veille de la caméra, luminosité, mise en veille quand personne ne regarde. À mesurer dès la réception.
+
+## Encombrement
+
+Écran 10 mm + carte vision jusqu'à 15 mm + batterie 6 mm, plus les parois : environ 30 mm d'épaisseur si tout est
+empilé, moins si la caméra est déportée en façade par sa nappe et la carte vision couchée à côté de la batterie. Le
+boîtier se dessinera une fois les pièces reçues et mesurées.
+
+## Liste à commander
+
+À commander maintenant (environ 60 à 80 € avec les frais de port, estimation) :
+
+| Article                                                                                   | Qté   | Où                                                                                                                                                                                  | Prix indicatif        |
+| ----------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Waveshare ESP32-S3-Touch-AMOLED-1.32 (livrée avec haut-parleur et câble SH1.0 12 broches) | 1     | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm)                                                                                                           | 21,99 $ + port et TVA |
+| Seeed XIAO ESP32S3 Sense                                                                  | 1     | [Reichelt](https://www.reichelt.com/de/en/shop/product/xiao_esp32s3_sense_wifi_bt_camera_ov3660_without_header-358353) (en stock, OV3660)                                           | 15,40 € TTC           |
+| LiPo 602030 300 mAh avec protection, fiche 1,25 mm 2 broches (sinon souder un câble)      | 1     | [Amazon.fr](https://www.amazon.fr/602030-Liter-Rechargeable-thermistance-Radiocommande/dp/B0CY8NS7ZM) ou [Ampul](https://ampul.eu/en/battery/4156-li-pol-battery-300mah-37v-602030) | environ 7 €           |
+| Câbles avec fiche 1,25 mm 2 broches (MX1.25 / PicoBlade, pas JST-SH 1 mm)                 | 1 lot | [Amazon.fr](https://www.amazon.fr/YIXISI-Connecteur-Broches-Femelle-Adaptateur/dp/B08JV96C4N)                                                                                       | environ 8-10 €        |
+
+Plus tard, avec le boîtier :
+
+- Vibreur pastille 10 mm 3 V ([Gotronic](https://www.gotronic.fr/cat-vibreurs-1932.htm), environ 1,30 €) avec un
+  transistor NPN (PN2222) ou un MOSFET, une diode de roue libre et une résistance : le moteur tire 60 à 120 mA, trop pour
+  une broche de l'ESP32 ([Adafruit](https://www.adafruit.com/product/1201)).
+- Petit module accéléromètre I2C, si on veut réagir aux secousses.
+- Anneau de porte-clé et chaînette.
+- Boîtier imprimé en 3D.
+
+Outils, si tu ne les as pas : fer à souder à panne fine, multimètre (polarité de la batterie, courant de charge), câble
+USB-C qui transmet les données.
+
+## Alternative si on veut un écran plus grand
+
+La 1,43" reste possible avec un galet d'au moins 55-58 mm. Elle apporte l'accéléromètre, l'horloge et la microSD, mais
+pas de bouton marche/arrêt ni de signal TE relié. Le moteur ne change pas (même résolution).
