@@ -67,7 +67,10 @@ Planches : [vue d'ensemble](../references/eyes-gallery-overview.png), [clignemen
 
 1. **Anticipation** (1-2 images) : l'œil s'élargit un peu et le haut s'aplatit.
 2. **Fermeture rapide** (2-3 images, environ 80-110 ms) : une paupière droite descend du haut, inclinée comme la tête. Les pupilles ne bougent pas : elles sont simplement recouvertes. L'œil devient une demi-lune, puis un croissant.
-3. **Fermé** (2-8 images, environ 75-300 ms) : un **fin trait courbe** (environ 3 px, couleur de l'œil) qui suit le bas de l'œil, comme un sourire.
+3. **Fermé** (2-8 images, environ 75-300 ms) : un **fin trait** couleur de l'œil, à plat, en forme de bas d'ellipse
+   aplatie : fond plat, bouts qui remontent, épaisseur régulière et bouts arrondis. Mesures sur 7 images (fraction du
+   diamètre de l'écran D) : largeur 0,31-0,34 D, hauteur 0,060-0,066 D, épaisseur 0,009-0,011 D, point le plus bas
+   0,164 D sous le centre de l'écran (environ 70 % de la hauteur de l'œil).
 4. **Ouverture plus lente** (4-6 images, environ 150-220 ms) : la paupière remonte.
 5. Le clignement sert souvent à **masquer un grand changement de regard ou de tête** : les yeux se ferment dans une pose et se rouvrent dans une autre.
 
