@@ -15,10 +15,13 @@
         "check:vectors": "node scripts/gen-engine-vectors.mjs --check",
         "vectors": "node scripts/gen-engine-vectors.mjs",
         "test:parity": "playwright test",
-        "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors"
+        "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors",
+        "prepare": "husky"
     },
     "devDependencies": {
         "@playwright/test": "^1.64.1",
+        "husky": "^9.1.7",
+        "lint-staged": "^17.6.0",
         "oxlint": "^1.89.0",
         "prettier": "^3.9.10"
     }
