@@ -149,23 +149,23 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
 
 ## Liste à commander
 
-Prix relevés le 2026-10-27, TTC, livraison en France. Recommandation : **AliExpress pour les deux cartes** (boutique de
-Seeed et revendeur agréé Waveshare, port gratuit, TVA incluse), **Amazon.fr pour la batterie et les câbles** (expédiés
-par Amazon, livrés en deux ou trois jours).
+Prix relevés les 27 et 28 octobre 2026, TTC, livraison en France. Le moins cher : **AliExpress pour les deux cartes et
+les câbles** (boutique de Seeed et revendeur agréé Waveshare, TVA incluse), **Amazon.fr pour la batterie** (expédiée par
+Amazon, livrée en deux jours ; sur AliExpress elle revient plus cher avec le port et arrive deux semaines plus tard).
 
-| Article                                                                            | Où                                                                                                            | Prix                 | Livraison    |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- | ------------ |
-| Waveshare ESP32-S3-Touch-AMOLED-1.32                                               | [AliExpress, FireChip Hardware Store](https://fr.aliexpress.com/item/1005012964258234.html) (revendeur agréé) | 22,19 € port compris | 4 au 11 nov. |
-| Seeed XIAO ESP32S3 Sense (caméra OV3660)                                           | [AliExpress, Seeedstudio AI Hardware Store](https://fr.aliexpress.com/item/1005006988111963.html)             | 16,83 € port compris | 4 au 11 nov. |
-| LiPo 602030 300 mAh, fiche 1,25 mm 2 broches, protection contre la surcharge       | [Amazon.fr](https://www.amazon.fr/dp/B0H32T667J) (vendu par mishao, expédié par Amazon)                       | 8,90 €               | 31 oct.      |
-| 25 paires de câbles à fiche 1,25 mm 2 broches, pour inverser la polarité si besoin | [Amazon.fr](https://www.amazon.fr/dp/B08JV96C4N)                                                              | 7,99 €               | 30 oct.      |
+| Article                                                                         | Où                                                                                                            | Prix                 | Livraison    |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- | ------------ |
+| Waveshare ESP32-S3-Touch-AMOLED-1.32                                            | [AliExpress, FireChip Hardware Store](https://fr.aliexpress.com/item/1005012964258234.html) (revendeur agréé) | 22,19 € port compris | 4 au 11 nov. |
+| Seeed XIAO ESP32S3 Sense (caméra OV3660)                                        | [AliExpress, Seeedstudio AI Hardware Store](https://fr.aliexpress.com/item/1005006988111963.html)             | 16,83 € port compris | 4 au 11 nov. |
+| LiPo 602030 300 mAh, fiche 1,25 mm 2 broches, protection contre la surcharge    | [Amazon.fr](https://www.amazon.fr/dp/B0H32T667J) (vendu par mishao, expédié par Amazon)                       | 8,90 €               | 31 oct.      |
+| 10 rallonges à fiche 1,25 mm (variante 2P), pour inverser la polarité si besoin | [AliExpress](https://fr.aliexpress.com/item/1005008976200506.html)                                            | environ 2,16 €       | non relevée  |
 
-Total : 55,91 € (47,92 € sans les câbles). À vérifier au paiement :
+Total : environ 50,08 € (47,92 € sans les câbles). À vérifier au paiement :
 
 - Depuis le 1er juillet 2026, un droit de douane forfaitaire de 3 € s'applique aux colis venant de hors UE sous 150 €
   ([Conseil de l'UE](https://www.consilium.europa.eu/en/press/press-releases/2025/12/12/customs-council-agrees-to-levy-customs-duty-on-small-parcels-as-of-1-july-2026/)).
-  AliExpress l'affiche au paiement (« des frais d'importation s'appliquent aux envois hors UE ») : jusqu'à 6 € de
-  plus pour deux vendeurs.
+  AliExpress l'affiche au paiement (« des frais d'importation s'appliquent aux envois hors UE ») : jusqu'à 9 € de
+  plus pour trois vendeurs, chacun envoyant son colis. Le vrai total se lit dans le panier, avant de payer.
 - Amazon offre la livraison sur la première commande ; sinon des frais peuvent s'ajouter (non vérifié).
 - **La polarité de la batterie** n'est pas standard sur ces fiches : la vérifier au multimètre avant de la brancher.
 
@@ -173,6 +173,7 @@ Autres options comparées le même jour :
 
 | Option                                | Total estimé                  | Remarques                                                                                                                                                  |
 | ------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tout sur AliExpress                   | environ 54,15 €               | Batterie 9,19 € + 3,78 € de port, livrée du 11 au 20 nov. ([annonce](https://fr.aliexpress.com/item/1005012369515535.html))                                |
 | Tout sur Amazon.fr                    | 74,79 € (82,78 € avec câbles) | Écran 32,99 € ([vendu par Waveshare](https://www.amazon.fr/dp/B0G141GV48), 5 au 14 nov.), caméra 32,90 €                                                   |
 | waveshare.com + Reichelt              | 55 à 65 €                     | Port, TVA et douane de Waveshare connus seulement au panier ; 1 à 3 semaines ([expédition](https://www.waveshare.com/shipping))                            |
 | Eckstein (Allemagne), les deux cartes | 46,94 € + port                | Stock incertain pour les deux, caméra annoncée en OV2640 ([écran](https://eckstein-shop.de/esp32-s3-touch-amoled-132-development-board_1))                 |
