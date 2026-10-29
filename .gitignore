@@ -8,7 +8,11 @@ node_modules/
 
 # editor directories and files
 .idea
-.vscode
+# Editor: share debug configs and recommended extensions, keep personal settings local
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 *.sw?
 
 # Claude Code: personal settings stay local

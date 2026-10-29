@@ -1,0 +1,25 @@
+{
+    // F5 rebuilds the engine (host-debug) and runs it under CodeLLDB.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Engine: tests",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/engine/build/host-debug/lilpet_tests",
+            "cwd": "${workspaceFolder}/engine",
+            // host-debug is built with AddressSanitizer; LeakSanitizer cannot run under a debugger
+            "env": { "ASAN_OPTIONS": "detect_leaks=0" },
+            "preLaunchTask": "engine: build debug"
+        },
+        {
+            "name": "Engine: benchmark",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/engine/build/host-debug/lilpet_bench",
+            "cwd": "${workspaceFolder}/engine",
+            "env": { "ASAN_OPTIONS": "detect_leaks=0" },
+            "preLaunchTask": "engine: build debug"
+        }
+    ]
+}
