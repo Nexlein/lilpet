@@ -1,0 +1,14 @@
+{
+    // Builds the engine with debug info, same preset as `mise run engine:test`.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "engine: build debug",
+            "type": "shell",
+            "command": "mise exec -- cmake --build --preset host-debug",
+            "options": { "cwd": "${workspaceFolder}/engine" },
+            "problemMatcher": ["$gcc"],
+            "group": "build"
+        }
+    ]
+}
