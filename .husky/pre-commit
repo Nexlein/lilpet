@@ -1,1 +1,2 @@
+sh .husky/no-secrets.sh
 npx lint-staged
