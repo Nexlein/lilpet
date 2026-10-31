@@ -19,10 +19,13 @@ reference until the engine takes over each feature.
 - `prototype/` — design reference, ES modules, canvas 466×466 (the target round AMOLED):
     - `eyes.js` — renderer class `Eyes`: state, animation, drawing, seeded PRNG (mulberry32). No DOM access, so Node
       can import it (`scripts/validate-data.mjs` does).
-    - `ui.js` + `index.html` — interactive page. `window.eyes` exposes the renderer for console debugging.
+    - `ui.js` + `index.html` — interactive page. The "Rendu" switch shows the prototype, the C engine (WebAssembly)
+      or both side by side, driven by the same inputs; side by side they advance in fixed 1/64 s steps to stay in sync.
+      `window.eyes` exposes the prototype renderer for console debugging, `window.live` the hooks of
+      `tests/live.spec.mjs`, which fails CI when the two drift apart while animating.
     - `scenes.json` + `reference.html`/`reference.js` — frozen reference scenes (look, emotion, blink phase, head,
       gaze, seeded particles), rendered side by side by the prototype and the C engine (WebAssembly), with a score
-      per scene. Tolerances in `PARITY` (reference.js). `tests/parity.spec.mjs` (Playwright) fails CI when a scene
+      per scene. Tolerances and comparison in `parity.js`. `tests/parity.spec.mjs` (Playwright) fails CI when a scene
       is out of tolerance.
 - `engine/` — C17 eye engine. State and animation: `src/eyes.c` (emotions, gaze, head, blink, particles), `src/pose.c`
   (blink pose, eye pose on the 3D head), `src/rng.c` (mulberry32). Rendering: `src/render.c` builds each eye's geometry
@@ -59,8 +62,8 @@ reference until the engine takes over each feature.
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
 - `npm run check` — Prettier check, oxlint, data validation. Same as CI (`.github/workflows/ci.yml`).
 - `npm run format` / `npm run lint:fix` — auto-fix.
-- `npm run test:parity` — Playwright parity test (needs `mise run engine:wasm` first; first time:
-  `npx playwright install --only-shell chromium`).
+- `npm run test:parity` — Playwright parity tests, reference scenes and live side by side (needs
+  `mise run engine:wasm` first; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
