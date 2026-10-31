@@ -149,36 +149,40 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
 
 ## Liste à commander
 
-Prix relevés les 27 et 28 octobre 2026, TTC, livraison en France. Le moins cher : **AliExpress pour les deux cartes et
-les câbles** (boutique de Seeed et revendeur agréé Waveshare, TVA incluse), **Amazon.fr pour la batterie** (expédiée par
-Amazon, livrée en deux jours ; sur AliExpress elle revient plus cher avec le port et arrive deux semaines plus tard).
+Plan retenu le 2026-10-31, prix TTC, livraison en France. Le principe : **éviter les colis venant de hors UE**. Depuis le
+1er juillet 2026, l'UE prend 3 € de droit de douane par catégorie d'article, et 2 € de frais de traitement s'y ajoutent
+à partir du 1er novembre 2026
+([douane.gouv.fr](https://www.douane.gouv.fr/petits-colis-ce-qui-change-pour-vos-achats-en-ligne)). Sur AliExpress, cela
+faisait environ 6 € par article : 30,28 € de frais d'import pour un panier de cinq articles à 43,87 €.
 
-| Article                                                                         | Où                                                                                                            | Prix                 | Livraison    |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- | ------------ |
-| Waveshare ESP32-S3-Touch-AMOLED-1.32                                            | [AliExpress, FireChip Hardware Store](https://fr.aliexpress.com/item/1005012964258234.html) (revendeur agréé) | 22,19 € port compris | 4 au 11 nov. |
-| Seeed XIAO ESP32S3 Sense (caméra OV3660)                                        | [AliExpress, Seeedstudio AI Hardware Store](https://fr.aliexpress.com/item/1005006988111963.html)             | 16,83 € port compris | 4 au 11 nov. |
-| LiPo 602030 300 mAh, fiche 1,25 mm 2 broches, protection contre la surcharge    | [Amazon.fr](https://www.amazon.fr/dp/B0H32T667J) (vendu par mishao, expédié par Amazon)                       | 8,90 €               | 31 oct.      |
-| 10 rallonges à fiche 1,25 mm (variante 2P), pour inverser la polarité si besoin | [AliExpress](https://fr.aliexpress.com/item/1005008976200506.html)                                            | environ 2,16 €       | non relevée  |
+| Où       | Article                                                                                                                                   | Prix       |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Amazon   | [Waveshare ESP32-S3-Touch-AMOLED-1.32](https://www.amazon.fr/dp/B0G141GV48) (vendu par Waveshare, expédié par Amazon depuis l'UE)         | 32,99 €    |
+| Amazon   | [LiPo 602030 300 mAh, fiche 1,25 mm 2 broches, protection contre la surcharge](https://www.amazon.fr/dp/B0H32T667J) (expédiée par Amazon) | 8,90 €     |
+| Gotronic | [Seeed XIAO ESP32S3 Sense, caméra OV3660](https://www.gotronic.fr/art-carte-xiao-esp32s3-sense-37063.htm)                                 | 16,90 €    |
+| Gotronic | [Cordon PicoBlade 2 contacts 1,25 mm vers fils nus](https://www.gotronic.fr/art-cordon-picoblade-2-cts-1-25-mm-mx3922-35629.htm)          | 2 × 1,50 € |
+| Gotronic | Livraison en point relais                                                                                                                 | 4,50 €     |
 
-Total : environ 50,08 € (47,92 € sans les câbles). À vérifier au paiement :
+Total : **66,29 €** (Amazon 41,89 €, livré gratuitement avec Prime ; Gotronic 24,40 €). La XIAO revient en stock chez
+Gotronic vers le 10 novembre : le colis Gotronic partira à ce moment-là.
 
-- Depuis le 1er juillet 2026, un droit de douane forfaitaire de 3 € s'applique aux colis venant de hors UE sous 150 €
-  ([Conseil de l'UE](https://www.consilium.europa.eu/en/press/press-releases/2025/12/12/customs-council-agrees-to-levy-customs-duty-on-small-parcels-as-of-1-july-2026/)).
-  AliExpress l'affiche au paiement (« des frais d'importation s'appliquent aux envois hors UE ») : jusqu'à 9 € de
-  plus pour trois vendeurs, chacun envoyant son colis. Le vrai total se lit dans le panier, avant de payer.
-- Amazon offre la livraison sur la première commande ; sinon des frais peuvent s'ajouter (non vérifié).
+- Les cordons PicoBlade se branchent sur la fiche batterie de la carte écran (MX1.25 = Molex PicoBlade). Ils servent à
+  corriger la polarité de la batterie si elle est inversée, et leurs fils à relier les deux cartes.
+- Déjà en ma possession : fer à souder, multimètre, câble USB-C qui transmet les données.
 - **La polarité de la batterie** n'est pas standard sur ces fiches : la vérifier au multimètre avant de la brancher.
 
-Autres options comparées le même jour :
+Options écartées, relevées du 27 au 31 octobre :
 
-| Option                                | Total estimé                  | Remarques                                                                                                                                                  |
-| ------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tout sur AliExpress                   | environ 54,15 €               | Batterie 9,19 € + 3,78 € de port, livrée du 11 au 20 nov. ([annonce](https://fr.aliexpress.com/item/1005012369515535.html))                                |
-| Tout sur Amazon.fr                    | 74,79 € (82,78 € avec câbles) | Écran 32,99 € ([vendu par Waveshare](https://www.amazon.fr/dp/B0G141GV48), 5 au 14 nov.), caméra 32,90 €                                                   |
-| waveshare.com + Reichelt              | 55 à 65 €                     | Port, TVA et douane de Waveshare connus seulement au panier ; 1 à 3 semaines ([expédition](https://www.waveshare.com/shipping))                            |
-| Eckstein (Allemagne), les deux cartes | 46,94 € + port                | Stock incertain pour les deux, caméra annoncée en OV2640 ([écran](https://eckstein-shop.de/esp32-s3-touch-amoled-132-development-board_1))                 |
-| Opencircuit (Pays-Bas) + Gotronic     | 57 à 58 €                     | Pas de douane ; écran disponible le 11 nov., caméra de retour vers le 30 oct. ([Gotronic](https://www.gotronic.fr/art-carte-xiao-esp32s3-sense-37063.htm)) |
-| DigiKey, Mouser ou Farnell (caméra)   | 14,50 à 15 € + port           | Port de 12 à 25 € sous 75 € de commande : intéressant seulement avec d'autres achats                                                                       |
+| Option                                                      | Total                            | Pourquoi                                                                                                                     |
+| ----------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Écran, caméra et câbles sur AliExpress, batterie sur Amazon | 88,65 €                          | 12,33 € de port et 24,04 € de frais d'import nets (30,28 €, dont 6,24 € pris en charge par AliExpress)                       |
+| Tout sur Amazon                                             | 82,78 €                          | Caméra à 32,90 € et câbles à 7,99 €                                                                                          |
+| Écran sur AliExpress au lieu d'Amazon                       | environ 67 €                     | [22,19 €](https://fr.aliexpress.com/item/1005012964258234.html) + 5,59 € de port + environ 6 € de frais d'import ; plus lent |
+| AliExpress, articles expédiés depuis l'UE                   | -                                | Pas d'écran 1,32" ; XIAO à 29,99 €                                                                                           |
+| Temu                                                        | -                                | Mêmes frais pour les colis venus de Chine, pas de boutique officielle pour ces cartes                                        |
+| Eckstein (Allemagne), Opencircuit (Pays-Bas) pour l'écran   | -                                | En rupture chez Eckstein ; 32,50 € + port chez Opencircuit, disponible le 11 novembre                                        |
+| waveshare.com + Reichelt                                    | 55 à 65 € avant frais d'import   | Port, TVA et frais de Waveshare connus seulement au panier ([expédition](https://www.waveshare.com/shipping))                |
+| DigiKey, Mouser ou Farnell pour la caméra                   | 14,50 à 15 € + 12 à 25 € de port | Intéressant seulement avec d'autres achats                                                                                   |
 
 Plus tard, avec le boîtier :
 
