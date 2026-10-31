@@ -1,6 +1,7 @@
 // Checks the data files the renderers read:
-// - eyes/looks.json: required fields, hex colors, known pupil types, unique ids
-// - prototype/scenes.json: unique ids, known looks and emotions, valid blink, head, gaze and particle fields
+// - eyes/looks.json: swatches with unique ids and hex colors
+// - prototype/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
+//   fields
 // Usage: node scripts/validate-data.mjs
 import { readFileSync } from 'node:fs';
 import { BLINK_PHASES, EMOTIONS, PUPIL_TYPES } from '../prototype/eyes.js';
@@ -37,19 +38,19 @@ function eachItem(path, list, name, check) {
 
 const LOOKS = 'eyes/looks.json';
 const looks = load(LOOKS);
-eachItem(LOOKS, looks?.looks, 'looks', (look, fail) => {
-    if (!HEX.test(look.sclera ?? '')) fail('"sclera" must be a #RRGGBB color');
-    if (!PUPIL_TYPES.includes(look.pupil)) fail(`"pupil" must be one of ${PUPIL_TYPES.join(', ')}`);
-    if (!Array.isArray(look.pupilColor) || look.pupilColor.length !== 2 || !look.pupilColor.every((c) => HEX.test(c)))
+eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
+    if (!HEX.test(swatch.sclera ?? '')) fail('"sclera" must be a #RRGGBB color');
+    const colors = swatch.pupilColor;
+    if (!Array.isArray(colors) || colors.length !== 2 || !colors.every((c) => HEX.test(c)))
         fail('"pupilColor" must be [left, right] #RRGGBB colors');
-    if (typeof look.highlight !== 'boolean') fail('"highlight" must be true or false');
 });
 
 const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);
-const lookIds = new Set((looks?.looks ?? []).map((l) => l.id));
+const swatchIds = new Set((looks?.swatches ?? []).map((s) => s.id));
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
-    if (!lookIds.has(scene.look)) fail(`"look" must be a look id from ${LOOKS}`);
+    if (!swatchIds.has(scene.swatch)) fail(`"swatch" must be a swatch id from ${LOOKS}`);
+    if (!PUPIL_TYPES.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPIL_TYPES.join(', ')}`);
     const emotion = scene.emotion ?? 'neutral';
     if (!(emotion in EMOTIONS)) fail(`"emotion" must be one of ${Object.keys(EMOTIONS).join(', ')}`);
     if (scene.blink !== undefined) {
@@ -74,4 +75,4 @@ if (errors.length) {
     console.error(`${errors.length} data error(s)\n- ${errors.join('\n- ')}`);
     process.exit(1);
 }
-console.log(`${LOOKS}: ${looks.looks.length} looks OK, ${SCENES}: ${scenes.scenes.length} scenes OK`);
+console.log(`${LOOKS}: ${looks.swatches.length} swatches OK, ${SCENES}: ${scenes.scenes.length} scenes OK`);

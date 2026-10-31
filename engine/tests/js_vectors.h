@@ -145,56 +145,46 @@ static const lpv_scenario LPV_SCENARIOS[5] = {
     {"sleepy", 9u, LP_EMOTION_SLEEPY, 0.0f, 0, false, 0.0f, 0.0f, 640, 64, 56, 10},
 };
 
-static const lp_look LPV_LOOKS[12] = {
-    {0xFF1A1Au, LP_PUPIL_DOT, {0x2B4CFFu, 0x2B4CFFu}, false}, /* cherry */
-    {0xEDF57Au, LP_PUPIL_DOT, {0xD0302Bu, 0x2B6BFFu}, false}, /* lemon */
-    {0x1EB4DCu, LP_PUPIL_DOT, {0xF2E94Eu, 0xF2E94Eu}, false}, /* lagoon */
-    {0x8C7CF5u, LP_PUPIL_DOT, {0xFFFFFFu, 0xFFFFFFu}, false}, /* lilac */
-    {0xF5F1E8u, LP_PUPIL_SLIT, {0xE5121Au, 0xE5121Au}, false}, /* snow */
-    {0xE51A1Au, LP_PUPIL_SLIT, {0xFFFFFFu, 0xFFFFFFu}, false}, /* ember */
-    {0x46D21Eu, LP_PUPIL_SLIT, {0x0E2A0Au, 0x0E2A0Au}, false}, /* lime */
-    {0x6EF2CFu, LP_PUPIL_ACORN, {0x167358u, 0x167358u}, false}, /* mint */
-    {0x1E5AF0u, LP_PUPIL_ACORN, {0xF24BB5u, 0xF24BB5u}, false}, /* azure */
-    {0x6F96F2u, LP_PUPIL_ACORN, {0x1E3CA0u, 0x1E3CA0u}, false}, /* sky */
-    {0x2BE01Eu, LP_PUPIL_ROUND, {0x0A2E0Au, 0x0A2E0Au}, true}, /* acid */
-    {0x8C8A1Eu, LP_PUPIL_ROUND, {0x2B4CC8u, 0x2B4CC8u}, true}, /* olive */
+static const lp_look LPV_LOOKS[8] = {
+    {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}}, /* cherry dot */
+    {0xEAF66Eu, LP_PUPIL_DOT, {0xBB240Au, 0x0964E7u}}, /* popcorn dot */
+    {0xFFFFFFu, LP_PUPIL_CAT, {0xFF0000u, 0xFF0000u}}, /* laser cat */
+    {0x7B8401u, LP_PUPIL_CIRCLE, {0x0737A7u, 0x0737A7u}}, /* mallard circle */
+    {0xF442E7u, LP_PUPIL_CIRCLE, {0xFFFFFFu, 0xFFFFFFu}}, /* bubblegum circle */
+    {0x6FF5D0u, LP_PUPIL_ACORN, {0x106E54u, 0x106E54u}}, /* terrarium acorn */
+    {0x6C92F8u, LP_PUPIL_ACORN, {0x102A6Eu, 0x102A6Eu}}, /* denim acorn */
+    {0x14ABD6u, LP_PUPIL_DOT, {0xEEFA24u, 0xEEFA24u}}, /* buoy dot */
 };
 
 typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;
-static const lpv_scene LPV_SCENES[33] = {
+static const lpv_scene LPV_SCENES[27] = {
     {"look-cherry", 0, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-lemon", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-lagoon", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-lilac", 3, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-snow", 4, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-ember", 5, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-lime", 6, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-mint", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-azure", 8, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-sky", 9, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-acid", 10, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"look-olive", 11, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"emotion-happy", 9, {LP_EMOTION_HAPPY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 1u, 2.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.42f, 0.0f, 1.08f, LP_BLINK_NONE, 1, 196.731558f, 379.572042f, LP_EMOTION_HAPPY}},
-    {"emotion-love", 9, {LP_EMOTION_LOVE, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 1u, 2.0f}, {0.0f, 0.0f, -0.45f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.45f, -0.45f, 1.1f, LP_BLINK_NONE, 6, 1469.76856f, 2342.20328f, LP_EMOTION_LOVE}},
-    {"emotion-angry", 9, {LP_EMOTION_ANGRY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.0f, 0.15f, 0.6f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_ANGRY}},
-    {"emotion-squint", 9, {LP_EMOTION_SQUINT, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.12f, 0.0f, 0.0f, 0.8f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SQUINT}},
-    {"emotion-frown", 9, {LP_EMOTION_FROWN, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.8f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_FROWN}},
-    {"emotion-sad", 9, {LP_EMOTION_SAD, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.45f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.45f, 1.15f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SAD}},
-    {"emotion-surprised", 9, {LP_EMOTION_SURPRISED, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.6f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SURPRISED}},
-    {"emotion-sleepy", 9, {LP_EMOTION_SLEEPY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 3u, 4.0f}, {0.0f, 0.0f, 0.35f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.55f, 0.05f, 0.35f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SLEEPY}},
+    {"look-popcorn", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"look-laser", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"look-mallard", 3, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"look-bubblegum", 4, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"look-terrarium", 5, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"emotion-happy", 6, {LP_EMOTION_HAPPY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 1u, 2.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.42f, 0.0f, 1.08f, LP_BLINK_NONE, 1, 196.731558f, 379.572042f, LP_EMOTION_HAPPY}},
+    {"emotion-love", 6, {LP_EMOTION_LOVE, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 1u, 2.0f}, {0.0f, 0.0f, -0.45f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.45f, -0.45f, 1.1f, LP_BLINK_NONE, 6, 1469.76856f, 2342.20328f, LP_EMOTION_LOVE}},
+    {"emotion-angry", 6, {LP_EMOTION_ANGRY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.0f, 0.15f, 0.6f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_ANGRY}},
+    {"emotion-squint", 6, {LP_EMOTION_SQUINT, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.12f, 0.0f, 0.0f, 0.8f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SQUINT}},
+    {"emotion-frown", 6, {LP_EMOTION_FROWN, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.8f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_FROWN}},
+    {"emotion-sad", 6, {LP_EMOTION_SAD, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.45f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.45f, 1.15f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SAD}},
+    {"emotion-surprised", 6, {LP_EMOTION_SURPRISED, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.6f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SURPRISED}},
+    {"emotion-sleepy", 6, {LP_EMOTION_SLEEPY, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, 3u, 4.0f}, {0.0f, 0.0f, 0.35f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.55f, 0.05f, 0.35f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_SLEEPY}},
     {"blink-anticip", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_ANTICIP, 0.06f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_ANTICIP, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"blink-close-40", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSE, 0.04f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"blink-close-80", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSE, 0.08f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"blink-closed", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSED, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSED, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"blink-open-40", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_OPEN, 0.04f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_OPEN, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"blink-open-100", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_OPEN, 0.1f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_OPEN, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"head-turn-right", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.33f, 0.0f, -0.13f, 0.6f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.6f, 0.0f, 0.6f, 0.0f, 0.33f, 0.0f, -0.13f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"head-turn-left", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, -0.33f, 0.0f, 0.13f, -0.6f, 0.0f, false, 0u, 0.0f}, {0.0f, -0.6f, 0.0f, -0.6f, 0.0f, -0.33f, 0.0f, 0.13f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"head-look-up", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, -0.25f, 0.0f, 0.0f, -0.6f, false, 0u, 0.0f}, {0.0f, 0.0f, -0.6f, 0.0f, -0.6f, 0.0f, -0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"head-up-left-tilted", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, -0.3f, -0.2f, 0.25f, -0.5f, -0.5f, false, 0u, 0.0f}, {0.0f, -0.5f, -0.5f, -0.5f, -0.5f, -0.3f, -0.2f, 0.25f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"head-closed-tilted", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSED, 0.05f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSED, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"head-turn-right", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.33f, 0.0f, -0.13f, 0.6f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.6f, 0.0f, 0.6f, 0.0f, 0.33f, 0.0f, -0.13f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"head-turn-left", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, -0.33f, 0.0f, 0.13f, -0.6f, 0.0f, false, 0u, 0.0f}, {0.0f, -0.6f, 0.0f, -0.6f, 0.0f, -0.33f, 0.0f, 0.13f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"head-look-up", 7, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, -0.25f, 0.0f, 0.0f, -0.6f, false, 0u, 0.0f}, {0.0f, 0.0f, -0.6f, 0.0f, -0.6f, 0.0f, -0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"head-up-left-tilted", 5, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, -0.3f, -0.2f, 0.25f, -0.5f, -0.5f, false, 0u, 0.0f}, {0.0f, -0.5f, -0.5f, -0.5f, -0.5f, -0.3f, -0.2f, 0.25f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"head-closed-tilted", 5, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSED, 0.05f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSED, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"gaze-down-right", 0, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.7f, 0.6f, false, 0u, 0.0f}, {0.0f, 0.7f, 0.6f, 0.7f, 0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
-    {"gaze-up-left", 4, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, -0.7f, -0.6f, false, 0u, 0.0f}, {0.0f, -0.7f, -0.6f, -0.7f, -0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"gaze-up-left", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, -0.7f, -0.6f, false, 0u, 0.0f}, {0.0f, -0.7f, -0.6f, -0.7f, -0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
 };
 
 #endif /* LILPET_JS_VECTORS_H */

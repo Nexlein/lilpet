@@ -8,14 +8,20 @@ export const C = SIZE / 2;
 // Eye shape measured on the official gallery (see notes/yeux.md)
 export const DEFAULT_SHAPE = { rx: 93, ry: 109, gap: 101, tilt: 0.37 };
 
-export const PUPIL_TYPES = ['dot', 'slit', 'acorn', 'round'];
+// Official pupil names (notes/yeux.md), in the order of the C engine's lp_pupil
+export const PUPIL_TYPES = ['dot', 'cat', 'acorn', 'circle'];
 export const BLINK_PHASES = ['anticip', 'close', 'closed', 'open'];
+
+// A look is a swatch from eyes/looks.json worn with one of the pupil types: the object setLook and setScene take
+export function makeLook(swatch, pupil) {
+    return { id: swatch.id, sclera: swatch.sclera, pupil, pupilColor: swatch.pupilColor };
+}
 
 // --- Emotions: eyelid shapes and pupil size ---------------------------------
 // tl: top lid closure (0-1), ts: top lid slope (+ = inner corner lower, - = outer corner lower)
 // bl: bottom lid closure (curved, "happy" shape), sq: vertical squash (squint into a rounded bar)
 // cr: crescent cut (0-1, only the top arc of the eye remains, like a frown)
-// rot: extra eye rotation, inner corner down (rad, tuned for the default 0.37 tilt), hl: force the pupil glint (0/1)
+// rot: extra eye rotation, inner corner down (rad, tuned for the default 0.37 tilt), hl: pupil glint (0/1)
 // ps: pupil scale, es: eye scale, gy: gaze bias down
 // emit: particles spawned while the emotion is on ({ type, rate per second })
 export const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0 };
@@ -34,7 +40,7 @@ for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
 // Measured on the official gallery: pupils converge, a slightly cross-eyed look.
-const PUPIL_REST = { dot: [0.5, 0], slit: [0.35, 0], round: [0.3, 0.05], acorn: [0.15, 0.2] };
+const PUPIL_REST = { dot: [0.5, 0], cat: [0.35, 0], circle: [0.3, 0.05], acorn: [0.15, 0.2] };
 
 // Blink, from the official footage (~37 ms per frame): slight squash, fast close with a straight
 // top lid, thin arc while closed, slower reopening. See notes/yeux.md.
@@ -483,7 +489,7 @@ export class Eyes {
                 prx = RX * 0.105 * ps;
                 pry = RY * 0.13 * ps;
                 break;
-            case 'slit':
+            case 'cat':
                 prx = RX * 0.17 * ps;
                 pry = RY * 0.72;
                 break;
@@ -491,7 +497,7 @@ export class Eyes {
                 prx = RX * 0.5 * ps;
                 pry = RY * 0.88 * Math.min(ps, 1.05);
                 break;
-            case 'round':
+            case 'circle':
                 prx = pry = RX * 0.42 * ps;
                 break;
         }
@@ -511,7 +517,7 @@ export class Eyes {
             ctx.ellipse(x, y, prx, pry, 0, 0, Math.PI * 2);
         }
         ctx.fill();
-        if (look.highlight || this.cur.hl > 0.5) {
+        if (this.cur.hl > 0.5) {
             const r = Math.max(Math.min(prx, pry) * 0.28, 4);
             ctx.fillStyle = '#fff';
             ctx.beginPath();

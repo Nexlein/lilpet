@@ -1,7 +1,8 @@
 {
     "schema": {
         "id": "unique scene name",
-        "look": "look id from eyes/looks.json",
+        "swatch": "swatch id from eyes/looks.json",
+        "pupil": "pupil type: dot | circle | cat | acorn",
         "emotion": "optional, emotion name from prototype/eyes.js (default neutral), values are settled",
         "blink": "optional { phase: anticip | close | closed | open, t: seconds into the phase }",
         "head": "optional { yaw, pitch, roll } in radians",
@@ -9,52 +10,78 @@
         "particles": "optional { seed, time }: replays the emotion's emitter for `time` seconds from `seed`"
     },
     "scenes": [
-        { "id": "look-cherry", "look": "cherry" },
-        { "id": "look-lemon", "look": "lemon" },
-        { "id": "look-lagoon", "look": "lagoon" },
-        { "id": "look-lilac", "look": "lilac" },
-        { "id": "look-snow", "look": "snow" },
-        { "id": "look-ember", "look": "ember" },
-        { "id": "look-lime", "look": "lime" },
-        { "id": "look-mint", "look": "mint" },
-        { "id": "look-azure", "look": "azure" },
-        { "id": "look-sky", "look": "sky" },
-        { "id": "look-acid", "look": "acid" },
-        { "id": "look-olive", "look": "olive" },
+        { "id": "look-cherry", "swatch": "cherry", "pupil": "dot" },
+        { "id": "look-popcorn", "swatch": "popcorn", "pupil": "dot" },
+        { "id": "look-laser", "swatch": "laser", "pupil": "cat" },
+        { "id": "look-mallard", "swatch": "mallard", "pupil": "circle" },
+        { "id": "look-bubblegum", "swatch": "bubblegum", "pupil": "circle" },
+        { "id": "look-terrarium", "swatch": "terrarium", "pupil": "acorn" },
 
-        { "id": "emotion-happy", "look": "sky", "emotion": "happy", "particles": { "seed": 1, "time": 2 } },
-        { "id": "emotion-love", "look": "sky", "emotion": "love", "particles": { "seed": 1, "time": 2 } },
-        { "id": "emotion-angry", "look": "sky", "emotion": "angry" },
-        { "id": "emotion-squint", "look": "sky", "emotion": "squint" },
-        { "id": "emotion-frown", "look": "sky", "emotion": "frown" },
-        { "id": "emotion-sad", "look": "sky", "emotion": "sad" },
-        { "id": "emotion-surprised", "look": "sky", "emotion": "surprised" },
-        { "id": "emotion-sleepy", "look": "sky", "emotion": "sleepy", "particles": { "seed": 3, "time": 4 } },
+        {
+            "id": "emotion-happy",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "happy",
+            "particles": { "seed": 1, "time": 2 }
+        },
+        {
+            "id": "emotion-love",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "love",
+            "particles": { "seed": 1, "time": 2 }
+        },
+        { "id": "emotion-angry", "swatch": "denim", "pupil": "acorn", "emotion": "angry" },
+        { "id": "emotion-squint", "swatch": "denim", "pupil": "acorn", "emotion": "squint" },
+        { "id": "emotion-frown", "swatch": "denim", "pupil": "acorn", "emotion": "frown" },
+        { "id": "emotion-sad", "swatch": "denim", "pupil": "acorn", "emotion": "sad" },
+        { "id": "emotion-surprised", "swatch": "denim", "pupil": "acorn", "emotion": "surprised" },
+        {
+            "id": "emotion-sleepy",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "sleepy",
+            "particles": { "seed": 3, "time": 4 }
+        },
 
-        { "id": "blink-anticip", "look": "lemon", "blink": { "phase": "anticip", "t": 0.06 } },
-        { "id": "blink-close-40", "look": "lemon", "blink": { "phase": "close", "t": 0.04 } },
-        { "id": "blink-close-80", "look": "lemon", "blink": { "phase": "close", "t": 0.08 } },
-        { "id": "blink-closed", "look": "lemon", "blink": { "phase": "closed", "t": 0.05 } },
-        { "id": "blink-open-40", "look": "lemon", "blink": { "phase": "open", "t": 0.04 } },
-        { "id": "blink-open-100", "look": "lemon", "blink": { "phase": "open", "t": 0.1 } },
+        { "id": "blink-anticip", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "anticip", "t": 0.06 } },
+        { "id": "blink-close-40", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "close", "t": 0.04 } },
+        { "id": "blink-close-80", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "close", "t": 0.08 } },
+        { "id": "blink-closed", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "closed", "t": 0.05 } },
+        { "id": "blink-open-40", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "open", "t": 0.04 } },
+        { "id": "blink-open-100", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "open", "t": 0.1 } },
 
-        { "id": "head-turn-right", "look": "lagoon", "head": { "yaw": 0.33, "roll": -0.13 }, "gaze": { "x": 0.6 } },
-        { "id": "head-turn-left", "look": "lagoon", "head": { "yaw": -0.33, "roll": 0.13 }, "gaze": { "x": -0.6 } },
-        { "id": "head-look-up", "look": "lagoon", "head": { "pitch": -0.25 }, "gaze": { "y": -0.6 } },
+        {
+            "id": "head-turn-right",
+            "swatch": "buoy",
+            "pupil": "dot",
+            "head": { "yaw": 0.33, "roll": -0.13 },
+            "gaze": { "x": 0.6 }
+        },
+        {
+            "id": "head-turn-left",
+            "swatch": "buoy",
+            "pupil": "dot",
+            "head": { "yaw": -0.33, "roll": 0.13 },
+            "gaze": { "x": -0.6 }
+        },
+        { "id": "head-look-up", "swatch": "buoy", "pupil": "dot", "head": { "pitch": -0.25 }, "gaze": { "y": -0.6 } },
         {
             "id": "head-up-left-tilted",
-            "look": "mint",
+            "swatch": "terrarium",
+            "pupil": "acorn",
             "head": { "yaw": -0.3, "pitch": -0.2, "roll": 0.25 },
             "gaze": { "x": -0.5, "y": -0.5 }
         },
         {
             "id": "head-closed-tilted",
-            "look": "mint",
+            "swatch": "terrarium",
+            "pupil": "acorn",
             "head": { "yaw": 0.3, "pitch": 0.15, "roll": -0.2 },
             "blink": { "phase": "closed", "t": 0.05 }
         },
 
-        { "id": "gaze-down-right", "look": "cherry", "gaze": { "x": 0.7, "y": 0.6 } },
-        { "id": "gaze-up-left", "look": "snow", "gaze": { "x": -0.7, "y": -0.6 } }
+        { "id": "gaze-down-right", "swatch": "cherry", "pupil": "dot", "gaze": { "x": 0.7, "y": 0.6 } },
+        { "id": "gaze-up-left", "swatch": "laser", "pupil": "cat", "gaze": { "x": -0.7, "y": -0.6 } }
     ]
 }

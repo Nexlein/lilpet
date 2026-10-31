@@ -50,9 +50,11 @@ reference until the engine takes over each feature.
   `main/main.c` shows the eyes live: each frame waits for the display's TE signal, draws band by band into two DMA
   buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
   (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.
-- `eyes/looks.json` — eye looks (sclera color, pupil type `dot | slit | acorn | round`, left/right pupil colors,
-  glint).
-- `scripts/validate-data.mjs` — validates `looks.json` and `scenes.json` (ids, colors, known emotions, ranges).
+- `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
+  A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
+  Looks carry no glint: only emotions add one.
+- `scripts/validate-data.mjs` — validates `looks.json` and `scenes.json` (ids, colors, known swatches, pupil types and
+  emotions, ranges).
 - `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
 - `references/` — frame sheets extracted from videos (not formatted, not code).

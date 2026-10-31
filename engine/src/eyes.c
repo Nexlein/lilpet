@@ -22,7 +22,7 @@ void lp_eyes_init(lp_eyes *eyes, uint32_t seed)
 {
     memset(eyes, 0, sizeof *eyes);
     lp_rng_seed(&eyes->rng, seed);
-    eyes->look = (lp_look){.sclera = 0x6EF2CF, .pupil = LP_PUPIL_ACORN, .pupil_color = {0x167358, 0x167358}};
+    eyes->look = (lp_look){.sclera = 0x6FF5D0, .pupil = LP_PUPIL_ACORN, .pupil_color = {0x106E54, 0x106E54}};
     eyes->emotion = LP_EMOTION_NEUTRAL;
     eyes->cur = lp_emotion_get(LP_EMOTION_NEUTRAL)->expr;
     eyes->shape = lp_default_shape();
