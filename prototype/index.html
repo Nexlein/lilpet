@@ -124,6 +124,30 @@
                 color: var(--muted);
                 font-size: 12px;
             }
+            [hidden] {
+                display: none !important;
+            }
+            .screens {
+                display: flex;
+                gap: 32px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            figure {
+                margin: 0;
+            }
+            figcaption {
+                margin-top: 10px;
+                text-align: center;
+                color: var(--muted);
+                font-size: 12px;
+            }
+            .screens.side .device {
+                width: min(420px, 44vw);
+            }
+            #engineInfo {
+                font-family: ui-monospace, monospace;
+            }
             kbd {
                 background: #26282d;
                 border: 1px solid var(--line);
@@ -134,9 +158,31 @@
         </style>
     </head>
     <body>
-        <div class="device"><canvas id="screen" width="466" height="466"></canvas></div>
+        <div class="screens" id="screens">
+            <figure id="jsView">
+                <div class="device"><canvas id="screen" width="466" height="466"></canvas></div>
+                <figcaption>Prototype (JavaScript)</figcaption>
+            </figure>
+            <figure id="cView" hidden>
+                <div class="device"><canvas id="engine" width="466" height="466"></canvas></div>
+                <figcaption>
+                    Moteur C (WebAssembly) : 466 × 466 pixels comme l'écran, agrandi par le navigateur
+                </figcaption>
+            </figure>
+        </div>
 
         <div class="panel">
+            <section>
+                <h2>Rendu</h2>
+                <div class="row" id="modes">
+                    <button data-mode="js" class="on">Prototype JS</button>
+                    <button data-mode="c">Moteur C</button>
+                    <button data-mode="side">Côte à côte</button>
+                </div>
+                <div class="row"><button id="resync" hidden>Resynchroniser</button></div>
+                <div id="engineInfo" class="hint"></div>
+            </section>
+
             <section>
                 <h2>Look</h2>
                 <select id="lookSelect"></select>

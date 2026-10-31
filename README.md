@@ -32,6 +32,8 @@ npm run serve
 ```
 
 Puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger les modules et les données).
+Le sélecteur « Rendu » affiche le prototype, le moteur C (après `mise run engine:wasm`) ou les deux côte à côte, pilotés
+par les mêmes commandes.
 Les scènes de référence, que le futur moteur C devra reproduire, sont sur
 http://127.0.0.1:8466/prototype/reference.html.
 

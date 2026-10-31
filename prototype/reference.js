@@ -2,12 +2,9 @@
 // scores the difference. The parity test reads window.parity once window.parityDone is true.
 import { Eyes, SIZE, setupCanvas } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
+import { PARITY, compare } from './parity.js';
 
 const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
-
-// Tolerances of the parity rule (notes/architecture.md): mean difference per channel (0-255), and share of pixels
-// that differ by more than BIG. Anti-aliasing and RGB565 rounding stay well below them.
-export const PARITY = { maxMean: 2, big: 32, maxBigShare: 0.005 };
 
 const grid = document.getElementById('grid');
 const summary = document.getElementById('summary');
@@ -21,23 +18,6 @@ function describe(scene) {
     if (scene.gaze) parts.push(`gaze ${JSON.stringify(scene.gaze)}`);
     if (scene.particles) parts.push(`seed ${scene.particles.seed} · ${scene.particles.time}s`);
     return parts.join(' · ');
-}
-
-// Mean absolute difference per channel, and share of pixels differing by more than PARITY.big
-function compare(a, b) {
-    const n = SIZE * SIZE;
-    let sum = 0;
-    let big = 0;
-    for (let p = 0; p < n; p++) {
-        const d =
-            (Math.abs(a[4 * p] - b[4 * p]) +
-                Math.abs(a[4 * p + 1] - b[4 * p + 1]) +
-                Math.abs(a[4 * p + 2] - b[4 * p + 2])) /
-            3;
-        sum += d;
-        if (d > PARITY.big) big++;
-    }
-    return { mean: sum / n, bigShare: big / n };
 }
 
 function labelled(label, canvas) {
@@ -92,8 +72,7 @@ try {
         const flat = document.createElement('canvas');
         const flatCtx = setupCanvas(flat, 1);
         new Eyes(flatCtx, { seed: 1 }).renderScene(scene, look);
-        const { mean, bigShare } = compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, pixels);
-        const pass = mean <= PARITY.maxMean && bigShare <= PARITY.maxBigShare;
+        const { mean, bigShare, pass } = compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, pixels);
         results.push({ id: scene.id, mean, bigShare, pass });
         const score = document.createElement('p');
         score.className = `score ${pass ? 'pass' : 'fail'}`;
