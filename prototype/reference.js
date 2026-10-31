@@ -1,6 +1,6 @@
 // Renders every scene of scenes.json with the prototype (JS) and with the C engine (WebAssembly), side by side, and
 // scores the difference. The parity test reads window.parity once window.parityDone is true.
-import { Eyes, SIZE, setupCanvas } from './eyes.js';
+import { Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
 import { PARITY, compare } from './parity.js';
 
@@ -11,7 +11,7 @@ const summary = document.getElementById('summary');
 
 // Short human-readable summary of what a scene sets, shown under its render
 function describe(scene) {
-    const parts = [scene.look];
+    const parts = [`${scene.swatch} ${scene.pupil}`];
     if (scene.emotion) parts.push(scene.emotion);
     if (scene.blink) parts.push(`blink ${scene.blink.phase} ${scene.blink.t}s`);
     if (scene.head) parts.push(`head ${JSON.stringify(scene.head)}`);
@@ -36,7 +36,7 @@ async function fetchJson(url) {
 
 try {
     const [looksData, scenesData] = await Promise.all([fetchJson('../eyes/looks.json'), fetchJson('scenes.json')]);
-    const looks = new Map(looksData.looks.map((l) => [l.id, l]));
+    const swatches = new Map(looksData.swatches.map((s) => [s.id, s]));
 
     let engine = null;
     try {
@@ -48,7 +48,7 @@ try {
 
     const results = [];
     for (const scene of scenesData.scenes) {
-        const look = looks.get(scene.look);
+        const look = makeLook(swatches.get(scene.swatch), scene.pupil);
         const figure = document.createElement('figure');
         const caption = document.createElement('figcaption');
         caption.innerHTML = `<b>${scene.id}</b><br>${describe(scene)}`;

@@ -29,9 +29,9 @@
 /* Resting pupil position, fractions of the eye radii (x toward the inner corner, y down) */
 static const float PUPIL_REST[4][2] = {
     [LP_PUPIL_DOT] = {0.5f, 0.0f},
-    [LP_PUPIL_SLIT] = {0.35f, 0.0f},
+    [LP_PUPIL_CAT] = {0.35f, 0.0f},
     [LP_PUPIL_ACORN] = {0.15f, 0.2f},
-    [LP_PUPIL_ROUND] = {0.3f, 0.05f},
+    [LP_PUPIL_CIRCLE] = {0.3f, 0.05f},
 };
 
 static void to_array(lp_affine m, float out[6])
@@ -242,7 +242,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
         prx = rx * 0.105f * ps;
         pry = ry * 0.13f * ps;
         break;
-    case LP_PUPIL_SLIT:
+    case LP_PUPIL_CAT:
         prx = rx * 0.17f * ps;
         pry = ry * 0.72f;
         break;
@@ -250,13 +250,13 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
         prx = rx * 0.5f * ps;
         pry = ry * 0.88f * lp_minf(ps, 1.05f);
         break;
-    case LP_PUPIL_ROUND:
+    case LP_PUPIL_CIRCLE:
     default:
         prx = pry = rx * 0.42f * ps;
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
-    const int t = (unsigned)type < 4u ? (int)type : LP_PUPIL_ROUND;
+    const int t = (unsigned)type < 4u ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
     g->px = clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
@@ -268,7 +268,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
         poly_acorn(&g->shape, g->px, g->py, prx, pry);
         poly_transform(&g->shape, to_screen);
     }
-    g->glint = e->look.highlight || e->cur.hl > 0.5f;
+    g->glint = e->cur.hl > 0.5f;
     g->gr = maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
     g->gx = g->px - prx * 0.35f;
     g->gy = g->py - pry * 0.38f;

@@ -97,7 +97,7 @@ la rebrancher. La CI garde aussi le binaire (`firmware-esp32s3` dans les artefac
 | ----------------- | --------------------------------------------------------------------------------------- |
 | `notes/`          | Notes de recherche, matériel, architecture, yeux                                        |
 | `references/`     | Captures d'inspiration                                                                  |
-| `eyes/looks.json` | Définition des looks (couleur, type de pupille, couleurs des pupilles)                  |
+| `eyes/looks.json` | Les 100 couleurs officielles ; un look = une couleur + un type de pupille               |
 | `prototype/`      | Référence de design : rendu des yeux (`eyes.js`), page interactive, scènes de référence |
 | `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                |
 | `firmware/`       | Application ESP32-S3 : pilote de l'écran, yeux en direct, mesure des temps              |

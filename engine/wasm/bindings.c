@@ -33,10 +33,9 @@ EMSCRIPTEN_KEEPALIVE void lpw_init(uint32_t seed)
     lp_renderer_init(&renderer);
 }
 
-EMSCRIPTEN_KEEPALIVE void lpw_set_look(uint32_t sclera, int pupil, uint32_t left, uint32_t right, int highlight)
+EMSCRIPTEN_KEEPALIVE void lpw_set_look(uint32_t sclera, int pupil, uint32_t left, uint32_t right)
 {
-    const lp_look look = {
-        .sclera = sclera, .pupil = (lp_pupil)pupil, .pupil_color = {left, right}, .highlight = highlight != 0};
+    const lp_look look = {.sclera = sclera, .pupil = (lp_pupil)pupil, .pupil_color = {left, right}};
     lp_eyes_set_look(&eyes, &look);
 }
 

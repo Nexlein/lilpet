@@ -14,7 +14,7 @@ const fail = (msg) => {
 if (!/^\d+\.\d+\.\d+$/.test(engine.version)) fail(`lp_version() returned "${engine.version}"`);
 if (!engine.emotions.includes('love')) fail(`unexpected emotion list: ${engine.emotions.join(', ')}`);
 
-const look = { sclera: '#FF1A1A', pupil: 'dot', pupilColor: ['#2B4CFF', '#2B4CFF'], highlight: false };
+const look = { sclera: '#FD0C0D', pupil: 'dot', pupilColor: ['#2905E6', '#2905E6'] }; // siren
 const pixels = engine.renderScene({}, look);
 let lit = 0;
 for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 200) lit++;

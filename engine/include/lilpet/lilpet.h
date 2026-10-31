@@ -16,7 +16,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 5
+#define LP_VERSION_MINOR 6
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -38,13 +38,13 @@ float lp_rng_next(lp_rng *rng);
 
 /* --- Looks -------------------------------------------------------------------------------------- */
 
-typedef enum { LP_PUPIL_DOT, LP_PUPIL_SLIT, LP_PUPIL_ACORN, LP_PUPIL_ROUND } lp_pupil;
+/* Official pupil names (notes/yeux.md) */
+typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE } lp_pupil;
 
 typedef struct {
     uint32_t sclera;         /* eye color, 0xRRGGBB */
     lp_pupil pupil;          /* pupil shape */
     uint32_t pupil_color[2]; /* left and right pupil colors, 0xRRGGBB */
-    bool highlight;          /* white glint on the pupils */
 } lp_look;
 
 /* --- Emotions ----------------------------------------------------------------------------------- */

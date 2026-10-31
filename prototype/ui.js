@@ -1,6 +1,6 @@
 // Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard. They drive the prototype
 // (JS), the C engine (WebAssembly, built by `mise run engine:wasm`) or both side by side, as the "Rendu" switch picks.
-import { EMOTIONS, PUPIL_TYPES, Eyes, SIZE, setupCanvas } from './eyes.js';
+import { EMOTIONS, PUPIL_TYPES, Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
 import { compare } from './parity.js';
 
@@ -100,7 +100,7 @@ function setLook(l) {
     engine?.setLook(l);
     const [a, b] = l.pupilColor;
     document.getElementById('lookInfo').textContent =
-        `${l.id} | œil ${l.sclera} | pupille ${l.pupil} ${a}${a !== b ? ' / ' + b : ''}${l.highlight ? ' | reflet' : ''}`;
+        `${l.id} · ${l.pupil} | œil ${l.sclera} | pupille ${a}${a !== b ? ' / ' + b : ''}`;
 }
 
 function setEmotion(name, duration = 0) {
@@ -128,56 +128,36 @@ function setPointer(point) {
 }
 
 // --- Looks -------------------------------------------------------------------------------------------------------
-let looks = [];
+// A look is a swatch worn with a pupil type, each picked from its own list
+let swatches = [];
+const swatchSelect = document.getElementById('swatchSelect');
+const pupilSelect = document.getElementById('pupilSelect');
 
 async function loadLooks() {
     try {
         const res = await fetch('../eyes/looks.json');
-        looks = (await res.json()).looks;
+        swatches = (await res.json()).swatches;
     } catch (err) {
         console.error('Cannot load looks.json, serve the repo root over HTTP', err);
-        looks = [
-            { id: 'fallback', sclera: '#6EF2CF', pupil: 'acorn', pupilColor: ['#167358', '#167358'], highlight: false }
-        ];
+        swatches = [{ id: 'terrarium', sclera: '#6FF5D0', pupilColor: ['#106E54', '#106E54'] }];
     }
-    const select = document.getElementById('lookSelect');
-    select.innerHTML = looks.map((l, i) => `<option value="${i}">${l.id} · ${l.pupil}</option>`).join('');
-    select.addEventListener('change', () => setLook(looks[select.value]));
-    setLook(looks[0]);
+    swatchSelect.innerHTML = swatches.map((s, i) => `<option value="${i}">${s.id}</option>`).join('');
+    pupilSelect.innerHTML = PUPIL_TYPES.map((p) => `<option>${p}</option>`).join('');
+    swatchSelect.addEventListener('change', applyLook);
+    pupilSelect.addEventListener('change', applyLook);
+    const cherry = swatches.findIndex((s) => s.id === 'cherry');
+    swatchSelect.value = String(Math.max(cherry, 0));
+    applyLook();
 }
 
-const hsl = (h, s, l) => {
-    s /= 100;
-    l /= 100;
-    const f = (n) => {
-        const k = (n + h / 30) % 12;
-        const c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-        return Math.round(c * 255)
-            .toString(16)
-            .padStart(2, '0');
-    };
-    return `#${f(0)}${f(8)}${f(4)}`;
-};
+function applyLook() {
+    setLook(makeLook(swatches[swatchSelect.value], pupilSelect.value));
+}
 
 function randomLook() {
-    const h = Math.random() * 360;
-    const pupil = PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)];
-    const sclera = Math.random() < 0.12 ? '#F5F1E8' : hsl(h, 70 + Math.random() * 30, 45 + Math.random() * 30);
-    // Pupil: darker same hue, or a contrasting hue
-    const pick = () =>
-        Math.random() < 0.5
-            ? hsl(h, 70, 18 + Math.random() * 15)
-            : hsl((h + 120 + Math.random() * 120) % 360, 85, 50 + Math.random() * 15);
-    const left = pick();
-    const right = Math.random() < 0.15 ? pick() : left; // heterochromia, sometimes
-    setLook({
-        id: 'random',
-        sclera,
-        pupil,
-        pupilColor: [left, right],
-        highlight: pupil === 'round' || Math.random() < 0.2
-    });
-    document.getElementById('lookSelect').selectedIndex = -1;
+    swatchSelect.value = String(Math.floor(Math.random() * swatches.length));
+    pupilSelect.value = PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)];
+    applyLook();
 }
 
 // --- Emotions ----------------------------------------------------------------------------------------------------

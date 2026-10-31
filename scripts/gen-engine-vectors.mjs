@@ -2,7 +2,7 @@
 // must reproduce (engine/tests/test_parity.c). Run it after changing eyes.js, scenes.json or looks.json.
 // Usage: node scripts/gen-engine-vectors.mjs [--check]   (--check: fail if the committed file is out of date)
 import { readFileSync, writeFileSync } from 'node:fs';
-import { EMOTIONS, Eyes, createRng } from '../prototype/eyes.js';
+import { EMOTIONS, Eyes, createRng, makeLook } from '../prototype/eyes.js';
 
 const OUT = 'engine/tests/js_vectors.h';
 // Time step of the simulations: a power of two, so time sums are exact in both float (C) and double (JS)
@@ -176,22 +176,26 @@ out(
     ''
 );
 
-// --- Reference scenes: looks, and the state right after setScene ---------------------------------------
-const lookList = JSON.parse(readFileSync('eyes/looks.json', 'utf8')).looks;
-const looks = new Map(lookList.map((l) => [l.id, l]));
-const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
-out(`static const lp_look LPV_LOOKS[${lookList.length}] = {`);
-for (const l of lookList)
-    out(
-        `    {${hex(l.sclera)}, LP_PUPIL_${l.pupil.toUpperCase()}, {${hex(l.pupilColor[0])}, ${hex(l.pupilColor[1])}}, ${l.highlight}}, /* ${l.id} */`
-    );
-out('};', '');
+// --- Reference scenes: the looks they wear, and the state right after setScene ---------------------------
+const swatches = new Map(JSON.parse(readFileSync('eyes/looks.json', 'utf8')).swatches.map((s) => [s.id, s]));
 const scenes = JSON.parse(readFileSync('prototype/scenes.json', 'utf8')).scenes;
+const lookOf = (scene) => makeLook(swatches.get(scene.swatch), scene.pupil);
+const lookKeys = [...new Set(scenes.map((s) => `${s.swatch} ${s.pupil}`))];
+const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
+out(`static const lp_look LPV_LOOKS[${lookKeys.length}] = {`);
+for (const key of lookKeys) {
+    const scene = scenes.find((s) => `${s.swatch} ${s.pupil}` === key);
+    const l = lookOf(scene);
+    out(
+        `    {${hex(l.sclera)}, LP_PUPIL_${l.pupil.toUpperCase()}, {${hex(l.pupilColor[0])}, ${hex(l.pupilColor[1])}}}, /* ${key} */`
+    );
+}
+out('};', '');
 out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;');
 out(`static const lpv_scene LPV_SCENES[${scenes.length}] = {`);
 for (const scene of scenes) {
     const eyes = new Eyes(null, { seed: 1 });
-    eyes.setScene(scene, looks.get(scene.look));
+    eyes.setScene(scene, lookOf(scene));
     const sc = [
         emotionEnum(scene.emotion ?? 'neutral'),
         phaseEnum(scene.blink?.phase),
@@ -205,7 +209,7 @@ for (const scene of scenes) {
         `${scene.particles?.seed ?? 0}u`,
         num(scene.particles?.time ?? 0)
     ];
-    const lookIndex = lookList.findIndex((l) => l.id === scene.look);
+    const lookIndex = lookKeys.indexOf(`${scene.swatch} ${scene.pupil}`);
     out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes, 0).join(', ')}}},`);
 }
 out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');

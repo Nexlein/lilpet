@@ -3,7 +3,7 @@
 // Used by prototype/reference.html, the live view of prototype/index.html and the parity tests; the PC app will build
 // on it.
 
-const PUPILS = ['dot', 'slit', 'acorn', 'round'];
+const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
 const PARTICLES = [null, 'heart', 'sparkle']; // lp_particle_type order
 
@@ -22,8 +22,7 @@ export async function loadEngine(moduleUrl) {
             color(look.sclera),
             PUPILS.indexOf(look.pupil),
             color(look.pupilColor[0]),
-            color(look.pupilColor[1]),
-            look.highlight ? 1 : 0
+            color(look.pupilColor[1])
         );
 
     // Renders the current state; returns a copy of the RGBA pixels (size × size × 4)

@@ -109,7 +109,7 @@ void test_render_puts_colors_where_they_belong(void)
 
 void test_render_glint_is_white(void)
 {
-    render_scene("look-acid", frame);
+    render_scene("emotion-love", frame); /* looks carry no glint: it comes with emotions */
     const lp_eye_geometry *g = &other.eyes[0];
     CHECK(g->glint);
     int x;
@@ -158,8 +158,8 @@ static void check_incremental(const char *a, const char *b)
 void test_dirty_region_redraws_everything_that_changed(void)
 {
     check_incremental("head-turn-right", "head-turn-left");
-    check_incremental("emotion-love", "look-sky");
-    check_incremental("look-mint", "blink-closed");
+    check_incremental("emotion-love", "look-terrarium");
+    check_incremental("look-terrarium", "blink-closed");
     check_incremental("emotion-happy", "emotion-sleepy");
 }
 
@@ -178,8 +178,8 @@ void test_band_rendering_matches_whole_frame(void)
     enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
     static uint16_t band[SIZE * BAND_ROWS];
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes, &LPV_LOOKS[7]);            /* acorn pupil: polygons */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts */
+    lp_eyes_set_look(&eyes, &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil: polygons */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                                  /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
     memset(reference, 0, sizeof reference);

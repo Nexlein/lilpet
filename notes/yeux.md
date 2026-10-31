@@ -9,12 +9,12 @@ Analyse faite à partir de [references/starboy-eye-looks.png](../references/star
 
 ## Les 4 types de pupilles
 
-| Type                 | Clé     | Description                                                                   | Exemples sur la capture             |
-| -------------------- | ------- | ----------------------------------------------------------------------------- | ----------------------------------- |
-| Point                | `dot`   | Toute petite pupille ronde                                                    | Rouge, jaune, cyan, violet          |
-| Fente                | `slit`  | Ovale vertical fin, façon chat                                                | Blanc et rouge, vert, jaune et noir |
-| Gland (nom officiel) | `acorn` | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose             |
-| Ronde moyenne        | `round` | Disque moyen (reflet sur la capture, absent du catalogue officiel)            | Vert, kaki et bleu                  |
+| Type                 | Clé      | Description                                                                   | Exemples sur la capture             |
+| -------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| Point                | `dot`    | Toute petite pupille ronde                                                    | Rouge, jaune, cyan, violet          |
+| Fente                | `cat`    | Ovale vertical fin, façon chat                                                | Blanc et rouge, vert, jaune et noir |
+| Gland (nom officiel) | `acorn`  | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose             |
+| Ronde moyenne        | `circle` | Disque moyen (reflet sur la capture, absent du catalogue officiel)            | Vert, kaki et bleu                  |
 
 ## Variantes
 
@@ -23,7 +23,7 @@ Analyse faite à partir de [references/starboy-eye-looks.png](../references/star
 - Reflet blanc ou non (aucun dans le catalogue officiel : seulement avec certaines émotions).
 - L'œil réduit à un trait, sur la capture, est sûrement une image de clignement ou de sommeil, pas un look à part.
 
-Un look tient donc en quelques valeurs. Format : voir [eyes/looks.json](../eyes/looks.json).
+Un look = une couleur de [eyes/looks.json](../eyes/looks.json) + un type de pupille.
 
 ## Animations à faire
 
@@ -132,22 +132,20 @@ usage perso.
 Mesures sur `juicebox` (œil de 160 × 180 px pour un visage de 394 px de diamètre). Pour comparer au prototype, en
 fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis le centre de l'œil.
 
-| Type officiel | Notre clé | Rareté | Taille (demi-largeur × demi-hauteur) | Position au repos (x, y)  | Forme                                                                                                 |
-| ------------- | --------- | ------ | ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `dot`         | `dot`     | 10 %   | 0,10 RX × 0,11 RY                    | 0,52 RX ; +0,12 RY        | petit ovale vertical                                                                                  |
-| `circle`      | `round`   | 40 %   | 0,51 RX × 0,44 RY (vrai disque)      | 0,38 RX ; 0               | disque d'environ la moitié de la largeur de l'œil                                                     |
-| `cat`         | `slit`    | 30 %   | 0,21 RX × 0,70 RY                    | 0,38 RX ; +0,11 RY        | fente en ovale, le haut penché d'environ 5° vers le nez                                               |
-| `acorn`       | `acorn`   | 20 %   | 0,49 RX × coupée en bas              | 0,14 RX ; haut à −0,72 RY | œuf, bout étroit en haut un peu vers le nez, plus large vers +0,19 RY, puis coupé par le bas de l'œil |
+| Type officiel | Rareté | Taille (demi-largeur × demi-hauteur) | Position au repos (x, y)  | Forme                                                                                                 |
+| ------------- | ------ | ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `dot`         | 10 %   | 0,10 RX × 0,11 RY                    | 0,52 RX ; +0,12 RY        | petit ovale vertical                                                                                  |
+| `circle`      | 40 %   | 0,51 RX × 0,44 RY (vrai disque)      | 0,38 RX ; 0               | disque d'environ la moitié de la largeur de l'œil                                                     |
+| `cat`         | 30 %   | 0,21 RX × 0,70 RY                    | 0,38 RX ; +0,11 RY        | fente en ovale, le haut penché d'environ 5° vers le nez                                               |
+| `acorn`       | 20 %   | 0,49 RX × coupée en bas              | 0,14 RX ; haut à −0,72 RY | œuf, bout étroit en haut un peu vers le nez, plus large vers +0,19 RY, puis coupé par le bas de l'œil |
 
 Écarts avec le prototype (`PUPIL_REST` et `#drawPupil` dans `prototype/eyes.js`) :
 
 - `dot` : taille juste ; il faut la descendre (y +0,12 RY au lieu de 0).
-- `round` : trop petite (0,42 RX au lieu de 0,51) et un peu trop près du centre (x 0,3 au lieu de 0,38) ; y à 0.
-- `slit` : un peu trop fine (0,17 RX au lieu de 0,21) et trop haute (y +0,11 RY au lieu de 0).
+- `circle` : trop petite (0,42 RX au lieu de 0,51) et un peu trop près du centre (x 0,3 au lieu de 0,38) ; y à 0.
+- `cat` : un peu trop fine (0,17 RX au lieu de 0,21) et trop haute (y +0,11 RY au lieu de 0).
 - `acorn` : taille et position justes, mais notre œuf est le plus large trop bas (+0,51 RY au lieu de +0,19 RY).
-- Deux de nos looks portent un reflet (`highlight`) : le catalogue n'en a aucun. Le reflet ne vient qu'avec certaines émotions
-  (amoureux, voir plus haut).
-- Nos 12 looks sont inventés. Trois portent un nom officiel mais pas ses couleurs : `cherry`, `lilac` et `ember`.
+- Looks : repris tels quels dans `eyes/looks.json`, sans reflet (le reflet ne vient qu'avec certaines émotions).
 
 ### Les 100 couleurs
 
