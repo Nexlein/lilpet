@@ -39,8 +39,10 @@ export const EMOTIONS = {
 for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
-// Measured on the official gallery: pupils converge, a slightly cross-eyed look.
-const PUPIL_REST = { dot: [0.5, 0], cat: [0.35, 0], circle: [0.3, 0.05], acorn: [0.15, 0.2] };
+// Measured on the official catalogue (notes/yeux.md): pupils converge, a slightly cross-eyed look.
+const PUPIL_REST = { dot: [0.57, 0.12], cat: [0.35, 0.11], circle: [0.36, 0], acorn: [0.18, 0.25] };
+// Pupils lean a little, top toward the nose (rad), against the eye tilt
+const PUPIL_LEAN = 0.09;
 
 // Blink, from the official footage (~37 ms per frame): slight squash, fast close with a straight
 // top lid, thin arc while closed, slower reopening. See notes/yeux.md.
@@ -102,16 +104,6 @@ function drawSparkle(ctx, s) {
     ctx.quadraticCurveTo(0, 0, -s, 0);
     ctx.quadraticCurveTo(0, 0, 0, -s);
     ctx.fill();
-}
-
-// Egg shape, wider at the bottom (official "acorn" pupil)
-function acornPath(ctx, x, y, w, h) {
-    ctx.beginPath();
-    ctx.moveTo(x, y - h);
-    ctx.bezierCurveTo(x + w * 0.75, y - h, x + w, y + h * 0.1, x + w, y + h * 0.35);
-    ctx.bezierCurveTo(x + w, y + h * 0.85, x + w * 0.5, y + h, x, y + h);
-    ctx.bezierCurveTo(x - w * 0.5, y + h, x - w, y + h * 0.85, x - w, y + h * 0.35);
-    ctx.bezierCurveTo(x - w, y + h * 0.1, x - w * 0.75, y - h, x, y - h);
 }
 
 export class Eyes {
@@ -487,18 +479,19 @@ export class Eyes {
         switch (type) {
             case 'dot':
                 prx = RX * 0.105 * ps;
-                pry = RY * 0.13 * ps;
+                pry = RY * 0.125 * ps;
                 break;
             case 'cat':
-                prx = RX * 0.17 * ps;
+                prx = RX * 0.21 * ps;
                 pry = RY * 0.72;
                 break;
             case 'acorn':
+                // A tall ellipse set low: the bottom of the eye cuts it into its acorn shape
                 prx = RX * 0.5 * ps;
-                pry = RY * 0.88 * Math.min(ps, 1.05);
+                pry = RY * 0.98 * Math.min(ps, 1.05);
                 break;
             case 'circle':
-                prx = pry = RX * 0.42 * ps;
+                prx = pry = RX * 0.52 * ps;
                 break;
         }
         // Pupil travel is limited by how much room is left inside the eye. Big acorn pupils may
@@ -508,20 +501,19 @@ export class Eyes {
             limY = type === 'acorn' ? RY : RY - pry - 3;
         const x = clamp(inner * rx0 * RX + gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85, limX);
         const y = clamp(ry0 * RY + gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85, limY);
-        // The eye is tilted but pupils stay upright on the original: cancel the eye rotation
+        // The eye is tilted but pupils stay nearly upright on the original: cancel the eye rotation, then lean
         ctx.rotate(-uprightAngle);
+        ctx.translate(x, y);
+        ctx.rotate(inner * PUPIL_LEAN);
         ctx.fillStyle = color;
-        if (type === 'acorn') acornPath(ctx, x, y, prx, pry);
-        else {
-            ctx.beginPath();
-            ctx.ellipse(x, y, prx, pry, 0, 0, Math.PI * 2);
-        }
+        ctx.beginPath();
+        ctx.ellipse(0, 0, prx, pry, 0, 0, Math.PI * 2);
         ctx.fill();
         if (this.cur.hl > 0.5) {
             const r = Math.max(Math.min(prx, pry) * 0.28, 4);
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(x - prx * 0.35, y - pry * 0.38, r, 0, Math.PI * 2);
+            ctx.arc(-prx * 0.35, -pry * 0.38, r, 0, Math.PI * 2);
             ctx.fill();
         }
     }

@@ -9,12 +9,12 @@ Analyse faite à partir de [references/starboy-eye-looks.png](../references/star
 
 ## Les 4 types de pupilles
 
-| Type                 | Clé      | Description                                                                   | Exemples sur la capture             |
-| -------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------------- |
-| Point                | `dot`    | Toute petite pupille ronde                                                    | Rouge, jaune, cyan, violet          |
-| Fente                | `cat`    | Ovale vertical fin, façon chat                                                | Blanc et rouge, vert, jaune et noir |
-| Gland (nom officiel) | `acorn`  | Grand œuf vertical, plus large en bas, posé bas et coupé par le bord de l'œil | Turquoise, bleu et rose             |
-| Ronde moyenne        | `circle` | Disque moyen (reflet sur la capture, absent du catalogue officiel)            | Vert, kaki et bleu                  |
+| Type                 | Clé      | Description                                                        | Exemples sur la capture             |
+| -------------------- | -------- | ------------------------------------------------------------------ | ----------------------------------- |
+| Point                | `dot`    | Toute petite pupille ronde                                         | Rouge, jaune, cyan, violet          |
+| Fente                | `cat`    | Ovale vertical fin, façon chat                                     | Blanc et rouge, vert, jaune et noir |
+| Gland (nom officiel) | `acorn`  | Grande ellipse verticale posée bas, coupée par le bas de l'œil     | Turquoise, bleu et rose             |
+| Ronde moyenne        | `circle` | Disque moyen (reflet sur la capture, absent du catalogue officiel) | Vert, kaki et bleu                  |
 
 ## Variantes
 
@@ -129,22 +129,22 @@ usage perso.
 
 ### Les types de pupille
 
-Mesures sur `juicebox` (œil de 160 × 180 px pour un visage de 394 px de diamètre). Pour comparer au prototype, en
+Mesures sur `juicebox`, moyenne des deux yeux (œil de 160 × 180 px pour un visage de 394 px de diamètre), converties en
 fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis le centre de l'œil.
 
-| Type officiel | Rareté | Taille (demi-largeur × demi-hauteur) | Position au repos (x, y)  | Forme                                                                                                 |
-| ------------- | ------ | ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `dot`         | 10 %   | 0,10 RX × 0,11 RY                    | 0,52 RX ; +0,12 RY        | petit ovale vertical                                                                                  |
-| `circle`      | 40 %   | 0,51 RX × 0,44 RY (vrai disque)      | 0,38 RX ; 0               | disque d'environ la moitié de la largeur de l'œil                                                     |
-| `cat`         | 30 %   | 0,21 RX × 0,70 RY                    | 0,38 RX ; +0,11 RY        | fente en ovale, le haut penché d'environ 5° vers le nez                                               |
-| `acorn`       | 20 %   | 0,49 RX × coupée en bas              | 0,14 RX ; haut à −0,72 RY | œuf, bout étroit en haut un peu vers le nez, plus large vers +0,19 RY, puis coupé par le bas de l'œil |
+| Type     | Rareté | Taille (demi-largeur × demi-hauteur) | Position au repos (x ; y) | Forme                                                |
+| -------- | ------ | ------------------------------------ | ------------------------- | ---------------------------------------------------- |
+| `dot`    | 10 %   | 0,105 RX × 0,125 RY                  | 0,57 RX ; +0,12 RY        | petit ovale vertical                                 |
+| `circle` | 40 %   | disque de rayon 0,52 RX              | 0,36 RX ; 0               | disque d'environ la moitié de la largeur de l'œil    |
+| `cat`    | 30 %   | 0,21 RX × 0,72 RY                    | 0,35 RX ; +0,11 RY        | fente en ovale                                       |
+| `acorn`  | 20 %   | 0,50 RX × 0,98 RY                    | 0,18 RX ; +0,25 RY        | grande ellipse posée bas, coupée par le bas de l'œil |
 
-Écarts avec le prototype (`PUPIL_REST` et `#drawPupil` dans `prototype/eyes.js`) :
-
-- `dot` : taille juste ; il faut la descendre (y +0,12 RY au lieu de 0).
-- `circle` : trop petite (0,42 RX au lieu de 0,51) et un peu trop près du centre (x 0,3 au lieu de 0,38) ; y à 0.
-- `cat` : un peu trop fine (0,17 RX au lieu de 0,21) et trop haute (y +0,11 RY au lieu de 0).
-- `acorn` : taille et position justes, mais notre œuf est le plus large trop bas (+0,51 RY au lieu de +0,19 RY).
+- La forme de gland vient seulement de la coupe : sur 10 niveaux mesurés, la partie visible suit une ellipse à 0,02 RX
+  près. Pas d'œuf dessiné à la main.
+- Les pupilles penchent d'environ 5°, le haut vers le nez (mesuré sur `cat` et `acorn`, aux deux yeux), à l'inverse
+  de l'inclinaison de l'œil.
+- Prototype et moteur suivent ces valeurs (`PUPIL_REST`, `PUPIL_LEAN` et `#drawPupil` dans `prototype/eyes.js`). Notre
+  rendu, mesuré de la même façon que la page officielle, tombe à 0,011 largeur d'œil près au pire (largeur du `dot`).
 - Looks : repris tels quels dans `eyes/looks.json`, sans reflet (le reflet ne vient qu'avec certaines émotions).
 
 ### Les 100 couleurs

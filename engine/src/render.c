@@ -16,7 +16,6 @@
 #define CLOSED_THICKNESS  4.5f
 
 /* Polygon resolution */
-#define CURVE_STEPS   16 /* per cubic Bezier segment of the acorn pupil */
 #define STROKE_STEPS  24 /* along the closed-eye stroke */
 #define CAP_STEPS     7  /* inner points of each round tip */
 #define HEART_STEPS   24 /* per Bezier half of a heart */
@@ -28,11 +27,12 @@
 
 /* Resting pupil position, fractions of the eye radii (x toward the inner corner, y down) */
 static const float PUPIL_REST[4][2] = {
-    [LP_PUPIL_DOT] = {0.5f, 0.0f},
-    [LP_PUPIL_CAT] = {0.35f, 0.0f},
-    [LP_PUPIL_ACORN] = {0.15f, 0.2f},
-    [LP_PUPIL_CIRCLE] = {0.3f, 0.05f},
+    [LP_PUPIL_DOT] = {0.57f, 0.12f},
+    [LP_PUPIL_CAT] = {0.35f, 0.11f},
+    [LP_PUPIL_ACORN] = {0.18f, 0.25f},
+    [LP_PUPIL_CIRCLE] = {0.36f, 0.0f},
 };
+#define PUPIL_LEAN 0.09f /* pupils lean a little, top toward the nose (rad) */
 
 static void to_array(lp_affine m, float out[6])
 {
@@ -151,20 +151,6 @@ static void poly_transform(lp_polygon *p, lp_affine m)
     p->box = p->count ? rect_around(x0, y0, x1, y1) : rect_empty();
 }
 
-/* Egg shape, wider at the bottom (acornPath in the prototype): four cubic Bezier segments */
-static void poly_acorn(lp_polygon *p, float x, float y, float w, float h)
-{
-    p->count = 0;
-    const float segs[4][8] = {
-        {x, y - h, x + w * 0.75f, y - h, x + w, y + h * 0.1f, x + w, y + h * 0.35f},
-        {x + w, y + h * 0.35f, x + w, y + h * 0.85f, x + w * 0.5f, y + h, x, y + h},
-        {x, y + h, x - w * 0.5f, y + h, x - w, y + h * 0.85f, x - w, y + h * 0.35f},
-        {x - w, y + h * 0.35f, x - w, y + h * 0.1f, x - w * 0.75f, y - h, x, y - h},
-    };
-    for (int s = 0; s < 4; s++)
-        poly_cubic(p, segs[s], CURVE_STEPS);
-}
-
 /* Half circle of radius |(nx, ny)| around (cx, cy), from side n to side -n, bulging toward the unit vector f */
 static void poly_cap(lp_polygon *p, float cx, float cy, float nx, float ny, float fx, float fy, float r)
 {
@@ -240,19 +226,19 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     switch (type) {
     case LP_PUPIL_DOT:
         prx = rx * 0.105f * ps;
-        pry = ry * 0.13f * ps;
+        pry = ry * 0.125f * ps;
         break;
     case LP_PUPIL_CAT:
-        prx = rx * 0.17f * ps;
+        prx = rx * 0.21f * ps;
         pry = ry * 0.72f;
         break;
-    case LP_PUPIL_ACORN:
+    case LP_PUPIL_ACORN: /* a tall ellipse set low: the bottom of the eye cuts it into its acorn shape */
         prx = rx * 0.5f * ps;
-        pry = ry * 0.88f * lp_minf(ps, 1.05f);
+        pry = ry * 0.98f * lp_minf(ps, 1.05f);
         break;
     case LP_PUPIL_CIRCLE:
     default:
-        prx = pry = rx * 0.42f * ps;
+        prx = pry = rx * 0.52f * ps;
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
@@ -263,11 +249,11 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     g->py = clampf(PUPIL_REST[t][1] * ry + e->gaze.y * maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     g->prx = prx;
     g->pry = pry;
-    g->pupil_polygon = type == LP_PUPIL_ACORN;
-    if (g->pupil_polygon) {
-        poly_acorn(&g->shape, g->px, g->py, prx, pry);
-        poly_transform(&g->shape, to_screen);
-    }
+    /* Lean around the pupil center */
+    lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
+    lean.tx = g->px - (lean.a * g->px + lean.b * g->py);
+    lean.ty = g->py - (lean.c * g->px + lean.d * g->py);
+    to_array(lp_affine_inverse(lp_affine_mul(to_screen, lean)), g->inv_pupil);
     g->glint = e->cur.hl > 0.5f;
     g->gr = maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
     g->gx = g->px - prx * 0.35f;
@@ -293,7 +279,7 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
                                          cur->es * squash_y * bp.sy * (1.0f - cur->sq)));
     const lp_affine pupil = lp_affine_mul(m, lp_affine_rotate(-upright)); /* pupils stay upright */
     to_array(lp_affine_inverse(m), g->inv_eye);
-    to_array(lp_affine_inverse(pupil), g->inv_pupil);
+    to_array(lp_affine_inverse(pupil), g->inv_pupil); /* setup_pupil leans it when the eye is open */
     g->rx = rx;
     g->ry = ry;
     g->sclera = e->look.sclera;
@@ -442,10 +428,7 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
         const lp_line pl = lp_line_at(inv_pupil, ys);
         lp_spans shape;
         lp_spans clipped;
-        if (g->pupil_polygon)
-            lp_spans_polygon(&shape, g->shape.pts, g->shape.count, ys, lo, hi);
-        else
-            lp_spans_ellipse(&shape, &pl, g->px, g->py, g->prx, g->pry, lo, hi);
+        lp_spans_ellipse(&shape, &pl, g->px, g->py, g->prx, g->pry, lo, hi);
         lp_spans_intersect(&clipped, &eye, &shape);
         lp_coverage_add(r->cov[1], x0, width, &clipped, w);
 

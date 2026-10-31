@@ -233,7 +233,7 @@ typedef struct {
     bool closed;
     lp_rect box;
     float inv_eye[6];   /* screen -> eye frame (affine a b c d tx ty) */
-    float inv_pupil[6]; /* screen -> pupil frame, which stays upright */
+    float inv_pupil[6]; /* screen -> pupil frame: upright, then leaned around the pupil center */
     float rx, ry;
     float lid_m, lid_c; /* emotion top lid: keep v >= lid_m u + lid_c */
     bool blink_lid;
@@ -241,12 +241,11 @@ typedef struct {
     bool crescent, happy; /* cut by an ellipse (center 0, cv; radii ra, rb) */
     float crescent_cv, crescent_ra, crescent_rb;
     float happy_cv, happy_ra, happy_rb;
-    bool pupil_polygon; /* acorn: `shape` holds the pupil; otherwise an ellipse in the pupil frame */
     float px, py, prx, pry;
     bool glint;
     float gx, gy, gr;
     uint32_t sclera, pupil_color;
-    lp_polygon shape; /* acorn pupil, or the closed-eye stroke */
+    lp_polygon shape; /* closed-eye stroke */
 } lp_eye_geometry;
 
 /* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque in practice. */
