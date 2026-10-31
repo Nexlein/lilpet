@@ -16,7 +16,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 4
+#define LP_VERSION_MINOR 5
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -169,6 +169,12 @@ void lp_eyes_blink(lp_eyes *eyes);
 void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
 /* Pointer (face position) in -1..1, or inactive */
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
+/* Follow the active pointer instead of idle saccades (on by default) */
+void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
+/* Eye shape: radii, gap and tilt (the prototype page's sliders, later the PC app) */
+void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape);
+/* How much the head follows the gaze: 0 still, 1 fully (0.6 by default) */
+void lp_eyes_set_head_amount(lp_eyes *eyes, float amount);
 /* Advances the animation by dt seconds */
 void lp_eyes_update(lp_eyes *eyes, float dt);
 

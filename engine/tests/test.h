@@ -23,6 +23,9 @@
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
     X(test_blink_does_not_restart_while_running)                                                                       \
+    X(test_follow_off_ignores_the_pointer)                                                                             \
+    X(test_head_amount_zero_keeps_the_head_still)                                                                      \
+    X(test_set_shape_is_used_by_the_renderer)                                                                          \
     X(test_rgb565_conversion)                                                                                          \
     X(test_render_first_frame_is_full_screen)                                                                          \
     X(test_render_puts_colors_where_they_belong)                                                                       \

@@ -55,6 +55,32 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_pointer(int active, float x, float y)
     lp_eyes_set_pointer(&eyes, active != 0, x, y);
 }
 
+EMSCRIPTEN_KEEPALIVE void lpw_set_follow(int follow)
+{
+    lp_eyes_set_follow(&eyes, follow != 0);
+}
+
+EMSCRIPTEN_KEEPALIVE void lpw_set_shape(float rx, float ry, float gap, float tilt)
+{
+    const lp_shape shape = {.rx = rx, .ry = ry, .gap = gap, .tilt = tilt};
+    lp_eyes_set_shape(&eyes, &shape);
+}
+
+EMSCRIPTEN_KEEPALIVE void lpw_set_head_amount(float amount)
+{
+    lp_eyes_set_head_amount(&eyes, amount);
+}
+
+EMSCRIPTEN_KEEPALIVE void lpw_spawn(int type)
+{
+    lp_eyes_spawn(&eyes, (lp_particle_type)type);
+}
+
+EMSCRIPTEN_KEEPALIVE int lpw_emotion(void)
+{
+    return (int)eyes.emotion;
+}
+
 EMSCRIPTEN_KEEPALIVE void lpw_update(float dt)
 {
     lp_eyes_update(&eyes, dt);
@@ -83,13 +109,16 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_scene(int emotion, int blink_phase, float blin
 
 EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
 {
-    lp_render(&renderer, &eyes, frame);
-    for (int i = 0; i < PIXELS; i++) {
-        const uint32_t p = frame[i];
-        rgba[4 * i] = (uint8_t)(((p >> 11u) & 0x1Fu) * 255u / 31u);
-        rgba[4 * i + 1] = (uint8_t)(((p >> 5u) & 0x3Fu) * 255u / 63u);
-        rgba[4 * i + 2] = (uint8_t)((p & 0x1Fu) * 255u / 31u);
-        rgba[4 * i + 3] = 255u;
+    const lp_rect dirty = lp_render(&renderer, &eyes, frame);
+    for (int y = dirty.y0; y < dirty.y1; y++) {
+        for (int x = dirty.x0; x < dirty.x1; x++) {
+            const int i = y * LP_SCREEN_SIZE + x;
+            const uint32_t p = frame[i];
+            rgba[4 * i] = (uint8_t)(((p >> 11u) & 0x1Fu) * 255u / 31u);
+            rgba[4 * i + 1] = (uint8_t)(((p >> 5u) & 0x3Fu) * 255u / 63u);
+            rgba[4 * i + 2] = (uint8_t)((p & 0x1Fu) * 255u / 31u);
+            rgba[4 * i + 3] = 255u;
+        }
     }
     return rgba;
 }
