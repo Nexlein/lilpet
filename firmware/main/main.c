@@ -26,7 +26,7 @@
 #define BAND_BYTES    (LP_SCREEN_SIZE * BAND_ROWS * sizeof(uint16_t))
 #define REPORT_FRAMES (10 * LP_BENCH_FPS)
 
-/* From eyes/looks.json: cherry with a dot pupil, terrarium with an acorn pupil (drawn as polygons, the slowest) */
+/* From eyes/looks.json: cherry with a dot pupil, terrarium with an acorn pupil (the biggest) */
 static const lp_look LOOKS[] = {
     {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}},   /* cherry */
     {0x6FF5D0u, LP_PUPIL_ACORN, {0x106E54u, 0x106E54u}}, /* terrarium */

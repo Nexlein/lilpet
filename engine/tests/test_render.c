@@ -178,8 +178,9 @@ void test_band_rendering_matches_whole_frame(void)
     enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
     static uint16_t band[SIZE * BAND_ROWS];
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes, &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil: polygons */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                                  /* hearts */
+    lp_eyes_set_look(&eyes,
+                     &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                           /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
     memset(reference, 0, sizeof reference);

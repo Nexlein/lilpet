@@ -157,7 +157,7 @@ static const lp_look LPV_LOOKS[8] = {
 };
 
 typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;
-static const lpv_scene LPV_SCENES[27] = {
+static const lpv_scene LPV_SCENES[29] = {
     {"look-cherry", 0, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"look-popcorn", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"look-laser", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
@@ -185,6 +185,8 @@ static const lpv_scene LPV_SCENES[27] = {
     {"head-closed-tilted", 5, {LP_EMOTION_NEUTRAL, LP_BLINK_CLOSED, 0.05f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, false, 0u, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.3f, 0.15f, -0.2f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_CLOSED, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"gaze-down-right", 0, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.7f, 0.6f, false, 0u, 0.0f}, {0.0f, 0.7f, 0.6f, 0.7f, 0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
     {"gaze-up-left", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, -0.7f, -0.6f, false, 0u, 0.0f}, {0.0f, -0.7f, -0.6f, -0.7f, -0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"gaze-circle-edge", 3, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.4f, false, 0u, 0.0f}, {0.0f, 1.0f, 0.4f, 1.0f, 0.4f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
+    {"gaze-cat-edge", 2, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, false, 0u, 0.0f}, {0.0f, -1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, LP_BLINK_NONE, 0, 0.0f, 0.0f, LP_EMOTION_NEUTRAL}},
 };
 
 #endif /* LILPET_JS_VECTORS_H */

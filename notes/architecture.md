@@ -122,7 +122,8 @@ comme en `double`.
 - En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d'un commit à l'autre. Il n'y a pas de
   seuil qui fait échouer la CI : les machines partagées de GitHub sont trop irrégulières pour ça.
 - Fin octobre 2026, sur un AMD Ryzen 7 7730U : 0,34 ms par image en moyenne sur l'animation, 0,51 ms au pire. Les
-  pupilles « gland », dessinées comme des polygones, coûtent environ 65 % de plus que les autres.
+  pupilles « gland », les plus grandes, coûtent environ 20 % de plus que les autres (60 % quand elles étaient des
+  polygones, avant novembre).
 - Ces chiffres ne servent qu'à repérer les régressions : l'ESP32-S3 (240 MHz) est beaucoup plus lent qu'un PC. La
   vraie mesure se fera sur l'objet, avec le firmware.
 
