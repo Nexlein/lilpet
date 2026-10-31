@@ -1,4 +1,4 @@
-/* Engine behavior that the prototype does not cover: limits and invalid input */
+/* Engine behavior the parity vectors do not cover: limits, invalid input and the setters used by the live view */
 #include "lilpet/lilpet.h"
 #include "test.h"
 
@@ -60,4 +60,51 @@ void test_blink_does_not_restart_while_running(void)
     lp_eyes_blink(&eyes);
     CHECK(eyes.blink.phase == phase);
     CHECK(eyes.rng.state == state);
+}
+
+void test_follow_off_ignores_the_pointer(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_pointer(&eyes, true, 0.9f, 0.0f);
+    lp_eyes_set_follow(&eyes, false);
+    for (int i = 0; i < 64; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.gaze.tx != 0.9f);
+
+    lp_eyes_set_follow(&eyes, true);
+    lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.gaze.tx == 0.9f);
+}
+
+void test_head_amount_zero_keeps_the_head_still(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    lp_eyes_set_pointer(&eyes, true, 0.9f, 0.5f);
+    for (int i = 0; i < 320; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.head.yaw == 0.0f && eyes.head.pitch == 0.0f && eyes.head.roll == 0.0f);
+}
+
+void test_set_shape_is_used_by_the_renderer(void)
+{
+    /* Narrower eyes cover less of the screen */
+    static lp_renderer renderer;
+    static uint16_t frame[LP_SCREEN_SIZE * LP_SCREEN_SIZE];
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    const lp_rect wide = lp_render(&renderer, &eyes, frame);
+
+    lp_shape narrow = lp_default_shape();
+    narrow.rx = 50.0f;
+    lp_eyes_set_shape(&eyes, &narrow);
+    CHECK(eyes.shape.rx == 50.0f && eyes.shape.ry == lp_default_shape().ry);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    const lp_rect thin = lp_render(&renderer, &eyes, frame);
+    CHECK(thin.x1 - thin.x0 < wide.x1 - wide.x0);
 }

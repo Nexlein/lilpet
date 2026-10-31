@@ -51,6 +51,21 @@ void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
     eyes->pointer.y = y;
 }
 
+void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
+{
+    eyes->follow = follow;
+}
+
+void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
+{
+    eyes->shape = *shape;
+}
+
+void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
+{
+    eyes->head_amount = amount;
+}
+
 void lp_eyes_blink(lp_eyes *eyes)
 {
     if (eyes->blink.phase != LP_BLINK_NONE)

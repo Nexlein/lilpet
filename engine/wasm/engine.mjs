@@ -1,9 +1,11 @@
 // JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the
 // same scene and look objects as the prototype (prototype/scenes.json, eyes/looks.json).
-// Used by prototype/reference.html and the parity test; the PC app will build on it.
+// Used by prototype/reference.html, the live view of prototype/index.html and the parity tests; the PC app will build
+// on it.
 
 const PUPILS = ['dot', 'slit', 'acorn', 'round'];
 const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
+const PARTICLES = [null, 'heart', 'sparkle']; // lp_particle_type order
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
 
@@ -12,9 +14,8 @@ export async function loadEngine(moduleUrl) {
     const { default: createLilpet } = await import(moduleUrl);
     const m = await createLilpet();
     const size = m._lpw_screen_size();
-    const emotions = new Map(
-        Array.from({ length: m._lpw_emotion_count() }, (_, i) => [m.UTF8ToString(m._lpw_emotion_name(i)), i])
-    );
+    const names = Array.from({ length: m._lpw_emotion_count() }, (_, i) => m.UTF8ToString(m._lpw_emotion_name(i)));
+    const emotions = new Map(names.map((name, i) => [name, i]));
 
     const setLook = (look) =>
         m._lpw_set_look(
@@ -59,6 +60,11 @@ export async function loadEngine(moduleUrl) {
         setEmotion: (name, duration = 0) => m._lpw_set_emotion(emotions.get(name), duration),
         blink: () => m._lpw_blink(),
         setPointer: (point) => m._lpw_set_pointer(point ? 1 : 0, point?.x ?? 0, point?.y ?? 0),
+        setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
+        setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
+        setHeadAmount: (amount) => m._lpw_set_head_amount(amount),
+        spawn: (type) => m._lpw_spawn(PARTICLES.indexOf(type)),
+        emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render
     };
