@@ -164,7 +164,8 @@ faisait environ 6 € par article : 30,28 € de frais d'import pour un panier d
 | Gotronic | Livraison en point relais                                                                                                                 | 4,50 €     |
 
 Total : **66,29 €** (Amazon 41,89 €, livré gratuitement avec Prime ; Gotronic 24,40 €). La XIAO revient en stock chez
-Gotronic vers le 10 novembre : le colis Gotronic partira à ce moment-là.
+Gotronic vers le 10 novembre. **Commande prévue quand tout sera en stock**, en revérifiant d'abord les prix et les stocks
+(il ne restait que quatre batteries sur Amazon le 31 octobre).
 
 - Les cordons PicoBlade se branchent sur la fiche batterie de la carte écran (MX1.25 = Molex PicoBlade). Ils servent à
   corriger la polarité de la batterie si elle est inversée, et leurs fils à relier les deux cartes.
@@ -182,6 +183,7 @@ Options écartées, relevées du 27 au 31 octobre :
 | Temu                                                        | -                                | Mêmes frais pour les colis venus de Chine, pas de boutique officielle pour ces cartes                                        |
 | Eckstein (Allemagne), Opencircuit (Pays-Bas) pour l'écran   | -                                | En rupture chez Eckstein ; 32,50 € + port chez Opencircuit, disponible le 11 novembre                                        |
 | waveshare.com + Reichelt                                    | 55 à 65 € avant frais d'import   | Port, TVA et frais de Waveshare connus seulement au panier ([expédition](https://www.waveshare.com/shipping))                |
+| Reichelt (Allemagne) pour la caméra                         | 24,88 € sans les câbles          | 15,40 € + 9,48 € de port DPD vers la France ; en stock tout de suite                                                         |
 | DigiKey, Mouser ou Farnell pour la caméra                   | 14,50 à 15 € + 12 à 25 € de port | Intéressant seulement avec d'autres achats                                                                                   |
 
 Plus tard, avec le boîtier :
