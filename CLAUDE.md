@@ -2,8 +2,8 @@
 
 Personal, non-commercial keychain "digital pet" inspired by the Starboy (lilguy / CREATURE): a round screen with
 expressive eyes that react through a camera. Stage: eye engine in C done (host, WebAssembly, ESP32-S3 compile
-check); hardware chosen in `notes/materiel.md` (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera
-over UART), not bought yet.
+check); PC app v1 (pick the eyes, send them over USB); hardware chosen in `notes/materiel.md` (Waveshare
+ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; an AtomS3R is the next test board.
 No rarity or random eye draw: the owner picks. Long-term, a small PC app edits the eyes and animations and sends
 them to the device, so keep looks (and later animations) as data, not code.
 
@@ -44,12 +44,20 @@ reference until the engine takes over each feature.
   RNG values, emotion table, poses, seeded simulations, scene states. `tests/test_parity.c` checks the engine against
   it. Random numbers are drawn in the same order in JS and C: keep it that way when changing either side.
 - `engine/wasm/` — WebAssembly bindings (`bindings.c`, `lpw_*` functions) and `engine.mjs`, the JS wrapper that
-  loads `engine/build/wasm/lilpet.mjs` and takes the same scene and look objects as the prototype.
+  loads `engine/build/wasm/lilpet.mjs` and takes the same scene and look objects as the prototype; `engine.d.mts` types
+  it for the app. `src/look.c` reads and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
+- `app/` — PC app v1 (spec and protocol in `notes/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
+  font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
+  connection and text protocol: `> hello`, `> look RRGGBB RRGGBB RRGGBB <pupil>`, `> look?`; replies start with `< `),
+  `src/engine` (live preview with the WebAssembly engine), `src/ui` (React; the only part that knows React). The
+  engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
+  the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright.
 - `firmware/` — ESP-IDF app for the ESP32-S3; `components/lilpet` wraps the engine. `main/display.c` drives the
   1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from Waveshare's demo, not yet run on the board).
   `main/main.c` shows the eyes live: each frame waits for the display's TE signal, draws band by band into two DMA
   buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
   (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.
+  `main/commands.c` reads the app's commands on the same USB port; `main/look_store.c` keeps the look in NVS.
 - `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
   Looks carry no glint: only emotions add one.
@@ -62,10 +70,14 @@ reference until the engine takes over each feature.
 ## Commands
 
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
-- `npm run check` — Prettier check, oxlint, data validation. Same as CI (`.github/workflows/ci.yml`).
+- `npm run check` — Prettier check, oxlint, data validation, app types and Vitest tests. Same as CI
+  (`.github/workflows/ci.yml`).
+- `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
+  `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix.
-- `npm run test:parity` — Playwright parity tests, reference scenes and live side by side (needs
-  `mise run engine:wasm` first; first time: `npx playwright install --only-shell chromium`).
+- `npm run test:parity` — Playwright tests: reference scenes, live side by side, and the built app (needs
+  `mise run engine:wasm`, and `npm run app:build` for the app test, skipped otherwise; first time:
+  `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
@@ -79,7 +91,8 @@ reference until the engine takes over each feature.
 
 - Code, comments, commits: English. Notes and README: French.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
-- No build step and no runtime dependency in the prototype: plain HTML, CSS and JS.
+- No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
+  `app/src/ui` may import React.
 - Tool versions live in `mise.toml` (Node follows the LTS), used locally and by CI through `jdx/mise-action`.
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
   assets.
