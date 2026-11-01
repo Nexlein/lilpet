@@ -51,8 +51,10 @@ export class Connection {
 
     static async open(port: PortLike, events: ConnectionEvents = {}): Promise<Connection> {
         await port.open({ baudRate: 115200 });
-        // Both lines released at once: on the ESP32-S3 USB port, some combinations reset the chip
-        await port.setSignals?.({ dataTerminalReady: false, requestToSend: false });
+        // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS first,
+        // then DTR (checked on an AtomS3R: the other order reboots it).
+        await port.setSignals?.({ requestToSend: false });
+        await port.setSignals?.({ dataTerminalReady: false });
         return new Connection(port, events);
     }
 
