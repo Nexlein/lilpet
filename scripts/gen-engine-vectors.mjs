@@ -137,6 +137,11 @@ const SCENARIOS = [
     { name: 'love', seed: 11, emotion: 'love', steps: 384, every: 32 },
     { name: 'petting', seed: 3, emotion: 'happy', duration: 1, sparkles: 4, steps: 256, every: 16 },
     { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 32 },
+    // Gravity in the screen plane: object turned about 70 degrees, then about 150 (back toward upright)
+    { name: 'turned', seed: 13, gravity: [0.9375, 0.34375], steps: 256, every: 32 },
+    { name: 'upside-down', seed: 17, gravity: [0.5, -0.875], steps: 256, every: 32 },
+    // Object turning clockwise at 2 radians per second, standing up: 2.5 turns, the face stays level
+    { name: 'turning', seed: 19, spin: 2, steps: 512, every: 32 },
     { name: 'sleepy', seed: 9, emotion: 'sleepy', steps: 640, every: 64 }
 ];
 const states = [];
@@ -146,16 +151,20 @@ for (const s of SCENARIOS) {
     if (s.emotion) eyes.setEmotion(s.emotion, s.duration ?? 0);
     for (let i = 0; i < (s.sparkles ?? 0); i++) eyes.spawn('sparkle');
     if (s.pointer) eyes.mouse = { x: s.pointer[0], y: s.pointer[1] };
+    if (s.gravity) eyes.gravity = { x: s.gravity[0], y: s.gravity[1] };
     const first = states.length;
     let t = 0;
     for (let i = 1; i <= s.steps; i++) {
         t += DT;
+        if (s.spin) eyes.gravity = { x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) };
         eyes.update(DT, t);
         if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
     }
     scenarioRows.push(
         `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ${num(s.duration ?? 0)}, ${s.sparkles ?? 0}, ` +
-            `${Boolean(s.pointer)}, ${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ${s.steps}, ${s.every}, ${first}, ${states.length - first}},`
+            `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
+            `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
+            `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}},`
     );
 }
 out(`static const lpv_state LPV_STATES[${states.length}] = {`, ...states, '};', '');
@@ -166,9 +175,11 @@ out(
     '    lp_emotion emotion;',
     '    float emotion_duration;',
     '    int sparkles;',
-    '    bool pointer;',
     '    float pointer_x, pointer_y;',
+    '    float gravity_x, gravity_y;',
+    '    float spin; /* radians per second: gravity turning in the screen plane, from upright */',
     '    int steps, every, first_state, state_count;',
+    '    bool pointer, gravity;',
     '} lpv_scenario;',
     `static const lpv_scenario LPV_SCENARIOS[${SCENARIOS.length}] = {`,
     ...scenarioRows,

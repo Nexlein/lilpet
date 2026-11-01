@@ -2,6 +2,8 @@
 #include "lilpet/lilpet.h"
 #include "test.h"
 
+#include <math.h>
+
 void test_unknown_emotion_is_rejected(void)
 {
     CHECK(lp_emotion_from_name("furious") == LP_EMOTION_COUNT);
@@ -107,4 +109,43 @@ void test_set_shape_is_used_by_the_renderer(void)
     lp_render(&renderer, &eyes, frame);
     const lp_rect thin = lp_render(&renderer, &eyes, frame);
     CHECK(thin.x1 - thin.x0 < wide.x1 - wide.x0);
+}
+
+void test_tilt_holds_upside_down_on_noise(void)
+{
+    /* Upside down and leaned back, gravity noise flips the angle across half a turn every frame: the face holds */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 0.0f); /* no idle roll: only the tilt turns the face */
+    float max_step = 0.0f;
+    for (int i = 0; i < 640; i++) {
+        lp_eyes_set_gravity(&eyes, true, i % 2 ? 0.02f : -0.02f, -0.5f);
+        const float before = eyes.head.roll;
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        const float step = fabsf(remainderf(eyes.head.roll - before, 6.2831853f));
+        if (i >= 320 && step > max_step)
+            max_step = step;
+    }
+    CHECK(fabsf(eyes.head.roll) > 3.0f); /* level, half a turn from the screen's upright */
+    CHECK(max_step < 0.02f);
+}
+
+void test_tilt_holds_lying_flat(void)
+{
+    /* Turned a quarter turn, then laid flat: the face keeps its last level angle, then goes upright without sensor */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    lp_eyes_set_gravity(&eyes, true, 1.0f, 0.0f);
+    for (int i = 0; i < 320; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
+    lp_eyes_set_gravity(&eyes, true, 0.05f, 0.1f);
+    for (int i = 0; i < 320; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
+    lp_eyes_set_gravity(&eyes, false, 0.0f, 0.0f);
+    for (int i = 0; i < 320; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK_NEAR(eyes.head.level, 0.0f, 0.01f);
 }

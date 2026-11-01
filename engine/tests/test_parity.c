@@ -129,9 +129,14 @@ void test_simulations_match_prototype(void)
         for (int i = 0; i < sc->sparkles; i++)
             lp_eyes_spawn(&eyes, LP_PARTICLE_SPARKLE);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
+        lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);
 
         int next = sc->first_state;
         for (int step = 1; step <= sc->steps; step++) {
+            if (sc->spin != 0.0f) {
+                const float a = sc->spin * (eyes.time + LPV_DT);
+                lp_eyes_set_gravity(&eyes, true, sinf(a), cosf(a));
+            }
             lp_eyes_update(&eyes, LPV_DT);
             if (step % sc->every == 0) {
                 char what[64];

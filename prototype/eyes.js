@@ -86,6 +86,22 @@ const approach = (v, target, k, dt) => v + (target - v) * (1 - Math.exp(-k * dt)
 const easeIn = (p) => p * p;
 const easeOut = (p) => 1 - (1 - p) ** 3;
 const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+
+const TAU = Math.PI * 2;
+const TILT_SLIDE = 0.5; // gaze shift toward the low side, at full tilt
+
+// For a gravity vector in the screen plane (x right, y down, in g): the roll that keeps the face level with the floor,
+// how far to trust it (0 lying flat, where little gravity is left in the plane, 1 standing up) and the eye slide
+// toward the low side.
+function tiltPose(g) {
+    const w = Math.min(Math.max((Math.hypot(g.x, g.y) - 0.3) / 0.4, 0), 1);
+    const a = Math.atan2(g.x, g.y); // 0 upright, > 0 turned clockwise
+    return { level: -a, trust: w, slide: Math.sin(a) * w };
+}
+
+// The angle equal to `target` modulo a turn that is nearest to `from`, so that easing toward it never spins around
+const nearestTurn = (target, from) => target + TAU * Math.floor((from - target) / TAU + 0.5);
+const wrapAngle = (a) => (Math.abs(a) > Math.PI ? a - TAU * Math.sign(a) : a);
 const settled = (emotion) => Object.fromEntries(Object.keys(BASE).map((k) => [k, EMOTIONS[emotion][k]]));
 
 function drawHeart(ctx, s) {
@@ -123,10 +139,11 @@ export class Eyes {
         this.mouse = null; // normalized pointer position, null when outside
         this.nextSaccade = 0;
         this.pendingGaze = null; // gaze change hidden behind the next blink
+        this.gravity = null; // accelerometer, in the screen plane (x right, y down, in g), null without one
 
         // Head pose (radians). Eyes sit on a virtual 3D face: turning makes the near eye bigger and
         // the far one smaller and flatter, tilting rotates the pair. The head follows the gaze, slower.
-        this.head = { yaw: 0, pitch: 0, roll: 0, rollT: 0 };
+        this.head = { yaw: 0, pitch: 0, roll: 0, rollT: 0, level: 0 }; // level: tilt roll, eased
         this.headAmount = 0.6;
         this.nextRoll = 0;
 
@@ -216,10 +233,17 @@ export class Eyes {
             }
             this.nextSaccade = t + 0.6 + this.rand() * 2.4;
         }
+        // Tilting the object turns the face to stay level and slides the eyes toward the low side. The level roll
+        // eases in as fast as it can be trusted: it holds lying flat, where the angle is mostly noise, so the face
+        // never flips back and forth; without accelerometer it goes back to upright.
+        const tilt = this.gravity && tiltPose(this.gravity);
+        const level = tilt ? nearestTurn(tilt.level, head.level) : 0;
+        head.level = wrapAngle(approach(head.level, level, tilt ? 10 * tilt.trust : 3, dt));
+        const aimX = clamp(gaze.tx + (tilt ? tilt.slide : 0) * TILT_SLIDE, 1);
         const px = gaze.x,
             py = gaze.y;
         const k = tracking ? 14 : 22;
-        gaze.x = approach(gaze.x, gaze.tx, k, dt);
+        gaze.x = approach(gaze.x, aimX, k, dt);
         gaze.y = approach(gaze.y, gaze.ty + cur.gy, k, dt);
         gaze.vx = (gaze.x - px) / dt;
         gaze.vy = (gaze.y - py) / dt;
@@ -235,13 +259,14 @@ export class Eyes {
 
         // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
         const hk = blinkState.phase ? 12 : 4;
-        head.yaw = approach(head.yaw, gaze.tx * 0.55 * this.headAmount, hk, dt);
+        head.yaw = approach(head.yaw, aimX * 0.55 * this.headAmount, hk, dt);
         head.pitch = approach(head.pitch, (gaze.ty + cur.gy) * 0.4 * this.headAmount, hk, dt);
         if (t > this.nextRoll) {
             head.rollT = (this.rand() - 0.5) * 0.4;
             this.nextRoll = t + 2 + this.rand() * 4;
         }
-        head.roll = approach(head.roll, head.rollT * this.headAmount - head.yaw * 0.4, 3, dt);
+        const roll = head.rollT * this.headAmount - head.yaw * 0.4 + head.level;
+        head.roll = wrapAngle(approach(head.roll, nearestTurn(roll, head.roll), 3, dt));
     }
 
     render(t) {
@@ -280,7 +305,7 @@ export class Eyes {
         this.emotionTimer = 0;
         Object.assign(this.cur, settled(emotion));
         this.shape = { ...DEFAULT_SHAPE, ...scene.shape };
-        Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, ...scene.head });
+        Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });
         const g = { x: 0, y: 0, ...scene.gaze };
         Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y, vx: 0, vy: 0 });
         Object.assign(this.blinkState, {

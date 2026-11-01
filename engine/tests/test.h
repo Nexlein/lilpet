@@ -22,6 +22,8 @@
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
+    X(test_tilt_holds_upside_down_on_noise)                                                                            \
+    X(test_tilt_holds_lying_flat)                                                                                      \
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \

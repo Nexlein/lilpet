@@ -38,4 +38,11 @@ static inline float lp_minf(float a, float b)
     return a < b ? a : b;
 }
 
+static inline float lp_clampf(float v, float lim)
+{
+    if (v < -lim)
+        return -lim;
+    return v > lim ? lim : v;
+}
+
 #endif /* LILPET_INTERNAL_H */

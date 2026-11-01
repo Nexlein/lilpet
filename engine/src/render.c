@@ -49,13 +49,6 @@ static lp_affine from_array(const float in[6])
     return (lp_affine){.a = in[0], .b = in[1], .c = in[2], .d = in[3], .tx = in[4], .ty = in[5]};
 }
 
-static float clampf(float v, float lim)
-{
-    if (v < -lim)
-        return -lim;
-    return v > lim ? lim : v;
-}
-
 static float maxf(float a, float b)
 {
     return a > b ? a : b;
@@ -253,8 +246,8 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     const int t = (unsigned)type < 4u ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
-    g->px = clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    g->py = clampf(PUPIL_REST[t][1] * ry + e->gaze.y * maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
+    g->px = lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    g->py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     g->prx = prx;
     g->pry = pry;
     /* Lean around the pupil center */

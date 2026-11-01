@@ -57,9 +57,13 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
         if (!BLINK_PHASES.includes(scene.blink.phase)) fail(`"blink.phase" must be one of ${BLINK_PHASES.join(', ')}`);
         if (!isNum(scene.blink.t, 0, 1)) fail('"blink.t" must be a number of seconds between 0 and 1');
     }
+    // Roll goes past a quarter turn when the object is turned (tilt)
     for (const k of Object.keys(scene.head ?? {}))
-        if (!['yaw', 'pitch', 'roll'].includes(k) || !isNum(scene.head[k], -1, 1))
-            fail(`"head.${k}" must be yaw, pitch or roll, in radians between -1 and 1`);
+        if (
+            !['yaw', 'pitch', 'roll'].includes(k) ||
+            !isNum(scene.head[k], k === 'roll' ? -Math.PI : -1, k === 'roll' ? Math.PI : 1)
+        )
+            fail(`"head.${k}" must be yaw, pitch (radians, -1 to 1) or roll (radians, -pi to pi)`);
     for (const k of Object.keys(scene.gaze ?? {}))
         if (!['x', 'y'].includes(k) || !isNum(scene.gaze[k], -1, 1))
             fail(`"gaze.${k}" must be x or y, between -1 and 1`);
