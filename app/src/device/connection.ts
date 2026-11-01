@@ -65,6 +65,8 @@ export class Connection {
         this.#reader = port.readable.getReader();
         this.#writer = port.writable.getWriter();
         this.#reading = this.#readLoop();
+        // Ends any half line a previous connection left in the board's input, which would swallow the first command
+        this.#writer.write(new TextEncoder().encode('\n')).catch(() => undefined);
     }
 
     async #readLoop(): Promise<void> {
