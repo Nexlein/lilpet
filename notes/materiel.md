@@ -146,6 +146,17 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
   ([documentation](https://docs.m5stack.com/en/core/Stamp-S3A)). Même puce que la carte écran, mais sans PSRAM ni écran,
   donc elle ne remplace rien dans la commande. Sert à mesurer le moteur sur une vraie puce avant de recevoir le
   matériel, puis pourra simuler la carte vision sur la liaison série.
+- **M5 AtomS3R** (M5Stack) et sa batterie : ESP32-S3 (8 Mo de flash, 8 Mo de PSRAM), écran couleur 0,85" de
+  128 × 128, capteur de mouvement BMI270 + boussole BMM150, USB natif
+  ([documentation](https://docs.m5stack.com/en/core/AtomS3R)). Le meilleur banc d'essai avant la commande : même puce
+  que l'objet, avec un écran, pour voir un look envoyé par l'app et essayer l'inclinaison. Il faudra que le moteur
+  dessine à une autre taille que 466 px, et un pilote pour son écran : la puce a changé en 2026 (GC9107, puis ST7735),
+  à vérifier sur la mienne.
+- **M5StickC Plus2** : ESP32 classique (pas S3), écran 135 × 240
+  ([documentation](https://docs.m5stack.com/en/core/M5StickC%20PLUS2)). Peu utile : pas la puce de l'objet.
+- **Flipper Zero** : STM32 à 64 MHz, écran monochrome 128 × 64
+  ([caractéristiques](https://docs.flipper.net/zero/development/hardware/tech-specs)). Pas adapté à des yeux en
+  couleur.
 
 ## Liste à commander
 
