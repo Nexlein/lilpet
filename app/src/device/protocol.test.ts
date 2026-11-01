@@ -102,6 +102,15 @@ describe('connection', () => {
         expect(isClosed()).toBe(true);
     });
 
+    it('asks hello again when the board misses the first one while it boots', async () => {
+        let hellos = 0;
+        const { port } = fakePort((command) => (command === '> hello' && ++hellos === 1 ? null : firmware(command)));
+        const connection = await Connection.open(port);
+        expect((await hello(connection)).firmware).toBe('abc1234');
+        expect(hellos).toBe(2);
+        await connection.close();
+    });
+
     it('fails a command that gets no reply, then keeps working', async () => {
         const { port } = fakePort(firmware);
         const connection = await Connection.open(port);

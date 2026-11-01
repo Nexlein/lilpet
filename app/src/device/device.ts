@@ -5,9 +5,15 @@ import { HELLO, LOOK_QUERY, lookCommand, parseHello, parseLook, replyError, type
 
 export type { DeviceInfo };
 
-export async function hello(connection: Connection): Promise<DeviceInfo> {
-    const reply = await connection.request(HELLO);
-    const info = parseHello(reply);
+// Asked a few times: a board that reboots as the port opens misses the first one
+export async function hello(connection: Connection, attempts = 3): Promise<DeviceInfo> {
+    let reply: string | null = null;
+    for (let i = 0; i < attempts && reply === null; i++)
+        // oxlint-disable-next-line no-await-in-loop -- each attempt waits for the previous one to time out
+        reply = await connection
+            .request(HELLO, 1000)
+            .catch((err: unknown) => (i === attempts - 1 ? Promise.reject(err) : null));
+    const info = parseHello(reply ?? '');
     if (!info) throw new Error(`not a lilpet device (reply: ${reply})`);
     return info;
 }
