@@ -46,6 +46,7 @@ function createEyes(seed) {
         eyes.headAmount = prev.headAmount;
         eyes.follow = prev.follow;
         eyes.mouse = prev.mouse;
+        eyes.gravity = prev.gravity;
     }
     if (look) eyes.setLook(look);
     eyes.setEmotion(emotion);
@@ -63,6 +64,7 @@ function resync() {
     engine.setHeadAmount(eyes.headAmount);
     engine.setFollow(eyes.follow);
     engine.setPointer(eyes.mouse);
+    engine.setGravity(eyes.gravity);
     engine.setEmotion(emotion);
 }
 
@@ -125,6 +127,12 @@ function pet() {
 function setPointer(point) {
     eyes.mouse = point;
     engine?.setPointer(point);
+}
+
+// Accelerometer stand-in: gravity in the screen plane, or null
+function setGravity(g) {
+    eyes.gravity = g;
+    engine?.setGravity(g);
 }
 
 // --- Looks -------------------------------------------------------------------------------------------------------
@@ -197,6 +205,15 @@ function bindControls() {
             engine?.setHeadAmount(eyes.headAmount);
         });
     }
+
+    // Object turned by an angle, standing up: gravity in the screen plane (0, the default, as without accelerometer)
+    const lean = document.getElementById('lean');
+    lean.addEventListener('input', () => {
+        const a = (+lean.value * Math.PI) / 180;
+        lean.nextElementSibling.textContent = `${lean.value}°`;
+        setGravity(+lean.value ? { x: Math.sin(a), y: Math.cos(a) } : null);
+    });
+    lean.nextElementSibling.textContent = '0°';
 
     const follow = document.getElementById('follow');
     eyes.follow = follow.checked;
@@ -301,6 +318,7 @@ window.live = {
     setEmotion,
     pet,
     setPointer,
+    setGravity,
     pause: () => (paused = true),
     step: (n) => {
         for (let i = 0; i < n; i++) step(STEP);

@@ -22,6 +22,10 @@ test('the C engine animates like the prototype, side by side', async ({ page }) 
         live.step(128);
         check('following the pointer');
         live.setPointer(null);
+        live.setGravity({ x: Math.sin(1.2), y: Math.cos(1.2) });
+        live.step(128);
+        check('object turned');
+        live.setGravity(null);
         live.setEmotion('love');
         live.step(320);
         check('love, with hearts');

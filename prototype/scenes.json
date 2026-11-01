@@ -74,6 +74,13 @@
             "gaze": { "x": -0.5, "y": -0.5 }
         },
         {
+            "id": "tilt-turned-right",
+            "swatch": "cherry",
+            "pupil": "dot",
+            "head": { "yaw": 0.16, "roll": -1.4 },
+            "gaze": { "x": 0.49 }
+        },
+        {
             "id": "head-closed-tilted",
             "swatch": "terrarium",
             "pupil": "acorn",

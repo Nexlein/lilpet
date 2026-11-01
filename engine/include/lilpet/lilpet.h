@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 8
+#define LP_VERSION_MINOR 9
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -139,6 +139,10 @@ typedef struct {
         bool active;
         float x, y;
     } pointer;
+    struct {
+        bool active;
+        float x, y; /* in the screen plane: x right, y down, in g */
+    } gravity;      /* accelerometer: tilting turns the face to stay level and slides the eyes */
     float next_saccade;
     struct {
         bool active;
@@ -147,6 +151,7 @@ typedef struct {
 
     struct {
         float yaw, pitch, roll, roll_target;
+        float level; /* tilt roll that keeps the face level, eased */
     } head;
     float next_roll;
 
@@ -177,6 +182,8 @@ void lp_eyes_blink(lp_eyes *eyes);
 void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
 /* Pointer (face position) in -1..1, or inactive */
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
+/* Gravity from an accelerometer, in the screen plane (x right, y down, in g), or inactive without one */
+void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
 /* Eye shape: radii, gap and tilt (the prototype page's sliders, later the PC app) */

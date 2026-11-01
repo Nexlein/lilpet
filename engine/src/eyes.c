@@ -51,6 +51,13 @@ void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
     eyes->pointer.y = y;
 }
 
+void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y)
+{
+    eyes->gravity.active = active;
+    eyes->gravity.x = x;
+    eyes->gravity.y = y;
+}
+
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
 {
     eyes->follow = follow;
@@ -190,8 +197,42 @@ static void ease_expression(lp_expression *cur, const lp_expression *target, flo
     cur->gy = lp_approach(cur->gy, target->gy, k, dt);
 }
 
-/* Gaze target: pointer (face tracking) or idle saccades; big jumps are often hidden behind a blink */
-static void update_gaze(lp_eyes *e, float dt, float t)
+#define TILT_SLIDE 0.5f /* gaze shift toward the low side, at full tilt */
+
+/* The angle equal to target modulo a turn that is nearest to from, so that easing toward it never spins around */
+static float nearest_turn(float target, float from)
+{
+    return target + 2.0f * LP_PI * floorf((from - target) / (2.0f * LP_PI) + 0.5f);
+}
+
+static float wrap_angle(float a)
+{
+    return fabsf(a) > LP_PI ? a - copysignf(2.0f * LP_PI, a) : a;
+}
+
+/*
+ * Tilting the object turns the face to stay level and slides the eyes toward the low side; returns the slide. The
+ * level roll eases in as fast as it can be trusted: it holds lying flat, where the angle is mostly noise, so the face
+ * never flips back and forth; without accelerometer it goes back to upright.
+ */
+static float update_tilt(lp_eyes *e, float dt)
+{
+    if (!e->gravity.active) {
+        e->head.level = wrap_angle(lp_approach(e->head.level, 0.0f, 3.0f, dt));
+        return 0.0f;
+    }
+    /* Trust: 0 lying flat, where little gravity is left in the screen plane, 1 standing up */
+    const float w = fminf(fmaxf((hypotf(e->gravity.x, e->gravity.y) - 0.3f) / 0.4f, 0.0f), 1.0f);
+    const float a = atan2f(e->gravity.x, e->gravity.y); /* 0 upright, > 0 turned clockwise */
+    e->head.level = wrap_angle(lp_approach(e->head.level, nearest_turn(-a, e->head.level), 10.0f * w, dt));
+    return sinf(a) * w;
+}
+
+/*
+ * Gaze target: pointer (face tracking) or idle saccades; big jumps are often hidden behind a blink. Returns the
+ * horizontal aim, shifted by the tilt slide.
+ */
+static float update_gaze(lp_eyes *e, float dt, float t, float slide)
 {
     const bool tracking = e->follow && e->pointer.active;
     if (tracking) {
@@ -213,13 +254,15 @@ static void update_gaze(lp_eyes *e, float dt, float t)
         }
         e->next_saccade = t + 0.6f + rnd(e) * 2.4f;
     }
+    const float aim_x = lp_clampf(e->gaze.tx + slide * TILT_SLIDE, 1.0f);
     const float px = e->gaze.x;
     const float py = e->gaze.y;
     const float k = tracking ? 14.0f : 22.0f;
-    e->gaze.x = lp_approach(e->gaze.x, e->gaze.tx, k, dt);
+    e->gaze.x = lp_approach(e->gaze.x, aim_x, k, dt);
     e->gaze.y = lp_approach(e->gaze.y, e->gaze.ty + e->cur.gy, k, dt);
     e->gaze.vx = (e->gaze.x - px) / dt;
     e->gaze.vy = (e->gaze.y - py) / dt;
+    return aim_x;
 }
 
 void lp_eyes_update(lp_eyes *eyes, float dt)
@@ -235,7 +278,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
             lp_eyes_set_emotion(e, LP_EMOTION_NEUTRAL, 0.0f);
     }
 
-    update_gaze(e, dt, t);
+    const float aim_x = update_gaze(e, dt, t, update_tilt(e, dt));
 
     /* Blinks at irregular intervals, sometimes double */
     if (t > e->next_blink && e->blink.phase == LP_BLINK_NONE) {
@@ -248,13 +291,14 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
 
     /* Head follows the gaze target, faster while the eyes are shut (hidden pose change) */
     const float hk = e->blink.phase != LP_BLINK_NONE ? 12.0f : 4.0f;
-    e->head.yaw = lp_approach(e->head.yaw, e->gaze.tx * 0.55f * e->head_amount, hk, dt);
+    e->head.yaw = lp_approach(e->head.yaw, aim_x * 0.55f * e->head_amount, hk, dt);
     e->head.pitch = lp_approach(e->head.pitch, (e->gaze.ty + e->cur.gy) * 0.4f * e->head_amount, hk, dt);
     if (t > e->next_roll) {
         e->head.roll_target = (rnd(e) - 0.5f) * 0.4f;
         e->next_roll = t + 2.0f + rnd(e) * 4.0f;
     }
-    e->head.roll = lp_approach(e->head.roll, e->head.roll_target * e->head_amount - e->head.yaw * 0.4f, 3.0f, dt);
+    const float roll = e->head.roll_target * e->head_amount - e->head.yaw * 0.4f + e->head.level;
+    e->head.roll = wrap_angle(lp_approach(e->head.roll, nearest_turn(roll, e->head.roll), 3.0f, dt));
 }
 
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look)
@@ -268,6 +312,7 @@ void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look
     e->head.yaw = scene->yaw;
     e->head.pitch = scene->pitch;
     e->head.roll = scene->roll;
+    e->head.level = 0.0f;
     e->gaze.x = e->gaze.tx = scene->gaze_x;
     e->gaze.ty = scene->gaze_y;
     e->gaze.y = scene->gaze_y + e->cur.gy;

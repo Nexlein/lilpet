@@ -36,6 +36,7 @@ export interface Engine {
     setEmotion(name: string, duration?: number): void;
     blink(): void;
     setPointer(point: { x: number; y: number } | null): void;
+    setGravity(gravity: { x: number; y: number } | null): void;
     setFollow(follow: boolean): void;
     setShape(shape: Shape): void;
     setHeadAmount(amount: number): void;
