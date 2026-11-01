@@ -74,6 +74,14 @@ jobs:
         with:
           install: false
 
+      # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
+      # A new entry per commit, starting from the latest one of the same ESP-IDF image and options.
+      - uses: actions/cache@v6
+        with:
+          path: firmware/.ccache
+          key: ccache-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-${{ github.sha }}
+          restore-keys: ccache-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-
+
       # Same command as locally; proves the engine compiles for the chip (no hardware needed) and gives a binary
       # ready to flash
       - name: Build the firmware

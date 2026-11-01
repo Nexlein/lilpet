@@ -21,6 +21,7 @@ node_modules/
 # C engine and firmware build outputs
 engine/build/
 firmware/build/
+firmware/.ccache/
 firmware/sdkconfig
 firmware/sdkconfig.old
 
