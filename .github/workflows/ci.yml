@@ -20,8 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Installs the tools from mise.toml, same as local development (only Node is needed here)
-      - uses: jdx/mise-action@v5
+      # Installs the tools from mise.toml, same as local development (only Node is needed here). The only third-party
+      # action: pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: node
 
@@ -52,7 +53,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
-      - uses: jdx/mise-action@v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
       - name: Check the engine
         run: mise run engine:check
@@ -70,7 +71,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
-      - uses: jdx/mise-action@v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install: false
 
@@ -104,7 +105,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # All tools from mise.toml: the engine:wasm task runs through mise
-      - uses: jdx/mise-action@v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
       - run: npm ci
 
