@@ -6,8 +6,9 @@
  * one is sent). Commands from the app and the timings, every 10 seconds, share the USB serial port
  * (mise run firmware:monitor).
  *
- * Without a display (no TE signal, e.g. on a bare M5Stamp S3A), frames are paced at 60 per second and the bands go
- * out on unconnected pins: the timings stay meaningful.
+ * The display is found at startup (display.c), and the engine draws at its size. Without a TE signal (the AtomS3R's
+ * small LCD, or no display at all on a bare M5Stamp S3A), frames are paced at 60 per second; without a display, the
+ * bands go out on unconnected pins and the timings stay meaningful.
  */
 #include "../../engine/tools/bench_script.h"
 #include "commands.h"
@@ -47,7 +48,7 @@ static void report(int64_t elapsed_us, bool synced)
     const int n = stats.frames;
     printf("%" PRId64 " frames/s (%s) | draw mean %" PRId64 " max %" PRId64 " us | draw + send mean %" PRId64
            " max %" PRId64 " us | redrawn %" PRId64 " per mille of the screen\n",
-           (int64_t)n * 1000000 / elapsed_us, synced ? "display refresh" : "no display, 60 paced", stats.render / n,
+           (int64_t)n * 1000000 / elapsed_us, synced ? "display refresh" : "no TE signal, 60 paced", stats.render / n,
            stats.render_max, stats.frame / n, stats.frame_max, stats.area / n);
     memset(&stats, 0, sizeof stats);
 }
@@ -56,10 +57,10 @@ void app_main(void)
 {
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
-    const bool synced = display_init(BAND_BYTES);
-    printf("\nlilpet %s, ESP32-S3 at %d MHz, bands of %d rows, %s, %u bytes of internal RAM free\n", lp_version(),
-           CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, BAND_ROWS,
-           synced ? "display found (TE signal)" : "no display found (no TE signal)",
+    const display_info screen = display_init(BAND_BYTES);
+    const bool synced = screen.synced;
+    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, bands of %d rows, %u bytes of internal RAM free\n",
+           lp_version(), CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen.name, screen.size, screen.size, BAND_ROWS,
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
     if (!bands[0] || !bands[1]) {
         printf("not enough DMA memory for the bands\n");
@@ -75,6 +76,7 @@ void app_main(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_look(&eyes, &look);
     lp_renderer_init(&renderer);
+    lp_renderer_set_size(&renderer, screen.size); /* same picture, scaled to a smaller screen */
     TickType_t wake = xTaskGetTickCount();
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
@@ -110,7 +112,7 @@ void app_main(void)
         stats.render_max = render > stats.render_max ? render : stats.render_max;
         stats.frame += frame;
         stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
-        stats.area += (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (LP_SCREEN_SIZE * LP_SCREEN_SIZE);
+        stats.area += (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (screen.size * screen.size);
         if (stats.frames == REPORT_FRAMES) {
             const int64_t now = esp_timer_get_time();
             report(now - report_start, synced);

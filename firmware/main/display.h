@@ -1,7 +1,7 @@
 /*
- * Driver of the round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI. Pins,
- * init sequence, 180-degree rotation and 6-column offset come from Waveshare's ESP-IDF demo (07_LVGL_V9_Test,
- * components/lvgl_port_bsp); to check on the board: orientation, offset, colors and tearing.
+ * The board's screen, found at startup (display.c): the round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32
+ * (display_co5300.c), the small LCD of the M5Stack AtomS3R (display_atoms3r.c), or none on a bare board. Every
+ * driver takes bands of RGB565 pixels with the same calls.
  */
 #ifndef LILPET_DISPLAY_H
 #define LILPET_DISPLAY_H
@@ -10,13 +10,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * Keeps the board powered, resets and starts the display. max_band_bytes is the largest band display_draw will
- * send. Returns whether the display's refresh signal (TE) was seen: false without a display, e.g. on a bare board.
- */
-bool display_init(size_t max_band_bytes);
+typedef struct {
+    const char *name; /* what was found, for the startup log */
+    int size;         /* side of the square screen in pixels: what the engine draws (lp_renderer_set_size) */
+    bool synced;      /* frames can start on the display's refresh signal (TE); otherwise the caller paces them */
+} display_info;
 
-/* Waits for the start of the next display refresh (TE signal), at most timeout_ms; false on timeout */
+/* Finds and starts the board's display. max_band_bytes is the largest band display_draw will send. */
+display_info display_init(size_t max_band_bytes);
+
+/* Waits for the start of the next display refresh (TE signal), at most timeout_ms; false on timeout or without TE */
 bool display_wait_refresh(int timeout_ms);
 
 /*
