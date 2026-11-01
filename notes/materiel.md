@@ -153,7 +153,11 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
   affiche les yeux en 128 px (`firmware/main/display_atoms3r.c`). M5Stack a changé la puce de l'écran en 2026 (GC9107,
   puis ST7735S) : le pilote lit l'identifiant et le donne au démarrage (le mien : GC9107). Rétroéclairage par une puce sur le bus I2C
   (adresse 0x30, broches 45 et 0), d'après la bibliothèque de M5Stack
-  ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp)).
+  ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp)). Capteur de mouvement BMI270 sur le même bus
+  (adresse 0x68) : il ne donne aucune mesure tant qu'on ne lui a pas chargé le fichier de configuration de Bosch
+  (8 Ko, licence BSD-3, [BMI270_SensorAPI](https://github.com/boschsensortec/BMI270_SensorAPI)), copié tel quel dans
+  `firmware/main/bmi270_config.c`. Axes mesurés sur la carte : son x pointe vers le port USB, son y vers la droite de
+  l'écran.
 - **M5StickC Plus2** : ESP32 classique (pas S3), écran 135 × 240
   ([documentation](https://docs.m5stack.com/en/core/M5StickC%20PLUS2)). Peu utile : pas la puce de l'objet.
 - **Flipper Zero** : STM32 à 64 MHz, écran monochrome 128 × 64

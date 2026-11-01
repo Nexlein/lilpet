@@ -98,6 +98,9 @@ Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../refe
 - **Formes spéciales** : des yeux en forme de **flammes** (jaune et orange), et des flammes posées au-dessus des yeux.
 - **Hétérochromie** visible : yeux blancs, pupille orange à gauche, cyan à droite.
 - **Inclinaison** : quand on penche l'objet, les yeux glissent et tournent selon la gravité (accéléromètre).
+  Repris dans le prototype et le moteur (`gravity` dans `eyes.js`, `lp_eyes_set_gravity`) : le visage tourne pour
+  rester à l'horizontale, sur un tour complet, et les yeux glissent vers le côté le plus bas ; posé à plat, rien ne
+  change. Ma recréation, réglée à l'œil sur l'AtomS3R, pas une mesure des originaux.
 - **Taille** : les yeux occupent presque tout l'écran et se touchent souvent.
 - Sur l'écran réel, les couleurs « bavent » un peu (lueur OLED à travers le verre bombé).
 
