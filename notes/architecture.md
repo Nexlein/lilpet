@@ -140,9 +140,9 @@ comme en `double`.
 
 ### Sur la puce
 
-- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, avec
-  la même animation que la mesure sur PC (`engine/tools/bench_script.h`) en boucle, avec le look choisi dans l'app
-  PC (gardé en mémoire flash, `cherry` tant qu'aucun n'a été envoyé). Toutes les 10 secondes, il écrit sur le port USB
+- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, qui
+  vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi dans l'app PC (gardé en mémoire
+  flash, `cherry` tant qu'aucun n'a été envoyé). Toutes les 10 secondes, il écrit sur le port USB
   le nombre d'images par seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
@@ -168,3 +168,6 @@ comme en `double`.
   Waveshare a un QMI8658, à brancher derrière la même interface (`imu.h`).
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
+  Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), pour que
+  ses temps se comparent à ceux de `mise run engine:bench`. Avec un écran, les temps affichés suivent l'animation
+  libre et ne se comparent pas.

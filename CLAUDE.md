@@ -60,9 +60,11 @@ reference until the engine takes over each feature.
   `display_co5300.c` for the Waveshare 1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from
   Waveshare's demo, not yet run on the board, also used without a display), `display_atoms3r.c` for the AtomS3R LCD
   (128 px SPI, ST7735S or GC9107 told apart by their ID, backlight through an I2C LED driver; values from M5GFX).
-  `main/main.c` shows the eyes live: each frame waits for the display's TE signal, draws band by band into two DMA
-  buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
-  (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.
+  `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
+  waits for the display's TE signal, draws band by band into two DMA buffers in internal RAM while the previous band
+  is sent, and prints timings over USB every 10 s. Without a display (no TE, e.g. a bare M5Stamp S3A) it plays the
+  benchmark animation (`engine/tools/bench_script.h`) at 60 frames/s instead, so the same binary measures the engine
+  there, comparable with `mise run engine:bench`.
   `main/commands.c` reads the app's commands on the same USB port; `main/look_store.c` keeps the look in NVS.
   `main/imu.h` is the motion sensor: `imu_bmi270.c` on the AtomS3R (BMI270, which needs Bosch's configuration file,
   `bmi270_config.c`, BSD-3, copied unmodified); its gravity, smoothed, goes to `lp_eyes_set_gravity`, which turns the

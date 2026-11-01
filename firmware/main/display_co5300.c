@@ -133,6 +133,7 @@ static display_info co5300_init(size_t max_band_bytes)
     const bool synced = co5300_wait_refresh(100);
     return (display_info){.name = synced ? "Waveshare AMOLED 1.32 (CO5300, TE signal)" : "none (no TE signal)",
                           .size = LP_SCREEN_SIZE,
+                          .present = synced, /* the CO5300 is only seen through its TE signal */
                           .synced = synced};
 }
 

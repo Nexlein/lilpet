@@ -239,7 +239,7 @@ static display_info atoms3r_init(size_t max_band_bytes)
     send(CMD_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
     send(CMD_ORIENTATION, &chip->orientation, 1);
     start_backlight();
-    return (display_info){.name = chip->name, .size = SIZE, .synced = false};
+    return (display_info){.name = chip->name, .size = SIZE, .present = true, .synced = false};
 }
 
 static bool atoms3r_wait_refresh(int timeout_ms)
