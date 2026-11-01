@@ -147,9 +147,9 @@ comme en `double`.
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
-- **Un seul binaire pour toutes les cartes** : `firmware/main/display.c` reconnaît la carte au boîtier de sa puce,
+- **Un seul binaire pour toutes les cartes** : `firmware/main/board.c` reconnaît la carte au boîtier de sa puce,
   comme la bibliothèque de M5Stack : un ESP32-S3-PICO, c'est l'AtomS3R ; sinon, l'écran rond de Waveshare, ou rien.
-  Les broches d'une carte ne sont jamais pilotées sur une autre.
+  `display.c` en déduit le pilote d'écran. Les broches d'une carte ne sont jamais pilotées sur une autre.
 - Le pilote de l'écran rond (`firmware/main/display_co5300.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
@@ -162,5 +162,9 @@ comme en `double`.
   bus I2C. Pas de signal TE : il cadence à 60 images/s. Testé le 1er novembre 2026 sur un AtomS3R à GC9107 : image
   propre, couleurs justes. Sans la séquence du fabricant ni le bit BGR, l'écran montrait une bande de bruit en haut et
   des couleurs inversées. La variante ST7735S n'a pas encore tourné.
+- **Inclinaison** : sur l'AtomS3R, `firmware/main/imu_bmi270.c` lit l'accéléromètre du BMI270 à chaque image
+  (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
+  passe au moteur (`lp_eyes_set_gravity`). Les autres cartes n'ont pas de capteur pour l'instant ; l'écran rond de
+  Waveshare a un QMI8658, à brancher derrière la même interface (`imu.h`).
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.

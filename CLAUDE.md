@@ -55,7 +55,8 @@ reference until the engine takes over each feature.
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
   the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one binary for every board; `components/lilpet` wraps the engine.
-  `main/display.c` picks the display driver from the chip package (ESP32-S3-PICO = AtomS3R, as M5GFX does):
+  `main/board.c` tells the boards apart by the chip package (ESP32-S3-PICO = AtomS3R, as M5GFX does) and owns the
+  AtomS3R's I2C bus; `main/display.c` picks the display driver from it:
   `display_co5300.c` for the Waveshare 1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from
   Waveshare's demo, not yet run on the board, also used without a display), `display_atoms3r.c` for the AtomS3R LCD
   (128 px SPI, ST7735S or GC9107 told apart by their ID, backlight through an I2C LED driver; values from M5GFX).
@@ -63,6 +64,10 @@ reference until the engine takes over each feature.
   buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
   (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.
   `main/commands.c` reads the app's commands on the same USB port; `main/look_store.c` keeps the look in NVS.
+  `main/imu.h` is the motion sensor: `imu_bmi270.c` on the AtomS3R (BMI270, which needs Bosch's configuration file,
+  `bmi270_config.c`, BSD-3, copied unmodified); its gravity, smoothed, goes to `lp_eyes_set_gravity`, which turns the
+  face to stay level and slides the eyes toward the low side (prototype: `gravity` in `eyes.js`, "Objet tourné"
+  slider).
 - `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
   Looks carry no glint: only emotions add one.
@@ -95,7 +100,7 @@ reference until the engine takes over each feature.
   `firmware:flash` writes the bootloader, partition table and app only, so the look kept in NVS survives. The build
   keeps its ccache in `firmware/.ccache` (CI caches it too).
 - `mise run firmware:check-device` — checks the flashed board over USB (`scripts/device-check.py`: no reboot on
-  opening, hello, a look kept across a reboot, a bad command rejected; puts the board's look back). The one check CI
+  opening, hello, a look kept across a reboot, a bad command rejected, about 1 g from a motion sensor; puts the board's look back). The one check CI
   cannot run.
 
 ## Conventions
