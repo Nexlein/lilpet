@@ -78,6 +78,11 @@ run = [
 description = "Flash the firmware to the board plugged in over USB (esptool through uvx finds the port)"
 run = "uvx esptool --chip esp32s3 write-flash 0x0 firmware/build/merged-binary.bin"
 
+[tasks."firmware:check-device"]
+description = "Check the flashed board over USB: hello, keeping a look across a reboot (PORT, /dev/ttyACM0 by default)"
+# The only part CI cannot test (no hardware). Puts the board's own look back at the end.
+run = "uvx --from pyserial python scripts/device-check.py"
+
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
 # RTS and DTR stay low so opening the port does not reset the chip into download mode
