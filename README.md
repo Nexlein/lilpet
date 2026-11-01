@@ -21,9 +21,10 @@ Projet strictement personnel, non commercial.
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
 - [ ] Commande du matériel
-- [ ] Firmware ESP32 (`firmware/`, créé le moment venu)
+- [ ] Firmware ESP32 (`firmware/`) : yeux en direct, look reçu de l'app et gardé ; écran et caméra à tester sur la carte
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
-- [ ] App PC pour changer les yeux et les animations
+- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
+- [ ] App PC : looks perso, réglages, animations
 
 ## Lancer le prototype
 
@@ -37,6 +38,17 @@ par les mêmes commandes.
 Les scènes de référence, que le futur moteur C devra reproduire, sont sur
 http://127.0.0.1:8466/prototype/reference.html.
 
+## Lancer l'app PC
+
+```bash
+npm run app:dev
+```
+
+Puis ouvrir http://localhost:8467/ dans Chrome ou Edge (le moteur doit être compilé : `mise run engine:wasm`). On y
+choisit une couleur et une pupille, avec l'aperçu animé par le vrai moteur. « Brancher lilpet » ouvre la liste des ports
+USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même éteinte. Fermer
+`mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
+
 ## Vérifier avant de commiter
 
 ```bash
@@ -44,7 +56,8 @@ npm install
 npm run check
 ```
 
-Vérifie le formatage (Prettier), le code (oxlint), `eyes/looks.json` et `prototype/scenes.json`.
+Vérifie le formatage (Prettier), le code (oxlint), `eyes/looks.json` et `prototype/scenes.json`, puis les types et
+les tests de l'app PC.
 
 Pour le moteur C (outils installés par `mise install`, Docker nécessaire pour le WebAssembly) :
 
@@ -53,8 +66,8 @@ mise run engine:check
 ```
 
 Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
-compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène (première fois :
-`npx playwright install --only-shell chromium`) :
+compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène et ouvrir l'app PC compilée
+(`npm run app:build` avant ; première fois : `npx playwright install --only-shell chromium`) :
 
 ```bash
 npm run test:parity
@@ -100,5 +113,6 @@ la rebrancher. La CI garde aussi le binaire (`firmware-esp32s3` dans les artefac
 | `eyes/looks.json` | Les 100 couleurs officielles ; un look = une couleur + un type de pupille               |
 | `prototype/`      | Référence de design : rendu des yeux (`eyes.js`), page interactive, scènes de référence |
 | `engine/`         | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                |
-| `firmware/`       | Application ESP32-S3 : pilote de l'écran, yeux en direct, mesure des temps              |
+| `firmware/`       | Application ESP32-S3 : pilote de l'écran, yeux en direct, look reçu de l'app, mesures   |
+| `app/`            | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB      |
 | `scripts/`        | Validation des données                                                                  |

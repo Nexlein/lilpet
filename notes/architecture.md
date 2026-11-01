@@ -58,6 +58,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
   ([support navigateurs](https://www.testmuai.com/learning-hub/web-serial-api-browser-support/)). Espressif s'en sert
   déjà pour flasher depuis le navigateur ([esptool-js](https://iotjournal.net/web-serial-api-flash-esp32-in-browser/)).
 - Les looks et animations restent des **données** (JSON côté PC), envoyées à l'objet.
+- Détail de l'app (version 1, modules, protocole) : [app.md](app.md).
 
 ## Organisation cible du dépôt
 
@@ -66,7 +67,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait             |
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait             |
 | `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)   |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Étape 4          |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1        |
 | `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Écran (à tester) |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait             |
 
@@ -130,9 +131,10 @@ comme en `double`.
 ### Sur la puce
 
 - `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, avec
-  la même animation que la mesure sur PC (`engine/tools/bench_script.h`) en boucle, en alternant un look à pupille
-  ronde et un look à pupille « gland ». Toutes les 10 secondes, il écrit sur le port USB le nombre d'images par
-  seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran redessinée.
+  la même animation que la mesure sur PC (`engine/tools/bench_script.h`) en boucle, avec le look choisi dans l'app
+  PC (gardé en mémoire flash, `cherry` tant qu'aucun n'a été envoyé). Toutes les 10 secondes, il écrit sur le port USB
+  le nombre d'images par seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran
+  redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
 - Le pilote de l'écran (`firmware/main/display.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
