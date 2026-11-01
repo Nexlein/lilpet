@@ -5,6 +5,9 @@
     "engines": {
         "node": ">=24"
     },
+    "workspaces": [
+        "app"
+    ],
     "scripts": {
         "serve": "python3 -m http.server 8466 --bind 127.0.0.1",
         "lint": "oxlint",
@@ -15,8 +18,12 @@
         "check:vectors": "node scripts/gen-engine-vectors.mjs --check",
         "vectors": "node scripts/gen-engine-vectors.mjs",
         "test:parity": "playwright test",
-        "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors",
-        "prepare": "husky"
+        "check": "npm run format:check && npm run lint && npm run check:data && npm run check:vectors && npm run check:app",
+        "prepare": "husky",
+        "app:dev": "npm run dev -w app",
+        "app:build": "npm run build -w app",
+        "app:test": "npm run test -w app",
+        "check:app": "tsc -p app && npm run app:test"
     },
     "devDependencies": {
         "@playwright/test": "^1.64.1",

@@ -1,0 +1,550 @@
+/* lilpet app. Night indigo base; the accent is the color of the chosen eyes (--eye, --pupil, --on-eye, set by App). */
+
+:root {
+    --night: #19132b;
+    --shell: #231b3b;
+    --shell-2: #2e2550;
+    --seam: #43386b;
+    --ink: #f5f1ff;
+    --haze: #ada3cf;
+    --eye: #ae0002;
+    --pupil: #ff5252;
+    --on-eye: #ffffff;
+    --radius-s: 10px;
+    --radius-m: 18px;
+    color-scheme: dark;
+    font-family: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink);
+    background: var(--night);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+}
+
+button,
+input {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+:focus-visible {
+    outline: 2px solid var(--eye);
+    outline-offset: 3px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* --- Page ------------------------------------------------------------------------------------------------------ */
+
+.app {
+    min-height: 100vh;
+}
+
+.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px 40px 8px;
+}
+
+.wordmark {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 800;
+    font-stretch: 85%;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+    gap: 64px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 40px 64px;
+}
+
+/* --- Device connection (header) ------------------------------------------------------------------------------ */
+
+.device {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    color: var(--haze);
+    text-align: right;
+}
+
+.device p {
+    margin: 0;
+}
+
+.device button {
+    padding: 9px 18px;
+    border: 1.5px solid var(--seam);
+    border-radius: 999px;
+    background: var(--shell);
+    font-weight: 600;
+}
+
+.device button:hover {
+    border-color: var(--haze);
+}
+
+.device.connected p {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 8px;
+    align-items: center;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.device.connected small {
+    grid-column: 2;
+    color: var(--haze);
+    font-weight: 400;
+}
+
+.led {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #6be39a;
+    box-shadow: 0 0 10px #6be39a;
+}
+
+.device-error {
+    max-width: 44ch;
+    color: #ffb4c0;
+}
+
+/* --- Stage: the device and the chosen look ------------------------------------------------------------------ */
+
+.stage {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    display: grid;
+    gap: 18px;
+}
+
+/* Molded keychain case around the round screen, with its ring. Sized so the whole stage fits the window height. */
+.case {
+    position: relative;
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    width: min(100%, max(240px, 100dvh - 530px));
+    aspect-ratio: 1;
+    border-radius: 34%;
+    background: linear-gradient(150deg, #3b3060 0%, #262042 55%, #1e1834 100%);
+    box-shadow:
+        inset 0 2px 0 rgb(255 255 255 / 0.09),
+        inset 0 -14px 32px rgb(0 0 0 / 0.35),
+        0 34px 60px -28px rgb(0 0 0 / 0.75);
+}
+
+/* The ring goes behind the case, through the eyelet in its corner */
+.case::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -26px;
+    right: 9%;
+    width: 54px;
+    height: 54px;
+    border: 6px solid #8f86ad;
+    border-radius: 50%;
+}
+
+.case::after {
+    content: '';
+    position: absolute;
+    top: 16px;
+    right: calc(9% + 20px);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--night);
+    box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.6);
+}
+
+/* Black glass of the AMOLED: the eye color glows through it, as on the real screen */
+.glass {
+    display: grid;
+    place-items: center;
+    width: 84%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #000;
+    box-shadow:
+        0 0 0 7px #120e20,
+        0 0 70px -14px var(--eye);
+    transition: box-shadow 0.4s;
+}
+
+.screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.screen-note {
+    max-width: 24ch;
+    color: var(--haze);
+    text-align: center;
+}
+
+.look-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.look-name h1 {
+    margin: 0;
+    font-size: 46px;
+    font-weight: 760;
+    letter-spacing: -0.03em;
+    line-height: 1;
+}
+
+.favorite {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1.5px solid var(--seam);
+    border-radius: 50%;
+    background: none;
+}
+
+.favorite svg {
+    width: 22px;
+    fill: none;
+    stroke: var(--haze);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+
+.favorite[aria-pressed='true'] svg {
+    fill: var(--eye);
+    stroke: var(--eye);
+}
+
+.pupils {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.pupils legend {
+    margin-bottom: 8px;
+    color: var(--haze);
+}
+
+.pupil {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 10px 6px 8px;
+    border: 1.5px solid var(--seam);
+    border-radius: var(--radius-m);
+    background: var(--shell);
+    cursor: pointer;
+}
+
+.pupil input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pupil svg {
+    width: 100%;
+    max-width: 72px;
+}
+
+.pupil:has(input:checked) {
+    border-color: var(--eye);
+    background: var(--shell-2);
+}
+
+.pupil:has(input:focus-visible) {
+    outline: 2px solid var(--eye);
+    outline-offset: 3px;
+}
+
+.moods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.moods button {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--shell);
+    color: var(--haze);
+}
+
+.moods button:hover {
+    color: var(--ink);
+}
+
+.moods button[aria-pressed='true'] {
+    background: var(--eye);
+    color: var(--on-eye);
+}
+
+.moods .blink {
+    margin-left: auto;
+    background: none;
+    border: 1.5px solid var(--seam);
+}
+
+.send {
+    display: grid;
+    gap: 8px;
+}
+
+.primary {
+    padding: 16px 24px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--eye);
+    color: var(--on-eye);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.primary:focus-visible {
+    outline-color: var(--ink);
+}
+
+.primary:disabled {
+    background: var(--shell-2);
+    color: var(--haze);
+    cursor: default;
+}
+
+.send-note {
+    min-height: 1.45em;
+    margin: 0;
+    color: var(--haze);
+}
+
+/* --- Gallery ----------------------------------------------------------------------------------------------------- */
+
+.gallery {
+    display: grid;
+    align-content: start;
+    gap: 28px;
+}
+
+.gallery h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.favorites {
+    display: grid;
+    gap: 12px;
+}
+
+.favorites ul,
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 16px 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 14px 20px;
+}
+
+.filters input {
+    justify-self: end;
+    width: min(100%, 280px);
+    padding: 9px 16px;
+    border: 1.5px solid var(--seam);
+    border-radius: 999px;
+    background: var(--shell);
+}
+
+.filters input::placeholder {
+    color: var(--haze);
+}
+
+.families {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.families button {
+    display: grid;
+    place-items: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1.5px solid var(--seam);
+    border-radius: 999px;
+    background: none;
+    color: var(--haze);
+}
+
+.families button:has(.dot) {
+    padding: 0;
+}
+
+.families button[aria-pressed='true'] {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.families .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.chip {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--haze);
+}
+
+.chip svg {
+    width: 100%;
+    padding: 6px 4px;
+    border-radius: 999px;
+    background: #000;
+    box-shadow: 0 0 0 2px transparent;
+    transition: box-shadow 0.15s;
+}
+
+.chip:hover svg {
+    box-shadow: 0 0 0 2px var(--seam);
+}
+
+.chip[aria-current='true'] {
+    color: var(--ink);
+    font-weight: 650;
+}
+
+.chip[aria-current='true'] svg {
+    box-shadow: 0 0 0 2.5px var(--eye);
+}
+
+.chip small {
+    color: var(--haze);
+    font-weight: 400;
+}
+
+.empty {
+    color: var(--haze);
+}
+
+/* --- Device log --------------------------------------------------------------------------------------------------- */
+
+.log {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 40px 40px;
+    color: var(--haze);
+}
+
+.log summary {
+    cursor: pointer;
+}
+
+.log pre {
+    max-height: 220px;
+    overflow: auto;
+    margin: 10px 0 0;
+    padding: 14px 16px;
+    border-radius: var(--radius-s);
+    background: var(--shell);
+    font-size: 12px;
+}
+
+/* --- Small screens ------------------------------------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+    .top,
+    .layout,
+    .log {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 40px;
+    }
+
+    .stage {
+        position: static;
+        max-width: 440px;
+        width: 100%;
+        justify-self: center;
+    }
+
+    .top {
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}

@@ -11,7 +11,7 @@ const color = (hex) => Number.parseInt(hex.slice(1), 16);
 
 // moduleUrl: URL of lilpet.mjs (the Emscripten ES module next to lilpet.wasm)
 export async function loadEngine(moduleUrl) {
-    const { default: createLilpet } = await import(moduleUrl);
+    const { default: createLilpet } = await import(/* @vite-ignore */ moduleUrl);
     const m = await createLilpet();
     const size = m._lpw_screen_size();
     const names = Array.from({ length: m._lpw_emotion_count() }, (_, i) => m.UTF8ToString(m._lpw_emotion_name(i)));

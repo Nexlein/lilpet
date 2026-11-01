@@ -1,5 +1,5 @@
 {
-    "*.{js,mjs}": ["oxlint --fix", "prettier --write"],
+    "*.{js,mjs,ts,tsx}": ["oxlint --fix", "prettier --write"],
     "{engine,firmware/main}/**/*.{c,h}": "clang-format -i",
-    "!(*.{js,mjs,c,h})": "prettier --ignore-unknown --write"
+    "!(*.{js,mjs,ts,tsx,c,h})": "prettier --ignore-unknown --write"
 }
