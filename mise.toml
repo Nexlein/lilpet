@@ -18,11 +18,12 @@ dir = "engine"
 run = "cmake --workflow --preset host-debug"
 
 [tasks."engine:wasm"]
-description = "Build the WebAssembly module (official Emscripten image, same as CI) and check it loads in Node"
+description = "Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node"
 # Docker instead of mise: emsdk installed through mise ships its own clang and node, which shadow the system
-# ones and break ccache. The image is pulled on first use.
+# ones and break ccache. The image is pulled on first use; the Dockerfile comes from stdin (no build context).
 run = [
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine emscripten/emsdk:latest cmake --workflow --preset wasm',
+    "docker build -t lilpet-emsdk - < engine/wasm/Dockerfile",
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine lilpet-emsdk cmake --workflow --preset wasm',
     "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
 ]
 
