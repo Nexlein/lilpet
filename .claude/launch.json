@@ -6,6 +6,12 @@
             "runtimeExecutable": "python3",
             "runtimeArgs": ["-m", "http.server", "8466", "--bind", "127.0.0.1"],
             "port": 8466
+        },
+        {
+            "name": "app",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "app:dev"],
+            "port": 8467
         }
     ]
 }

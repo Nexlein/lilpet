@@ -27,3 +27,6 @@ firmware/sdkconfig.old
 # Playwright
 playwright-report/
 test-results/
+
+# PC app build
+app/dist/

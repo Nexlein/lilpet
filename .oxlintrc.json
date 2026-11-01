@@ -1,6 +1,6 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
-    "plugins": ["unicorn", "oxc"],
+    "plugins": ["unicorn", "oxc", "typescript", "react"],
     "categories": {
         "correctness": "error",
         "suspicious": "error",
@@ -10,15 +10,21 @@
         "browser": true,
         "builtin": true
     },
-    "rules": {},
+    "rules": {
+        "react/react-in-jsx-scope": "off"
+    },
     "overrides": [
         {
-            "files": ["scripts/**", "engine/**/*.mjs", "tests/**", "playwright.config.mjs"],
-            "env": { "node": true }
+            "files": ["scripts/**", "engine/**/*.mjs", "tests/**", "playwright.config.mjs", "app/vite.config.mjs"],
+            "env": {
+                "node": true
+            }
         },
         {
             "files": ["engine/**/*.mjs"],
-            "rules": { "no-underscore-dangle": "off" }
+            "rules": {
+                "no-underscore-dangle": "off"
+            }
         }
     ]
 }

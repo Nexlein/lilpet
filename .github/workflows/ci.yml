@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    name: Format, lint, data
+    name: Format, lint, data, app tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -39,6 +39,10 @@ jobs:
       # engine/tests/js_vectors.h must match what the prototype computes today
       - name: Engine test values up to date
         run: npm run check:vectors
+
+      # TypeScript types and Vitest tests of the PC app (no browser or engine build needed)
+      - name: PC app types and tests
+        run: npm run check:app
 
   engine:
     name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)
@@ -85,7 +89,7 @@ jobs:
           retention-days: 30
 
   parity:
-    name: Parity, C engine vs prototype (Playwright)
+    name: Parity, C engine vs prototype, PC app (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -100,12 +104,16 @@ jobs:
       - name: Build the engine for the browser
         run: mise run engine:wasm
 
+      # The PC app ships the engine it was built with; tests/app.spec.mjs opens this build
+      - name: Build the PC app
+        run: npm run app:build
+
       # Headless shell only, without --with-deps: the runner image already has its libraries, and the apt fonts that
       # option adds took about 11 minutes to download
       - name: Install Chromium
         run: npx playwright install --only-shell chromium
 
-      - name: Compare every reference scene
+      - name: Compare every reference scene, open the PC app
         run: npm run test:parity
 
       - uses: actions/upload-artifact@v7
