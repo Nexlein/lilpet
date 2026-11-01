@@ -2,19 +2,23 @@
  * Firmware entry point: the eyes, live on the display. Each frame starts on the display refresh signal (TE), draws
  * its dirty region band by band into two small buffers in internal RAM, and sends each band by DMA while drawing the
  * next one: no whole frame in memory, so it also runs on boards without PSRAM. The animation is the one of the
- * benchmarks (engine/tools/bench_script.h), in a loop, alternating two looks. Timings go to the USB serial port every
- * 10 seconds (mise run firmware:monitor).
+ * benchmarks (engine/tools/bench_script.h), in a loop, with the look chosen in the PC app (kept in flash, cherry until
+ * one is sent). Commands from the app and the timings, every 10 seconds, share the USB serial port
+ * (mise run firmware:monitor).
  *
  * Without a display (no TE signal, e.g. on a bare M5Stamp S3A), frames are paced at 60 per second and the bands go
  * out on unconnected pins: the timings stay meaningful.
  */
 #include "../../engine/tools/bench_script.h"
+#include "commands.h"
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "lilpet/lilpet.h"
+#include "look_store.h"
 #include "sdkconfig.h"
 
 #include <inttypes.h>
@@ -26,11 +30,8 @@
 #define BAND_BYTES    (LP_SCREEN_SIZE * BAND_ROWS * sizeof(uint16_t))
 #define REPORT_FRAMES (10 * LP_BENCH_FPS)
 
-/* From eyes/looks.json: cherry with a dot pupil, terrarium with an acorn pupil (the biggest) */
-static const lp_look LOOKS[] = {
-    {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}},   /* cherry */
-    {0x6FF5D0u, LP_PUPIL_ACORN, {0x106E54u, 0x106E54u}}, /* terrarium */
-};
+/* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
+static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
 
 static lp_eyes eyes;
 static lp_renderer renderer;
@@ -65,7 +66,14 @@ void app_main(void)
         return;
     }
 
+    look_store_init();
+    lp_look look = DEFAULT_LOOK;
+    look_store_load(&look);
+    QueueHandle_t looks = xQueueCreate(1, sizeof(lp_look));
+    commands_start(looks, &look);
+
     lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &look);
     lp_renderer_init(&renderer);
     TickType_t wake = xTaskGetTickCount();
     int64_t last = esp_timer_get_time();
@@ -77,10 +85,9 @@ void app_main(void)
             vTaskDelayUntil(&wake, pdMS_TO_TICKS(1000 / LP_BENCH_FPS));
 
         const int64_t start = esp_timer_get_time();
-        const int step = f % LP_BENCH_FRAMES;
-        if (step == 0)
-            lp_eyes_set_look(&eyes, &LOOKS[(f / LP_BENCH_FRAMES) % 2]);
-        lp_bench_script(&eyes, step);
+        if (xQueueReceive(looks, &look, 0) == pdTRUE)
+            lp_eyes_set_look(&eyes, &look);
+        lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
         const float dt = (float)(start - last) * 1e-6f;
         lp_eyes_update(&eyes, dt < 0.05f ? dt : 0.05f);
         last = start;
