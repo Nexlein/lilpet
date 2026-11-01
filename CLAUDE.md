@@ -81,11 +81,16 @@ reference until the engine takes over each feature.
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
-- The WebAssembly build runs in the `emscripten/emsdk` Docker image. Do not install emsdk through mise: its clang
-  and node shadow the system ones and send ccache into a loop.
+- The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
+  proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
+  a loop.
 - `mise run firmware:build` — firmware into `firmware/build/merged-binary.bin`, in the ESP-IDF image pinned in
   `firmware/Dockerfile` (latest release; Dependabot proposes new ones). CI runs the same task and keeps the binary.
-  `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install.
+  `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install. The build
+  keeps its ccache in `firmware/.ccache` (CI caches it too).
+- `mise run firmware:check-device` — checks the flashed board over USB (`scripts/device-check.py`: no reboot on
+  opening, hello, a look kept across a reboot, a bad command rejected; puts the board's look back). The one check CI
+  cannot run.
 
 ## Conventions
 

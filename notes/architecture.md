@@ -103,15 +103,22 @@ comme en `double`.
 - **Avertissements traités comme des erreurs**, dont `-Wdouble-promotion` qui refuse tout `double` implicite.
 - **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
 - **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
-  ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache.
+  ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache. La
+  version est épinglée dans `engine/wasm/Dockerfile` (6.0.13 début novembre 2026) : avec `latest`, une nouvelle
+  version pouvait casser la CI sans changement de notre côté. Dependabot propose chaque nouvelle version.
 - **ESP-IDF dans Docker**, avec la même commande en local et en CI (`mise run firmware:build`). La version est
   épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
   `latest` de l'image officielle suit la branche de développement (`master`), trop instable pour flasher une vraie
   carte ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
   Dependabot ouvre une pull request à chaque nouvelle version, que la CI vérifie avant qu'on l'accepte. La CI garde le
-  binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer ESP-IDF.
+  binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer ESP-IDF. La
+  compilation passe par ccache, gardé dans `firmware/.ccache` (et entre deux runs en CI) : une recompilation complète
+  passe d'environ 1 min à 26 s en local.
+- **Vérification sur carte** (`mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
+  matériel. Elle parle à la carte comme l'app et vérifie qu'elle garde un look après un redémarrage.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
-- Tout suit la dernière version (`latest`), comme Node avec `lts`.
+- Tout suit la dernière version, comme Node avec `lts`, mais les images Docker et l'action tierce de la CI
+  (`jdx/mise-action`, épinglée par son commit) sont figées : Dependabot propose chaque mise à jour, que la CI vérifie.
 
 ## Performance (mise en place en 2e)
 
