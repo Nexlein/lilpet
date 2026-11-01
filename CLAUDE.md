@@ -3,7 +3,8 @@
 Personal, non-commercial keychain "digital pet" inspired by the Starboy (lilguy / CREATURE): a round screen with
 expressive eyes that react through a camera. Stage: eye engine in C done (host, WebAssembly, ESP32-S3 compile
 check); PC app v1 (pick the eyes, send them over USB); hardware chosen in `notes/materiel.md` (Waveshare
-ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; an AtomS3R is the next test board.
+ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; until then the eyes run on an
+M5Stack AtomS3R (128 px LCD).
 No rarity or random eye draw: the owner picks. Long-term, a small PC app edits the eyes and animations and sends
 them to the device, so keep looks (and later animations) as data, not code.
 
@@ -31,7 +32,8 @@ reference until the engine takes over each feature.
   (blink pose, eye pose on the 3D head), `src/rng.c` (mulberry32). Rendering: `src/render.c` builds each eye's geometry
   (same transform chain as the prototype) and composes the frame row by row into RGB565, redrawing only the dirty
   region, whole (`lp_render`) or in bands (`lp_render_begin` + `lp_render_rows`: it never reads the previous frame back,
-  so the device needs no whole frame in memory); `src/raster.c` turns ellipses, lids, cuts and polygons into sub-row
+  so the device needs no whole frame in memory), at 466 px or any smaller square size (`lp_renderer_set_size`: same
+  layout, scaled at output); `src/raster.c` turns ellipses, lids, cuts and polygons into sub-row
   spans and exact horizontal coverage (`LP_SUBROWS` vertical samples). `tools/render_scenes.c` +
   `mise run engine:scenes` write every reference scene to `engine/build/scenes/` to compare with
   `prototype/reference.html`. `tools/bench.c` + `mise run engine:bench` time the renderer per scene and over an
@@ -52,8 +54,11 @@ reference until the engine takes over each feature.
   `src/engine` (live preview with the WebAssembly engine), `src/ui` (React; the only part that knows React). The
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
   the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright.
-- `firmware/` — ESP-IDF app for the ESP32-S3; `components/lilpet` wraps the engine. `main/display.c` drives the
-  1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from Waveshare's demo, not yet run on the board).
+- `firmware/` — ESP-IDF app for the ESP32-S3, one binary for every board; `components/lilpet` wraps the engine.
+  `main/display.c` picks the display driver from the chip package (ESP32-S3-PICO = AtomS3R, as M5GFX does):
+  `display_co5300.c` for the Waveshare 1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values from
+  Waveshare's demo, not yet run on the board, also used without a display), `display_atoms3r.c` for the AtomS3R LCD
+  (128 px SPI, ST7735S or GC9107 told apart by their ID, backlight through an I2C LED driver; values from M5GFX).
   `main/main.c` shows the eyes live: each frame waits for the display's TE signal, draws band by band into two DMA
   buffers in internal RAM while the previous band is sent, and prints timings over USB every 10 s. Without a display
   (no TE, e.g. a bare M5Stamp S3A) it paces itself at 60 frames/s, so the same binary measures the engine there.

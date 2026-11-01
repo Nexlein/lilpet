@@ -149,9 +149,11 @@ boîtier se dessinera une fois les pièces reçues et mesurées.
 - **M5 AtomS3R** (M5Stack) et sa batterie : ESP32-S3 (8 Mo de flash, 8 Mo de PSRAM), écran couleur 0,85" de
   128 × 128, capteur de mouvement BMI270 + boussole BMM150, USB natif
   ([documentation](https://docs.m5stack.com/en/core/AtomS3R)). Le meilleur banc d'essai avant la commande : même puce
-  que l'objet, avec un écran, pour voir un look envoyé par l'app et essayer l'inclinaison. Il faudra que le moteur
-  dessine à une autre taille que 466 px, et un pilote pour son écran : la puce a changé en 2026 (GC9107, puis ST7735),
-  à vérifier sur la mienne.
+  que l'objet, avec un écran, pour voir un look envoyé par l'app et essayer l'inclinaison. Le firmware le reconnaît et
+  affiche les yeux en 128 px (`firmware/main/display_atoms3r.c`). M5Stack a changé la puce de l'écran en 2026 (GC9107,
+  puis ST7735S) : le pilote lit l'identifiant et le donne au démarrage (le mien : GC9107). Rétroéclairage par une puce sur le bus I2C
+  (adresse 0x30, broches 45 et 0), d'après la bibliothèque de M5Stack
+  ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp)).
 - **M5StickC Plus2** : ESP32 classique (pas S3), écran 135 × 240
   ([documentation](https://docs.m5stack.com/en/core/M5StickC%20PLUS2)). Peu utile : pas la puce de l'objet.
 - **Flipper Zero** : STM32 à 64 MHz, écran monochrome 128 × 64

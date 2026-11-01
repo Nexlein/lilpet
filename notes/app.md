@@ -29,9 +29,9 @@ avec une vraie carte branchée (`> look?` après un débranchement).
     - Bouton « Envoyer » : l'objet affiche le look tout de suite et le garde en mémoire flash.
     - Journal de l'objet (les mesures qu'il écrit déjà) dans un panneau repliable.
 
-Version 1 testée avec un ESP32-S3 sans écran (M5Stamp S3A) : `> look?` montre que le look est gardé. Juste après,
-l'**AtomS3R** (voir [materiel.md](materiel.md)) affichera les yeux sur son petit écran, une fois que le moteur saura
-dessiner à une autre taille que 466 px. Cela donnera aussi des vignettes rendues par le vrai moteur dans la galerie.
+Version 1 testée sur l'AtomS3R (voir [materiel.md](materiel.md)) : le look envoyé est gardé (`> look?`,
+`mise run firmware:check-device`), et l'AtomS3R l'affiche sur son petit écran. Le moteur sait aussi dessiner en petit
+(`lp_renderer_set_size`), de quoi faire plus tard des vignettes rendues par le vrai moteur dans la galerie.
 
 Hors version 1, dans l'ordre probable :
 
