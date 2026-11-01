@@ -26,6 +26,8 @@
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
+    X(test_look_text_round_trips)                                                                                      \
+    X(test_malformed_look_text_is_rejected)                                                                            \
     X(test_rgb565_conversion)                                                                                          \
     X(test_render_first_frame_is_full_screen)                                                                          \
     X(test_render_puts_colors_where_they_belong)                                                                       \

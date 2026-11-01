@@ -8,6 +8,7 @@
 #define LILPET_LILPET_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -16,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 6
+#define LP_VERSION_MINOR 7
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -46,6 +47,13 @@ typedef struct {
     lp_pupil pupil;          /* pupil shape */
     uint32_t pupil_color[2]; /* left and right pupil colors, 0xRRGGBB */
 } lp_look;
+
+/* Looks as text, as the PC app sends them over USB (notes/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
+ * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
+#define LP_LOOK_TEXT_SIZE 32 /* longest text with its NUL */
+bool lp_look_parse(const char *text, lp_look *look);
+/* Returns the text length (truncated to fit `size`, NUL included), or -1 for an unknown pupil type */
+int lp_look_format(const lp_look *look, char *out, size_t size);
 
 /* --- Emotions ----------------------------------------------------------------------------------- */
 
