@@ -1,9 +1,10 @@
 /*
  * Firmware entry point: the eyes, live on the display. Each frame starts on the display refresh signal (TE), draws
  * its dirty region band by band into two small buffers in internal RAM, and sends each band by DMA while drawing the
- * next one: no whole frame in memory, so it also runs on boards without PSRAM. The animation is the one of the
- * benchmarks (engine/tools/bench_script.h), in a loop, with the look chosen in the PC app (kept in flash, cherry until
- * one is sent). Commands from the app and the timings, every 10 seconds, share the USB serial port
+ * next one: no whole frame in memory, so it also runs on boards without PSRAM. The eyes idle on their own (saccades,
+ * blinks, the head following the gaze), with the look chosen in the PC app (kept in flash, cherry until one is sent).
+ * Without a display, they play the benchmark animation instead (engine/tools/bench_script.h), in a loop, so the
+ * timings compare with the host's. Commands from the app and the timings, every 10 seconds, share the USB serial port
  * (mise run firmware:monitor).
  *
  * The display is found at startup (display.c), and the engine draws at its size. Without a TE signal (the AtomS3R's
@@ -63,11 +64,13 @@ void app_main(void)
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
     const display_info screen = display_init(BAND_BYTES);
     const bool synced = screen.synced;
+    const bool bench = !screen.present; /* no screen: replay the host benchmark's animation, for the timings */
     const bool motion = imu_init();
-    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, bands of %d rows, %u bytes of "
-           "internal RAM free\n",
+    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d rows, "
+           "%u bytes of internal RAM free\n",
            lp_version(), CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen.name, screen.size, screen.size,
-           motion ? "yes" : "none", BAND_ROWS, (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+           motion ? "yes" : "none", bench ? "benchmark" : "idle", BAND_ROWS,
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
     if (!bands[0] || !bands[1]) {
         printf("not enough DMA memory for the bands\n");
         return;
@@ -99,7 +102,8 @@ void app_main(void)
         const float elapsed = (float)(start - last) * 1e-6f;
         const float dt = elapsed < 0.05f ? elapsed : 0.05f;
         last = start;
-        lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
+        if (bench)
+            lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
         float g[3];
         if (motion && imu_gravity(g)) {
             for (int i = 0; i < 2; i++)

@@ -13,6 +13,7 @@
 typedef struct {
     const char *name; /* what was found, for the startup log */
     int size;         /* side of the square screen in pixels: what the engine draws (lp_renderer_set_size) */
+    bool present;     /* a screen was found; on a bare board, the bands go out on unconnected pins */
     bool synced;      /* frames can start on the display's refresh signal (TE); otherwise the caller paces them */
 } display_info;
 
