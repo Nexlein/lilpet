@@ -251,3 +251,94 @@ void test_extreme_poses_render_inside_the_frame(void)
     }
     CHECK(1);
 }
+
+/* --- Smaller output (lp_renderer_set_size) ------------------------------------------------------------------- */
+
+enum { SMALL = 128 };
+
+static float minf(float a, float b)
+{
+    return a < b ? a : b;
+}
+
+static float maxf(float a, float b)
+{
+    return a > b ? a : b;
+}
+
+/* Channel c (0 red, 1 green, 2 blue) of an RGB565 pixel, 0-255 */
+static float channel565(uint16_t px, int c)
+{
+    static const unsigned SHIFT[3] = {11u, 5u, 0u};
+    static const unsigned MAX[3] = {31u, 63u, 31u};
+    const unsigned v = ((unsigned)px >> SHIFT[c]) & MAX[c];
+    return (float)v * 255.0f / (float)MAX[c];
+}
+
+/* Mean of the full-size frame over the area one small pixel covers, for channel c */
+static float area_mean(const uint16_t *big, int sx, int sy, int c)
+{
+    const float k = (float)SIZE / (float)SMALL;
+    const float x0 = (float)sx * k;
+    const float y0 = (float)sy * k;
+    float sum = 0.0f;
+    float weight = 0.0f;
+    for (int y = (int)y0; (float)y < y0 + k && y < SIZE; y++) {
+        const float wy = minf((float)y + 1.0f, y0 + k) - maxf((float)y, y0);
+        for (int x = (int)x0; (float)x < x0 + k && x < SIZE; x++) {
+            const float w = wy * (minf((float)x + 1.0f, x0 + k) - maxf((float)x, x0));
+            sum += w * channel565(big[y * SIZE + x], c);
+            weight += w;
+        }
+    }
+    return sum / weight;
+}
+
+void test_small_output_is_the_frame_scaled_down(void)
+{
+    static uint16_t small[SMALL * SMALL];
+    const char *scenes[] = {"look-popcorn", "look-laser", "emotion-love", "blink-closed", "head-up-left-tilted"};
+    for (size_t i = 0; i < sizeof scenes / sizeof scenes[0]; i++) {
+        render_scene(scenes[i], frame);
+        set_scene(&eyes, scenes[i]);
+        lp_renderer_init(&renderer);
+        lp_renderer_set_size(&renderer, SMALL);
+        const lp_rect dirty = lp_render(&renderer, &eyes, small);
+        CHECK(dirty.x0 == 0 && dirty.y0 == 0 && dirty.x1 == SMALL && dirty.y1 == SMALL);
+        float diff = 0.0f;
+        int far = 0;
+        for (int y = 0; y < SMALL; y++)
+            for (int x = 0; x < SMALL; x++) {
+                float d = 0.0f;
+                for (int c = 0; c < 3; c++)
+                    d += fabsf(channel565(small[y * SMALL + x], c) - area_mean(frame, x, y, c)) / 3.0f;
+                diff += d;
+                far += d > 48.0f;
+            }
+        /* Same picture: only anti-aliased edges differ (sampled at another resolution) */
+        const float mean = diff / (float)(SMALL * SMALL);
+        if (mean > 1.0f || far > 10) /* measured: mean 0.06 to 0.21, no pixel far off */
+            LP_FAIL("%s at %d px: mean difference %.2f, %d pixels far off", scenes[i], SMALL, (double)mean, far);
+    }
+}
+
+void test_small_output_regions_stay_inside(void)
+{
+    static uint16_t small[SMALL * SMALL];
+    lp_renderer_init(&renderer);
+    lp_renderer_set_size(&renderer, 1000);
+    CHECK(renderer.size == SIZE);
+    lp_renderer_set_size(&renderer, 7);
+    CHECK(renderer.size == 6);
+
+    set_scene(&eyes, "head-turn-right");
+    lp_renderer_set_size(&renderer, SMALL);
+    lp_render(&renderer, &eyes, small);
+    for (int f = 0; f < 200; f++) {
+        lp_eyes_set_pointer(&eyes, true, f % 2 ? 1.0f : -1.0f, 0.5f);
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        const lp_rect d = lp_render(&renderer, &eyes, small);
+        CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SMALL && d.y1 <= SMALL);
+        CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
+    }
+}
