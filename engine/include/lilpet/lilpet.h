@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 7
+#define LP_VERSION_MINOR 8
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -261,6 +261,8 @@ typedef struct {
     lp_rect prev;  /* region covered by the previous frame */
     lp_rect dirty; /* region of the frame being drawn, set by lp_render_begin */
     bool drawn;    /* a frame was drawn before (otherwise the whole screen is redrawn) */
+    int size;      /* output width and height in pixels (lp_renderer_set_size) */
+    float scale;   /* size / LP_SCREEN_SIZE */
     lp_eye_geometry eyes[2];
     lp_polygon particles[LP_MAX_PARTICLES];
     uint32_t particle_color[LP_MAX_PARTICLES];
@@ -270,12 +272,17 @@ typedef struct {
     float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
 } lp_renderer;
 
+/* Prepares a renderer for the full LP_SCREEN_SIZE screen */
 void lp_renderer_init(lp_renderer *renderer);
+/* Draws at another square size, from 2 to LP_SCREEN_SIZE pixels (rounded down to even), e.g. 128 for a small screen:
+ * the same picture, scaled. Frames passed to lp_render are then size x size; the next frame redraws everything. */
+void lp_renderer_set_size(lp_renderer *renderer, int size);
 /* 0xRRGGBB to RGB565 (native byte order) */
 uint16_t lp_rgb565(uint32_t rgb);
 /*
- * Draws the eyes into `frame` (LP_SCREEN_SIZE x LP_SCREEN_SIZE RGB565 pixels, row-major) and returns the region that
- * changed since the previous call, the only part to send to the display. The first call redraws the whole screen.
+ * Draws the eyes into `frame` (size x size RGB565 pixels, row-major; size is LP_SCREEN_SIZE unless changed by
+ * lp_renderer_set_size) and returns the region that changed since the previous call, the only part to send to the
+ * display. The first call redraws the whole screen.
  * The region's coordinates are even, as the AMOLED controller requires for a window.
  */
 lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);

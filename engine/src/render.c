@@ -94,6 +94,14 @@ static lp_rect align_even(lp_rect r)
     return (lp_rect){.x0 = r.x0 - r.x0 % 2, .y0 = r.y0 - r.y0 % 2, .x1 = r.x1 + r.x1 % 2, .y1 = r.y1 + r.y1 % 2};
 }
 
+/* Keeps a rectangle inside a smaller output (lp_renderer_set_size); boxes are only clamped to LP_SCREEN_SIZE */
+static lp_rect clip_to(lp_rect r, int size)
+{
+    r.x1 = r.x1 < size ? r.x1 : size;
+    r.y1 = r.y1 < size ? r.y1 : size;
+    return r.x0 < r.x1 && r.y0 < r.y1 ? r : rect_empty();
+}
+
 /* Pixel box around a float box, with a one-pixel margin for anti-aliasing, clamped to the screen */
 static lp_rect rect_around(float x0, float y0, float x1, float y1)
 {
@@ -261,7 +269,9 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
 }
 
 /* Mirrors drawEye in the prototype: same transform chain, lids and cuts */
-static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_pose bp, float squash_x, float squash_y)
+/* `scale` maps the 466-pixel layout to the output size (lp_renderer_set_size) */
+static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_pose bp, float squash_x, float squash_y,
+                      float scale)
 {
     const lp_expression *cur = &e->cur;
     const float rx = e->shape.rx;
@@ -271,7 +281,7 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     const float upright = inner * (cur->rot - tilt);
     const lp_eye_pose pose = lp_eyes_eye_pose(e, side);
 
-    lp_affine m = {.a = 1.0f, .b = 0.0f, .c = 0.0f, .d = 1.0f, .tx = pose.x, .ty = pose.y};
+    lp_affine m = {.a = scale, .b = 0.0f, .c = 0.0f, .d = scale, .tx = scale * pose.x, .ty = scale * pose.y};
     m = lp_affine_mul(m, lp_affine_rotate(e->head.roll));
     m = lp_affine_mul(m, lp_affine_scale(pose.persp * pose.fx, pose.persp * pose.fy));
     m = lp_affine_mul(m, lp_affine_rotate(upright));
@@ -326,7 +336,8 @@ static void setup_particles(lp_renderer *r, const lp_eyes *e)
         const float k = p->age / p->life;
         lp_polygon *poly = &r->particles[r->particle_count];
         float alpha = 1.0f;
-        lp_affine m = {.a = 1.0f, .b = 0.0f, .c = 0.0f, .d = 1.0f, .tx = p->x, .ty = p->y};
+        const float s = r->scale;
+        lp_affine m = {.a = s, .b = 0.0f, .c = 0.0f, .d = s, .tx = s * p->x, .ty = s * p->y};
         if (p->type == LP_PARTICLE_HEART) {
             alpha = lp_minf(lp_minf(k * 6.0f, 1.0f), (1.0f - k) * 4.0f); /* quick fade in, fade out */
             poly_heart(poly, p->size);
@@ -457,6 +468,19 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
 void lp_renderer_init(lp_renderer *renderer)
 {
     memset(renderer, 0, sizeof *renderer);
+    renderer->size = LP_SCREEN_SIZE;
+    renderer->scale = 1.0f;
+}
+
+void lp_renderer_set_size(lp_renderer *renderer, int size)
+{
+    if (size < 2)
+        size = 2;
+    if (size > LP_SCREEN_SIZE)
+        size = LP_SCREEN_SIZE;
+    renderer->size = size - size % 2; /* even, like every region */
+    renderer->scale = (float)renderer->size / (float)LP_SCREEN_SIZE;
+    renderer->drawn = false; /* the next frame redraws everything */
 }
 
 uint16_t lp_rgb565(uint32_t rgb)
@@ -489,15 +513,15 @@ lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
     const float squash_x = 1.0f + st * ax - st * ay * 0.5f;
     const float squash_y = (1.0f + st * ay - st * ax * 0.5f) * breath;
 
-    setup_eye(&r->eyes[0], eyes, -1, bp, squash_x, squash_y);
-    setup_eye(&r->eyes[1], eyes, 1, bp, squash_x, squash_y);
+    setup_eye(&r->eyes[0], eyes, -1, bp, squash_x, squash_y, r->scale);
+    setup_eye(&r->eyes[1], eyes, 1, bp, squash_x, squash_y, r->scale);
     setup_particles(r, eyes);
 
     lp_rect now = rect_union(r->eyes[0].box, r->eyes[1].box);
     for (int i = 0; i < r->particle_count; i++)
         now = rect_union(now, r->particles[i].box);
-    const lp_rect full = {0, 0, LP_SCREEN_SIZE, LP_SCREEN_SIZE};
-    r->dirty = r->drawn ? align_even(rect_union(now, r->prev)) : full;
+    const lp_rect full = {0, 0, r->size, r->size};
+    r->dirty = r->drawn ? clip_to(align_even(rect_union(now, r->prev)), r->size) : full;
     r->prev = now;
     r->drawn = true;
     return r->dirty;
@@ -528,6 +552,6 @@ lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame)
 {
     const lp_rect dirty = lp_render_begin(renderer, eyes);
     for (int y = dirty.y0; y < dirty.y1; y++)
-        draw_row(renderer, y, &frame[y * LP_SCREEN_SIZE + dirty.x0]);
+        draw_row(renderer, y, &frame[y * renderer->size + dirty.x0]);
     return dirty;
 }
