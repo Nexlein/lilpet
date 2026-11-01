@@ -100,7 +100,14 @@ mise run firmware:flash
 mise run firmware:monitor
 ```
 
-Les temps s'affichent toutes les 10 secondes (quitter avec Ctrl+]). Sous Linux, l'utilisateur doit être dans le groupe
+Les temps s'affichent toutes les 10 secondes (quitter avec Ctrl+]). Pour vérifier qu'une carte flashée répond bien à
+l'app (réponse, look gardé après un redémarrage ; son look est remis à la fin) :
+
+```bash
+mise run firmware:check-device
+```
+
+Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
 la rebrancher. La CI garde aussi le binaire (`firmware-esp32s3` dans les artefacts du job ESP32-S3).
 
