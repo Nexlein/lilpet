@@ -8,7 +8,8 @@
  *
  * The display is found at startup (display.c), and the engine draws at its size. Without a TE signal (the AtomS3R's
  * small LCD, or no display at all on a bare M5Stamp S3A), frames are paced at 60 per second; without a display, the
- * bands go out on unconnected pins and the timings stay meaningful.
+ * bands go out on unconnected pins and the timings stay meaningful. With a motion sensor (imu.h), tilting the board
+ * turns the face to stay level and slides the eyes toward the low side.
  */
 #include "../../engine/tools/bench_script.h"
 #include "commands.h"
@@ -18,11 +19,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "imu.h"
 #include "lilpet/lilpet.h"
 #include "look_store.h"
 #include "sdkconfig.h"
 
 #include <inttypes.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,6 +33,7 @@
 #define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
 #define BAND_BYTES    (LP_SCREEN_SIZE * BAND_ROWS * sizeof(uint16_t))
 #define REPORT_FRAMES (10 * LP_BENCH_FPS)
+#define GRAVITY_RATE  12.0f /* per second: smooths the sensor noise, which would shake the eyes */
 
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
@@ -59,9 +63,11 @@ void app_main(void)
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
     const display_info screen = display_init(BAND_BYTES);
     const bool synced = screen.synced;
-    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, bands of %d rows, %u bytes of internal RAM free\n",
-           lp_version(), CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen.name, screen.size, screen.size, BAND_ROWS,
-           (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    const bool motion = imu_init();
+    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, bands of %d rows, %u bytes of "
+           "internal RAM free\n",
+           lp_version(), CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen.name, screen.size, screen.size,
+           motion ? "yes" : "none", BAND_ROWS, (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
     if (!bands[0] || !bands[1]) {
         printf("not enough DMA memory for the bands\n");
         return;
@@ -80,6 +86,7 @@ void app_main(void)
     TickType_t wake = xTaskGetTickCount();
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
+    float gravity[2] = {0.0f, 1.0f}; /* smoothed, in the screen plane */
     for (int f = 0;; f++) {
         if (synced)
             display_wait_refresh(50);
@@ -89,10 +96,17 @@ void app_main(void)
         const int64_t start = esp_timer_get_time();
         if (xQueueReceive(looks, &look, 0) == pdTRUE)
             lp_eyes_set_look(&eyes, &look);
-        lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
-        const float dt = (float)(start - last) * 1e-6f;
-        lp_eyes_update(&eyes, dt < 0.05f ? dt : 0.05f);
+        const float elapsed = (float)(start - last) * 1e-6f;
+        const float dt = elapsed < 0.05f ? elapsed : 0.05f;
         last = start;
+        lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
+        float g[3];
+        if (motion && imu_gravity(g)) {
+            for (int i = 0; i < 2; i++)
+                gravity[i] += (g[i] - gravity[i]) * (1.0f - expf(-GRAVITY_RATE * dt));
+            lp_eyes_set_gravity(&eyes, true, gravity[0], gravity[1]);
+        }
+        lp_eyes_update(&eyes, dt);
 
         const lp_rect dirty = lp_render_begin(&renderer, &eyes);
         int64_t render = 0;
