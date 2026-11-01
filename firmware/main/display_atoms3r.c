@@ -4,6 +4,7 @@
  * backlight chip come from M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes). No TE
  * signal: the caller paces the frames.
  */
+#include "board.h"
 #include "display_driver.h"
 
 #include "driver/gpio.h"
@@ -22,8 +23,6 @@
 #define PIN_DC    GPIO_NUM_42
 #define PIN_CS    GPIO_NUM_14
 #define PIN_RESET GPIO_NUM_48
-#define PIN_SDA   GPIO_NUM_45 /* backlight driver, I2C, shared with the motion sensor */
-#define PIN_SCL   GPIO_NUM_0
 
 #define SIZE           128
 #define SPI_HZ         (40 * 1000 * 1000) /* M5GFX's write clock */
@@ -178,20 +177,11 @@ static void set_backlight(uint8_t reg, uint8_t value)
 /* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
 static void start_backlight(void)
 {
-    const i2c_master_bus_config_t bus = {
-        .i2c_port = -1,
-        .sda_io_num = PIN_SDA,
-        .scl_io_num = PIN_SCL,
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
-    };
-    i2c_master_bus_handle_t handle;
+    const i2c_master_bus_handle_t bus = board_i2c(); /* shared with the motion sensor */
     const i2c_device_config_t device = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BACKLIGHT_ADDR, .scl_speed_hz = BACKLIGHT_HZ};
-    if (i2c_new_master_bus(&bus, &handle) != ESP_OK ||
-        i2c_master_bus_add_device(handle, &device, &backlight) != ESP_OK) {
-        printf("backlight: cannot start the I2C bus\n");
+    if (!bus || i2c_master_bus_add_device(bus, &device, &backlight) != ESP_OK) {
+        printf("backlight: cannot reach its driver on the I2C bus\n");
         return;
     }
     /* Register writes of M5GFX's Light_M5StackAtomS3R */

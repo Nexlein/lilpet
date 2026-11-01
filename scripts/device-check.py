@@ -1,6 +1,6 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello, keeps a look it is sent, keeps it across a reboot and rejects
-# a bad command. The board's own look is put back at the end.
+# a bad command; with a motion sensor, it reads about 1 g at rest. The board's own look is put back at the end.
 # Usage: mise run firmware:check-device (PORT=/dev/ttyACM0 by default). Runs pyserial through uvx, no install.
 import os
 import sys
@@ -81,6 +81,16 @@ check(after == f"look {TEST_LOOK}", "still has the look after the reboot", after
 
 bad = ask(port, "> look 7DB5F4 C10787 slit")
 check(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad or "no reply")
+
+imu = ask(port, "> imu?")
+if imu == "err no motion sensor":
+    print("-    no motion sensor on this board")
+else:
+    try:
+        g = sum(float(v) ** 2 for v in imu.split()[1:4]) ** 0.5 if imu and imu.startswith("imu ") else 0.0
+    except ValueError:
+        g = 0.0
+    check(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu or "no reply")
 
 if before and before.startswith("look "):
     check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])

@@ -16,6 +16,8 @@ enum { LP_BENCH_FPS = 60, LP_BENCH_FRAMES = (LP_EMOTION_COUNT + 3) * LP_BENCH_FP
 /* Call before lp_eyes_update(eyes, 1.0f / LP_BENCH_FPS) for frame f, from 0 to LP_BENCH_FRAMES - 1 */
 static inline void lp_bench_script(lp_eyes *eyes, int f)
 {
+    if (f == 0) /* played in a loop on the chip: the face of the previous round leaves */
+        lp_eyes_set_pointer(eyes, false, 0.0f, 0.0f);
     if (f % LP_BENCH_FPS == 0 && f / LP_BENCH_FPS < LP_EMOTION_COUNT)
         lp_eyes_set_emotion(eyes, (lp_emotion)(f / LP_BENCH_FPS), 0.0f);
     if (f >= LP_EMOTION_COUNT * LP_BENCH_FPS) {

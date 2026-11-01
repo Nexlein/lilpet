@@ -4,6 +4,7 @@
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_app_desc.h"
 #include "freertos/task.h"
+#include "imu.h"
 #include "look_store.h"
 
 #include <stdio.h>
@@ -40,6 +41,12 @@ static void handle(commands_state *state, const char *line)
             xQueueOverwrite(state->looks, &look);
             printf("< ok\n");
         }
+    } else if (strcmp(line, "> imu?") == 0) {
+        float g[3];
+        if (imu_gravity(g))
+            printf("< imu %.3f %.3f %.3f\n", (double)g[0], (double)g[1], (double)g[2]);
+        else
+            printf("< err no motion sensor\n");
     } else if (strncmp(line, "> ", 2) == 0) {
         printf("< err unknown command\n");
     }

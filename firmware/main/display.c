@@ -1,19 +1,14 @@
-/*
- * Picks the display driver from the chip's package, as M5Stack's own library does (M5GFX): the AtomS3R carries an
- * ESP32-S3-PICO, the Waveshare board and the M5Stamp S3A a plain ESP32-S3. The pins of one board are never driven
- * on another.
- */
+/* Picks the display driver for the board (board.h) */
 #include "display.h"
 
+#include "board.h"
 #include "display_driver.h"
-#include "esp_efuse.h"
-#include "soc/efuse_defs.h"
 
 static const display_driver *driver = &DISPLAY_CO5300;
 
 display_info display_init(size_t max_band_bytes)
 {
-    if (esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO)
+    if (board_is_atoms3r())
         driver = &DISPLAY_ATOMS3R;
     return driver->init(max_band_bytes);
 }
