@@ -46,8 +46,8 @@ npm run app:dev
 
 Puis ouvrir http://localhost:8467/ dans Chrome ou Edge (le moteur doit être compilé : `mise run engine:wasm`). On y
 choisit une couleur et une pupille, avec l'aperçu animé par le vrai moteur. « Brancher lilpet » ouvre la liste des ports
-USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même éteinte. Fermer
-`mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
+USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même
+éteinte, et après un nouveau flash. Fermer `mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
 
 ## Vérifier avant de commiter
 

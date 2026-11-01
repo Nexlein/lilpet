@@ -91,7 +91,8 @@ reference until the engine takes over each feature.
   a loop.
 - `mise run firmware:build` — firmware into `firmware/build/merged-binary.bin`, in the ESP-IDF image pinned in
   `firmware/Dockerfile` (latest release; Dependabot proposes new ones). CI runs the same task and keeps the binary.
-  `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install. The build
+  `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install.
+  `firmware:flash` writes the bootloader, partition table and app only, so the look kept in NVS survives. The build
   keeps its ccache in `firmware/.ccache` (CI caches it too).
 - `mise run firmware:check-device` — checks the flashed board over USB (`scripts/device-check.py`: no reboot on
   opening, hello, a look kept across a reboot, a bad command rejected; puts the board's look back). The one check CI

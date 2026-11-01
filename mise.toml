@@ -76,7 +76,9 @@ run = [
 
 [tasks."firmware:flash"]
 description = "Flash the firmware to the board plugged in over USB (esptool through uvx finds the port)"
-run = "uvx esptool --chip esp32s3 write-flash 0x0 firmware/build/merged-binary.bin"
+# Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
+dir = "firmware/build"
+run = "uvx esptool --chip esp32s3 write-flash @flash_args"
 
 [tasks."firmware:check-device"]
 description = "Check the flashed board over USB: hello, keeping a look across a reboot (PORT, /dev/ttyACM0 by default)"
