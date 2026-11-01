@@ -84,7 +84,8 @@ La CI GitHub lance tout ça à chaque push, plus la compilation du firmware ESP3
 
 ## Tester sur un ESP32-S3
 
-Le firmware affiche les yeux en direct sur l'écran 1,32" et écrit ses temps de dessin et d'envoi sur le port USB. Sans
+Le firmware affiche les yeux en direct sur l'écran 1,32" et écrit ses temps de dessin et d'envoi sur le port USB. Il
+reconnaît aussi l'AtomS3R de M5Stack et y affiche les yeux sur son écran de 128 px. Sans
 écran, par exemple sur une M5Stamp S3A, il tourne quand même et mesure la vitesse du moteur sur la puce. La compilation
 passe par Docker et le flash par `uv`, sans installer ESP-IDF :
 

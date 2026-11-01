@@ -34,6 +34,9 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
   (paupières) et d'autres ellipses (joie, croissant). Pour chaque ligne de l'écran, on calcule directement les segments
   à remplir, avec un lissage des bords calculé à partir de la couverture du pixel.
 - **Image en RGB565** (2 octets par pixel, environ 434 Ko pour l'écran entier).
+- **Toute taille d'écran carré jusqu'à 466 px** (`lp_renderer_set_size`), par exemple 128 pour l'AtomS3R : le dessin
+  reste calculé en coordonnées 466 et n'est réduit qu'en sortie, donc l'image est la même, juste plus petite (test :
+  à 128 px, écart moyen de 0,06 à 0,21 avec l'image 466 réduite).
 - **Dessin par bandes, sans image entière en mémoire.** Le moteur ne relit jamais l'image précédente : chaque ligne de
   la zone modifiée est redessinée de zéro. Sur l'objet, il dessine donc quelques lignes à la fois (30 lignes, 28 Ko,
   comme les démos Waveshare) en mémoire interne, plus rapide que la PSRAM, et chaque bande part vers l'écran pendant
@@ -144,10 +147,20 @@ comme en `double`.
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
-- Le pilote de l'écran (`firmware/main/display.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
+- **Un seul binaire pour toutes les cartes** : `firmware/main/display.c` reconnaît la carte au boîtier de sa puce,
+  comme la bibliothèque de M5Stack : un ESP32-S3-PICO, c'est l'AtomS3R ; sinon, l'écran rond de Waveshare, ou rien.
+  Les broches d'une carte ne sont jamais pilotées sur une autre.
+- Le pilote de l'écran rond (`firmware/main/display_co5300.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
   Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs
   et l'absence de déchirure.
+- Le pilote de l'AtomS3R (`firmware/main/display_atoms3r.c`) reprend les réglages de la bibliothèque de M5Stack
+  ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp), `board_M5AtomS3R`) : SPI à 40 MHz,
+  identifiant lu pour distinguer les deux puces d'écran (ST7735S ou GC9107), séquence d'initialisation complète de
+  chaque puce, décalages, orientation (bit BGR compris) et inversion des couleurs, rétroéclairage par une puce sur le
+  bus I2C. Pas de signal TE : il cadence à 60 images/s. Testé le 1er novembre 2026 sur un AtomS3R à GC9107 : image
+  propre, couleurs justes. Sans la séquence du fabricant ni le bit BGR, l'écran montrait une bande de bruit en haut et
+  des couleurs inversées. La variante ST7735S n'a pas encore tourné.
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
