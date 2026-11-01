@@ -11,18 +11,22 @@ export interface PortLike {
 }
 
 interface SerialApi {
-    requestPort(): Promise<PortLike>;
+    requestPort(options?: { filters: { usbVendorId: number }[] }): Promise<PortLike>;
 }
+
+// Espressif's USB vendor id: the ESP32-S3 native USB port of every board we use (M5Stamp S3A, AtomS3R, Waveshare).
+// Without it, Linux also lists its built-in ttyS ports, which are never lilpet.
+const ESPRESSIF_USB = 0x303a;
 
 const serialApi = (): SerialApi | undefined => (navigator as Navigator & { serial?: SerialApi }).serial;
 
 export const serialSupported = (): boolean => serialApi() !== undefined;
 
-// Opens the browser's port picker (needs a user click)
+// Opens the browser's port picker (needs a user click), listing Espressif boards only
 export async function requestPort(): Promise<PortLike> {
     const serial = serialApi();
     if (!serial) throw new Error('Web Serial unavailable: use Chrome or Edge on a computer');
-    return serial.requestPort();
+    return serial.requestPort({ filters: [{ usbVendorId: ESPRESSIF_USB }] });
 }
 
 export interface ConnectionEvents {
