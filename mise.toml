@@ -65,10 +65,12 @@ depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 [tasks."firmware:build"]
 description = "Build the firmware into firmware/build/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
 # Docker instead of a local ESP-IDF install, like the WebAssembly build; CI runs this same task. The image is pulled
-# on first use. The Dockerfile comes from stdin: no build context to send.
+# on first use. The Dockerfile comes from stdin: no build context to send. ESP-IDF compiles through ccache (in the
+# image); its cache lives in firmware/.ccache, kept between builds here and between runs by CI. COMPILERCHECK=content:
+# the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
     "docker build -t lilpet-idf - < firmware/Dockerfile",
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py build merge-bin',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py build merge-bin',
 ]
 
 [tasks."firmware:flash"]
