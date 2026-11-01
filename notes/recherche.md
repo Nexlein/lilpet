@@ -41,3 +41,11 @@ Recherche faite le 2026-10-27.
 - [ESP32-CAM-EYES](https://github.com/Natali-ops/ESP32-CAM-EYES) : yeux qui suivent une source de lumière vue par la caméra.
 - [esp32s3-gesture-recognition](https://github.com/DenisZheng/esp32s3-gesture-recognition) : reconnaissance de 10 gestes sur ESP32-S3.
 - [Workshop Edge-AI ESP32-S3 d'Espressif](https://developer.espressif.com/workshops/edge-ai-with-esp32-s3/assignment-5/) : détection de la main, puis classification en 10 gestes, directement sur la puce.
+
+## Autres répliques du Starboy
+
+- [starboy-diy](https://github.com/nadellasripad11/starboy-diy) (vu le 2026-11-01) : XIAO ESP32-C3, écran rond GC9A01
+  de 1,28", humeur selon les secousses, le froid, le bruit et l'inclinaison (MPU6050, DS18B20, micro MAX4466), sans
+  caméra. Environ 50 expressions, mêmes 4 pupilles et 100 couleurs, autonomie d'environ 4 h, fils soudés à la main.
+  Tests soignés (croquis de test du matériel, tests d'humeur avec une fausse horloge). **Tous droits réservés** : on
+  peut s'inspirer des idées (capteurs, humeurs), pas reprendre le code.
