@@ -62,6 +62,7 @@ function fakePort(answer: (command: string) => string | null) {
         writable: new WritableStream<Uint8Array>({
             write(chunk) {
                 const command = new TextDecoder().decode(chunk).trim();
+                if (!command) return; // the newline sent on opening
                 sent.push(command);
                 const reply = answer(command);
                 // A log line first, and the reply split in two chunks, as a real serial port may deliver it
