@@ -24,6 +24,8 @@
     X(test_timed_emotion_returns_to_neutral)                                                                           \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
+    X(test_clock_keeps_running_for_days)                                                                               \
+    X(test_bad_input_is_ignored)                                                                                       \
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \

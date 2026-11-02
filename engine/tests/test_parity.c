@@ -9,6 +9,7 @@
 #define TOL_EXACT    1e-6f
 #define TOL_STATE    2e-3f
 #define TOL_POSITION 5e-2f /* sums of particle positions, in pixels */
+#define TOL_SPEED    5e-2f /* gaze speed (squash and stretch): a position step divided by dt */
 
 void test_rng_matches_prototype(void)
 {
@@ -102,6 +103,8 @@ static void check_state(const lp_eyes *e, const lpv_state *want, const char *wha
     CHECK_NEAR(e->gaze.y, want->gaze_y, TOL_STATE);
     CHECK_NEAR(e->gaze.tx, want->gaze_tx, TOL_STATE);
     CHECK_NEAR(e->gaze.ty, want->gaze_ty, TOL_STATE);
+    CHECK_NEAR(e->gaze.vx, want->gaze_vx, TOL_SPEED);
+    CHECK_NEAR(e->gaze.vy, want->gaze_vy, TOL_SPEED);
     CHECK_NEAR(e->head.yaw, want->yaw, TOL_STATE);
     CHECK_NEAR(e->head.pitch, want->pitch, TOL_STATE);
     CHECK_NEAR(e->head.roll, want->roll, TOL_STATE);

@@ -149,3 +149,51 @@ void test_tilt_holds_lying_flat(void)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
     CHECK_NEAR(eyes.head.level, 0.0f, 0.01f);
 }
+
+void test_clock_keeps_running_for_days(void)
+{
+    /* A float clock left growing stops after about 6 days at 60 frames/s: the engine winds it back, with its deadlines.
+     * 20 minutes at 64 frames/s cross the wrap; the eyes keep blinking at their usual rate after it. */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 4);
+    int blinks = 0;
+    for (int i = 0; i < 20 * 60 * 64; i++) {
+        const bool open = eyes.blink.phase == LP_BLINK_NONE;
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        if (i >= 19 * 60 * 64 && open && eyes.blink.phase != LP_BLINK_NONE)
+            blinks++;
+    }
+    CHECK(eyes.time < 600.0f); /* wound back once */
+    CHECK(blinks >= 10 && blinks <= 40);
+    /* Deadlines wound back with it: each is a few seconds ahead at most */
+    CHECK(eyes.next_blink - eyes.time < 8.0f);
+    CHECK(eyes.next_saccade - eyes.time < 4.0f);
+    CHECK(eyes.next_roll - eyes.time < 7.0f);
+}
+
+void test_bad_input_is_ignored(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_pointer(&eyes, true, NAN, 0.0f);
+    CHECK(!eyes.pointer.active);
+    lp_eyes_set_gravity(&eyes, true, 0.0f, INFINITY);
+    CHECK(!eyes.gravity.active);
+    const float time = eyes.time;
+    lp_eyes_update(&eyes, 0.0f);
+    lp_eyes_update(&eyes, NAN);
+    lp_eyes_update(&eyes, -1.0f);
+    CHECK(eyes.time == time);
+    for (int i = 0; i < 64; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
+
+    /* A scene with an unknown emotion or blink phase leaves the eyes as they were */
+    lp_scene scene = {.emotion = LP_EMOTION_COUNT};
+    const float roll = eyes.head.roll;
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    scene.emotion = LP_EMOTION_NEUTRAL;
+    scene.blink_phase = (lp_blink_phase)9;
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    CHECK(eyes.head.roll == roll);
+}

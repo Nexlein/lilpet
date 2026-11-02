@@ -20,6 +20,10 @@
 #define CAP_STEPS     7  /* inner points of each round tip */
 #define HEART_STEPS   24 /* per Bezier half of a heart */
 #define SPARKLE_STEPS 12 /* per quarter of a sparkle */
+/* Points past LP_POLY_MAX are dropped: every shape must fit */
+_Static_assert(2 * (STROKE_STEPS + 1) + 2 * CAP_STEPS <= LP_POLY_MAX, "closed-eye stroke too long");
+_Static_assert(2 * HEART_STEPS <= LP_POLY_MAX, "heart too long");
+_Static_assert(4 * SPARKLE_STEPS <= LP_POLY_MAX, "sparkle too long");
 
 #define HEART_COLOR   0xFF2A3Au
 #define SPARKLE_COLOR 0xFFFFFFu
@@ -47,11 +51,6 @@ static void to_array(lp_affine m, float out[6])
 static lp_affine from_array(const float in[6])
 {
     return (lp_affine){.a = in[0], .b = in[1], .c = in[2], .d = in[3], .tx = in[4], .ty = in[5]};
-}
-
-static float maxf(float a, float b)
-{
-    return a > b ? a : b;
 }
 
 static lp_rect rect_empty(void)
@@ -246,8 +245,8 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     const int t = (unsigned)type < 4u ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
-    g->px = lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    g->py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
+    g->px = lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    g->py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     g->prx = prx;
     g->pry = pry;
     /* Lean around the pupil center */
@@ -256,7 +255,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     lean.ty = g->py - (lean.c * g->px + lean.d * g->py);
     to_array(lp_affine_inverse(lp_affine_mul(to_screen, lean)), g->inv_pupil);
     g->glint = e->cur.hl > 0.5f;
-    g->gr = maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
+    g->gr = lp_maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
     g->gx = g->px - prx * 0.35f;
     g->gy = g->py - pry * 0.38f;
 }
@@ -353,7 +352,7 @@ static void setup_particles(lp_renderer *r, const lp_eyes *e)
 
 /* --- Row composition --------------------------------------------------------------------------------- */
 
-static void composite(float *line, int x, uint32_t color, float coverage)
+static inline void composite(float *line, int x, uint32_t color, float coverage)
 {
     if (coverage <= 0.0f)
         return;
@@ -369,18 +368,42 @@ static float sub_row_y(int y, int sub)
     return (float)y + ((float)sub + 0.5f) / (float)LP_SUBROWS;
 }
 
+/* The shapes of an open eye, made ready for the sub-rows of a row (raster.h: no division left per sub-row) */
+typedef struct {
+    lp_ellipse eye, crescent, happy, pupil, glint;
+    lp_half_plane lid, blink;
+} eye_shapes;
+
+static eye_shapes prepare_shapes(const lp_eye_geometry *g, lp_affine inv_eye, lp_affine inv_pupil)
+{
+    eye_shapes s = {
+        .eye = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, 0.0f, g->rx, g->ry),
+        .lid = lp_half_plane_prepare(inv_eye.a, inv_eye.c, g->lid_m, g->lid_c),
+        .pupil = lp_ellipse_prepare(inv_pupil.a, inv_pupil.c, g->px, g->py, g->prx, g->pry),
+    };
+    if (g->crescent)
+        s.crescent = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, g->crescent_cv, g->crescent_ra, g->crescent_rb);
+    if (g->happy)
+        s.happy = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, g->happy_cv, g->happy_ra, g->happy_rb);
+    if (g->blink_lid)
+        s.blink = lp_half_plane_prepare(inv_eye.a, inv_eye.c, g->blink_m, g->blink_c);
+    if (g->glint)
+        s.glint = lp_ellipse_prepare(inv_pupil.a, inv_pupil.c, g->gx, g->gy, g->gr, g->gr);
+    return s;
+}
+
 /* Eye region on one sub-row: ellipse, then lids and cuts */
-static void eye_spans(const lp_eye_geometry *g, lp_affine inv, float y, lp_spans *out)
+static void eye_spans(const lp_eye_geometry *g, const eye_shapes *s, lp_affine inv, float y, lp_spans *out)
 {
     const lp_line line = lp_line_at(inv, y);
-    lp_spans_ellipse(out, &line, 0.0f, 0.0f, g->rx, g->ry, (float)g->box.x0, (float)g->box.x1);
-    lp_spans_keep_below(out, &line, g->lid_m, g->lid_c);
+    lp_spans_ellipse(out, &line, &s->eye, (float)g->box.x0, (float)g->box.x1);
+    lp_spans_keep_below(out, &line, &s->lid);
     if (g->crescent)
-        lp_spans_cut_ellipse(out, &line, 0.0f, g->crescent_cv, g->crescent_ra, g->crescent_rb);
+        lp_spans_cut_ellipse(out, &line, &s->crescent);
     if (g->happy)
-        lp_spans_cut_ellipse(out, &line, 0.0f, g->happy_cv, g->happy_ra, g->happy_rb);
+        lp_spans_cut_ellipse(out, &line, &s->happy);
     if (g->blink_lid)
-        lp_spans_keep_below(out, &line, g->blink_m, g->blink_c);
+        lp_spans_keep_below(out, &line, &s->blink);
 }
 
 static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, uint32_t color, float alpha)
@@ -418,13 +441,14 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
     const float lo = (float)x0;
     const float hi = (float)g->box.x1;
     const float w = 1.0f / (float)LP_SUBROWS;
+    const eye_shapes shapes = prepare_shapes(g, inv_eye, inv_pupil);
     for (int k = 0; k < 3; k++)
         memset(r->cov[k], 0, (size_t)(width + 1) * sizeof r->cov[k][0]);
 
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
         lp_spans eye;
-        eye_spans(g, inv_eye, ys, &eye);
+        eye_spans(g, &shapes, inv_eye, ys, &eye);
         if (eye.n == 0)
             continue;
         lp_coverage_add(r->cov[0], x0, width, &eye, w);
@@ -432,12 +456,12 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
         const lp_line pl = lp_line_at(inv_pupil, ys);
         lp_spans shape;
         lp_spans clipped;
-        lp_spans_ellipse(&shape, &pl, g->px, g->py, g->prx, g->pry, lo, hi);
+        lp_spans_ellipse(&shape, &pl, &shapes.pupil, lo, hi);
         lp_spans_intersect(&clipped, &eye, &shape);
         lp_coverage_add(r->cov[1], x0, width, &clipped, w);
 
         if (g->glint) {
-            lp_spans_ellipse(&shape, &pl, g->gx, g->gy, g->gr, g->gr, lo, hi);
+            lp_spans_ellipse(&shape, &pl, &shapes.glint, lo, hi);
             lp_spans_intersect(&clipped, &eye, &shape);
             lp_coverage_add(r->cov[2], x0, width, &clipped, w);
         }
@@ -474,14 +498,6 @@ void lp_renderer_set_size(lp_renderer *renderer, int size)
     renderer->size = size - size % 2; /* even, like every region */
     renderer->scale = (float)renderer->size / (float)LP_SCREEN_SIZE;
     renderer->drawn = false; /* the next frame redraws everything */
-}
-
-uint16_t lp_rgb565(uint32_t rgb)
-{
-    const uint32_t r = (rgb >> 16u) & 0xFFu;
-    const uint32_t g = (rgb >> 8u) & 0xFFu;
-    const uint32_t b = rgb & 0xFFu;
-    return (uint16_t)(((r * 31u + 127u) / 255u) << 11u | ((g * 63u + 127u) / 255u) << 5u | ((b * 31u + 127u) / 255u));
 }
 
 static uint16_t pack565(const float *px)

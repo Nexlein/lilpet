@@ -2,7 +2,7 @@
 // must reproduce (engine/tests/test_parity.c). Run it after changing eyes.js, scenes.json or looks.json.
 // Usage: node scripts/gen-engine-vectors.mjs [--check]   (--check: fail if the committed file is out of date)
 import { readFileSync, writeFileSync } from 'node:fs';
-import { EMOTIONS, Eyes, createRng, makeLook } from '../prototype/eyes.js';
+import { BASE, EMOTIONS, Eyes, createRng, makeLook } from '../prototype/eyes.js';
 
 const OUT = 'engine/tests/js_vectors.h';
 // Time step of the simulations: a power of two, so time sums are exact in both float (C) and double (JS)
@@ -27,6 +27,8 @@ function snapshot(eyes, time) {
         num(gaze.y),
         num(gaze.tx),
         num(gaze.ty),
+        num(gaze.vx),
+        num(gaze.vy),
         num(head.yaw),
         num(head.pitch),
         num(head.roll),
@@ -70,7 +72,7 @@ for (const seed of RNG_SEEDS) {
 out('};', '');
 
 // --- Emotion table -------------------------------------------------------------------------------
-const EXPR = ['tl', 'ts', 'bl', 'sq', 'cr', 'rot', 'hl', 'ps', 'es', 'gy'];
+const EXPR = Object.keys(BASE); // in the order of lp_expression: a new field breaks the C build until ported
 out(`static const lp_emotion_def LPV_EMOTIONS[${EMOTION_NAMES.length}] = {`);
 for (const name of EMOTION_NAMES) {
     const e = EMOTIONS[name];
@@ -124,7 +126,7 @@ out('};', '');
 // --- Simulations: from a seed, run update() and take snapshots ----------------------------------------
 out(
     'typedef struct {',
-    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, yaw, pitch, roll, tl, bl, gy, ps;',
+    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, gaze_vx, gaze_vy, yaw, pitch, roll, tl, bl, gy, ps;',
     '    lp_blink_phase blink;',
     '    int particles;',
     '    float particles_x, particles_y; /* sums of the particle positions */',

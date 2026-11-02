@@ -4,7 +4,7 @@ import { SIZE } from './eyes.js';
 
 // Mean difference per channel (0-255), and share of pixels that differ by more than BIG. Anti-aliasing and RGB565
 // rounding stay well below them.
-export const PARITY = { maxMean: 2, big: 32, maxBigShare: 0.005 };
+export const PARITY = { maxMean: 1.5, big: 32, maxBigShare: 0.002 };
 
 // Compares two RGBA images of SIZE × SIZE pixels
 export function compare(a, b) {

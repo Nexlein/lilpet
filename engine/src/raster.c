@@ -115,57 +115,70 @@ void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t)
     }
 }
 
-bool lp_line_ellipse(const lp_line *l, float cu, float cv, float ra, float rb, float *x0, float *x1)
+lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb)
 {
-    const float pu = (l->u0 - cu) / ra;
-    const float pv = (l->v0 - cv) / rb;
-    const float qu = l->du / ra;
-    const float qv = l->dv / rb;
-    const float a = qu * qu + qv * qv;
-    const float b = 2.0f * (pu * qu + pv * qv);
+    lp_ellipse e = {.cu = cu, .cv = cv, .inv_ra = 1.0f / ra, .inv_rb = 1.0f / rb};
+    e.qu = du * e.inv_ra;
+    e.qv = dv * e.inv_rb;
+    e.a = e.qu * e.qu + e.qv * e.qv;
+    e.half_inv_a = e.a > 0.0f ? 0.5f / e.a : 0.0f;
+    return e;
+}
+
+lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c)
+{
+    const float g1 = dv - m * du;
+    return (lp_half_plane){.m = m, .c = c, .g1 = g1, .inv_g1 = fabsf(g1) < 1e-12f ? 0.0f : 1.0f / g1};
+}
+
+bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1)
+{
+    /* The line in unit-circle space: p + x q; solve |p + x q| = 1 */
+    const float pu = (l->u0 - e->cu) * e->inv_ra;
+    const float pv = (l->v0 - e->cv) * e->inv_rb;
+    const float b = 2.0f * (pu * e->qu + pv * e->qv);
     const float c = pu * pu + pv * pv - 1.0f;
-    const float disc = b * b - 4.0f * a * c;
-    if (a <= 0.0f || disc <= 0.0f)
+    const float disc = b * b - 4.0f * e->a * c;
+    if (e->a <= 0.0f || disc <= 0.0f)
         return false;
     const float root = sqrtf(disc);
-    *x0 = (-b - root) / (2.0f * a);
-    *x1 = (-b + root) / (2.0f * a);
+    *x0 = (-b - root) * e->half_inv_a;
+    *x1 = (-b + root) * e->half_inv_a;
     return true;
 }
 
-void lp_spans_ellipse(lp_spans *out, const lp_line *l, float cu, float cv, float ra, float rb, float lo, float hi)
+void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, float lo, float hi)
 {
     float x0;
     float x1;
-    if (!lp_line_ellipse(l, cu, cv, ra, rb, &x0, &x1)) {
+    if (!lp_line_ellipse(l, e, &x0, &x1)) {
         out->n = 0;
         return;
     }
     lp_spans_set(out, x0 > lo ? x0 : lo, x1 < hi ? x1 : hi);
 }
 
-void lp_spans_keep_below(lp_spans *s, const lp_line *l, float m, float c)
+void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h)
 {
-    /* g(x) = v - m u - c along the line; keep g >= 0 */
-    const float g0 = l->v0 - m * l->u0 - c;
-    const float g1 = l->dv - m * l->du;
-    if (fabsf(g1) < 1e-12f) {
+    /* g(x) = v - m u - c along the line, g0 + x g1; keep g >= 0 */
+    const float g0 = l->v0 - h->m * l->u0 - h->c;
+    if (h->inv_g1 == 0.0f) {
         if (g0 < 0.0f)
             s->n = 0;
         return;
     }
-    const float x = -g0 / g1;
-    if (g1 > 0.0f)
+    const float x = -g0 * h->inv_g1;
+    if (h->g1 > 0.0f)
         lp_spans_clip(s, x, FAR);
     else
         lp_spans_clip(s, -FAR, x);
 }
 
-void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, float cu, float cv, float ra, float rb)
+void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e)
 {
     float x0;
     float x1;
-    if (lp_line_ellipse(l, cu, cv, ra, rb, &x0, &x1))
+    if (lp_line_ellipse(l, e, &x0, &x1))
         lp_spans_cut(s, x0, x1);
 }
 
