@@ -5,7 +5,7 @@
 
 const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
-const PARTICLES = [null, 'heart', 'sparkle']; // lp_particle_type order
+const EVENTS = ['tap', 'shake', 'upsideDown']; // lp_event order (REACTIONS in prototype/eyes.js)
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
 
@@ -63,7 +63,7 @@ export async function loadEngine(moduleUrl) {
         setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
         setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
         setHeadAmount: (amount) => m._lpw_set_head_amount(amount),
-        spawn: (type) => m._lpw_spawn(PARTICLES.indexOf(type)),
+        react: (event) => m._lpw_react(EVENTS.indexOf(event)),
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render

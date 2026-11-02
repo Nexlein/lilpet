@@ -26,7 +26,7 @@ let engineMissing = false;
 let mode = 'js'; // 'js' | 'c' | 'side'
 let time = 0; // seconds of animation, shared by both renderers
 let look = null;
-let emotion = 'neutral'; // last emotion picked (timed ones go back to neutral on their own)
+let emotion = 'neutral'; // last emotion picked: the mood that reactions come back to
 let shownEmotion = null;
 let paused = false;
 let renderMs = 0;
@@ -104,10 +104,10 @@ function setLook(l) {
         `${l.id} · ${l.pupil} | œil ${l.sclera} | pupille ${a}${a !== b ? ' / ' + b : ''}`;
 }
 
-function setEmotion(name, duration = 0) {
-    if (!duration) emotion = name;
-    eyes.setEmotion(name, duration);
-    engine?.setEmotion(name, duration);
+function setEmotion(name) {
+    emotion = name;
+    eyes.setEmotion(name);
+    engine?.setEmotion(name);
 }
 
 function blink() {
@@ -115,13 +115,13 @@ function blink() {
     engine?.blink();
 }
 
-function pet() {
-    setEmotion('happy', 1.8);
-    for (let i = 0; i < 4; i++) {
-        eyes.spawn('sparkle');
-        engine?.spawn('sparkle');
-    }
+// Reactions (REACTIONS in eyes.js): what the device's button and motion sensor will trigger
+function react(event) {
+    eyes.react(event);
+    engine?.react(event);
 }
+
+const pet = () => react('tap');
 
 function setPointer(point) {
     eyes.mouse = point;
@@ -243,6 +243,7 @@ function bindControls() {
     resyncButton.addEventListener('click', resync);
     document.getElementById('randomLook').addEventListener('click', randomLook);
     document.getElementById('blinkBtn').addEventListener('click', blink);
+    document.getElementById('shakeBtn').addEventListener('click', () => react('shake'));
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'SELECT') return;
         const names = Object.keys(EMOTIONS);
@@ -252,6 +253,7 @@ function bindControls() {
             e.preventDefault();
             blink();
         } else if (e.key.toLowerCase() === 'r') randomLook();
+        else if (e.key.toLowerCase() === 's') react('shake');
     });
 }
 
@@ -318,6 +320,7 @@ window.live = {
     pet,
     setPointer,
     setGravity,
+    react,
     pause: () => (paused = true),
     step: (n) => {
         for (let i = 0; i < n; i++) step(STEP);

@@ -25,6 +25,18 @@ void test_rng_matches_prototype(void)
 
 void test_emotions_match_prototype(void)
 {
+    CHECK(COUNT(LPV_REACTIONS) == LP_EVENT_COUNT);
+    for (int i = 0; i < COUNT(LPV_REACTIONS); i++) {
+        const lp_reaction *got = lp_reaction_get(LPV_REACTIONS[i].event);
+        CHECK(LPV_REACTIONS[i].event == (lp_event)i); /* same order as in the prototype */
+        if (!got) {
+            LP_FAIL("no reaction for event %d", i);
+            continue;
+        }
+        CHECK(got->emotion == LPV_REACTIONS[i].reaction.emotion);
+        CHECK_NEAR(got->duration, LPV_REACTIONS[i].reaction.duration, TOL_EXACT);
+        CHECK(got->sparkles == LPV_REACTIONS[i].reaction.sparkles);
+    }
     CHECK(COUNT(LPV_EMOTIONS) == LP_EMOTION_COUNT);
     for (int i = 0; i < LP_EMOTION_COUNT; i++) {
         const lp_emotion_def *got = lp_emotion_get((lp_emotion)i);
@@ -128,9 +140,9 @@ void test_simulations_match_prototype(void)
         lp_eyes eyes;
         lp_eyes_init(&eyes, sc->seed);
         if (sc->emotion != LP_EMOTION_NEUTRAL)
-            lp_eyes_set_emotion(&eyes, sc->emotion, sc->emotion_duration);
-        for (int i = 0; i < sc->sparkles; i++)
-            lp_eyes_spawn(&eyes, LP_PARTICLE_SPARKLE);
+            lp_eyes_set_emotion(&eyes, sc->emotion, 0.0f);
+        if (sc->react >= 0)
+            lp_eyes_react(&eyes, (lp_event)sc->react);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
         lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);
 

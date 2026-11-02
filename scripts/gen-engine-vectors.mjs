@@ -2,7 +2,7 @@
 // must reproduce (engine/tests/test_parity.c). Run it after changing eyes.js, scenes.json or looks.json.
 // Usage: node scripts/gen-engine-vectors.mjs [--check]   (--check: fail if the committed file is out of date)
 import { readFileSync, writeFileSync } from 'node:fs';
-import { BASE, EMOTIONS, Eyes, createRng, makeLook } from '../prototype/eyes.js';
+import { BASE, EMOTIONS, Eyes, REACTIONS, createRng, makeLook } from '../prototype/eyes.js';
 
 const OUT = 'engine/tests/js_vectors.h';
 // Time step of the simulations: a power of two, so time sums are exact in both float (C) and double (JS)
@@ -82,6 +82,15 @@ for (const name of EMOTION_NAMES) {
 }
 out('};', '');
 
+// --- Reactions, in the order of lp_event --------------------------------------------------------
+const eventEnum = (name) => `LP_EVENT_${name.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`;
+out(
+    `static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[${Object.keys(REACTIONS).length}] = {`
+);
+for (const [name, r] of Object.entries(REACTIONS))
+    out(`    {${eventEnum(name)}, {${emotionEnum(r.emotion)}, ${num(r.duration)}, ${r.sparkles}}},`);
+out('};', '');
+
 // --- Blink poses ---------------------------------------------------------------------------------
 const BLINKS = [
     ['anticip', 0.03],
@@ -137,7 +146,7 @@ out(
 const SCENARIOS = [
     { name: 'idle', seed: 7, steps: 640, every: 32 },
     { name: 'love', seed: 11, emotion: 'love', steps: 384, every: 32 },
-    { name: 'petting', seed: 3, emotion: 'happy', duration: 1, sparkles: 4, steps: 256, every: 16 },
+    { name: 'petting', seed: 3, react: 'tap', steps: 256, every: 16 },
     { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 32 },
     // Gravity in the screen plane: object turned about 70 degrees, then about 150 (back toward upright)
     { name: 'turned', seed: 13, gravity: [0.9375, 0.34375], steps: 256, every: 32 },
@@ -150,8 +159,8 @@ const states = [];
 const scenarioRows = [];
 for (const s of SCENARIOS) {
     const eyes = new Eyes(null, { seed: s.seed });
-    if (s.emotion) eyes.setEmotion(s.emotion, s.duration ?? 0);
-    for (let i = 0; i < (s.sparkles ?? 0); i++) eyes.spawn('sparkle');
+    if (s.emotion) eyes.setEmotion(s.emotion);
+    if (s.react) eyes.react(s.react);
     if (s.pointer) eyes.mouse = { x: s.pointer[0], y: s.pointer[1] };
     if (s.gravity) eyes.gravity = { x: s.gravity[0], y: s.gravity[1] };
     const first = states.length;
@@ -163,7 +172,7 @@ for (const s of SCENARIOS) {
         if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
     }
     scenarioRows.push(
-        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ${num(s.duration ?? 0)}, ${s.sparkles ?? 0}, ` +
+        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ${s.react ? eventEnum(s.react) : -1}, ` +
             `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
             `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
             `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}},`
@@ -175,8 +184,7 @@ out(
     '    const char *name;',
     '    uint32_t seed;',
     '    lp_emotion emotion;',
-    '    float emotion_duration;',
-    '    int sparkles;',
+    '    int react; /* lp_event at the start, or -1 */',
     '    float pointer_x, pointer_y;',
     '    float gravity_x, gravity_y;',
     '    float spin; /* radians per second: gravity turning in the screen plane, from upright */',

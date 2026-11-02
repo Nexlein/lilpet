@@ -75,9 +75,9 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_head_amount(float amount)
     lp_eyes_set_head_amount(&eyes, amount);
 }
 
-EMSCRIPTEN_KEEPALIVE void lpw_spawn(int type)
+EMSCRIPTEN_KEEPALIVE void lpw_react(int event)
 {
-    lp_eyes_spawn(&eyes, (lp_particle_type)type);
+    lp_eyes_react(&eyes, (lp_event)event);
 }
 
 EMSCRIPTEN_KEEPALIVE int lpw_emotion(void)

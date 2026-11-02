@@ -42,6 +42,8 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
         return;
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
+    if (duration <= 0.0f)
+        eyes->mood = emotion;
 }
 
 /* A NaN would spread through the easing to the whole state, for good: inputs that are not finite are dropped */
@@ -50,6 +52,16 @@ void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
     eyes->pointer.active = active && isfinite(x) && isfinite(y);
     eyes->pointer.x = x;
     eyes->pointer.y = y;
+}
+
+void lp_eyes_react(lp_eyes *eyes, lp_event event)
+{
+    const lp_reaction *r = lp_reaction_get(event);
+    if (!r)
+        return;
+    lp_eyes_set_emotion(eyes, r->emotion, r->duration);
+    for (int i = 0; i < r->sparkles; i++)
+        lp_eyes_spawn(eyes, LP_PARTICLE_SPARKLE);
 }
 
 void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y)
@@ -200,6 +212,24 @@ static void ease_expression(lp_expression *cur, const lp_expression *target, flo
 
 #define TILT_SLIDE 0.5f /* gaze shift toward the low side, at full tilt */
 
+/* Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds */
+#define UPSIDE_DOWN_GRAVITY (-0.6f)
+#define UPSIDE_DOWN_DELAY   0.6f
+
+/* Held upside down: angry as long as it lasts, then back to the mood. A mood that is already that emotion stays as
+ * it is (no timer). */
+static void update_upside_down(lp_eyes *e, float dt)
+{
+    e->upside_down = e->gravity.active && e->gravity.y < UPSIDE_DOWN_GRAVITY ? e->upside_down + dt : 0.0f;
+    if (e->upside_down < UPSIDE_DOWN_DELAY)
+        return;
+    const lp_reaction *r = lp_reaction_get(LP_EVENT_UPSIDE_DOWN);
+    if (e->emotion != r->emotion)
+        lp_eyes_react(e, LP_EVENT_UPSIDE_DOWN);
+    else if (e->emotion_timer > 0.0f)
+        e->emotion_timer = lp_maxf(e->emotion_timer, r->duration);
+}
+
 /* The angle equal to target modulo a turn that is nearest to from, so that easing toward it never spins around */
 static float nearest_turn(float target, float from)
 {
@@ -296,8 +326,9 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
     if (e->emotion_timer > 0.0f) {
         e->emotion_timer -= dt;
         if (e->emotion_timer <= 0.0f)
-            lp_eyes_set_emotion(e, LP_EMOTION_NEUTRAL, 0.0f);
+            lp_eyes_set_emotion(e, e->mood, 0.0f);
     }
+    update_upside_down(e, dt);
 
     const float aim_x = update_gaze(e, dt, t, update_tilt(e, dt));
 
@@ -329,7 +360,9 @@ void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look
     lp_eyes *e = eyes;
     e->look = *look;
     e->emotion = scene->emotion;
+    e->mood = scene->emotion;
     e->emotion_timer = 0.0f;
+    e->upside_down = 0.0f;
     e->cur = lp_emotion_get(scene->emotion)->expr;
     e->shape = lp_default_shape();
     e->head.yaw = scene->yaw;
