@@ -28,7 +28,10 @@ reference until the engine takes over each feature.
       gaze, seeded particles), rendered side by side by the prototype and the C engine (WebAssembly), with a score
       per scene. Tolerances and comparison in `parity.js`. `tests/parity.spec.mjs` (Playwright) fails CI when a scene
       is out of tolerance.
-- `engine/` — C17 eye engine. State and animation: `src/eyes.c` (emotions, gaze, head, blink, particles), `src/pose.c`
+- `engine/` — C17 eye engine. State and animation: `src/eyes.c` (emotions, gaze, head, blink, particles, reactions:
+  `lp_eyes_react` with the event table of `src/emotions.c`, upside down from gravity; a temporary emotion goes back to
+  the mood, the last one set for good), `src/motion.c` (`lp_shake_update`: a shake told from raw accelerometer samples),
+  `src/pose.c`
   (blink pose, eye pose on the 3D head), `src/rng.c` (mulberry32). Rendering: `src/render.c` builds each eye's geometry
   (same transform chain as the prototype) and composes the frame row by row into RGB565, redrawing only the dirty
   region, whole (`lp_render`) or in bands (`lp_render_begin` + `lp_render_rows`: it never reads the previous frame back,
@@ -70,7 +73,9 @@ reference until the engine takes over each feature.
   `main/imu.h` is the motion sensor: `imu_bmi270.c` on the AtomS3R (BMI270, which needs Bosch's configuration file,
   `bmi270_config.c`, BSD-3, copied unmodified); its gravity, smoothed, goes to `lp_eyes_set_gravity`, which turns the
   face to stay level and slides the eyes toward the low side (prototype: `gravity` in `eyes.js`, "Objet tourné"
-  slider).
+  slider). Reactions (`REACTIONS` in `eyes.js`, the same table in the engine): held upside down it gets angry, shaken
+  (`lp_shake_update` on the raw sample) surprised, pressed (the AtomS3R's screen is a button, `board_button_pressed`)
+  or petted in the app happy.
 - `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
   Looks carry no glint: only emotions add one.

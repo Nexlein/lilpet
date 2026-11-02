@@ -101,6 +101,10 @@ Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../refe
   Repris dans le prototype et le moteur (`gravity` dans `eyes.js`, `lp_eyes_set_gravity`) : le visage tourne pour
   rester à l'horizontale, sur un tour complet, et les yeux glissent vers le côté le plus bas ; posé à plat, rien ne
   change. Ma recréation, réglée à l'œil sur l'AtomS3R, pas une mesure des originaux.
+- **Réactions** (novembre 2026, ma recréation, à affiner) : une table de données, `REACTIONS` dans `eyes.js`, la même
+  dans le moteur. Tenu à l'envers plus de 0,6 s, il se fâche tant que ça dure (la colère « tenu à l'envers » ci-dessus) ;
+  secoué, il est surpris 2 s, à la fin de la secousse (pendant, on ne voit pas l'écran) ; touché (l'écran de l'AtomS3R est un bouton) ou caressé dans l'app, il est content
+  1,8 s avec des étincelles. Après une réaction, il revient à l'émotion choisie avant, pas forcément à neutre.
 - **Taille** : les yeux occupent presque tout l'écran et se touchent souvent.
 - Sur l'écran réel, les couleurs « bavent » un peu (lueur OLED à travers le verre bombé).
 

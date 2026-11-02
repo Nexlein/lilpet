@@ -173,6 +173,12 @@ comme en `double`.
   (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
   passe au moteur (`lp_eyes_set_gravity`). Les autres cartes n'ont pas de capteur pour l'instant ; l'écran rond de
   Waveshare a un QMI8658, à brancher derrière la même interface (`imu.h`).
+- **Réactions** : le moteur reçoit des événements (`lp_eyes_react` : toucher, secousse) et repère seul la position à
+  l'envers dans la gravité ; chaque événement mène à une réaction décrite comme une donnée (émotion, durée,
+  étincelles), pour que l'app puisse un jour les changer. Le firmware ne fait que traduire le matériel : appui sur
+  l'écran de l'AtomS3R (broche 41), secousse repérée par `lp_shake_update` sur la mesure brute, avant le lissage.
+  Mesuré sur la carte : une secousse à la main monte jusqu'à 11 g et s'écarte de 3 à 6 g de 1 g en moyenne, contre
+  0,01 g au repos ; elle est annoncée quand elle s'arrête, et un choc, plus bref, n'en est pas une.
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
   Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), avec le
