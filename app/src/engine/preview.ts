@@ -31,12 +31,17 @@ export class Preview {
         const tick = (now: number) => {
             this.#pending = Math.min(this.#pending + (now - this.#last) / 1000, MAX_STEPS * STEP);
             this.#last = now;
+            let stepped = false;
             while (this.#pending >= STEP) {
                 this.#pending -= STEP;
                 this.#engine.update(STEP);
+                stepped = true;
             }
-            const size = this.#engine.size;
-            this.#ctx.putImageData(new ImageData(this.#engine.render(), size, size), 0, 0);
+            // A fast screen asks for more frames than the animation has: only draw the new ones
+            if (stepped) {
+                const size = this.#engine.size;
+                this.#ctx.putImageData(new ImageData(this.#engine.render(), size, size), 0, 0);
+            }
             this.#frame = requestAnimationFrame(tick);
         };
         this.#frame = requestAnimationFrame(tick);

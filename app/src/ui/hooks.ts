@@ -1,9 +1,8 @@
 // React state around the engine, the device connection and the browser storage
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Connection, requestPort, serialSupported } from '../device/connection';
-import { hello, sendLook, type DeviceInfo } from '../device/device';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { requestPort, serialSupported } from '../device/connection';
+import { DeviceSession, type DeviceState } from '../device/session';
 import { loadEyeEngine, type Engine } from '../engine/preview';
-import type { Look } from '../data/looks';
 
 export type EngineState = { status: 'loading' } | { status: 'ready'; engine: Engine } | { status: 'error' };
 
@@ -21,65 +20,14 @@ export function useEngine(): EngineState {
     return state;
 }
 
-export type DeviceState =
-    | { status: 'unsupported' }
-    | { status: 'idle'; error?: string }
-    | { status: 'connecting' }
-    | { status: 'connected'; info: DeviceInfo };
+export type { DeviceState };
 
-const LOG_LINES = 200;
-
+// The connection to lilpet (device/session.ts), closed when the app goes away
 export function useDevice() {
-    const [state, setState] = useState<DeviceState>(() =>
-        serialSupported() ? { status: 'idle' } : { status: 'unsupported' }
-    );
-    const [log, setLog] = useState<string[]>([]);
-    const connection = useRef<Connection | null>(null);
-
-    const connect = useCallback(async () => {
-        let opened: Connection | null = null;
-        try {
-            const port = await requestPort();
-            setState({ status: 'connecting' });
-            opened = await Connection.open(port, {
-                onLog: (line) => setLog((lines) => [...lines.slice(1 - LOG_LINES), line]),
-                onClose: () => {
-                    connection.current = null;
-                    setState((s) => (s.status === 'connected' ? { status: 'idle' } : s));
-                }
-            });
-            const info = await hello(opened);
-            connection.current = opened;
-            setState({ status: 'connected', info });
-        } catch (err) {
-            await opened?.close().catch(() => undefined);
-            // Closing the port picker without choosing is not an error
-            if (err instanceof DOMException && err.name === 'NotFoundError') setState({ status: 'idle' });
-            else setState({ status: 'idle', error: describe(err) });
-        }
-    }, []);
-
-    const disconnect = useCallback(async () => {
-        await connection.current?.close();
-    }, []);
-
-    const send = useCallback(async (look: Look) => {
-        if (!connection.current) throw new Error('lilpet n’est plus branché');
-        await sendLook(connection.current, look);
-    }, []);
-
-    useEffect(() => () => void connection.current?.close(), []);
-
-    return { state, log, connect, disconnect, send };
-}
-
-function describe(err: unknown): string {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.startsWith('not a lilpet device') || message.startsWith('no reply'))
-        return 'Cet appareil ne répond pas comme lilpet. Flashe-le avec « mise run firmware:flash », puis réessaie.';
-    if (err instanceof DOMException && err.name === 'NetworkError')
-        return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
-    return message;
+    const [session] = useState(() => new DeviceSession(serialSupported() ? requestPort : null));
+    const { state, log } = useSyncExternalStore(session.subscribe, session.snapshot);
+    useEffect(() => () => void session.disconnect(), [session]);
+    return { state, log, connect: session.connect, disconnect: session.disconnect, send: session.send };
 }
 
 // A value kept in localStorage: read once, written on every change
