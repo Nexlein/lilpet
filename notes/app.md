@@ -61,10 +61,13 @@ d'animations, outils). Seul `ui` dépend de React.
 
 Des lignes de texte sur le port USB de l'ESP32-S3, le même que celui des mesures :
 
-- les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal ;
+- les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal ; chaque réponse part
+  sur une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas) ;
 - `> hello` répond `< lilpet fw=0.2.0 engine=0.9.0` ;
-- `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ;
-- `> look?` répond le look gardé, au même format : de quoi vérifier sans écran ;
+- `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ; le
+  look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`) ;
+- `> look?` répond le look gardé, au même format : de quoi vérifier sans écran (`mise run firmware:check-device` ;
+  l'app ne s'en sert pas) ;
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
   le bas, z vers celui qui regarde) : `< imu 0.000 1.000 0.000` tenu droit, ou `< err no motion sensor` sans capteur.
   Sert au calage des axes et à `mise run firmware:check-device`.
