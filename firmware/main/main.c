@@ -83,34 +83,35 @@ void app_main(void)
     commands_start(looks, &look);
 
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes, &look);
+    /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
+    lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, screen.size); /* same picture, scaled to a smaller screen */
     TickType_t wake = xTaskGetTickCount();
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     float gravity[2] = {0.0f, 1.0f}; /* smoothed, in the screen plane */
-    for (int f = 0;; f++) {
+    for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
         if (synced)
             display_wait_refresh(50);
         else
             vTaskDelayUntil(&wake, pdMS_TO_TICKS(1000 / LP_BENCH_FPS));
 
         const int64_t start = esp_timer_get_time();
-        if (xQueueReceive(looks, &look, 0) == pdTRUE)
+        if (xQueueReceive(looks, &look, 0) == pdTRUE && !bench)
             lp_eyes_set_look(&eyes, &look);
         const float elapsed = (float)(start - last) * 1e-6f;
         const float dt = elapsed < 0.05f ? elapsed : 0.05f;
         last = start;
         if (bench)
-            lp_bench_script(&eyes, f % LP_BENCH_FRAMES);
+            lp_bench_script(&eyes, f);
         float g[3];
         if (motion && imu_gravity(g)) {
             for (int i = 0; i < 2; i++)
                 gravity[i] += (g[i] - gravity[i]) * (1.0f - expf(-GRAVITY_RATE * dt));
             lp_eyes_set_gravity(&eyes, true, gravity[0], gravity[1]);
         }
-        lp_eyes_update(&eyes, dt);
+        lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         const lp_rect dirty = lp_render_begin(&renderer, &eyes);
         int64_t render = 0;

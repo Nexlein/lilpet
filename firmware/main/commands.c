@@ -26,6 +26,9 @@ static void reply_look(const lp_look *look)
 
 static void handle(commands_state *state, const char *line)
 {
+    /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
+    if (strncmp(line, "> ", 2) == 0)
+        putchar('\n');
     if (strcmp(line, "> hello") == 0) {
         printf("< lilpet fw=%s engine=%s\n", esp_app_get_description()->version, lp_version());
     } else if (strcmp(line, "> look?") == 0) {
@@ -34,12 +37,11 @@ static void handle(commands_state *state, const char *line)
         lp_look look;
         if (!lp_look_parse(line + 7, &look)) {
             printf("< err malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle\n");
-        } else if (!look_store_save(&look)) {
-            printf("< err cannot save the look in flash\n");
         } else {
+            /* Shown even when it cannot be kept: the app still sees it */
             state->current = look;
             xQueueOverwrite(state->looks, &look);
-            printf("< ok\n");
+            printf(look_store_save(&look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
         }
     } else if (strcmp(line, "> imu?") == 0) {
         float g[3];

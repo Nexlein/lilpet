@@ -9,6 +9,8 @@
 /*
  * The AtomS3R carries an ESP32-S3-PICO, the Waveshare board and the M5Stamp S3A a plain ESP32-S3: the package tells
  * them apart, as M5Stack's own library does (M5GFX). The pins of one board are never driven on another.
+ * A plain ESP32-S3 is taken for the Waveshare board (or a bare one): its display pins are driven. Never flash this
+ * firmware on the XIAO ESP32S3 Sense camera board, whose camera outputs sit on those pins: it gets its own app.
  */
 bool board_is_atoms3r(void);
 

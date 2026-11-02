@@ -116,7 +116,9 @@ static display_info co5300_init(size_t max_band_bytes)
     refresh = xSemaphoreCreateBinary();
     const gpio_config_t te = {.pin_bit_mask = 1ULL << PIN_TE, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_POSEDGE};
     ESP_ERROR_CHECK(gpio_config(&te));
-    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    const esp_err_t isr = gpio_install_isr_service(0); /* another module (touch, IMU) may have installed it */
+    if (isr != ESP_ERR_INVALID_STATE)
+        ESP_ERROR_CHECK(isr);
     ESP_ERROR_CHECK(gpio_isr_handler_add(PIN_TE, on_refresh, NULL));
 
     /* Hardware reset, timings of Espressif's driver for this controller family (esp_lcd_sh8601) */
@@ -146,8 +148,6 @@ static bool co5300_wait_refresh(int timeout_ms)
 static void co5300_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    for (size_t i = 0; i < count; i++)
-        pixels[i] = __builtin_bswap16(pixels[i]); /* the controller takes the high byte first */
 
     const int c0 = x0 + COLUMN_OFFSET;
     const int c1 = x1 - 1 + COLUMN_OFFSET;
@@ -164,15 +164,9 @@ static void co5300_flush(void)
     send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
 }
 
-static void co5300_brightness(uint8_t level)
-{
-    send(CMD_BRIGHTNESS, &level, 1);
-}
-
 const display_driver DISPLAY_CO5300 = {
     .init = co5300_init,
     .wait_refresh = co5300_wait_refresh,
     .draw = co5300_draw,
     .flush = co5300_flush,
-    .brightness = co5300_brightness,
 };
