@@ -197,3 +197,73 @@ void test_bad_input_is_ignored(void)
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
     CHECK(eyes.head.roll == roll);
 }
+
+void test_tap_makes_it_happy_for_a_moment(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_react(&eyes, LP_EVENT_TAP);
+    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
+    CHECK(eyes.particle_count == 4); /* a burst of sparkles */
+    for (int i = 0; i < 112; i++)    /* 1.75 s */
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
+    for (int i = 0; i < 8; i++) /* past 1.8 s */
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+}
+
+static void hold(lp_eyes *eyes, float gx, float gy, float seconds)
+{
+    lp_eyes_set_gravity(eyes, true, gx, gy);
+    for (int i = 0; i < (int)(seconds * 64.0f); i++)
+        lp_eyes_update(eyes, 1.0f / 64.0f);
+}
+
+void test_upside_down_makes_it_angry_until_righted(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    hold(&eyes, 0.0f, -1.0f, 0.4f); /* turned over for a moment: no anger */
+    hold(&eyes, 0.0f, 1.0f, 0.5f);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+    hold(&eyes, 0.1f, -0.9f, 3.0f); /* held upside down: angry as long as it lasts */
+    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
+    hold(&eyes, 0.0f, 1.0f, 1.0f); /* righted: calms down */
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+    hold(&eyes, 0.0f, 0.0f, 2.0f); /* lying flat is not upside down */
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+
+    /* An emotion picked for good (no duration) stays once the object is righted */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_SAD, 0.0f);
+    hold(&eyes, 0.0f, -1.0f, 2.0f);
+    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
+    hold(&eyes, 0.0f, 1.0f, 1.0f);
+    CHECK(eyes.emotion == LP_EMOTION_SAD);
+}
+
+void test_shake_is_told_from_tilt_and_knocks(void)
+{
+    const float dt = 1.0f / 64.0f;
+    lp_shake shake = {0};
+    /* At rest, then turned slowly: always 1 g, never a shake */
+    for (int i = 0; i < 640; i++) {
+        const float a = (float)i * 0.01f;
+        CHECK(!lp_shake_update(&shake, sinf(a), cosf(a), 0.0f, dt));
+    }
+    /* A knock, two 10 g samples (measured: a shake reaches 11 g): too short to be a shake */
+    CHECK(!lp_shake_update(&shake, 0.0f, 10.0f, 0.0f, dt));
+    CHECK(!lp_shake_update(&shake, 0.0f, -10.0f, 0.0f, dt));
+    for (int i = 0; i < 64; i++)
+        CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
+    /* Shaken for 3 s, +-2.5 g at 5 Hz: told once, right after it stops, when the eyes can be seen again */
+    for (int i = 0; i < 3 * 64; i++) {
+        const float x = 2.5f * sinf(2.0f * 3.14159265f * 5.0f * (float)i * dt);
+        CHECK(!lp_shake_update(&shake, x, 1.0f, 0.0f, dt));
+    }
+    int told = -1;
+    for (int i = 0; i < 64; i++)
+        if (lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt))
+            told = told < 0 ? i : 1000; /* 1000: told twice */
+    CHECK(told >= 0 && told < 32);
+}

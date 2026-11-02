@@ -50,7 +50,7 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
         <section className="stage" aria-label="Look choisi">
             <div className="case">
                 <div className="glass">
-                    {ready && <Screen engine={ready} look={look} onPet={() => setEmotion('neutral')} />}
+                    {ready && <Screen engine={ready} look={look} />}
                     {engine.status === 'loading' && <p className="screen-note">Réveil des yeux…</p>}
                     {engine.status === 'error' && (
                         <p className="screen-note">

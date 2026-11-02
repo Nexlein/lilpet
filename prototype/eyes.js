@@ -38,6 +38,16 @@ export const EMOTIONS = {
 };
 for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
+// How the eyes react to what happens to the object: an emotion for a while, and a burst of sparkles. Data, not code,
+// so that the PC app can change them later. Same table as lp_reaction_get in the C engine (emotions.c).
+export const REACTIONS = {
+    tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
+    shake: { emotion: 'surprised', duration: 2, sparkles: 0 }, // shaken (told by the device: lp_shake_update)
+    upsideDown: { emotion: 'angry', duration: 0.5, sparkles: 0 } // renewed while the object stays upside down
+};
+// Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
+const UPSIDE_DOWN = { gravity: -0.6, delay: 0.6 };
+
 // Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
 // Measured on the official catalogue (notes/yeux.md): pupils converge, a slightly cross-eyed look.
 const PUPIL_REST = { dot: [0.57, 0.12], cat: [0.35, 0.11], circle: [0.36, 0], acorn: [0.18, 0.25] };
@@ -129,7 +139,9 @@ export class Eyes {
 
         this.look = null;
         this.emotion = 'neutral';
-        this.emotionTimer = 0; // > 0: temporary emotion, back to neutral when it hits 0
+        this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
+        this.emotionTimer = 0; // > 0: temporary emotion, back to the mood when it hits 0
+        this.upsideDown = 0; // seconds held upside down
         this.cur = settled('neutral'); // animated emotion values
         this.onEmotion = null; // called with the new emotion, also when a temporary one ends
 
@@ -159,10 +171,18 @@ export class Eyes {
         this.look = look;
     }
 
+    // duration > 0: back to the mood after that many seconds; 0: the new mood
     setEmotion(name, duration = 0) {
         this.emotion = name;
         this.emotionTimer = duration;
+        if (!duration) this.mood = name;
         this.onEmotion?.(name);
+    }
+
+    react(event) {
+        const r = REACTIONS[event];
+        this.setEmotion(r.emotion, r.duration);
+        for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
     }
 
     startBlink() {
@@ -212,7 +232,16 @@ export class Eyes {
         // Emotion values ease toward their target
         const target = EMOTIONS[this.emotion];
         for (const key in BASE) cur[key] = approach(cur[key], target[key], 9, dt);
-        if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion('neutral');
+        if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
+
+        // Held upside down: angry as long as it lasts, then back to the mood. A mood that is already that emotion
+        // stays as it is (no timer).
+        this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
+        if (this.upsideDown >= UPSIDE_DOWN.delay) {
+            const r = REACTIONS.upsideDown;
+            if (this.emotion !== r.emotion) this.react('upsideDown');
+            else if (this.emotionTimer > 0) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+        }
 
         // Gaze target: pointer (face tracking stand-in) or idle saccades
         const tracking = this.follow && this.mouse;
@@ -303,7 +332,9 @@ export class Eyes {
         const emotion = scene.emotion ?? 'neutral';
         this.look = look;
         this.emotion = emotion;
+        this.mood = emotion;
         this.emotionTimer = 0;
+        this.upsideDown = 0;
         Object.assign(this.cur, settled(emotion));
         this.shape = { ...DEFAULT_SHAPE };
         Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });

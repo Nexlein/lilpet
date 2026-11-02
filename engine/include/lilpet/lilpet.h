@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 10
+#define LP_VERSION_MINOR 11
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -95,6 +95,19 @@ const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
 /* Emotion from its name; LP_EMOTION_COUNT when unknown */
 lp_emotion lp_emotion_from_name(const char *name);
 
+/* What happens to the object */
+typedef enum { LP_EVENT_TAP, LP_EVENT_SHAKE, LP_EVENT_UPSIDE_DOWN, LP_EVENT_COUNT } lp_event;
+
+/* How the eyes react to an event: an emotion for a while, and a burst of sparkles (REACTIONS in prototype/eyes.js) */
+typedef struct {
+    lp_emotion emotion;
+    float duration; /* seconds */
+    int sparkles;
+} lp_reaction;
+
+/* Reaction to an event; NULL when the event is unknown */
+const lp_reaction *lp_reaction_get(lp_event event);
+
 /* --- Eyes state --------------------------------------------------------------------------------- */
 
 typedef struct {
@@ -124,7 +137,9 @@ typedef struct {
 
     lp_look look;
     lp_emotion emotion;
-    float emotion_timer; /* > 0: temporary emotion, back to neutral when it reaches 0 */
+    lp_emotion mood;     /* the emotion picked for good: temporary ones come back to it */
+    float emotion_timer; /* > 0: temporary emotion, back to the mood when it reaches 0 */
+    float upside_down;   /* seconds held upside down (gravity) */
     lp_expression cur;   /* current shape, easing toward the emotion's target */
 
     lp_shape shape;
@@ -175,8 +190,10 @@ lp_shape lp_default_shape(void);
 
 void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
 void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look);
-/* duration > 0: back to neutral after that many seconds */
+/* duration > 0: back to the mood after that many seconds; 0: the new mood */
 void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration);
+/* Reacts to an event (lp_reaction_get); unknown events are ignored */
+void lp_eyes_react(lp_eyes *eyes, lp_event event);
 /* Starts a blink, unless one is running */
 void lp_eyes_blink(lp_eyes *eyes);
 /* Adds one particle; dropped when the pool is full (random numbers are still drawn, to keep the sequence) */
@@ -193,6 +210,17 @@ void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape);
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount);
 /* Advances the animation by dt seconds */
 void lp_eyes_update(lp_eyes *eyes, float dt);
+
+/* --- Motion sensor -------------------------------------------------------------------------------- */
+
+/* Tells a shake from raw accelerometer samples (motion.c). The caller owns it; zero it to start. */
+typedef struct {
+    float energy;  /* distance from 1 g, smoothed */
+    float shaking; /* seconds of the shake going on */
+} lp_shake;
+
+/* Feeds one sample (in g, any axes, not smoothed); true once per shake, as it ends: the time to call lp_eyes_react */
+bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
 /* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
 

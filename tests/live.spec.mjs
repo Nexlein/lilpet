@@ -25,7 +25,13 @@ test('the C engine animates like the prototype, side by side', async ({ page }) 
         live.setGravity({ x: Math.sin(1.2), y: Math.cos(1.2) });
         live.step(128);
         check('object turned');
+        live.setGravity({ x: 0.1, y: -0.99 });
+        live.step(128);
+        check('upside down, angry');
         live.setGravity(null);
+        live.react('shake');
+        live.step(64);
+        check('shaken, surprised');
         live.setEmotion('love');
         live.step(320);
         check('love, with hearts');

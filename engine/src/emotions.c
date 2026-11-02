@@ -45,6 +45,20 @@ static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
 };
 /* clang-format on */
 
+/* Same table as REACTIONS in prototype/eyes.js (checked like the emotions) */
+static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {
+    [LP_EVENT_TAP] = {LP_EMOTION_HAPPY, 1.8f, 4},         /* pressed, or petted */
+    [LP_EVENT_SHAKE] = {LP_EMOTION_SURPRISED, 2.0f, 0},   /* shaken (lp_shake_update) */
+    [LP_EVENT_UPSIDE_DOWN] = {LP_EMOTION_ANGRY, 0.5f, 0}, /* renewed while the object stays upside down */
+};
+
+const lp_reaction *lp_reaction_get(lp_event event)
+{
+    if ((unsigned)event >= LP_EVENT_COUNT)
+        return NULL;
+    return &REACTIONS[event];
+}
+
 const lp_emotion_def *lp_emotion_get(lp_emotion emotion)
 {
     if ((unsigned)emotion >= LP_EMOTION_COUNT)

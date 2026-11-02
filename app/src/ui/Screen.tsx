@@ -7,10 +7,9 @@ import type { Look } from '../data/looks';
 interface Props {
     engine: Engine;
     look: Look;
-    onPet?(): void; // the engine goes back to neutral after the petting joy
 }
 
-export function Screen({ engine, look, onPet }: Props) {
+export function Screen({ engine, look }: Props) {
     const canvas = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -32,11 +31,8 @@ export function Screen({ engine, look, onPet }: Props) {
 
     useEffect(() => engine.setLook(look), [engine, look]);
 
-    const pet = () => {
-        engine.setEmotion('happy', 1.8);
-        for (let i = 0; i < 4; i++) engine.spawn('sparkle');
-        onPet?.();
-    };
+    // Happy for a moment, then back to the emotion picked below
+    const pet = () => engine.react('tap');
 
     return (
         <canvas
