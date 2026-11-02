@@ -113,7 +113,9 @@ reference until the engine takes over each feature.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
   `app/src/ui` may import React.
-- Tool versions live in `mise.toml` (Node follows the LTS), used locally and by CI through `jdx/mise-action`.
+- Tool versions live in `mise.toml`, exact (Node on the LTS line), used locally and by CI through `jdx/mise-action`;
+  Renovate proposes each new release as a pull request (`.github/renovate.json5`), Dependabot the rest
+  (`.github/dependabot.yml`: npm, Docker images, Actions).
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
   assets.
 - A visual change to the prototype that the engine must follow goes with a scene in `prototype/scenes.json`.

@@ -1,13 +1,14 @@
 [tools]
-# Same versions locally and in CI (jdx/mise-action). Everything follows the latest release.
-node = "lts"
+# Exact versions, the same locally and in CI (jdx/mise-action): a new release cannot turn CI red on unchanged code.
+# Renovate opens a pull request for each new release (.github/renovate.json5), which CI checks before it is merged.
+node = "26.13.0" # the current LTS line
 # Secret scan of the git pre-commit hook (.husky/no-secrets.sh)
-gitleaks = "latest"
+gitleaks = "8.30.1"
 # C engine: build (CMake + Ninja), formatting and static analysis
-cmake = "latest"
-ninja = "latest"
-"pypi:clang-format" = "latest"
-"pypi:clang-tidy" = "latest"
+cmake = "4.4.5"
+ninja = "1.13.2"
+"pypi:clang-format" = "23.1.3"
+"pypi:clang-tidy" = "23.1.4"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
