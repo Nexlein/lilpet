@@ -36,6 +36,9 @@
         { "id": "emotion-frown", "swatch": "denim", "pupil": "acorn", "emotion": "frown" },
         { "id": "emotion-sad", "swatch": "denim", "pupil": "acorn", "emotion": "sad" },
         { "id": "emotion-surprised", "swatch": "denim", "pupil": "acorn", "emotion": "surprised" },
+        { "id": "emotion-surprised-dot", "swatch": "popcorn", "pupil": "dot", "emotion": "surprised" },
+        { "id": "emotion-love-cat", "swatch": "kite", "pupil": "cat", "emotion": "love" },
+        { "id": "emotion-angry-circle", "swatch": "laser", "pupil": "circle", "emotion": "angry" },
         {
             "id": "emotion-sleepy",
             "swatch": "denim",

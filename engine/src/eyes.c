@@ -44,16 +44,17 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
     eyes->emotion_timer = duration;
 }
 
+/* A NaN would spread through the easing to the whole state, for good: inputs that are not finite are dropped */
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
 {
-    eyes->pointer.active = active;
+    eyes->pointer.active = active && isfinite(x) && isfinite(y);
     eyes->pointer.x = x;
     eyes->pointer.y = y;
 }
 
 void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y)
 {
-    eyes->gravity.active = active;
+    eyes->gravity.active = active && isfinite(x) && isfinite(y);
     eyes->gravity.x = x;
     eyes->gravity.y = y;
 }
@@ -222,7 +223,7 @@ static float update_tilt(lp_eyes *e, float dt)
         return 0.0f;
     }
     /* Trust: 0 lying flat, where little gravity is left in the screen plane, 1 standing up */
-    const float w = fminf(fmaxf((hypotf(e->gravity.x, e->gravity.y) - 0.3f) / 0.4f, 0.0f), 1.0f);
+    const float w = lp_minf(lp_maxf((hypotf(e->gravity.x, e->gravity.y) - 0.3f) / 0.4f, 0.0f), 1.0f);
     const float a = atan2f(e->gravity.x, e->gravity.y); /* 0 upright, > 0 turned clockwise */
     e->head.level = wrap_angle(lp_approach(e->head.level, nearest_turn(-a, e->head.level), 10.0f * w, dt));
     return sinf(a) * w;
@@ -265,10 +266,30 @@ static float update_gaze(lp_eyes *e, float dt, float t, float slide)
     return aim_x;
 }
 
+/*
+ * The clock goes back by a whole number of breaths (render.c: sin(time * 2.1)) about every 17 minutes, with every
+ * deadline: a float clock that keeps growing loses its fractions, runs fast after 3 days and stops after 6 at 60
+ * frames/s. The prototype counts in double and needs no wrap; the parity vectors stay far below it.
+ */
+#define CLOCK_WRAP (336.0f * 2.0f * LP_PI / 2.1f)
+
+static void wrap_clock(lp_eyes *e)
+{
+    if (e->time < CLOCK_WRAP)
+        return;
+    e->time -= CLOCK_WRAP;
+    e->next_saccade -= CLOCK_WRAP;
+    e->next_blink -= CLOCK_WRAP;
+    e->next_roll -= CLOCK_WRAP;
+}
+
 void lp_eyes_update(lp_eyes *eyes, float dt)
 {
+    if (!(dt > 0.0f) || !isfinite(dt)) /* nothing to advance, and speeds would divide by zero */
+        return;
     lp_eyes *e = eyes;
     e->time += dt;
+    wrap_clock(e);
     const float t = e->time;
 
     ease_expression(&e->cur, &lp_emotion_get(e->emotion)->expr, dt);
@@ -303,6 +324,8 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
 
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look)
 {
+    if ((unsigned)scene->emotion >= LP_EMOTION_COUNT || (unsigned)scene->blink_phase > LP_BLINK_OPEN)
+        return;
     lp_eyes *e = eyes;
     e->look = *look;
     e->emotion = scene->emotion;

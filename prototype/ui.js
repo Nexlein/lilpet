@@ -8,7 +8,6 @@ const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).h
 // Side by side, both renderers advance in fixed steps of 1/64 s, exact in float and double, with the same seed and
 // inputs: their logic stays in step (as in the parity tests) until a rounding difference flips an event.
 const STEP = 1 / 64;
-const MAX_STEPS = 8; // per frame, so a slow frame does not snowball
 
 const screens = document.getElementById('screens');
 const jsView = document.getElementById('jsView');
@@ -247,7 +246,8 @@ function bindControls() {
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'SELECT') return;
         const names = Object.keys(EMOTIONS);
-        if (e.key >= '1' && e.key <= String(names.length)) setEmotion(names[+e.key - 1]);
+        const digit = '123456789'.indexOf(e.key);
+        if (digit >= 0 && digit < names.length) setEmotion(names[digit]);
         else if (e.key === ' ') {
             e.preventDefault();
             blink();
@@ -294,12 +294,11 @@ function frame(now) {
     last = now;
     if (!paused) {
         if (mode === 'side') {
-            pending += dt;
-            for (let n = 0; pending >= STEP && n < MAX_STEPS; n++) {
+            pending += dt; // dt is capped above, so a slow frame never snowballs
+            while (pending >= STEP) {
                 pending -= STEP;
                 step(STEP);
             }
-            pending = Math.min(pending, STEP);
         } else step(dt);
     }
     draw();

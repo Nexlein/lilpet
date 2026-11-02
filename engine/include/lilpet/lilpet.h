@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 9
+#define LP_VERSION_MINOR 10
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -52,7 +52,8 @@ typedef struct {
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
 #define LP_LOOK_TEXT_SIZE 32 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
-/* Returns the text length (truncated to fit `size`, NUL included), or -1 for an unknown pupil type */
+/* Writes the text, cut to fit `size` with its NUL; returns its full length without the NUL (as snprintf), or -1 for
+ * an unknown pupil type */
 int lp_look_format(const lp_look *look, char *out, size_t size);
 
 /* --- Emotions ----------------------------------------------------------------------------------- */
@@ -119,7 +120,7 @@ typedef struct {
  */
 typedef struct {
     lp_rng rng;
-    float time; /* seconds since lp_eyes_init */
+    float time; /* seconds, from lp_eyes_init; goes back by a fixed amount every ~17 minutes (eyes.c) */
 
     lp_look look;
     lp_emotion emotion;
@@ -284,8 +285,6 @@ void lp_renderer_init(lp_renderer *renderer);
 /* Draws at another square size, from 2 to LP_SCREEN_SIZE pixels (rounded down to even), e.g. 128 for a small screen:
  * the same picture, scaled. Frames passed to lp_render are then size x size; the next frame redraws everything. */
 void lp_renderer_set_size(lp_renderer *renderer, int size);
-/* 0xRRGGBB to RGB565 (native byte order) */
-uint16_t lp_rgb565(uint32_t rgb);
 /*
  * Draws the eyes into `frame` (size x size RGB565 pixels, row-major; size is LP_SCREEN_SIZE unless changed by
  * lp_renderer_set_size) and returns the region that changed since the previous call, the only part to send to the

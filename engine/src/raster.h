@@ -28,6 +28,20 @@ typedef struct {
     float u0, du, v0, dv;
 } lp_line;
 
+/*
+ * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
+ * share one step (du, dv): the divisions are done once, not per sub-row (the ESP32-S3 has no fast division).
+ */
+typedef struct {
+    float cu, cv, inv_ra, inv_rb;
+    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
+} lp_ellipse;
+
+/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
+typedef struct {
+    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
+} lp_half_plane;
+
 lp_affine lp_affine_mul(lp_affine m, lp_affine n); /* m after n */
 lp_affine lp_affine_inverse(lp_affine m);
 lp_affine lp_affine_rotate(float angle);
@@ -41,14 +55,17 @@ void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo
 void lp_spans_cut(lp_spans *s, float lo, float hi);  /* remove [lo, hi) */
 void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t);
 
-/* Screen x interval where the line is inside the ellipse (center cu, cv; radii ra, rb). False when it misses. */
-bool lp_line_ellipse(const lp_line *l, float cu, float cv, float ra, float rb, float *x0, float *x1);
+/* Prepares an ellipse for the sub-rows of a frame (lines of step du, dv) */
+lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb);
+lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c);
+/* Screen x interval where the line is inside the ellipse. False when it misses. */
+bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1);
 /* Spans of an ellipse on the line, limited to [lo, hi) */
-void lp_spans_ellipse(lp_spans *out, const lp_line *l, float cu, float cv, float ra, float rb, float lo, float hi);
-/* Keeps the part of the spans where the local point is below the line v = m u + c (v grows downward) */
-void lp_spans_keep_below(lp_spans *s, const lp_line *l, float m, float c);
+void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, float lo, float hi);
+/* Keeps the part of the spans inside the half plane */
+void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h);
 /* Removes the part inside an ellipse */
-void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, float cu, float cv, float ra, float rb);
+void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e);
 /* Spans of a closed polygon (screen points, x0 y0 x1 y1 ...) on the sub-row y, even-odd rule, limited to [lo, hi) */
 void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi);
 

@@ -206,6 +206,7 @@ export class Eyes {
     }
 
     update(dt, t) {
+        if (!(dt > 0)) return; // nothing to advance, and speeds would divide by zero (same as the engine)
         const { cur, gaze, head, blinkState } = this;
 
         // Emotion values ease toward their target
@@ -304,7 +305,7 @@ export class Eyes {
         this.emotion = emotion;
         this.emotionTimer = 0;
         Object.assign(this.cur, settled(emotion));
-        this.shape = { ...DEFAULT_SHAPE, ...scene.shape };
+        this.shape = { ...DEFAULT_SHAPE };
         Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });
         const g = { x: 0, y: 0, ...scene.gaze };
         Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y, vx: 0, vy: 0 });

@@ -58,6 +58,15 @@ static int channel(uint16_t px, unsigned shift, unsigned mask)
     return (int)(((unsigned)px >> shift) & mask);
 }
 
+/* 0xRRGGBB to RGB565, rounded: the expected color of a solid area */
+static uint16_t rgb565(uint32_t rgb)
+{
+    const uint32_t r = (rgb >> 16u) & 0xFFu;
+    const uint32_t g = (rgb >> 8u) & 0xFFu;
+    const uint32_t b = rgb & 0xFFu;
+    return (uint16_t)(((r * 31u + 127u) / 255u) << 11u | ((g * 63u + 127u) / 255u) << 5u | ((b * 31u + 127u) / 255u));
+}
+
 static int close565(uint16_t a, uint16_t b)
 {
     return abs(channel(a, 11u, 31u) - channel(b, 11u, 31u)) <= 1 &&
@@ -67,18 +76,18 @@ static int close565(uint16_t a, uint16_t b)
 #define CHECK_COLOR(px, rgb)                                                                                           \
     do {                                                                                                               \
         const uint16_t got_ = (px);                                                                                    \
-        const uint16_t want_ = lp_rgb565(rgb);                                                                         \
+        const uint16_t want_ = rgb565(rgb);                                                                            \
         if (!close565(got_, want_))                                                                                    \
             LP_FAIL("%s is 0x%04x, expected 0x%04x", #px, (unsigned)got_, (unsigned)want_);                            \
     } while (0)
 
 void test_rgb565_conversion(void)
 {
-    CHECK(lp_rgb565(0x000000) == 0x0000);
-    CHECK(lp_rgb565(0xFFFFFF) == 0xFFFF);
-    CHECK(lp_rgb565(0xFF0000) == 0xF800);
-    CHECK(lp_rgb565(0x00FF00) == 0x07E0);
-    CHECK(lp_rgb565(0x0000FF) == 0x001F);
+    CHECK(rgb565(0x000000) == 0x0000);
+    CHECK(rgb565(0xFFFFFF) == 0xFFFF);
+    CHECK(rgb565(0xFF0000) == 0xF800);
+    CHECK(rgb565(0x00FF00) == 0x07E0);
+    CHECK(rgb565(0x0000FF) == 0x001F);
 }
 
 void test_render_first_frame_is_full_screen(void)
@@ -141,26 +150,36 @@ void test_render_is_deterministic(void)
     CHECK(memcmp(frame, reference, sizeof frame) == 0);
 }
 
-/* Drawing scene b over scene a, through the dirty region only, must give the same frame as drawing b alone */
-static void check_incremental(const char *a, const char *b)
+/*
+ * Drawing scene b over scene a, through the dirty region only, must give the same frame as drawing b alone, at the
+ * full size and at the AtomS3R's (scaled output, regions in output pixels)
+ */
+static void check_incremental(const char *a, const char *b, int size)
 {
-    render_scene(b, reference);
+    set_scene(&eyes, b);
+    lp_renderer_init(&other);
+    lp_renderer_set_size(&other, size);
+    lp_render(&other, &eyes, reference);
     set_scene(&eyes, a);
     lp_renderer_init(&renderer);
+    lp_renderer_set_size(&renderer, size);
     memset(frame, 0, sizeof frame);
     lp_render(&renderer, &eyes, frame);
     set_scene(&eyes, b);
     lp_render(&renderer, &eyes, frame);
-    if (memcmp(frame, reference, sizeof frame) != 0)
-        LP_FAIL("drawing %s over %s leaves stale pixels", b, a);
+    if (memcmp(frame, reference, (size_t)(size * size) * sizeof frame[0]) != 0)
+        LP_FAIL("drawing %s over %s at %d px leaves stale pixels", b, a, size);
 }
 
 void test_dirty_region_redraws_everything_that_changed(void)
 {
-    check_incremental("head-turn-right", "head-turn-left");
-    check_incremental("emotion-love", "look-terrarium");
-    check_incremental("look-terrarium", "blink-closed");
-    check_incremental("emotion-happy", "emotion-sleepy");
+    const int sizes[] = {SIZE, 128};
+    for (int i = 0; i < 2; i++) {
+        check_incremental("head-turn-right", "head-turn-left", sizes[i]);
+        check_incremental("emotion-love", "look-terrarium", sizes[i]);
+        check_incremental("look-terrarium", "blink-closed", sizes[i]);
+        check_incremental("emotion-happy", "emotion-sleepy", sizes[i]);
+    }
 }
 
 void test_dirty_region_stays_inside_the_screen(void)
@@ -173,16 +192,20 @@ void test_dirty_region_stays_inside_the_screen(void)
     CHECK(dirty.x0 > 0 || dirty.x1 < SIZE); /* not the whole screen once a frame was drawn */
 }
 
-void test_band_rendering_matches_whole_frame(void)
+enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
+static uint16_t band[SIZE * BAND_ROWS];
+
+/* Drawn band by band, an animation gives the same frames as drawn whole; returns the last region */
+static lp_rect check_bands(int size)
 {
-    enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
-    static uint16_t band[SIZE * BAND_ROWS];
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_look(&eyes,
                      &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                           /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
+    lp_renderer_set_size(&renderer, size);
+    lp_renderer_set_size(&other, size);
     memset(reference, 0, sizeof reference);
     memset(frame, 0, sizeof frame);
     lp_rect dirty = {0, 0, 0, 0};
@@ -195,10 +218,18 @@ void test_band_rendering_matches_whole_frame(void)
         for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
             lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
             for (int y = y0; y < y0 + BAND_ROWS && y < dirty.y1; y++)
-                memcpy(&frame[y * SIZE + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
+                memcpy(&frame[y * size + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
         }
-        CHECK(memcmp(frame, reference, sizeof frame) == 0);
+        if (memcmp(frame, reference, (size_t)(size * size) * sizeof frame[0]) != 0)
+            LP_FAIL("bands differ from the whole frame at %d px, frame %d", size, f);
     }
+    return dirty;
+}
+
+void test_band_rendering_matches_whole_frame(void)
+{
+    check_bands(128);
+    const lp_rect dirty = check_bands(SIZE);
 
     /* Rows outside the region leave the band untouched */
     CHECK(dirty.y0 > 0);

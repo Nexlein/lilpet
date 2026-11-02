@@ -48,7 +48,14 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set((looks?.swatches ?? []).map((s) => s.id));
+const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
+const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
+    // A misspelled key would be ignored, and the scene would test less than it says
+    for (const k of Object.keys(scene))
+        if (!SCENE_KEYS.includes(k)) fail(`unknown key "${k}", expected ${SCENE_KEYS.join(', ')}`);
+    for (const k of ['blink', 'head', 'gaze', 'particles'])
+        if (scene[k] !== undefined && !isObject(scene[k])) fail(`"${k}" must be an object`);
     if (!swatchIds.has(scene.swatch)) fail(`"swatch" must be a swatch id from ${LOOKS}`);
     if (!PUPIL_TYPES.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPIL_TYPES.join(', ')}`);
     const emotion = scene.emotion ?? 'neutral';
