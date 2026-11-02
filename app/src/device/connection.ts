@@ -3,7 +3,7 @@ import { classify, LineSplitter } from './protocol';
 
 // The parts of the Web Serial API we use, which TypeScript's DOM types do not include
 export interface PortLike {
-    open(options: { baudRate: number }): Promise<void>;
+    open(options: { baudRate: number; bufferSize?: number }): Promise<void>;
     close(): Promise<void>;
     setSignals?(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
     readonly readable: ReadableStream<Uint8Array> | null;
@@ -31,60 +31,77 @@ export async function requestPort(): Promise<PortLike> {
 
 export interface ConnectionEvents {
     onLog?(line: string): void;
-    onClose?(error?: unknown): void;
+    onClose?(): void;
 }
 
 interface Pending {
-    command: string;
     resolve(reply: string): void;
     reject(error: Error): void;
 }
 
 export class Connection {
     readonly #port: PortLike;
-    readonly #reader: ReadableStreamDefaultReader<Uint8Array>;
     readonly #writer: WritableStreamDefaultWriter<Uint8Array>;
     readonly #events: ConnectionEvents;
     readonly #reading: Promise<void>;
+    #reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+    #closing = false;
     #pending: Pending | null = null;
     #queue: Promise<unknown> = Promise.resolve();
 
     static async open(port: PortLike, events: ConnectionEvents = {}): Promise<Connection> {
-        await port.open({ baudRate: 115200 });
-        // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS first,
-        // then DTR (checked on an AtomS3R: the other order reboots it).
-        await port.setSignals?.({ requestToSend: false });
-        await port.setSignals?.({ dataTerminalReady: false });
-        return new Connection(port, events);
+        // A larger buffer than the default 255 bytes: the board's startup log comes in one burst
+        await port.open({ baudRate: 115200, bufferSize: 8192 });
+        try {
+            // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS
+            // first, then DTR (checked on an AtomS3R: the other order reboots it).
+            await port.setSignals?.({ requestToSend: false });
+            await port.setSignals?.({ dataTerminalReady: false });
+            return new Connection(port, events);
+        } catch (err) {
+            await port.close().catch(() => undefined);
+            throw err;
+        }
     }
 
     private constructor(port: PortLike, events: ConnectionEvents) {
         if (!port.readable || !port.writable) throw new Error('serial port is not open');
         this.#port = port;
         this.#events = events;
-        this.#reader = port.readable.getReader();
         this.#writer = port.writable.getWriter();
         this.#reading = this.#readLoop();
         // Ends any half line a previous connection left in the board's input, which would swallow the first command
         this.#writer.write(new TextEncoder().encode('\n')).catch(() => undefined);
     }
 
+    // Reads lines until closed or unplugged. A passing read error (buffer overrun, framing) gives the port a new
+    // stream: reading goes on with it. Once over, the port is released and closed, whatever ended it.
     async #readLoop(): Promise<void> {
         const splitter = new LineSplitter();
         const decoder = new TextDecoder();
-        let error: unknown;
-        try {
-            for (;;) {
-                // oxlint-disable-next-line no-await-in-loop -- a stream is read one chunk after the other
-                const { value, done } = await this.#reader.read();
-                if (done) break;
-                for (const line of splitter.push(decoder.decode(value, { stream: true }))) this.#handle(line);
+        for (let stream = this.#port.readable; stream && !this.#closing;) {
+            const reader = stream.getReader();
+            this.#reader = reader;
+            try {
+                for (;;) {
+                    // oxlint-disable-next-line no-await-in-loop -- a stream is read one chunk after the other
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    for (const line of splitter.push(decoder.decode(value, { stream: true }))) this.#handle(line);
+                }
+            } catch {
+                // Read error: a fresh stream means a passing one, the same or none means the port is gone
+            } finally {
+                reader.releaseLock();
             }
-        } catch (err) {
-            error = err;
+            const next = this.#port.readable;
+            stream = next === stream ? null : next;
         }
+        this.#reader = null;
         this.#pending?.reject(new Error('connection closed'));
-        this.#events.onClose?.(error);
+        this.#writer.releaseLock();
+        await this.#port.close().catch(() => undefined);
+        this.#events.onClose?.();
     }
 
     #handle(line: string): void {
@@ -106,7 +123,6 @@ export class Connection {
                     reject(new Error(`no reply to "${command}"`));
                 }, timeoutMs);
                 this.#pending = {
-                    command,
                     resolve: (reply) => {
                         done();
                         resolve(reply);
@@ -125,11 +141,10 @@ export class Connection {
         return result;
     }
 
+    // Safe to call more than once, or after the board was unplugged
     async close(): Promise<void> {
-        await this.#reader.cancel().catch(() => undefined);
+        this.#closing = true;
+        await this.#reader?.cancel().catch(() => undefined);
         await this.#reading;
-        this.#reader.releaseLock();
-        this.#writer.releaseLock();
-        await this.#port.close();
     }
 }

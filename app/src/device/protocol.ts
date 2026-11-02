@@ -1,6 +1,6 @@
 // Text protocol with the device over USB (notes/app.md): commands start with "> ", replies with "< ", any other line
 // is the device's log. Pure functions, tested without hardware.
-import { isPupilType, type Look } from '../data/looks';
+import type { Look } from '../data/looks';
 
 export interface DeviceInfo {
     firmware: string;
@@ -10,10 +10,8 @@ export interface DeviceInfo {
 export type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
 
 export const HELLO = '> hello';
-export const LOOK_QUERY = '> look?';
 
 const hex = (color: string): string => color.replace('#', '').toUpperCase();
-const color = (digits: string): string => `#${digits.toUpperCase()}`;
 
 // "> look AE0002 FF5252 FF5252 dot": eye, left pupil, right pupil, pupil type
 export function lookCommand(look: Look): string {
@@ -34,15 +32,6 @@ export function parseHello(reply: string): DeviceInfo | null {
     return firmware && engine ? { firmware, engine } : null;
 }
 
-// "look AE0002 FF5252 FF5252 dot", the reply to LOOK_QUERY
-export function parseLook(reply: string): Look | null {
-    const words = reply.trim().split(/\s+/);
-    if (words.length !== 5 || words[0] !== 'look') return null;
-    const [, sclera = '', left = '', right = '', pupil = ''] = words;
-    if (![sclera, left, right].every((c) => /^[0-9A-Fa-f]{6}$/.test(c)) || !isPupilType(pupil)) return null;
-    return { sclera: color(sclera), pupil, pupilColor: [color(left), color(right)] };
-}
-
 // "ok", or "err <reason>"
 export function replyError(reply: string): string | null {
     if (reply === 'ok') return null;
@@ -50,12 +39,19 @@ export function replyError(reply: string): string | null {
 }
 
 // Cuts a stream of text chunks into lines, whatever the line ending (\n or \r\n)
+// Text that never ends a line (another board on the port) comes out in pieces of MAX_LINE, not as an endless line
+export const MAX_LINE = 1024;
+
 export class LineSplitter {
     #rest = '';
 
     push(chunk: string): string[] {
         const parts = (this.#rest + chunk).split(/\r?\n/);
         this.#rest = parts.pop() ?? '';
+        while (this.#rest.length > MAX_LINE) {
+            parts.push(this.#rest.slice(0, MAX_LINE));
+            this.#rest = this.#rest.slice(MAX_LINE);
+        }
         return parts;
     }
 }
