@@ -20,15 +20,13 @@ bool display_wait_refresh(int timeout_ms)
 
 void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
 {
+    const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
+    for (size_t i = 0; i < count; i++)
+        pixels[i] = __builtin_bswap16(pixels[i]); /* every controller here takes the high byte first */
     driver->draw(x0, y0, x1, y1, pixels);
 }
 
 void display_flush(void)
 {
     driver->flush();
-}
-
-void display_brightness(uint8_t level)
-{
-    driver->brightness(level);
 }

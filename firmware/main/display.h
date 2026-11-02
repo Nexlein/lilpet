@@ -33,7 +33,4 @@ void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels);
 /* Waits until every queued band is sent */
 void display_flush(void);
 
-/* Brightness, 0 to 255 */
-void display_brightness(uint8_t level);
-
 #endif /* LILPET_DISPLAY_H */

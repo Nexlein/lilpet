@@ -251,8 +251,6 @@ static bool atoms3r_wait_refresh(int timeout_ms)
 static void atoms3r_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    for (size_t i = 0; i < count; i++)
-        pixels[i] = __builtin_bswap16(pixels[i]); /* the controller takes the high byte first */
 
     const int c0 = x0 + chip->column;
     const int c1 = x1 - 1 + chip->column;
@@ -270,15 +268,9 @@ static void atoms3r_flush(void)
     send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
 }
 
-static void atoms3r_brightness(uint8_t level)
-{
-    set_backlight(0x0Eu, level);
-}
-
 const display_driver DISPLAY_ATOMS3R = {
     .init = atoms3r_init,
     .wait_refresh = atoms3r_wait_refresh,
     .draw = atoms3r_draw,
     .flush = atoms3r_flush,
-    .brightness = atoms3r_brightness,
 };

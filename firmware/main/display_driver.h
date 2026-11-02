@@ -7,9 +7,8 @@
 typedef struct {
     display_info (*init)(size_t max_band_bytes);
     bool (*wait_refresh)(int timeout_ms);
-    void (*draw)(int x0, int y0, int x1, int y1, uint16_t *pixels);
+    void (*draw)(int x0, int y0, int x1, int y1, uint16_t *pixels); /* pixels already high byte first */
     void (*flush)(void);
-    void (*brightness)(uint8_t level);
 } display_driver;
 
 extern const display_driver DISPLAY_CO5300;  /* Waveshare round AMOLED, also used on boards without a display */

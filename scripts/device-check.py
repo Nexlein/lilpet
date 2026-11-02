@@ -81,6 +81,8 @@ check(after == f"look {TEST_LOOK}", "still has the look after the reboot", after
 
 bad = ask(port, "> look 7DB5F4 C10787 slit")
 check(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad or "no reply")
+unknown = ask(port, "> wag")
+check(unknown == "err unknown command", "rejects an unknown command", unknown or "no reply")
 
 imu = ask(port, "> imu?")
 if imu == "err no motion sensor":
