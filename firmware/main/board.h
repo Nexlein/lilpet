@@ -17,4 +17,7 @@ bool board_is_atoms3r(void);
 /* The AtomS3R's internal I2C bus (backlight driver, motion sensor), started on first use; NULL on other boards */
 i2c_master_bus_handle_t board_i2c(void);
 
+/* The user button is held down (the AtomS3R's screen is one); false on boards without one */
+bool board_button_pressed(void);
+
 #endif

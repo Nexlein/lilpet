@@ -10,9 +10,11 @@
  * The display is found at startup (display.c), and the engine draws at its size. Without a TE signal (the AtomS3R's
  * small LCD, or no display at all on a bare M5Stamp S3A), frames are paced at 60 per second; without a display, the
  * bands go out on unconnected pins and the timings stay meaningful. With a motion sensor (imu.h), tilting the board
- * turns the face to stay level and slides the eyes toward the low side.
+ * turns the face to stay level and slides the eyes toward the low side, and the eyes react (REACTIONS in the engine):
+ * angry held upside down, surprised when shaken, happy when the button (the AtomS3R's screen) is pressed.
  */
 #include "../../engine/tools/bench_script.h"
+#include "board.h"
 #include "commands.h"
 #include "display.h"
 #include "esp_heap_caps.h"
@@ -91,6 +93,8 @@ void app_main(void)
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     float gravity[2] = {0.0f, 1.0f}; /* smoothed, in the screen plane */
+    lp_shake shake = {0};
+    bool pressed = false;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
         if (synced)
             display_wait_refresh(50);
@@ -107,10 +111,16 @@ void app_main(void)
             lp_bench_script(&eyes, f);
         float g[3];
         if (motion && imu_gravity(g)) {
+            if (lp_shake_update(&shake, g[0], g[1], g[2], dt)) /* on the raw sample: smoothing hides a shake */
+                lp_eyes_react(&eyes, LP_EVENT_SHAKE);
             for (int i = 0; i < 2; i++)
                 gravity[i] += (g[i] - gravity[i]) * (1.0f - expf(-GRAVITY_RATE * dt));
             lp_eyes_set_gravity(&eyes, true, gravity[0], gravity[1]);
         }
+        const bool was_pressed = pressed;
+        pressed = board_button_pressed();
+        if (pressed && !was_pressed)
+            lp_eyes_react(&eyes, LP_EVENT_TAP);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         const lp_rect dirty = lp_render_begin(&renderer, &eyes);
