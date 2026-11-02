@@ -121,8 +121,11 @@ comme en `double`.
 - **Vérification sur carte** (`mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
   matériel. Elle parle à la carte comme l'app et vérifie qu'elle garde un look après un redémarrage.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
-- Tout suit la dernière version, comme Node avec `lts`, mais les images Docker et l'action tierce de la CI
-  (`jdx/mise-action`, épinglée par son commit) sont figées : Dependabot propose chaque mise à jour, que la CI vérifie.
+- Toutes les versions sont figées (novembre 2026 : avec `latest`, la CI tournait déjà sous Node 26 et le poste sous
+  Node 24, et un nouveau clang-format aurait pu la faire échouer sur du code inchangé). Chaque nouvelle version arrive
+  en pull request, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils de `mise.toml`, que Dependabot
+  ne sait pas lire, Dependabot pour npm, les images Docker et les actions (`jdx/mise-action`, épinglée par son
+  commit).
 
 ## Performance (mise en place en 2e)
 
