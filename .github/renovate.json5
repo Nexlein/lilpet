@@ -3,10 +3,31 @@
 {
     $schema: 'https://docs.renovatebot.com/renovate-schema.json',
     extends: ['config:recommended'],
-    enabledManagers: ['mise'],
+    enabledManagers: ['mise', 'custom.regex'],
     dependencyDashboard: false,
     timezone: 'Europe/Paris',
     schedule: ['* 0-5 * * 1'], // Monday morning, like Dependabot
     semanticCommits: 'enabled',
-    packageRules: [{ matchManagers: ['mise'], semanticCommitType: 'build', semanticCommitScope: 'deps' }]
+    // The mise manager misses ninja and the pypi: tools (checked on the Mend portal): read them here instead
+    customManagers: [
+        {
+            customType: 'regex',
+            managerFilePatterns: ['/(^|/)mise\\.toml$/'],
+            matchStrings: ['"pypi:(?<depName>[\\w.-]+)" = "(?<currentValue>[^"]+)"'],
+            datasourceTemplate: 'pypi'
+        },
+        {
+            customType: 'regex',
+            managerFilePatterns: ['/(^|/)mise\\.toml$/'],
+            matchStrings: ['(?:^|\\n)ninja = "(?<currentValue>[^"]+)"'],
+            depNameTemplate: 'ninja-build/ninja',
+            datasourceTemplate: 'github-releases',
+            extractVersionTemplate: '^v(?<version>.+)$'
+        }
+    ],
+    packageRules: [
+        { matchManagers: ['mise', 'custom.regex'], semanticCommitType: 'build', semanticCommitScope: 'deps' },
+        // Never twice: if the mise manager learns these tools, the rules above stay the only source
+        { matchManagers: ['mise'], matchDepNames: ['ninja', '/clang-(format|tidy)/'], enabled: false }
+    ]
 }
