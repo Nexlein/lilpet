@@ -1,5 +1,6 @@
 #include "board.h"
 
+#include "driver/gpio.h"
 #include "esp_efuse.h"
 #include "soc/efuse_defs.h"
 
@@ -7,10 +8,29 @@
 
 #define ATOMS3R_SDA GPIO_NUM_45
 #define ATOMS3R_SCL GPIO_NUM_0
+/* Pressing the screen: low when held, as M5Stack's library reads it (M5Unified, board_M5AtomS3R) */
+#define ATOMS3R_BUTTON GPIO_NUM_41
 
 bool board_is_atoms3r(void)
 {
-    return esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO;
+    static int atoms3r = -1; /* read once: asked every frame for the button */
+    if (atoms3r < 0)
+        atoms3r = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO;
+    return atoms3r;
+}
+
+bool board_button_pressed(void)
+{
+    static bool ready;
+    if (!board_is_atoms3r())
+        return false;
+    if (!ready) {
+        const gpio_config_t input = {
+            .pin_bit_mask = 1ULL << ATOMS3R_BUTTON, .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE};
+        gpio_config(&input);
+        ready = true;
+    }
+    return gpio_get_level(ATOMS3R_BUTTON) == 0;
 }
 
 i2c_master_bus_handle_t board_i2c(void)
