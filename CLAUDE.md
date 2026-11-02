@@ -50,7 +50,8 @@ reference until the engine takes over each feature.
   it for the app. `src/look.c` reads and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
 - `app/` — PC app v1 (spec and protocol in `notes/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
-  connection and text protocol: `> hello`, `> look RRGGBB RRGGBB RRGGBB <pupil>`, `> look?`; replies start with `< `),
+  connection and text protocol: `> hello`, `> look RRGGBB RRGGBB RRGGBB <pupil>`; replies start with `< `; `session.ts`
+  is the connect / send / unplug state machine, tested with the fake board of `fake-port.ts`),
   `src/engine` (live preview with the WebAssembly engine), `src/ui` (React; the only part that knows React). The
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
   the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright.
@@ -63,8 +64,8 @@ reference until the engine takes over each feature.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for the display's TE signal, draws band by band into two DMA buffers in internal RAM while the previous band
   is sent, and prints timings over USB every 10 s. Without a display (no TE, e.g. a bare M5Stamp S3A) it plays the
-  benchmark animation (`engine/tools/bench_script.h`) at 60 frames/s instead, so the same binary measures the engine
-  there, comparable with `mise run engine:bench`.
+  benchmark animation (`engine/tools/bench_script.h`) at 60 frames/s instead, with the host's look, seed and fixed
+  step, so the same binary measures the engine there, comparable with `mise run engine:bench`.
   `main/commands.c` reads the app's commands on the same USB port; `main/look_store.c` keeps the look in NVS.
   `main/imu.h` is the motion sensor: `imu_bmi270.c` on the AtomS3R (BMI270, which needs Bosch's configuration file,
   `bmi270_config.c`, BSD-3, copied unmodified); its gravity, smoothed, goes to `lp_eyes_set_gravity`, which turns the
@@ -87,16 +88,17 @@ reference until the engine takes over each feature.
 - `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix.
-- `npm run test:parity` — Playwright tests: reference scenes, live side by side, and the built app (needs
-  `mise run engine:wasm`, and `npm run app:build` for the app test, skipped otherwise; first time:
-  `npx playwright install --only-shell chromium`).
+- `npm run test:parity` — Playwright tests: reference scenes, live side by side, and the built app, served on their own
+  port 8468 (needs `mise run engine:wasm`, and `npm run app:build` for the app test, skipped locally otherwise, failed
+  in CI; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
   a loop.
-- `mise run firmware:build` — firmware into `firmware/build/merged-binary.bin`, in the ESP-IDF image pinned in
+- `mise run firmware:build` — firmware into `firmware/build/` (`flash_args` and its three images, plus
+  `merged-binary.bin` for a blank board, which also erases the stored look), in the ESP-IDF image pinned in
   `firmware/Dockerfile` (latest release; Dependabot proposes new ones). CI runs the same task and keeps the binary.
   `firmware:flash` and `firmware:monitor` run esptool and pyserial through `uvx`: no local ESP-IDF install.
   `firmware:flash` writes the bootloader, partition table and app only, so the look kept in NVS survives. The build

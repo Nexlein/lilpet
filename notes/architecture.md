@@ -83,9 +83,10 @@ dessin ligne par ligne lissent différemment), donc la comparaison tolère un pe
 le moteur devient la source de vérité pour elle.
 
 Pour l'image, `prototype/reference.html` rend chaque scène avec le prototype et avec le moteur compilé en WebAssembly,
-côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 2 sur 255 par canal, et au plus 0,5 % de pixels qui
+côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, et au plus 0,2 % de pixels qui
 diffèrent de plus de 32. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si une scène sort de la
-tolérance (fin octobre 2026 : 33/33, écart moyen le plus haut 1,24).
+tolérance. Elle a été resserrée en novembre 2026 : l'ancienne (2 et 0,5 %) laissait passer des pupilles `dot`
+absentes ou décalées de 14 px ; l'écart réel le plus haut mesuré est de 0,9 et 0,1 %.
 
 L'animation est vérifiée aussi : sur la page interactive, en côte à côte, les deux rendus reçoivent les mêmes commandes
 et avancent par pas fixes de 1/64 s. Le test `tests/live.spec.mjs` les fait avancer à la main (repos, suivi de la
@@ -162,12 +163,16 @@ comme en `double`.
   bus I2C. Pas de signal TE : il cadence à 60 images/s. Testé le 1er novembre 2026 sur un AtomS3R à GC9107 : image
   propre, couleurs justes. Sans la séquence du fabricant ni le bit BGR, l'écran montrait une bande de bruit en haut et
   des couleurs inversées. La variante ST7735S n'a pas encore tourné.
+- Temps de dessin sur l'AtomS3R, yeux au repos en 128 px : 8,2 ms par image, puis 4,9 ms (novembre 2026) une fois
+  le mélange des couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne
+  (la puce n'a pas de division rapide). Dessin plus envoi : 7,5 ms, pour 16,7 ms disponibles à 60 images/s.
 - **Inclinaison** : sur l'AtomS3R, `firmware/main/imu_bmi270.c` lit l'accéléromètre du BMI270 à chaque image
   (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
   passe au moteur (`lp_eyes_set_gravity`). Les autres cartes n'ont pas de capteur pour l'instant ; l'écran rond de
   Waveshare a un QMI8658, à brancher derrière la même interface (`imu.h`).
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
-  Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), pour que
-  ses temps se comparent à ceux de `mise run engine:bench`. Avec un écran, les temps affichés suivent l'animation
+  Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), avec le
+  même look (cherry), la même graine et le même pas fixe de 1/60 s, pour que ses temps se comparent à ceux de
+  `mise run engine:bench`. Avec un écran, les temps affichés suivent l'animation
   libre et ne se comparent pas.
