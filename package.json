@@ -10,7 +10,7 @@
     ],
     "scripts": {
         "serve": "python3 -m http.server 8466 --bind 127.0.0.1",
-        "lint": "oxlint",
+        "lint": "oxlint --deny-warnings",
         "lint:fix": "oxlint --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",

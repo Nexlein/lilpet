@@ -1,10 +1,10 @@
-// The built PC app (npm run app:build) opens, runs the C engine and picks looks. CI builds it before this test;
-// locally the test is skipped until the app is built.
+// The built PC app (npm run app:build) opens, runs the C engine and picks looks. CI builds it before this test, and
+// fails it if the build is missing; locally the test is skipped until the app is built.
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 test('the PC app shows live eyes and picks looks', async ({ page }) => {
-    test.skip(!existsSync('app/dist/index.html'), 'build the app first: npm run app:build');
+    test.skip(!existsSync('app/dist/index.html') && !process.env.CI, 'build the app first: npm run app:build');
     const errors = [];
     page.on('pageerror', (err) => errors.push(err.message));
     page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));

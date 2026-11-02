@@ -1,6 +1,8 @@
 [tools]
 # Same versions locally and in CI (jdx/mise-action). Everything follows the latest release.
 node = "lts"
+# Secret scan of the git pre-commit hook (.husky/no-secrets.sh)
+gitleaks = "latest"
 # C engine: build (CMake + Ninja), formatting and static analysis
 cmake = "latest"
 ninja = "latest"
@@ -42,7 +44,9 @@ dir = "engine"
 # In CI the tables also go to the job summary
 run = [
     "cmake --workflow --preset host-release",
-    'build/host-release/lilpet_bench | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"',
+    # Into a file first: through a pipe, a crash of the bench would end with the exit code of the next command
+    "build/host-release/lilpet_bench > build/host-release/bench.md",
+    'cat build/host-release/bench.md; cat build/host-release/bench.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"',
 ]
 
 [tasks."engine:format"]
@@ -70,6 +74,9 @@ description = "Build the firmware into firmware/build/merged-binary.bin, in the 
 # image); its cache lives in firmware/.ccache, kept between builds here and between runs by CI. COMPILERCHECK=content:
 # the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
+    # ESP-IDF only reads sdkconfig.defaults when it creates firmware/sdkconfig: start over when they changed, or a
+    # local build would keep old settings that CI (always fresh) does not have
+    "if [ firmware/sdkconfig.defaults -nt firmware/sdkconfig ]; then rm -f firmware/sdkconfig; fi",
     "docker build -t lilpet-idf - < firmware/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py build merge-bin',
 ]
