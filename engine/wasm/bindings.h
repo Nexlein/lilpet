@@ -21,7 +21,7 @@ void lpw_set_shaking(int shaking);
 void lpw_set_follow(int follow);
 void lpw_set_shape(float rx, float ry, float gap, float tilt);
 void lpw_set_head_amount(float amount);
-/* type: 1 heart, 2 sparkle (lp_particle_type) */
+/* event: 0 tap, 1 shake, 2 upside down (lp_event) */
 void lpw_react(int event);
 /* Current emotion, which changes on its own when a timed one ends */
 int lpw_emotion(void);
