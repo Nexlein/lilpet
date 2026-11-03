@@ -11,7 +11,7 @@
  * small LCD, or no display at all on a bare M5Stamp S3A), frames are paced at 60 per second; without a display, the
  * bands go out on unconnected pins and the timings stay meaningful. With a motion sensor (imu.h), tilting the board
  * turns the face to stay level and slides the eyes toward the low side, and the eyes react (REACTIONS in the engine):
- * angry held upside down, surprised when shaken, happy when the button (the AtomS3R's screen) is pressed.
+ * angry held upside down, dizzy when shaken, happy when the button (the AtomS3R's screen) is pressed.
  */
 #include "../../engine/tools/bench_script.h"
 #include "board.h"
@@ -111,8 +111,7 @@ void app_main(void)
             lp_bench_script(&eyes, f);
         float g[3];
         if (motion && imu_gravity(g)) {
-            if (lp_shake_update(&shake, g[0], g[1], g[2], dt)) /* on the raw sample: smoothing hides a shake */
-                lp_eyes_react(&eyes, LP_EVENT_SHAKE);
+            lp_eyes_set_shaking(&eyes, lp_shake_update(&shake, g[0], g[1], g[2], dt)); /* raw: smoothing hides it */
             for (int i = 0; i < 2; i++)
                 gravity[i] += (g[i] - gravity[i]) * (1.0f - expf(-GRAVITY_RATE * dt));
             lp_eyes_set_gravity(&eyes, true, gravity[0], gravity[1]);
