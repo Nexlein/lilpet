@@ -130,13 +130,13 @@ function setPointer(point) {
     engine?.setPointer(point);
 }
 
-// Accelerometer stand-in: gravity in the screen plane, or null
 // Being shaken (the device tells it from its accelerometer): held down on the page
 function setShaking(shaking) {
     eyes.shaking = shaking;
     engine?.setShaking(shaking);
 }
 
+// Accelerometer stand-in: gravity in the screen plane, or null
 function setGravity(g) {
     eyes.gravity = g;
     engine?.setGravity(g);
@@ -253,8 +253,10 @@ function bindControls() {
     document.getElementById('blinkBtn').addEventListener('click', blink);
     const shakeBtn = document.getElementById('shakeBtn');
     shakeBtn.addEventListener('pointerdown', () => setShaking(true));
-    for (const end of ['pointerup', 'pointerleave']) shakeBtn.addEventListener(end, () => setShaking(false));
+    for (const end of ['pointerup', 'pointerleave', 'pointercancel'])
+        shakeBtn.addEventListener(end, () => setShaking(false));
     document.addEventListener('keyup', (e) => e.key.toLowerCase() === 's' && setShaking(false));
+    window.addEventListener('blur', () => setShaking(false)); // the key or button may be let go elsewhere
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'SELECT') return;
         const names = Object.keys(EMOTIONS);
