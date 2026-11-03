@@ -22,9 +22,9 @@ export function makeLook(swatch, pupil) {
 // bl: bottom lid closure (curved, "happy" shape), sq: vertical squash (squint into a rounded bar)
 // cr: crescent cut (0-1, only the top arc of the eye remains, like a frown)
 // rot: extra eye rotation, inner corner down (rad, tuned for the default 0.37 tilt), hl: pupil glint (0/1)
-// ps: pupil scale, es: eye scale, gy: gaze bias down
+// ps: pupil scale, es: eye scale, gy: gaze bias down, spin: dizzy gaze circling (rad/s, DIZZY)
 // emit: particles spawned while the emotion is on ({ type, rate per second })
-export const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0 };
+export const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0, spin: 0 };
 export const EMOTIONS = {
     neutral: { label: 'Neutre' },
     happy: { label: 'Content', bl: 0.42, ps: 1.08, es: 1.02, emit: { type: 'sparkle', rate: 1.2 } },
@@ -34,15 +34,19 @@ export const EMOTIONS = {
     frown: { label: 'Renfrogné', cr: 0.72, rot: 0.65, ps: 0.8, es: 1.04 },
     sad: { label: 'Triste', tl: 0.2, ts: -0.5, ps: 1.15, es: 0.98, gy: 0.45 },
     surprised: { label: 'Surpris', ps: 0.6, es: 1.12 },
-    sleepy: { label: 'Endormi', tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } }
+    sleepy: { label: 'Endormi', tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } },
+    dizzy: { label: 'Étourdi', tl: 0.3, ts: -0.2, bl: 0.12, ps: 0.75, spin: 9 } // my own, after a shake
 };
+// Dizzy: the gaze circles (radius, in gaze units) and the head wobbles (rad), in proportion to spin / max; the spin
+// wears off slower than it comes, so the eyes calm down after the emotion is over
+const DIZZY = { max: 9, radius: 0.55, wobble: 0.12, wearOff: 1.5 };
 for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // How the eyes react to what happens to the object: an emotion for a while, and a burst of sparkles. Data, not code,
 // so that the PC app can change them later. Same table as lp_reaction_get in the C engine (emotions.c).
 export const REACTIONS = {
     tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
-    shake: { emotion: 'surprised', duration: 2, sparkles: 0 }, // shaken (told by the device: lp_shake_update)
+    shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken // shaken (told by the device: lp_shake_update)
     upsideDown: { emotion: 'angry', duration: 0.5, sparkles: 0 } // renewed while the object stays upside down
 };
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
@@ -142,6 +146,7 @@ export class Eyes {
         this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
         this.emotionTimer = 0; // > 0: temporary emotion, back to the mood when it hits 0
         this.upsideDown = 0; // seconds held upside down
+        this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values
         this.onEmotion = null; // called with the new emotion, also when a temporary one ends
 
@@ -158,6 +163,7 @@ export class Eyes {
         this.head = { yaw: 0, pitch: 0, roll: 0, rollT: 0, level: 0 }; // level: tilt roll, eased
         this.headAmount = 0.6;
         this.nextRoll = 0;
+        this.spinPhase = 0; // where the dizzy gaze is on its circle (rad)
 
         this.blinkState = { phase: null, t: 0, hold: 0, open: 0, double: false };
         this.nextBlink = 1.5;
@@ -183,6 +189,14 @@ export class Eyes {
         const r = REACTIONS[event];
         this.setEmotion(r.emotion, r.duration);
         for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
+    }
+
+    // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
+    // as it is (no timer).
+    #holdReaction(event) {
+        const r = REACTIONS[event];
+        if (this.emotion !== r.emotion) this.react(event);
+        else if (this.emotionTimer > 0) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
     }
 
     startBlink() {
@@ -231,17 +245,16 @@ export class Eyes {
 
         // Emotion values ease toward their target
         const target = EMOTIONS[this.emotion];
-        for (const key in BASE) cur[key] = approach(cur[key], target[key], 9, dt);
+        for (const key in BASE) {
+            const wearOff = key === 'spin' && target.spin < cur.spin;
+            cur[key] = approach(cur[key], target[key], wearOff ? DIZZY.wearOff : 9, dt);
+        }
         if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
 
-        // Held upside down: angry as long as it lasts, then back to the mood. A mood that is already that emotion
-        // stays as it is (no timer).
+        // Held upside down: angry as long as it lasts; shaken: dizzy
         this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
-        if (this.upsideDown >= UPSIDE_DOWN.delay) {
-            const r = REACTIONS.upsideDown;
-            if (this.emotion !== r.emotion) this.react('upsideDown');
-            else if (this.emotionTimer > 0) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
-        }
+        if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upsideDown');
+        if (this.shaking) this.#holdReaction('shake');
 
         // Gaze target: pointer (face tracking stand-in) or idle saccades
         const tracking = this.follow && this.mouse;
@@ -263,18 +276,29 @@ export class Eyes {
             }
             this.nextSaccade = t + 0.6 + this.rand() * 2.4;
         }
+        // Dizzy: the gaze circles instead, as fast as the spin
+        let tx = gaze.tx,
+            ty = gaze.ty;
+        const dizzy = Math.min(cur.spin / DIZZY.max, 1);
+        if (dizzy > 0) {
+            this.spinPhase += cur.spin * dt;
+            if (this.spinPhase > TAU) this.spinPhase -= TAU;
+            tx += (Math.cos(this.spinPhase) * DIZZY.radius - tx) * dizzy;
+            ty += (Math.sin(this.spinPhase) * DIZZY.radius * 0.7 - ty) * dizzy;
+        }
+
         // Tilting the object turns the face to stay level and slides the eyes toward the low side. The level roll
         // eases in as fast as it can be trusted: it holds lying flat, where the angle is mostly noise, so the face
         // never flips back and forth; without accelerometer it goes back to upright.
         const tilt = this.gravity && tiltPose(this.gravity);
         const level = tilt ? nearestTurn(tilt.level, head.level) : 0;
         head.level = wrapAngle(approach(head.level, level, tilt ? 10 * tilt.trust : 3, dt));
-        const aimX = clamp(gaze.tx + (tilt ? tilt.slide : 0) * TILT_SLIDE, 1);
+        const aimX = clamp(tx + (tilt ? tilt.slide : 0) * TILT_SLIDE, 1);
         const px = gaze.x,
             py = gaze.y;
         const k = tracking ? 14 : 22;
         gaze.x = approach(gaze.x, aimX, k, dt);
-        gaze.y = approach(gaze.y, gaze.ty + cur.gy, k, dt);
+        gaze.y = approach(gaze.y, ty + cur.gy, k, dt);
         gaze.vx = (gaze.x - px) / dt;
         gaze.vy = (gaze.y - py) / dt;
 
@@ -290,12 +314,13 @@ export class Eyes {
         // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
         const hk = blinkState.phase ? 12 : 4;
         head.yaw = approach(head.yaw, aimX * 0.55 * this.headAmount, hk, dt);
-        head.pitch = approach(head.pitch, (gaze.ty + cur.gy) * 0.4 * this.headAmount, hk, dt);
+        head.pitch = approach(head.pitch, (ty + cur.gy) * 0.4 * this.headAmount, hk, dt);
         if (t > this.nextRoll) {
             head.rollT = (this.rand() - 0.5) * 0.4;
             this.nextRoll = t + 2 + this.rand() * 4;
         }
-        const roll = head.rollT * this.headAmount - head.yaw * 0.4 + head.level;
+        const wobble = Math.sin(this.spinPhase) * DIZZY.wobble * dizzy;
+        const roll = head.rollT * this.headAmount - head.yaw * 0.4 + head.level + wobble;
         head.roll = wrapAngle(approach(head.roll, nearestTurn(roll, head.roll), 3, dt));
     }
 
@@ -335,6 +360,8 @@ export class Eyes {
         this.mood = emotion;
         this.emotionTimer = 0;
         this.upsideDown = 0;
+        this.shaking = false;
+        this.spinPhase = 0;
         Object.assign(this.cur, settled(emotion));
         this.shape = { ...DEFAULT_SHAPE };
         Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });

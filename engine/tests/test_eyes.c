@@ -242,28 +242,81 @@ void test_upside_down_makes_it_angry_until_righted(void)
     CHECK(eyes.emotion == LP_EMOTION_SAD);
 }
 
+/* Feeds `seconds` of shaking along x, +-amplitude g at 6 Hz; returns how long the detector said "shaken" */
+static float shake_for(lp_shake *shake, float amplitude, float seconds)
+{
+    const float dt = 1.0f / 64.0f;
+    float shaken = 0.0f;
+    for (int i = 0; i < (int)(seconds * 64.0f); i++) {
+        const float x = amplitude * sinf(2.0f * 3.14159265f * 6.0f * (float)i * dt);
+        shaken += lp_shake_update(shake, x, 1.0f, 0.0f, dt) ? dt : 0.0f;
+    }
+    return shaken;
+}
+
 void test_shake_is_told_from_tilt_and_knocks(void)
 {
     const float dt = 1.0f / 64.0f;
     lp_shake shake = {0};
-    /* At rest, then turned slowly: always 1 g, never a shake */
+    /* At rest, then turned slowly: always 1 g, never shaken */
     for (int i = 0; i < 640; i++) {
         const float a = (float)i * 0.01f;
         CHECK(!lp_shake_update(&shake, sinf(a), cosf(a), 0.0f, dt));
     }
-    /* A knock, two 10 g samples (measured: a shake reaches 11 g): too short to be a shake */
+    /* A knock, two 10 g samples (measured: a shake reaches 11 g), then a flick of 0.15 s: not a shake */
     CHECK(!lp_shake_update(&shake, 0.0f, 10.0f, 0.0f, dt));
     CHECK(!lp_shake_update(&shake, 0.0f, -10.0f, 0.0f, dt));
+    CHECK(shake_for(&shake, 8.0f, 0.15f) == 0.0f);
+    CHECK(shake_for(&shake, 0.0f, 1.0f) == 0.0f);
+    /* A 2 s shake (measured: about 4 g from 1 g on average, 8 to 10 g peaks, 6 Hz): told from about 0.4 s in */
+    const float shaken = shake_for(&shake, 8.0f, 2.0f);
+    CHECK(shaken > 1.4f && shaken < 1.7f);
+    CHECK(lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt)); /* still the end of the shake */
+    CHECK(shake_for(&shake, 0.0f, 0.75f) < 0.6f);         /* over soon after it stops */
+    CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
+}
+
+void test_shaking_makes_it_dizzy_until_a_bit_after(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 2);
+    lp_eyes_set_shaking(&eyes, true);
+    for (int i = 0; i < 4 * 64; i++) /* longer than the reaction itself: renewed while shaken */
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
+    lp_eyes_set_shaking(&eyes, false);
     for (int i = 0; i < 64; i++)
-        CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
-    /* Shaken for 3 s, +-2.5 g at 5 Hz: told once, right after it stops, when the eyes can be seen again */
-    for (int i = 0; i < 3 * 64; i++) {
-        const float x = 2.5f * sinf(2.0f * 3.14159265f * 5.0f * (float)i * dt);
-        CHECK(!lp_shake_update(&shake, x, 1.0f, 0.0f, dt));
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_DIZZY); /* a moment after */
+    for (int i = 0; i < 64; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+}
+
+void test_shake_makes_it_dizzy_then_calm(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 2);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    lp_eyes_react(&eyes, LP_EVENT_SHAKE);
+    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
+    /* The pupils go round: over a second the gaze visits left and right, up and down */
+    float min_x = 1.0f;
+    float max_x = -1.0f;
+    float min_y = 1.0f;
+    float max_y = -1.0f;
+    for (int i = 0; i < 64; i++) {
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        min_x = eyes.gaze.x < min_x ? eyes.gaze.x : min_x;
+        max_x = eyes.gaze.x > max_x ? eyes.gaze.x : max_x;
+        min_y = eyes.gaze.y < min_y ? eyes.gaze.y : min_y;
+        max_y = eyes.gaze.y > max_y ? eyes.gaze.y : max_y;
     }
-    int told = -1;
-    for (int i = 0; i < 64; i++)
-        if (lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt))
-            told = told < 0 ? i : 1000; /* 1000: told twice */
-    CHECK(told >= 0 && told < 32);
+    CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
+    CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */
+    /* Back to its mood after 2 s, and the spinning dies down soon after */
+    for (int i = 0; i < 3 * 64; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+    CHECK(eyes.cur.spin < 0.5f);
 }

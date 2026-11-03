@@ -29,6 +29,8 @@
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
     X(test_shake_is_told_from_tilt_and_knocks)                                                                         \
+    X(test_shaking_makes_it_dizzy_until_a_bit_after)                                                                   \
+    X(test_shake_makes_it_dizzy_then_calm)                                                                             \
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \

@@ -60,6 +60,7 @@ export async function loadEngine(moduleUrl) {
         blink: () => m._lpw_blink(),
         setPointer: (point) => m._lpw_set_pointer(point ? 1 : 0, point?.x ?? 0, point?.y ?? 0),
         setGravity: (g) => m._lpw_set_gravity(g ? 1 : 0, g?.x ?? 0, g?.y ?? 0),
+        setShaking: (shaking) => m._lpw_set_shaking(shaking ? 1 : 0),
         setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
         setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
         setHeadAmount: (amount) => m._lpw_set_head_amount(amount),

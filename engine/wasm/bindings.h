@@ -17,6 +17,7 @@ void lpw_set_emotion(int emotion, float duration);
 void lpw_blink(void);
 void lpw_set_pointer(int active, float x, float y);
 void lpw_set_gravity(int active, float x, float y);
+void lpw_set_shaking(int shaking);
 void lpw_set_follow(int follow);
 void lpw_set_shape(float rx, float ry, float gap, float tilt);
 void lpw_set_head_amount(float amount);

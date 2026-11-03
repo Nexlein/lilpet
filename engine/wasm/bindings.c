@@ -59,6 +59,11 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_gravity(int active, float x, float y)
     lp_eyes_set_gravity(&eyes, active != 0, x, y);
 }
 
+EMSCRIPTEN_KEEPALIVE void lpw_set_shaking(int shaking)
+{
+    lp_eyes_set_shaking(&eyes, shaking != 0);
+}
+
 EMSCRIPTEN_KEEPALIVE void lpw_set_follow(int follow)
 {
     lp_eyes_set_follow(&eyes, follow != 0);

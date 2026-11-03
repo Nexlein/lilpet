@@ -46,6 +46,7 @@ function createEyes(seed) {
         eyes.follow = prev.follow;
         eyes.mouse = prev.mouse;
         eyes.gravity = prev.gravity;
+        eyes.shaking = prev.shaking;
     }
     if (look) eyes.setLook(look);
     eyes.setEmotion(emotion);
@@ -64,6 +65,7 @@ function resync() {
     engine.setFollow(eyes.follow);
     engine.setPointer(eyes.mouse);
     engine.setGravity(eyes.gravity);
+    engine.setShaking(eyes.shaking);
     engine.setEmotion(emotion);
 }
 
@@ -129,6 +131,12 @@ function setPointer(point) {
 }
 
 // Accelerometer stand-in: gravity in the screen plane, or null
+// Being shaken (the device tells it from its accelerometer): held down on the page
+function setShaking(shaking) {
+    eyes.shaking = shaking;
+    engine?.setShaking(shaking);
+}
+
 function setGravity(g) {
     eyes.gravity = g;
     engine?.setGravity(g);
@@ -172,7 +180,7 @@ const emotionsEl = document.getElementById('emotions');
 Object.entries(EMOTIONS).forEach(([name, e], i) => {
     const b = document.createElement('button');
     b.dataset.e = name;
-    b.innerHTML = `${e.label} <kbd>${i + 1}</kbd>`;
+    b.innerHTML = i < 9 ? `${e.label} <kbd>${i + 1}</kbd>` : e.label; // digit keys 1 to 9
     b.addEventListener('click', () => setEmotion(name));
     emotionsEl.append(b);
 });
@@ -243,7 +251,10 @@ function bindControls() {
     resyncButton.addEventListener('click', resync);
     document.getElementById('randomLook').addEventListener('click', randomLook);
     document.getElementById('blinkBtn').addEventListener('click', blink);
-    document.getElementById('shakeBtn').addEventListener('click', () => react('shake'));
+    const shakeBtn = document.getElementById('shakeBtn');
+    shakeBtn.addEventListener('pointerdown', () => setShaking(true));
+    for (const end of ['pointerup', 'pointerleave']) shakeBtn.addEventListener(end, () => setShaking(false));
+    document.addEventListener('keyup', (e) => e.key.toLowerCase() === 's' && setShaking(false));
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'SELECT') return;
         const names = Object.keys(EMOTIONS);
@@ -253,7 +264,7 @@ function bindControls() {
             e.preventDefault();
             blink();
         } else if (e.key.toLowerCase() === 'r') randomLook();
-        else if (e.key.toLowerCase() === 's') react('shake');
+        else if (e.key.toLowerCase() === 's') setShaking(true);
     });
 }
 
@@ -320,6 +331,7 @@ window.live = {
     pet,
     setPointer,
     setGravity,
+    setShaking,
     react,
     pause: () => (paused = true),
     step: (n) => {

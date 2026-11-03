@@ -45,13 +45,13 @@ void test_emotions_match_prototype(void)
         CHECK(lp_emotion_from_name(want->name) == (lp_emotion)i);
         CHECK(got->emit == want->emit);
         CHECK_NEAR(got->emit_rate, want->emit_rate, TOL_EXACT);
-        /* lp_expression is 10 floats: compare them as an array */
-        float g[10];
-        float w[10];
-        _Static_assert(sizeof g == sizeof(lp_expression), "lp_expression must be 10 floats");
+        /* lp_expression is 11 floats: compare them as an array */
+        float g[11];
+        float w[11];
+        _Static_assert(sizeof g == sizeof(lp_expression), "lp_expression must be 11 floats");
         memcpy(g, &got->expr, sizeof g);
         memcpy(w, &want->expr, sizeof w);
-        for (int k = 0; k < 10; k++)
+        for (int k = 0; k < 11; k++)
             CHECK_NEAR(g[k], w[k], TOL_EXACT);
     }
 }
@@ -145,6 +145,7 @@ void test_simulations_match_prototype(void)
             lp_eyes_react(&eyes, (lp_event)sc->react);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
         lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);
+        lp_eyes_set_shaking(&eyes, sc->shaking);
 
         int next = sc->first_state;
         for (int step = 1; step <= sc->steps; step++) {
