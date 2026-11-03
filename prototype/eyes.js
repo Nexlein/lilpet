@@ -46,7 +46,7 @@ for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 // so that the PC app can change them later. Same table as lp_reaction_get in the C engine (emotions.c).
 export const REACTIONS = {
     tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
-    shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken // shaken (told by the device: lp_shake_update)
+    shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken (told by the device: lp_shake_update)
     upsideDown: { emotion: 'angry', duration: 0.5, sparkles: 0 } // renewed while the object stays upside down
 };
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
@@ -251,10 +251,10 @@ export class Eyes {
         }
         if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
 
-        // Held upside down: angry as long as it lasts; shaken: dizzy
+        // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
         this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
-        if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upsideDown');
         if (this.shaking) this.#holdReaction('shake');
+        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upsideDown');
 
         // Gaze target: pointer (face tracking stand-in) or idle saccades
         const tracking = this.follow && this.mouse;

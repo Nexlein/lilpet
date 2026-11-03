@@ -240,6 +240,14 @@ void test_upside_down_makes_it_angry_until_righted(void)
     CHECK(eyes.emotion == LP_EMOTION_ANGRY);
     hold(&eyes, 0.0f, 1.0f, 1.0f);
     CHECK(eyes.emotion == LP_EMOTION_SAD);
+
+    /* Shaken while upside down: dizzy, then angry again once the shake is over */
+    lp_eyes_set_shaking(&eyes, true);
+    hold(&eyes, 0.0f, -1.0f, 1.0f);
+    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
+    lp_eyes_set_shaking(&eyes, false);
+    hold(&eyes, 0.0f, -1.0f, 1.0f);
+    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
 }
 
 /* Feeds `seconds` of shaking along x, +-amplitude g at 6 Hz; returns how long the detector said "shaken" */

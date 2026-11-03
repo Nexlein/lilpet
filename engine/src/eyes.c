@@ -245,14 +245,14 @@ static void hold_reaction(lp_eyes *e, lp_event event)
         e->emotion_timer = lp_maxf(e->emotion_timer, r->duration);
 }
 
-/* Held upside down: angry as long as it lasts; shaken: dizzy */
+/* Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time) */
 static void update_held_reactions(lp_eyes *e, float dt)
 {
     e->upside_down = e->gravity.active && e->gravity.y < UPSIDE_DOWN_GRAVITY ? e->upside_down + dt : 0.0f;
-    if (e->upside_down >= UPSIDE_DOWN_DELAY)
-        hold_reaction(e, LP_EVENT_UPSIDE_DOWN);
     if (e->shaking)
         hold_reaction(e, LP_EVENT_SHAKE);
+    else if (e->upside_down >= UPSIDE_DOWN_DELAY)
+        hold_reaction(e, LP_EVENT_UPSIDE_DOWN);
 }
 
 /* The angle equal to target modulo a turn that is nearest to from, so that easing toward it never spins around */
