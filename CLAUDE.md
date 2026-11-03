@@ -74,7 +74,8 @@ reference until the engine takes over each feature.
   `bmi270_config.c`, BSD-3, copied unmodified); its gravity, smoothed, goes to `lp_eyes_set_gravity`, which turns the
   face to stay level and slides the eyes toward the low side (prototype: `gravity` in `eyes.js`, "Objet tourné"
   slider). Reactions (`REACTIONS` in `eyes.js`, the same table in the engine): held upside down it gets angry, shaken
-  (`lp_shake_update` on the raw sample) surprised, pressed (the AtomS3R's screen is a button, `board_button_pressed`)
+  (`lp_shake_update` on the raw sample, then `lp_eyes_set_shaking`) dizzy while it lasts (the gaze circles, the head
+  wobbles), pressed (the AtomS3R's screen is a button, `board_button_pressed`)
   or petted in the app happy.
 - `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
