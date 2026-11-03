@@ -41,7 +41,7 @@ export interface Engine {
     setFollow(follow: boolean): void;
     setShape(shape: Shape): void;
     setHeadAmount(amount: number): void;
-    react(event: 'tap' | 'shake'): void;
+    react(event: 'tap' | 'shake' | 'upsideDown'): void;
     emotion(): string;
     update(dt: number): void;
     // RGBA pixels of the whole screen (size × size × 4)
