@@ -177,8 +177,9 @@ comme en `double`.
   l'envers dans la gravité ; chaque événement mène à une réaction décrite comme une donnée (émotion, durée,
   étincelles), pour que l'app puisse un jour les changer. Le firmware ne fait que traduire le matériel : appui sur
   l'écran de l'AtomS3R (broche 41), secousse repérée par `lp_shake_update` sur la mesure brute, avant le lissage.
-  Mesuré sur la carte : une secousse à la main monte jusqu'à 11 g et s'écarte de 3 à 6 g de 1 g en moyenne, contre
-  0,01 g au repos ; elle est annoncée quand elle s'arrête, et un choc, plus bref, n'en est pas une.
+  Mesuré sur la carte : une secousse à la main monte jusqu'à 11 g et s'écarte de 3 à 6 g de 1 g en moyenne, vers
+  6 Hz, contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule leur durée change. Elle
+  compte après environ 0,4 s (un choc ou un coup de poignet bref ne comptent pas) ; le moteur la reçoit comme un état (`lp_eyes_set_shaking`), comme la position à l'envers.
 - Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
   TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
   Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), avec le
