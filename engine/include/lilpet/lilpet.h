@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 11
+#define LP_VERSION_MINOR 12
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -68,6 +68,7 @@ typedef enum {
     LP_EMOTION_SAD,
     LP_EMOTION_SURPRISED,
     LP_EMOTION_SLEEPY,
+    LP_EMOTION_DIZZY,
     LP_EMOTION_COUNT
 } lp_emotion;
 
@@ -75,10 +76,10 @@ typedef enum {
  * Eyelid and pupil shape of an emotion:
  * tl top lid closure (0-1), ts top lid slope (+ inner corner lower), bl curved bottom lid ("happy"),
  * sq vertical squash (squint), cr crescent cut (frown), rot extra eye rotation, inner corner down (rad),
- * hl forced pupil glint (0/1), ps pupil scale, es eye scale, gy gaze bias down.
+ * hl forced pupil glint (0/1), ps pupil scale, es eye scale, gy gaze bias down, spin dizzy gaze circling (rad/s).
  */
 typedef struct {
-    float tl, ts, bl, sq, cr, rot, hl, ps, es, gy;
+    float tl, ts, bl, sq, cr, rot, hl, ps, es, gy, spin;
 } lp_expression;
 
 typedef enum { LP_PARTICLE_NONE, LP_PARTICLE_HEART, LP_PARTICLE_SPARKLE } lp_particle_type;
@@ -140,6 +141,7 @@ typedef struct {
     lp_emotion mood;     /* the emotion picked for good: temporary ones come back to it */
     float emotion_timer; /* > 0: temporary emotion, back to the mood when it reaches 0 */
     float upside_down;   /* seconds held upside down (gravity) */
+    bool shaking;        /* being shaken (lp_eyes_set_shaking) */
     lp_expression cur;   /* current shape, easing toward the emotion's target */
 
     lp_shape shape;
@@ -170,6 +172,7 @@ typedef struct {
         float level; /* tilt roll that keeps the face level, eased */
     } head;
     float next_roll;
+    float spin_phase; /* dizzy: where the gaze is on its circle (rad) */
 
     struct {
         lp_blink_phase phase;
@@ -202,6 +205,8 @@ void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
 /* Gravity from an accelerometer, in the screen plane (x right, y down, in g), or inactive without one */
 void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
+/* Being shaken (lp_shake_update): the shake reaction lasts as long, and a little after */
+void lp_eyes_set_shaking(lp_eyes *eyes, bool shaking);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
 /* Eye shape: radii, gap and tilt (the prototype page's sliders, later the PC app) */
@@ -215,11 +220,12 @@ void lp_eyes_update(lp_eyes *eyes, float dt);
 
 /* Tells a shake from raw accelerometer samples (motion.c). The caller owns it; zero it to start. */
 typedef struct {
-    float energy;  /* distance from 1 g, smoothed */
-    float shaking; /* seconds of the shake going on */
+    float energy; /* distance from 1 g, smoothed */
+    float strong; /* seconds of strong motion, before it counts as a shake */
+    bool active;  /* being shaken */
 } lp_shake;
 
-/* Feeds one sample (in g, any axes, not smoothed); true once per shake, as it ends: the time to call lp_eyes_react */
+/* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
 bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
 /* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */

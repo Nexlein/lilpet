@@ -40,6 +40,14 @@
         { "id": "emotion-love-cat", "swatch": "kite", "pupil": "cat", "emotion": "love" },
         { "id": "emotion-angry-circle", "swatch": "laser", "pupil": "circle", "emotion": "angry" },
         {
+            "id": "emotion-dizzy",
+            "swatch": "bubblegum",
+            "pupil": "dot",
+            "emotion": "dizzy",
+            "head": { "roll": 0.1 },
+            "gaze": { "x": 0.45, "y": -0.3 }
+        },
+        {
             "id": "emotion-sleepy",
             "swatch": "denim",
             "pupil": "acorn",
