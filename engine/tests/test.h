@@ -66,6 +66,7 @@
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
     X(test_unknown_pupil_renders_as_a_circle)                                                                          \
+    X(test_cutting_spans)                                                                                              \
     X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
