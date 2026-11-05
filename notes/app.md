@@ -2,8 +2,8 @@
 
 Choix faits le 2026-11-01. Complète la section « App PC » de [architecture.md](architecture.md).
 
-État : version 1 écrite le 2026-11-01 (galerie, aperçu, envoi), testée dans le navigateur et en CI. Reste à l'essayer
-avec une vraie carte branchée (`> look?` après un débranchement).
+État : version 1 écrite le 2026-11-01 (galerie, aperçu, envoi), testée dans le navigateur, en CI et sur l'AtomS3R. Les
+commandes `emotion`, `react` et `gaze` (novembre 2026) n'ont pas encore été essayées sur une vraie carte.
 
 ## Choix
 
@@ -25,8 +25,9 @@ avec une vraie carte branchée (`> look?` après un débranchement).
     - Les 4 types de pupille.
     - Des favoris, gardés dans le navigateur.
 2. **Envoi à l'objet**
-    - Bouton « Connecter » (Web Serial), puis les infos de l'objet : versions du firmware et du moteur.
-    - Bouton « Envoyer » : l'objet affiche le look tout de suite et le garde en mémoire flash.
+    - Bouton « Brancher lilpet » (Web Serial), puis les infos de l'objet : carte, versions du firmware et du moteur.
+    - Bouton « Envoyer à lilpet » : l'objet affiche le look tout de suite et le garde en mémoire flash.
+    - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder.
     - Journal de l'objet (les mesures qu'il écrit déjà) dans un panneau repliable.
 
 Version 1 testée sur l'AtomS3R (voir [materiel.md](materiel.md)) : le look envoyé est gardé (`> look?`,
@@ -57,20 +58,32 @@ Hors version 1, dans l'ordre probable :
 `engine`, `data` et `device` ne dépendent pas de React : Vitest les teste seuls, et ils resservent ailleurs (éditeur
 d'animations, outils). Seul `ui` dépend de React.
 
-## Protocole avec l'objet (version 1)
+## Protocole avec l'objet
 
-Des lignes de texte sur le port USB de l'ESP32-S3, le même que celui des mesures :
+Des lignes de texte sur le port USB de l'ESP32-S3, le même que celui des mesures. La carte caméra enverra les mêmes
+lignes par UART :
 
 - les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal ; chaque réponse part
-  sur une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas) ;
-- `> hello` répond `< lilpet fw=0.2.0 engine=0.9.0` ;
+  sur une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas) ; une ligne fait au plus 94
+  caractères : au-delà, `< err line too long`, et le reste est jeté ;
+- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>` ; l'app accepte aussi
+  une carte sans les trois derniers champs ;
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ; le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`) ;
 - `> look?` répond le look gardé, au même format : de quoi vérifier sans écran (`mise run firmware:check-device` ;
   l'app ne s'en sert pas) ;
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
   le bas, z vers celui qui regarde) : `< imu 0.000 1.000 0.000` tenu droit, ou `< err no motion sensor` sans capteur.
-  Sert au calage des axes et à `mise run firmware:check-device`.
+  Sert au calage des axes et à `mise run firmware:check-device` ;
+- `> emotion <nom> [secondes]` : une émotion pour ce temps (plus de 0, 3600 au plus), ou la nouvelle humeur sans durée ;
+- `> react <événement>` : la réaction à un événement, par son nom dans `eyes/emotions.json` (`tap`, `gesture_like`,
+  `expression_happy`…). Une ligne par changement, pas par image de la caméra : chaque ligne relance la réaction ;
+- `> gaze <x> <y>` : un visage en x, y de -1 à 1, à renvoyer tant qu'il est vu : sans nouvelle position pendant 0,5 s,
+  les yeux le lâchent. Un visage absent depuis 3 s compte comme nouveau et déclenche `face_seen`. `> gaze off` dit
+  qu'il est parti.
+
+Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` si la boucle de dessin
+ne suit plus. Sur la carte qui joue le benchmark, elles sont refusées.
 
 Du texte simple : lisible dans le moniteur série, lu en C sans bibliothèque, facile à tester des deux côtés. Côté
 firmware, le look reçu est appliqué et gardé dans la mémoire flash (NVS d'ESP-IDF), puis rechargé au démarrage.
@@ -88,7 +101,7 @@ firmware, le look reçu est appliqué et gardé dans la mémoire flash (NVS d'ES
 
 - Dans la galerie, on choisit une couleur et une pupille, et l'aperçu montre le même rendu que le prototype (même
   moteur).
-- Sur le M5Stamp S3A : connecter, envoyer un look, débrancher puis rebrancher, et `> look?` rend toujours ce look.
+- Sur l'AtomS3R : connecter, envoyer un look, débrancher puis rebrancher, et `> look?` rend toujours ce look.
 - `npm run check`, les tests Vitest, le build de l'app et la CI passent.
 
 Ordre de travail prévu :
@@ -96,5 +109,5 @@ Ordre de travail prévu :
 1. squelette de l'app et aperçu ;
 2. galerie ;
 3. protocole et mémoire côté firmware ;
-4. panneau de l'objet, essai sur le M5Stamp ;
+4. panneau de l'objet, essai sur la carte ;
 5. CI (build de l'app, Vitest).
