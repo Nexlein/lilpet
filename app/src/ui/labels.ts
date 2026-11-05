@@ -13,7 +13,8 @@ export const EMOTION_LABELS: Record<string, string> = {
     frown: 'Renfrogné',
     sad: 'Triste',
     surprised: 'Surpris',
-    sleepy: 'Endormi'
+    sleepy: 'Endormi',
+    dizzy: 'Étourdi'
 };
 
 export const FAMILY_LABELS: Record<Family, string> = {
