@@ -19,8 +19,6 @@
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
 #include "imu.h"
 #include "lilpet/lilpet.h"
 #include "look_store.h"
@@ -59,6 +57,24 @@ static void report(int64_t elapsed_us)
     memset(&stats, 0, sizeof stats);
 }
 
+static void apply(const command *c)
+{
+    switch (c->type) {
+    case COMMAND_LOOK:
+        lp_eyes_set_look(&eyes, &c->look);
+        break;
+    case COMMAND_EMOTION:
+        lp_eyes_set_emotion(&eyes, c->emotion.name, c->emotion.seconds);
+        break;
+    case COMMAND_REACT:
+        lp_eyes_react(&eyes, c->event);
+        break;
+    case COMMAND_GAZE:
+        lp_senses_face(&senses, &eyes, c->gaze.seen, c->gaze.x, c->gaze.y);
+        break;
+    }
+}
+
 void app_main(void)
 {
     board_init();
@@ -81,8 +97,7 @@ void app_main(void)
     look_store_init();
     lp_look look = DEFAULT_LOOK;
     look_store_load(&look);
-    QueueHandle_t looks = xQueueCreate(1, sizeof(lp_look));
-    commands_start(looks, &look, motion);
+    commands_start(&look, motion);
 
     lp_eyes_init(&eyes, 1);
     /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
@@ -96,8 +111,9 @@ void app_main(void)
         display_wait_frame();
 
         const int64_t start = esp_timer_get_time();
-        if (xQueueReceive(looks, &look, 0) == pdTRUE && !bench)
-            lp_eyes_set_look(&eyes, &look);
+        command c;
+        while (commands_next(&c))
+            apply(&c);
         const float elapsed = (float)(start - last) * 1e-6f;
         const float dt = elapsed < 0.05f ? elapsed : 0.05f;
         last = start;
