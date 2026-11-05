@@ -1,5 +1,6 @@
 #include "commands.h"
 
+#include "board_config.h"
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_app_desc.h"
@@ -15,6 +16,7 @@
 typedef struct {
     QueueHandle_t looks;
     lp_look current;
+    bool motion;
 } commands_state;
 
 static void reply_look(const lp_look *look)
@@ -30,7 +32,8 @@ static void handle(commands_state *state, const char *line)
     if (strncmp(line, "> ", 2) == 0)
         putchar('\n');
     if (strcmp(line, "> hello") == 0) {
-        printf("< lilpet fw=%s engine=%s\n", esp_app_get_description()->version, lp_version());
+        printf("< lilpet fw=%s engine=%s board=%s camera=%d motion=%d\n", esp_app_get_description()->version,
+               lp_version(), BOARD_NAME, BOARD_CAMERA, state->motion);
     } else if (strcmp(line, "> look?") == 0) {
         reply_look(&state->current);
     } else if (strncmp(line, "> look ", 7) == 0) {
@@ -69,7 +72,7 @@ static void commands_task(void *arg)
     }
 }
 
-void commands_start(QueueHandle_t looks, const lp_look *current)
+void commands_start(QueueHandle_t looks, const lp_look *current, bool motion)
 {
     /* Blocking reads on the USB serial port: needs its driver, not just the default console output */
     usb_serial_jtag_driver_config_t config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
@@ -80,5 +83,6 @@ void commands_start(QueueHandle_t looks, const lp_look *current)
     static commands_state state;
     state.looks = looks;
     state.current = *current;
+    state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, &state, 5, NULL);
 }
