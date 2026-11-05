@@ -1,4 +1,4 @@
-/* lilpet app. Night indigo base; the accent is the color of the chosen eyes (--eye, --pupil, --on-eye, set by App). */
+/* lilpet app. Night indigo base; the accent is the color of the chosen eyes (--eye, --on-eye, set by App). */
 
 :root {
     --night: #19132b;
@@ -7,11 +7,10 @@
     --seam: #43386b;
     --ink: #f5f1ff;
     --haze: #ada3cf;
-    --eye: #ae0002;
-    --pupil: #ff5252;
-    --on-eye: #ffffff;
+    --line: 1.5px solid var(--seam);
     --radius-s: 10px;
     --radius-m: 18px;
+    --pill: 999px;
     color-scheme: dark;
     font-family: 'Bricolage Grotesque Variable', system-ui, sans-serif;
     font-size: 15px;
@@ -57,10 +56,6 @@ button {
 
 /* --- Page ------------------------------------------------------------------------------------------------------ */
 
-.app {
-    min-height: 100vh;
-}
-
 .top {
     display: flex;
     align-items: center;
@@ -75,7 +70,6 @@ button {
     margin: 0;
     font-size: 40px;
     font-weight: 800;
-    font-stretch: 85%;
     letter-spacing: -0.04em;
     line-height: 1;
 }
@@ -106,8 +100,8 @@ button {
 
 .device button {
     padding: 9px 18px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: var(--shell);
     font-weight: 600;
 }
@@ -242,7 +236,7 @@ button {
     place-items: center;
     width: 46px;
     height: 46px;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
     border-radius: 50%;
     background: none;
 }
@@ -279,7 +273,7 @@ button {
     justify-items: center;
     gap: 6px;
     padding: 10px 6px 8px;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
     border-radius: var(--radius-m);
     background: var(--shell);
     cursor: pointer;
@@ -315,7 +309,7 @@ button {
 .moods button {
     padding: 6px 12px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: var(--shell);
     color: var(--haze);
 }
@@ -332,7 +326,7 @@ button {
 .moods .blink {
     margin-left: auto;
     background: none;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
 }
 
 .send {
@@ -343,7 +337,7 @@ button {
 .primary {
     padding: 16px 24px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: var(--eye);
     color: var(--on-eye);
     font-size: 18px;
@@ -407,8 +401,8 @@ button {
     justify-self: end;
     width: min(100%, 280px);
     padding: 9px 16px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: var(--shell);
 }
 
@@ -430,8 +424,8 @@ button {
     min-width: 34px;
     height: 34px;
     padding: 0 12px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: none;
     color: var(--haze);
 }
@@ -465,7 +459,7 @@ button {
 .chip svg {
     width: 100%;
     padding: 6px 4px;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: #000;
     box-shadow: 0 0 0 2px transparent;
     transition: box-shadow 0.15s;
