@@ -19,13 +19,12 @@ export async function loadEngine(moduleUrl) {
         Array.from({ length: m._lpw_event_count() }, (_, i) => [m.UTF8ToString(m._lpw_event_name(i)), i])
     );
 
-    const setLook = (look) =>
-        m._lpw_set_look(
-            color(look.sclera),
-            PUPILS.indexOf(look.pupil),
-            color(look.pupilColor[0]),
-            color(look.pupilColor[1])
-        );
+    // Unknown emotion, event and pupil names are ignored: they never reach the module, where they would become a number
+    const setLook = (look) => {
+        const pupil = PUPILS.indexOf(look.pupil);
+        if (pupil < 0) return;
+        m._lpw_set_look(color(look.sclera), pupil, color(look.pupilColor[0]), color(look.pupilColor[1]));
+    };
 
     // Renders the current state; returns a copy of the RGBA pixels (size × size × 4)
     const render = () => new Uint8ClampedArray(m.HEAPU8.buffer, m._lpw_render(), size * size * 4).slice();
@@ -39,7 +38,7 @@ export async function loadEngine(moduleUrl) {
         renderScene(scene, look) {
             setLook(look);
             m._lpw_set_scene(
-                emotions.get(scene.emotion ?? 'neutral'),
+                emotions.get(scene.emotion ?? 'neutral') ?? -1, // the engine ignores a scene it does not know
                 BLINK_PHASES.indexOf(scene.blink?.phase ?? null),
                 scene.blink?.t ?? 0,
                 scene.head?.yaw ?? 0,
@@ -57,7 +56,9 @@ export async function loadEngine(moduleUrl) {
         // Live animation, for the PC app
         init: (seed) => m._lpw_init(seed),
         setLook,
-        setEmotion: (name, duration = 0) => m._lpw_set_emotion(emotions.get(name), duration),
+        setEmotion: (name, duration = 0) => {
+            if (emotions.has(name)) m._lpw_set_emotion(emotions.get(name), duration);
+        },
         blink: () => m._lpw_blink(),
         setPointer: (point) => m._lpw_set_pointer(point ? 1 : 0, point?.x ?? 0, point?.y ?? 0),
         setGravity: (g) => m._lpw_set_gravity(g ? 1 : 0, g?.x ?? 0, g?.y ?? 0),
@@ -65,7 +66,9 @@ export async function loadEngine(moduleUrl) {
         setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
         setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
         setHeadAmount: (amount) => m._lpw_set_head_amount(amount),
-        react: (event) => m._lpw_react(events.get(event)),
+        react: (event) => {
+            if (events.has(event)) m._lpw_react(events.get(event));
+        },
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render
