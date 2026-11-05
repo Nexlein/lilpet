@@ -106,7 +106,7 @@ export function Stage({
                             aria-pressed={name === emotion}
                             onClick={() => chooseEmotion(name)}
                         >
-                            {EMOTION_LABELS[name] ?? name}
+                            {EMOTION_LABELS[name]}
                         </button>
                     ))}
                     <div className="gestures">
