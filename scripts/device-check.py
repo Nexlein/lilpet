@@ -1,10 +1,13 @@
+# /// script
+# dependencies = ["pyserial==3.5"]
+# ///
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
 # reboot, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
 # put back at the end.
 # Usage: mise run firmware:check-device (PORT=/dev/ttyACM0 by default; BOARD, if set, must be the board plugged in).
-# mise installs pyserial for the task.
+# uv installs pyserial, from the header above.
 import os
 import sys
 import time

@@ -90,10 +90,9 @@ run = 'cd "firmware/build/$BOARD" && esptool --chip esp32s3 write-flash @flash_a
 
 [tasks."firmware:check-device"]
 description = "Check the flashed board over USB: hello, looks, commands, motion sensor (PORT, /dev/ttyACM0 by default; BOARD, if set, must match)"
-tools = { "pypi:pyserial" = "3.5" }
-# The only part CI cannot test (no hardware). Puts the board's own look back at the end. Runs in the Python of the
-# pyserial tool, the one that can import it.
-run = '"$(dirname "$(readlink -f "$(command -v pyserial-miniterm)")")/python" scripts/device-check.py'
+# The only part CI cannot test (no hardware). Puts the board's own look back at the end. uv reads its dependency from
+# the script.
+run = "uv run scripts/device-check.py"
 
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
