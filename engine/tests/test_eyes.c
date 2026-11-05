@@ -201,6 +201,8 @@ void test_bad_input_is_ignored(void)
     CHECK(!eyes.pointer.active);
     lp_eyes_set_gravity(&eyes, true, 0.0f, INFINITY);
     CHECK(!eyes.gravity.active);
+    lp_eyes_set_gravity(&eyes, true, NAN, 0.0f);
+    CHECK(!eyes.gravity.active);
 
     const float not_finite[] = {NAN, INFINITY, -INFINITY};
     const lp_shape shape = lp_default_shape();
@@ -289,6 +291,7 @@ void test_scene_starts_over(void)
     CHECK(eyes.look.pupil == LP_PUPIL_CAT && eyes.look.sclera == look.sclera);
     CHECK(eyes.emotion == LP_EMOTION_SAD && eyes.mood == LP_EMOTION_SAD);
     CHECK(eyes.head.yaw == 0.25f && eyes.gaze.x == 0.5f);
+    CHECK(eyes.blink.hold == 0.2f && eyes.blink.open == 0.2f); /* a blink scene must be able to finish */
 }
 
 void test_pointer_stays_inside_its_range(void)
