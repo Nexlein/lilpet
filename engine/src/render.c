@@ -38,6 +38,11 @@ static const float PUPIL_REST[LP_PUPIL_COUNT][2] = {
 };
 #define PUPIL_LEAN 0.09f /* pupils lean a little, top toward the nose (rad) */
 
+static lp_rgb to_rgb(uint32_t color)
+{
+    return (lp_rgb){(float)((color >> 16u) & 0xFFu), (float)((color >> 8u) & 0xFFu), (float)(color & 0xFFu)};
+}
+
 static lp_rect rect_empty(void)
 {
     return (lp_rect){.x0 = LP_SCREEN_SIZE, .y0 = LP_SCREEN_SIZE, .x1 = 0, .y1 = 0};
@@ -271,8 +276,8 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
     g->rx = rx;
     g->ry = ry;
-    g->sclera = e->look.sclera;
-    g->pupil_color = e->look.pupil_color[side < 0 ? 0 : 1];
+    g->sclera = to_rgb(e->look.sclera);
+    g->pupil_color = to_rgb(e->look.pupil_color[side < 0 ? 0 : 1]);
     g->closed = bp.closed;
 
     if (bp.closed) {
@@ -320,14 +325,14 @@ static void setup_particles(lp_renderer *r, const lp_eyes *e)
         if (p->type == LP_PARTICLE_HEART) {
             alpha = lp_minf(lp_minf(k * 6.0f, 1.0f), (1.0f - k) * 4.0f); /* quick fade in, fade out */
             poly_heart(poly, p->size);
-            r->particle_color[r->particle_count] = HEART_COLOR;
+            r->particle_color[r->particle_count] = to_rgb(HEART_COLOR);
         } else {
             const float twinkle = sinf(k * LP_PI); /* grow then shrink */
             if (twinkle <= 0.0f)
                 continue;
             m = lp_affine_mul(m, lp_affine_rotate(p->spin * p->age));
             poly_sparkle(poly, p->size * twinkle);
-            r->particle_color[r->particle_count] = SPARKLE_COLOR;
+            r->particle_color[r->particle_count] = to_rgb(SPARKLE_COLOR);
         }
         if (alpha <= 0.0f)
             continue;
@@ -339,15 +344,15 @@ static void setup_particles(lp_renderer *r, const lp_eyes *e)
 
 /* --- Row composition --------------------------------------------------------------------------------- */
 
-static inline void composite(float *line, int x, uint32_t color, float coverage)
+static inline void composite(float *line, int x, lp_rgb color, float coverage)
 {
     if (coverage <= 0.0f)
         return;
     const float a = coverage > 1.0f ? 1.0f : coverage;
     float *px = &line[3 * x];
-    px[0] += ((float)((color >> 16u) & 0xFFu) - px[0]) * a;
-    px[1] += ((float)((color >> 8u) & 0xFFu) - px[1]) * a;
-    px[2] += ((float)(color & 0xFFu) - px[2]) * a;
+    px[0] += (color.r - px[0]) * a;
+    px[1] += (color.g - px[1]) * a;
+    px[2] += (color.b - px[2]) * a;
 }
 
 static float sub_row_y(int y, int sub)
@@ -393,7 +398,7 @@ static void eye_spans(const lp_eye_geometry *g, const eye_shapes *s, lp_affine i
         lp_spans_keep_below(out, &line, &s->blink);
 }
 
-static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, uint32_t color, float alpha)
+static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb color, float alpha)
 {
     if (y < p->box.y0 || y >= p->box.y1)
         return;
@@ -461,6 +466,7 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
         }
     }
 
+    const lp_rgb glint_color = to_rgb(GLINT_COLOR);
     float sclera = 0.0f;
     float pupil = 0.0f;
     float glint = 0.0f;
@@ -470,7 +476,7 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
         glint += r->cov[2][i];
         composite(r->line, x0 + i, g->sclera, sclera);
         composite(r->line, x0 + i, g->pupil_color, pupil);
-        composite(r->line, x0 + i, GLINT_COLOR, glint);
+        composite(r->line, x0 + i, glint_color, glint);
     }
 }
 
