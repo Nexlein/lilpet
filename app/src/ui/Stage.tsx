@@ -1,10 +1,12 @@
 // Left column: the device with the eyes, the chosen look and what can be done with it
-import { useState } from 'react';
-import { PUPIL_TYPES, makeLook, type PupilType, type Swatch } from '../data/looks';
-import type { EngineState, DeviceState } from './hooks';
-import type { Look } from '../data/looks';
+import { useMemo, useState } from 'react';
+import { PUPIL_TYPES, makeLook, type Look, type PupilType, type Swatch } from '../data/looks';
+import type { LookSent } from '../device/device';
+import type { DeviceState } from '../device/session';
+import type { EngineState } from './hooks';
 import { EyeGlyph } from './EyeGlyph';
 import { Screen } from './Screen';
+import { SendPanel } from './SendPanel';
 import { EMOTION_LABELS, PUPIL_LABELS } from './labels';
 
 interface Props {
@@ -15,35 +17,17 @@ interface Props {
     device: DeviceState;
     onPupil(pupil: PupilType): void;
     onFavorite(): void;
-    onSend(look: Look): Promise<unknown>;
+    onSend(look: Look): Promise<LookSent>;
 }
 
-type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'error'; message: string };
-const IDLE: SendState = { status: 'idle' };
-
 export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavorite, onSend }: Props) {
-    const look = makeLook(swatch, pupil);
+    const look = useMemo(() => makeLook(swatch, pupil), [swatch, pupil]);
     const [emotion, setEmotion] = useState('neutral');
-    // The last send result only shows for the look and connection it was about
-    const sendKey = `${swatch.id}/${pupil}/${device.status}`;
-    const [lastSend, setLastSend] = useState<{ key: string; state: SendState }>({ key: '', state: IDLE });
-    const sending = lastSend.key === sendKey ? lastSend.state : IDLE;
-    const setSending = (state: SendState) => setLastSend({ key: sendKey, state });
 
     const ready = engine.status === 'ready' ? engine.engine : null;
     const chooseEmotion = (name: string) => {
         setEmotion(name);
         ready?.setEmotion(name);
-    };
-
-    const send = async () => {
-        setSending({ status: 'sending' });
-        try {
-            await onSend(look);
-            setSending({ status: 'sent' });
-        } catch (err) {
-            setSending({ status: 'error', message: err instanceof Error ? err.message : String(err) });
-        }
     };
 
     return (
@@ -111,27 +95,7 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
                 </div>
             )}
 
-            <div className="send">
-                <button
-                    type="button"
-                    className="primary"
-                    disabled={device.status !== 'connected' || sending.status === 'sending'}
-                    onClick={send}
-                >
-                    {sending.status === 'sending' ? 'Envoi…' : 'Envoyer à lilpet'}
-                </button>
-                <p className="send-note" role="status">
-                    {sendNote(device, sending, swatch.id)}
-                </p>
-            </div>
+            <SendPanel swatch={swatch} pupil={pupil} device={device} onSend={onSend} />
         </section>
     );
-}
-
-function sendNote(device: DeviceState, sending: SendState, name: string): string {
-    if (sending.status === 'sent') return `${name} est sur lilpet, et y reste même éteint.`;
-    if (sending.status === 'error') return `Pas envoyé : ${sending.message}`;
-    if (device.status === 'unsupported') return 'Pour envoyer un look, ouvre l’app dans Chrome ou Edge.';
-    if (device.status !== 'connected') return 'Branche lilpet en USB pour lui envoyer ce look.';
-    return '';
 }
