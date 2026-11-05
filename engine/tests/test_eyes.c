@@ -3,7 +3,6 @@
 #include "test.h"
 
 #include <math.h>
-#include <string.h>
 
 void test_unknown_emotion_is_rejected(void)
 {
@@ -219,7 +218,8 @@ void test_bad_input_is_ignored(void)
         };
         for (int k = 0; k < 4; k++) {
             lp_eyes_set_shape(&eyes, &bad_shapes[k]);
-            CHECK(memcmp(&eyes.shape, &shape, sizeof shape) == 0);
+            CHECK(eyes.shape.rx == shape.rx && eyes.shape.ry == shape.ry);
+            CHECK(eyes.shape.gap == shape.gap && eyes.shape.tilt == shape.tilt);
         }
     }
 
@@ -453,7 +453,7 @@ void test_shake_skips_bad_samples(void)
     lp_shake_update(&shake, NAN, 0.0f, 0.0f, dt);
     lp_shake_update(&shake, 0.0f, INFINITY, 0.0f, dt);
     lp_shake_update(&shake, 0.0f, 0.0f, 1e30f, dt);
-    CHECK(memcmp(&shake, &before, sizeof shake) == 0);
+    CHECK(shake.energy == before.energy && shake.strong == before.strong && shake.active == before.active);
     CHECK(shake_for(&shake, 8.0f, 2.0f) > 1.0f); /* a real shake is still told */
 }
 

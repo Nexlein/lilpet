@@ -390,7 +390,7 @@ void test_unknown_pupil_renders_as_a_circle(void)
     lp_eyes_set_look(&eyes, &look);
     lp_renderer_init(&renderer);
     lp_render(&renderer, &eyes, reference);
-    look.pupil = (lp_pupil)7;
+    look.pupil = LP_PUPIL_COUNT;
     lp_eyes_set_look(&eyes, &look);
     lp_renderer_init(&renderer);
     lp_render(&renderer, &eyes, frame);
