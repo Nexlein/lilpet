@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
 import { LineSplitter, MAX_LINE, classify, lookCommand, parseHello, replyError } from './protocol';
-import { Connection } from './connection';
-import { hello, sendLook } from './device';
+import { Connection, ConnectionClosed } from './connection';
+import { command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
 
 describe('protocol', () => {
@@ -66,10 +66,50 @@ describe('connection', () => {
     it('asks hello again when the board misses the first one while it boots', async () => {
         let hellos = 0;
         const answer = firmware();
-        const device = fakePort((command) => (command === '> hello' && ++hellos === 1 ? null : answer(command)));
+        const device = fakePort((line) => (line === '> hello' && ++hellos === 1 ? null : answer(line)));
         const connection = await Connection.open(device.port);
         expect((await hello(connection)).firmware).toBe('abc1234');
         expect(hellos).toBe(2);
+        await connection.close();
+    });
+
+    it('stops asking hello once the board is gone', async () => {
+        const device = fakePort(() => null);
+        const connection = await Connection.open(device.port);
+        const asking = hello(connection);
+        await vi.waitFor(() => expect(device.sent).toHaveLength(1));
+        device.readError({ fatal: true });
+        await expect(asking).rejects.toThrow(ConnectionClosed);
+        expect(device.sent).toHaveLength(1);
+    });
+
+    it('refuses commands once closed, without writing', async () => {
+        const device = fakePort(firmware());
+        const connection = await Connection.open(device.port);
+        await connection.close();
+        await expect(connection.request('> hello')).rejects.toThrow(ConnectionClosed);
+        expect(device.sent).toEqual([]);
+    });
+
+    it('fails a command at once when writing to the port fails', async () => {
+        const device = fakePort(firmware());
+        const connection = await Connection.open(device.port);
+        device.failWrites();
+        await expect(connection.request('> hello', 5000)).rejects.toThrow(ConnectionClosed);
+        await connection.close();
+    });
+
+    it('tells a look kept from a look the flash refused, and from a refused look', async () => {
+        let reply = 'ok';
+        const device = fakePort(() => reply);
+        const connection = await Connection.open(device.port);
+        const look = makeLook(findSwatch('kite')!, 'cat');
+        expect(await sendLook(connection, look)).toBe('kept');
+        reply = 'err shown, but cannot save the look in flash';
+        expect(await sendLook(connection, look)).toBe('shown');
+        reply = 'err malformed look';
+        await expect(sendLook(connection, look)).rejects.toThrow('malformed look');
+        await expect(command(connection, '> emotion furious')).rejects.toThrow('malformed look');
         await connection.close();
     });
 

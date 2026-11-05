@@ -7,7 +7,7 @@ export interface DeviceInfo {
     engine: string;
 }
 
-export type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
+type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
 
 export const HELLO = '> hello';
 

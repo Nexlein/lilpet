@@ -1,8 +1,9 @@
 // The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a
 // lilpet, send looks, notice when it goes away. The UI subscribes to its snapshot (ui/hooks.ts).
 import type { Look } from '../data/looks';
-import { Connection, type PortLike } from './connection';
-import { hello, sendLook, type DeviceInfo } from './device';
+import { Connection, ConnectionClosed, type PortLike } from './connection';
+import { hello, sendLook, type LookSent } from './device';
+import type { DeviceInfo } from './protocol';
 
 export type DeviceState =
     | { status: 'unsupported' }
@@ -10,12 +11,16 @@ export type DeviceState =
     | { status: 'connecting' }
     | { status: 'connected'; info: DeviceInfo };
 
-export interface DeviceSnapshot {
+interface DeviceSnapshot {
     readonly state: DeviceState;
     readonly log: readonly string[];
 }
 
 const LOG_LINES = 200;
+
+const NOT_LILPET =
+    'Cet appareil ne répond pas comme lilpet. Flashe-le avec « mise run firmware:flash », puis réessaie.';
+const NO_REPLY = 'lilpet ne répond pas. Débranche-le, rebranche-le, puis réessaie.';
 
 export class DeviceSession {
     readonly #requestPort: (() => Promise<PortLike>) | null;
@@ -43,7 +48,7 @@ export class DeviceSession {
             const port = await this.#requestPort();
             this.#set({ state: { status: 'connecting' } });
             opened = await Connection.open(port, {
-                onLog: (line) => this.#set({ log: [...this.#snapshot.log.slice(1 - LOG_LINES), line] }),
+                onLog: (line) => this.#log(line),
                 onClose: () => {
                     if (this.#connection !== opened) return; // a connection that never got through hello
                     this.#connection = null;
@@ -57,7 +62,7 @@ export class DeviceSession {
             await opened?.close();
             // Closing the port picker without choosing is not an error
             const cancelled = err instanceof DOMException && err.name === 'NotFoundError';
-            this.#set({ state: cancelled ? { status: 'idle' } : { status: 'idle', error: describe(err) } });
+            this.#set({ state: cancelled ? { status: 'idle' } : { status: 'idle', error: describe(err, NOT_LILPET) } });
         }
     };
 
@@ -65,10 +70,19 @@ export class DeviceSession {
         await this.#connection?.close();
     };
 
-    send = async (look: Look): Promise<void> => {
-        if (!this.#connection) throw new Error('lilpet n’est plus branché');
-        await sendLook(this.#connection, look);
+    // Fails with a message for the interface
+    send = async (look: Look): Promise<LookSent> => {
+        try {
+            if (!this.#connection) throw new ConnectionClosed();
+            return await sendLook(this.#connection, look);
+        } catch (err) {
+            throw new Error(describe(err), { cause: err });
+        }
     };
+
+    #log(line: string): void {
+        this.#set({ log: [...this.#snapshot.log.slice(1 - LOG_LINES), line] });
+    }
 
     #set(next: Partial<DeviceSnapshot>): void {
         this.#snapshot = { ...this.#snapshot, ...next };
@@ -76,11 +90,12 @@ export class DeviceSession {
     }
 }
 
-function describe(err: unknown): string {
+// In the words of the interface. silent: what no reply means, which depends on what was asked
+function describe(err: unknown, silent = NO_REPLY): string {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.startsWith('not a lilpet device') || message.startsWith('no reply'))
-        return 'Cet appareil ne répond pas comme lilpet. Flashe-le avec « mise run firmware:flash », puis réessaie.';
+    if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
+    if (message.startsWith('not a lilpet device') || message.startsWith('no reply')) return silent;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
-    return message;
+    return `Erreur de lilpet : ${message}`;
 }
