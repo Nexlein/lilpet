@@ -28,7 +28,8 @@ export function useDevice() {
     const [session] = useState(() => new DeviceSession(portPicker()));
     const { state, log } = useSyncExternalStore(session.subscribe, session.snapshot);
     useEffect(() => () => void session.disconnect(), [session]);
-    return { state, log, connect: session.connect, disconnect: session.disconnect, send: session.send };
+    const { connect, disconnect, send, emotion, react } = session;
+    return { state, log, connect, disconnect, send, emotion, react };
 }
 
 // A value kept in the browser: read once, written on every change

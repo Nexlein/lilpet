@@ -42,6 +42,8 @@ export function App() {
                     onPupil={(p: PupilType) => setChoice({ swatch, pupil: p })}
                     onFavorite={toggleFavorite}
                     onSend={device.send}
+                    onEmotion={device.emotion}
+                    onPet={() => device.react('tap')}
                 />
                 <Gallery
                     swatch={swatch}

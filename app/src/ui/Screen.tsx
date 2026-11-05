@@ -9,9 +9,10 @@ interface Props {
     engine: Engine;
     look: Look;
     emotion: string;
+    onPet(): void;
 }
 
-export function Screen({ engine, look, emotion }: Props) {
+export function Screen({ engine, look, emotion, onPet }: Props) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const preview = useRef<Preview>(null);
     const lessMotion = useLessMotion();
@@ -47,14 +48,11 @@ export function Screen({ engine, look, emotion }: Props) {
         if (lessMotion) preview.current?.still({ emotion }, look);
     }, [lessMotion, emotion, look]);
 
-    // Happy for a moment, then back to the emotion picked below
-    const pet = () => engine.react('tap');
-
     return (
         <canvas
             ref={canvas}
             className="screen"
-            onClick={pet}
+            onClick={onPet}
             role="img"
             aria-label="Les yeux de lilpet, en direct. Clique pour le caresser."
         />
