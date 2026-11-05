@@ -50,11 +50,11 @@ typedef struct {
 
 /* Looks as text, as the PC app sends them over USB (notes/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
-#define LP_LOOK_TEXT_SIZE 32 /* longest text with its NUL */
+#define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
-/* Writes the text, cut to fit `size` with its NUL; returns its full length without the NUL (as snprintf), or -1 for
- * an unknown pupil type */
-int lp_look_format(const lp_look *look, char *out, size_t size);
+/* Writes the text into `out`, LP_LOOK_TEXT_SIZE bytes; returns its length without the NUL, or -1 for an unknown pupil
+ * type */
+int lp_look_format(const lp_look *look, char *out);
 
 /* --- Emotions ----------------------------------------------------------------------------------- */
 
