@@ -151,6 +151,19 @@ void test_tilt_holds_lying_flat(void)
     CHECK_NEAR(eyes.head.level, 0.0f, 0.01f);
 }
 
+void test_lying_flat_does_not_slide_the_eyes(void)
+{
+    /* Almost no gravity left in the screen plane: mostly sensor noise, so the eyes stay where they look */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    lp_eyes_set_pointer(&eyes, true, 0.0f, 0.0f);
+    lp_eyes_set_gravity(&eyes, true, 0.2f, 0.0f);
+    for (int i = 0; i < 320; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK_NEAR(eyes.gaze.x, 0.0f, 0.001f);
+}
+
 void test_clock_keeps_running_for_days(void)
 {
     /* A float clock left growing stops after about 6 days at 60 frames/s: the engine winds it back, with its deadlines.
@@ -158,13 +171,20 @@ void test_clock_keeps_running_for_days(void)
     lp_eyes eyes;
     lp_eyes_init(&eyes, 4);
     int blinks = 0;
+    float wound_back = 0.0f;
     for (int i = 0; i < 20 * 60 * 64; i++) {
         const bool open = eyes.blink.phase == LP_BLINK_NONE;
+        const float before = eyes.time;
         lp_eyes_update(&eyes, 1.0f / 64.0f);
+        if (eyes.time < before)
+            wound_back = before + 1.0f / 64.0f - eyes.time;
         if (i >= 19 * 60 * 64 && open && eyes.blink.phase != LP_BLINK_NONE)
             blinks++;
     }
     CHECK(eyes.time < 600.0f); /* wound back once */
+    /* By whole breaths (render.c: sin(time * 2.1)): the breathing does not hiccup */
+    CHECK(wound_back > 0.0f);
+    CHECK_NEAR(remainderf(wound_back * 2.1f, 6.2831853f), 0.0f, 0.01f);
     CHECK(blinks >= 10 && blinks <= 40);
     /* Deadlines wound back with it: each is a few seconds ahead at most */
     CHECK(eyes.next_blink - eyes.time < 8.0f);
@@ -316,6 +336,19 @@ void test_upside_down_makes_it_angry_until_righted(void)
     CHECK(eyes.emotion == LP_EMOTION_ANGRY);
 }
 
+void test_holding_keeps_a_longer_emotion(void)
+{
+    /* Already angry for 3 s: held upside down renews 0.5 s at most, it does not cut the 3 s short */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_ANGRY, 3.0f);
+    hold(&eyes, 0.0f, -1.0f, 1.0f);
+    hold(&eyes, 0.0f, 1.0f, 1.0f);
+    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
+    hold(&eyes, 0.0f, 1.0f, 1.5f);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+}
+
 /* Feeds `seconds` of shaking along x, +-amplitude g at 6 Hz; returns how long the detector said "shaken" */
 static float shake_for(lp_shake *shake, float amplitude, float seconds)
 {
@@ -348,6 +381,33 @@ void test_shake_is_told_from_tilt_and_knocks(void)
     CHECK(lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt)); /* still the end of the shake */
     CHECK(shake_for(&shake, 0.0f, 0.75f) < 0.6f);         /* over soon after it stops */
     CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
+}
+
+/* Feeds `seconds` of a steady acceleration of `g`; returns whether the detector ended up saying "shaken" */
+static bool steady(lp_shake *shake, float g, float seconds)
+{
+    bool shaken = shake->active;
+    for (int i = 0; i < (int)(seconds * 64.0f); i++)
+        shaken = lp_shake_update(shake, g, 0.0f, 0.0f, 1.0f / 64.0f);
+    return shaken;
+}
+
+void test_shake_limits(void)
+{
+    /* The values tuned by hand on the AtomS3R, measured from either side. Starts above 1.5 g away from 1 g... */
+    lp_shake shake = {0};
+    CHECK(!steady(&shake, 2.4f, 5.0f));
+    shake = (lp_shake){0};
+    CHECK(steady(&shake, 3.0f, 5.0f));
+
+    /* ...and lasts until the energy is below 0.5 g */
+    CHECK(steady(&shake, 1.75f, 5.0f));
+    CHECK(!steady(&shake, 1.4f, 5.0f));
+
+    /* 3 g away, the energy passes 1.5 g in 6 samples at 8 per second, then counts for 0.3 s: 20 samples more */
+    shake = (lp_shake){0};
+    CHECK(!steady(&shake, 4.0f, 24.0f / 64.0f));
+    CHECK(steady(&shake, 4.0f, 1.0f / 64.0f));
 }
 
 void test_shake_skips_bad_samples(void)

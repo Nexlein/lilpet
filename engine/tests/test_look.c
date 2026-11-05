@@ -39,6 +39,7 @@ void test_malformed_look_text_is_rejected(void)
         "AE000 FF5252 FF5252 dot",       /* five digits */
         "AE00021 FF5252 FF5252 dot",     /* seven digits */
         "AE0002 FF5252 FF52G2 dot",      /* not hex */
+        "AE0002 FF5252 FF5252dot",       /* no space before the pupil type */
         "AE0002 FF5252 FF5252 slit",     /* old pupil name */
         "AE0002 FF5252 FF5252 dot more", /* extra word */
         "AE0002 FF5252 FF5252 do",

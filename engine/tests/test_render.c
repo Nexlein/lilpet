@@ -223,6 +223,21 @@ static lp_rect check_bands(int size)
         if (memcmp(frame, reference, (size_t)(size * size) * sizeof frame[0]) != 0)
             LP_FAIL("bands differ from the whole frame at %d px, frame %d", size, f);
     }
+
+    /* A band across each edge of the region: rows outside are left as they were, rows inside land at their place */
+    const int width = dirty.x1 - dirty.x0;
+    const int edges[2] = {dirty.y0, dirty.y1};
+    for (int e = 0; e < 2; e++) {
+        const int y0 = edges[e] - BAND_ROWS / 2;
+        for (int i = 0; i < SIZE * BAND_ROWS; i++)
+            band[i] = 0xABCD;
+        lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
+        for (int y = y0; y < y0 + BAND_ROWS; y++) {
+            const bool inside = y >= dirty.y0 && y < dirty.y1;
+            for (int x = 0; x < width; x++)
+                CHECK(band[(y - y0) * width + x] == (inside ? reference[y * size + dirty.x0 + x] : 0xABCD));
+        }
+    }
     return dirty;
 }
 
@@ -281,6 +296,21 @@ void test_extreme_poses_render_inside_the_frame(void)
         }
     }
     CHECK(1);
+}
+
+void test_unknown_pupil_renders_as_a_circle(void)
+{
+    lp_look look = LPV_LOOKS[0];
+    look.pupil = LP_PUPIL_CIRCLE;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &look);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, reference);
+    look.pupil = (lp_pupil)7;
+    lp_eyes_set_look(&eyes, &look);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    CHECK(memcmp(frame, reference, sizeof frame) == 0);
 }
 
 void test_eyes_off_the_screen_render_nothing(void)
@@ -384,6 +414,16 @@ void test_small_output_is_the_frame_scaled_down(void)
         if (mean > 1.0f || far > 10) /* measured: mean 0.06 to 0.21, no pixel far off */
             LP_FAIL("%s at %d px: mean difference %.2f, %d pixels far off", scenes[i], SMALL, (double)mean, far);
     }
+}
+
+void test_new_size_redraws_everything(void)
+{
+    set_scene(&eyes, "look-cherry");
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    lp_renderer_set_size(&renderer, SMALL);
+    const lp_rect dirty = lp_render(&renderer, &eyes, frame);
+    CHECK(dirty.x0 == 0 && dirty.y0 == 0 && dirty.x1 == SMALL && dirty.y1 == SMALL);
 }
 
 void test_small_output_regions_stay_inside(void)
