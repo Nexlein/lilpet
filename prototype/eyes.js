@@ -130,7 +130,8 @@ export class Eyes {
     }
 
     setPointer(point) {
-        this.mouse = finitePoint(point);
+        const p = finitePoint(point);
+        this.mouse = p && { x: clamp(p.x, 1), y: clamp(p.y, 1) };
     }
 
     setGravity(gravity) {
