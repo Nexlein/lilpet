@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Installs the tools from mise.toml, same as local development (only Node is needed here). The only third-party
-      # action: pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      # Installs the tools from mise.toml, same as local development (only Node is needed here). Actions are pinned by
+      # commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install_args: node
 
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
 
       - name: Check the engine
         run: mise run engine:check
@@ -72,16 +72,16 @@ jobs:
       matrix:
         board: [atoms3r, waveshare_132, stamp_s3a]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
       # A new entry per board and commit, starting from the latest one of the same board, ESP-IDF image and options.
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: firmware/.ccache
           key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-${{ github.sha }}
@@ -95,9 +95,13 @@ jobs:
           BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
 
+      # The licence of the BMI270 file asks for its notice to go with the binaries
+      - name: Add the notices
+        run: cp THIRD_PARTY.md firmware/build/${{ matrix.board }}/
+
       # Flash from the folder of the right board, keeping its look: uvx esptool --chip esp32s3 write-flash @flash_args
       # merged-binary.bin, written at 0x0, is for a blank board: it also erases the look kept in flash.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: firmware-${{ matrix.board }}
           path: |
@@ -106,6 +110,7 @@ jobs:
             firmware/build/${{ matrix.board }}/partition_table/partition-table.bin
             firmware/build/${{ matrix.board }}/lilpet.bin
             firmware/build/${{ matrix.board }}/merged-binary.bin
+            firmware/build/${{ matrix.board }}/THIRD_PARTY.md
           if-no-files-found: error
           retention-days: 30
 
@@ -114,10 +119,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # All tools from mise.toml: the engine:wasm task runs through mise
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
 
       - run: npm ci
 
@@ -137,7 +142,7 @@ jobs:
       - name: Compare every reference scene, open the PC app
         run: npm run test:parity
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
