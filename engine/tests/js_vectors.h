@@ -14,34 +14,8 @@ static const uint32_t LPV_RNG_K[3][16] = {
     {15793561u, 4482800u, 12952570u, 6008940u, 7978265u, 14063189u, 1892032u, 5321879u, 1483957u, 4109180u, 13209856u, 6796765u, 12195247u, 8683396u, 12418664u, 14527782u},
 };
 
-static const lp_emotion_def LPV_EMOTIONS[10] = {
-    {"neutral", {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"happy", {0.0f, 0.0f, 0.42f, 0.0f, 0.0f, 0.0f, 0.0f, 1.08f, 1.02f, 0.0f, 0.0f}, LP_PARTICLE_SPARKLE, 1.2f},
-    {"love", {0.0f, 0.0f, 0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 1.1f, 1.04f, -0.45f, 0.0f}, LP_PARTICLE_HEART, 3.0f},
-    {"angry", {0.25f, 0.7f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.6f, 0.96f, 0.15f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"squint", {0.12f, 0.0f, 0.0f, 0.68f, 0.0f, 0.37f, 0.0f, 0.8f, 1.04f, 0.0f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"frown", {0.0f, 0.0f, 0.0f, 0.0f, 0.72f, 0.65f, 0.0f, 0.8f, 1.04f, 0.0f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"sad", {0.2f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.15f, 0.98f, 0.45f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"surprised", {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.6f, 1.12f, 0.0f, 0.0f}, LP_PARTICLE_NONE, 0.0f},
-    {"sleepy", {0.55f, -0.1f, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.35f, 0.0f}, LP_PARTICLE_SPARKLE, 0.4f},
-    {"dizzy", {0.3f, -0.2f, 0.12f, 0.0f, 0.0f, 0.0f, 0.0f, 0.75f, 1.0f, 0.0f, 9.0f}, LP_PARTICLE_NONE, 0.0f},
-};
-
-static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[13] = {
-    {LP_EVENT_TAP, {"tap", LP_EMOTION_HAPPY, 1.8f, 4}},
-    {LP_EVENT_SHAKE, {"shake", LP_EMOTION_DIZZY, 1.5f, 0}},
-    {LP_EVENT_UPSIDE_DOWN, {"upside_down", LP_EMOTION_ANGRY, 0.5f, 0}},
-    {LP_EVENT_FACE_SEEN, {"face_seen", LP_EMOTION_SURPRISED, 0.8f, 0}},
-    {LP_EVENT_GESTURE_LIKE, {"gesture_like", LP_EMOTION_HAPPY, 2.5f, 4}},
-    {LP_EVENT_GESTURE_DISLIKE, {"gesture_dislike", LP_EMOTION_SAD, 2.5f, 0}},
-    {LP_EVENT_GESTURE_OK, {"gesture_ok", LP_EMOTION_HAPPY, 1.8f, 2}},
-    {LP_EVENT_GESTURE_FIVE, {"gesture_five", LP_EMOTION_SURPRISED, 1.2f, 0}},
-    {LP_EVENT_GESTURE_CALL, {"gesture_call", LP_EMOTION_LOVE, 2.0f, 0}},
-    {LP_EVENT_EXPRESSION_HAPPY, {"expression_happy", LP_EMOTION_HAPPY, 2.0f, 2}},
-    {LP_EVENT_EXPRESSION_SAD, {"expression_sad", LP_EMOTION_SAD, 2.0f, 0}},
-    {LP_EVENT_EXPRESSION_ANGRY, {"expression_angry", LP_EMOTION_FROWN, 1.5f, 0}},
-    {LP_EVENT_EXPRESSION_SURPRISED, {"expression_surprised", LP_EMOTION_SURPRISED, 1.2f, 0}},
-};
+static const char *const LPV_EMOTION_NAMES[10] = {"neutral", "happy", "love", "angry", "squint", "frown", "sad", "surprised", "sleepy", "dizzy"};
+static const char *const LPV_EVENT_NAMES[13] = {"tap", "shake", "upside_down", "face_seen", "gesture_like", "gesture_dislike", "gesture_ok", "gesture_five", "gesture_call", "expression_happy", "expression_sad", "expression_angry", "expression_surprised"};
 
 typedef struct { lp_blink_phase phase; float t, open; lp_blink_pose pose; } lpv_blink;
 static const lpv_blink LPV_BLINKS[8] = {
