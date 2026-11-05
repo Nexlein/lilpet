@@ -40,8 +40,9 @@ button {
     cursor: pointer;
 }
 
-:focus-visible {
-    outline: 2px solid var(--eye);
+:focus-visible,
+.pupil:has(input:focus-visible) {
+    outline: 2px solid var(--ink);
     outline-offset: 3px;
 }
 
@@ -299,11 +300,6 @@ button {
     background: var(--shell-2);
 }
 
-.pupil:has(input:focus-visible) {
-    outline: 2px solid var(--eye);
-    outline-offset: 3px;
-}
-
 .moods {
     display: flex;
     flex-wrap: wrap;
@@ -351,10 +347,6 @@ button {
     color: var(--on-eye);
     font-size: 18px;
     font-weight: 700;
-}
-
-.primary:focus-visible {
-    outline-color: var(--ink);
 }
 
 .primary:disabled {
