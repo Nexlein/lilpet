@@ -139,7 +139,7 @@ bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1
     const float b = 2.0f * (pu * e->qu + pv * e->qv);
     const float c = pu * pu + pv * pv - 1.0f;
     const float disc = b * b - 4.0f * e->a * c;
-    if (e->a <= 0.0f || disc <= 0.0f)
+    if (e->a <= 0.0f || !(disc > 0.0f)) /* a line so far away overflows into a NaN: it misses too */
         return false;
     const float root = sqrtf(disc);
     *x0 = (-b - root) * e->half_inv_a;

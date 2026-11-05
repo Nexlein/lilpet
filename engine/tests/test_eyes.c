@@ -3,6 +3,7 @@
 #include "test.h"
 
 #include <math.h>
+#include <string.h>
 
 void test_unknown_emotion_is_rejected(void)
 {
@@ -177,11 +178,35 @@ void test_bad_input_is_ignored(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_pointer(&eyes, true, NAN, 0.0f);
     CHECK(!eyes.pointer.active);
+    lp_eyes_set_pointer(&eyes, true, 0.0f, INFINITY);
+    CHECK(!eyes.pointer.active);
     lp_eyes_set_gravity(&eyes, true, 0.0f, INFINITY);
     CHECK(!eyes.gravity.active);
+
+    const float not_finite[] = {NAN, INFINITY, -INFINITY};
+    const lp_shape shape = lp_default_shape();
+    for (int i = 0; i < 3; i++) {
+        const float bad = not_finite[i];
+        lp_eyes_set_head_amount(&eyes, bad);
+        CHECK(eyes.head_amount == 0.6f);
+        lp_eyes_set_emotion(&eyes, LP_EMOTION_ANGRY, bad);
+        CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+        const lp_shape bad_shapes[] = {
+            {bad, shape.ry, shape.gap, shape.tilt},
+            {shape.rx, bad, shape.gap, shape.tilt},
+            {shape.rx, shape.ry, bad, shape.tilt},
+            {shape.rx, shape.ry, shape.gap, bad},
+        };
+        for (int k = 0; k < 4; k++) {
+            lp_eyes_set_shape(&eyes, &bad_shapes[k]);
+            CHECK(memcmp(&eyes.shape, &shape, sizeof shape) == 0);
+        }
+    }
+
     const float time = eyes.time;
     lp_eyes_update(&eyes, 0.0f);
     lp_eyes_update(&eyes, NAN);
+    lp_eyes_update(&eyes, INFINITY);
     lp_eyes_update(&eyes, -1.0f);
     CHECK(eyes.time == time);
     for (int i = 0; i < 64; i++)
@@ -196,6 +221,47 @@ void test_bad_input_is_ignored(void)
     scene.blink_phase = (lp_blink_phase)9;
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
     CHECK(eyes.head.roll == roll);
+
+    /* So does a scene with a value that is not finite */
+    float *const values[] = {&scene.blink_t, &scene.yaw,    &scene.pitch,        &scene.roll,
+                             &scene.gaze_x,  &scene.gaze_y, &scene.particle_time};
+    scene.blink_phase = LP_BLINK_NONE;
+    scene.roll = roll + 1.0f; /* would show as a change */
+    for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
+        const float kept = *values[i];
+        *values[i] = NAN;
+        lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+        CHECK(eyes.head.roll == roll);
+        *values[i] = kept;
+    }
+
+    /* An unknown event does nothing */
+    const lp_emotion emotion = eyes.emotion;
+    lp_eyes_react(&eyes, LP_EVENT_COUNT);
+    lp_eyes_react(&eyes, (lp_event)-1);
+    CHECK(eyes.emotion == emotion);
+}
+
+void test_pointer_stays_inside_its_range(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_pointer(&eyes, true, 1e30f, -1e30f);
+    CHECK(eyes.pointer.active);
+    CHECK(eyes.pointer.x == 1.0f && eyes.pointer.y == -1.0f);
+    lp_eyes_set_pointer(&eyes, true, 0.25f, -0.5f);
+    CHECK(eyes.pointer.x == 0.25f && eyes.pointer.y == -0.5f);
+}
+
+void test_long_step_counts_as_one_second(void)
+{
+    /* In love, each second owes particles, spawned one at a time: a huge step must not loop for ever */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    lp_eyes_update(&eyes, 1e4f);
+    CHECK(eyes.time == 1.0f);
+    CHECK(eyes.particle_count <= 3);
 }
 
 void test_tap_makes_it_happy_for_a_moment(void)
@@ -282,6 +348,24 @@ void test_shake_is_told_from_tilt_and_knocks(void)
     CHECK(lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt)); /* still the end of the shake */
     CHECK(shake_for(&shake, 0.0f, 0.75f) < 0.6f);         /* over soon after it stops */
     CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
+}
+
+void test_shake_skips_bad_samples(void)
+{
+    const float dt = 1.0f / 64.0f;
+    lp_shake shake = {0};
+    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, dt);
+    const lp_shake before = shake;
+    /* No time passed, no time known, then samples that are not numbers or overflow once squared */
+    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, 0.0f);
+    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, -dt);
+    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, NAN);
+    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, INFINITY);
+    lp_shake_update(&shake, NAN, 0.0f, 0.0f, dt);
+    lp_shake_update(&shake, 0.0f, INFINITY, 0.0f, dt);
+    lp_shake_update(&shake, 0.0f, 0.0f, 1e30f, dt);
+    CHECK(memcmp(&shake, &before, sizeof shake) == 0);
+    CHECK(shake_for(&shake, 8.0f, 2.0f) > 1.0f); /* a real shake is still told */
 }
 
 void test_shaking_makes_it_dizzy_until_a_bit_after(void)

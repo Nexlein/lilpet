@@ -77,6 +77,19 @@ void test_senses_skip_a_bad_sample(void)
     CHECK(eyes.gravity.active);
 }
 
+void test_senses_skip_a_bad_step(void)
+{
+    lp_eyes eyes;
+    lp_senses senses;
+    start(&eyes, &senses);
+    const float good[3] = {0.0f, 1.0f, 0.0f};
+    run_frames(&senses, &eyes, good, false, 0.5f);
+    lp_senses_update(&senses, &eyes, good, false, NAN);
+    lp_senses_update(&senses, &eyes, good, false, INFINITY);
+    CHECK(isfinite(senses.gravity[0]) && isfinite(senses.gravity[1]));
+    CHECK(isfinite(senses.motion_age) && isfinite(senses.button_age) && isfinite(senses.face_age));
+}
+
 void test_senses_debounce_the_button(void)
 {
     lp_eyes eyes;

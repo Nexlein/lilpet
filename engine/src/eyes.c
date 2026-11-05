@@ -38,7 +38,7 @@ void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look)
 
 void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 {
-    if ((unsigned)emotion >= LP_EMOTION_COUNT)
+    if ((unsigned)emotion >= LP_EMOTION_COUNT || !isfinite(duration))
         return;
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
@@ -50,8 +50,8 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
 {
     eyes->pointer.active = active && isfinite(x) && isfinite(y);
-    eyes->pointer.x = x;
-    eyes->pointer.y = y;
+    eyes->pointer.x = lp_clampf(x, 1.0f);
+    eyes->pointer.y = lp_clampf(y, 1.0f);
 }
 
 void lp_eyes_react(lp_eyes *eyes, lp_event event)
@@ -83,12 +83,14 @@ void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
 
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
 {
-    eyes->shape = *shape;
+    if (isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt))
+        eyes->shape = *shape;
 }
 
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
 {
-    eyes->head_amount = amount;
+    if (isfinite(amount))
+        eyes->head_amount = amount;
 }
 
 void lp_eyes_blink(lp_eyes *eyes)
@@ -356,6 +358,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
 {
     if (!(dt > 0.0f) || !isfinite(dt)) /* nothing to advance, and speeds would divide by zero */
         return;
+    dt = lp_minf(dt, 1.0f); /* a long pause is not a long animation: particles are spawned one by one */
     lp_eyes *e = eyes;
     e->time += dt;
     wrap_clock(e);
@@ -393,9 +396,16 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
     e->head.roll = wrap_angle(lp_approach(e->head.roll, nearest_turn(roll, e->head.roll), 3.0f, dt));
 }
 
+static bool scene_is_valid(const lp_scene *s)
+{
+    return (unsigned)s->emotion < LP_EMOTION_COUNT && (unsigned)s->blink_phase <= LP_BLINK_OPEN &&
+           isfinite(s->blink_t) && isfinite(s->yaw) && isfinite(s->pitch) && isfinite(s->roll) && isfinite(s->gaze_x) &&
+           isfinite(s->gaze_y) && isfinite(s->particle_time);
+}
+
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look)
 {
-    if ((unsigned)scene->emotion >= LP_EMOTION_COUNT || (unsigned)scene->blink_phase > LP_BLINK_OPEN)
+    if (!scene_is_valid(scene))
         return;
     lp_eyes *e = eyes;
     e->look = *look;

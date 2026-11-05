@@ -48,6 +48,8 @@ static void update_button(lp_senses *s, lp_eyes *eyes, bool pressed, float dt)
 
 void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float dt)
 {
+    if (!isfinite(dt))
+        return;
     update_motion(senses, eyes, accel, dt);
     update_button(senses, eyes, pressed, dt);
     senses->face_age += dt;
