@@ -3,32 +3,15 @@
     <head>
         <meta charset="utf-8" />
         <title>lilpet · prototype des yeux</title>
+        <link rel="stylesheet" href="style.css" />
         <style>
-            :root {
-                --bg: #111214;
-                --panel: #1b1c20;
-                --line: #2c2e34;
-                --text: #e8e8ea;
-                --muted: #8b8d94;
-                --accent: #f2e94e;
-            }
-            * {
-                box-sizing: border-box;
-            }
             body {
-                margin: 0;
                 min-height: 100vh;
-                background: var(--bg);
-                color: var(--text);
-                font:
-                    14px/1.4 system-ui,
-                    sans-serif;
                 display: flex;
                 gap: 40px;
                 align-items: center;
                 justify-content: center;
                 flex-wrap: wrap;
-                padding: 24px;
             }
             .device {
                 width: min(498px, 92vw);
@@ -111,7 +94,6 @@
             .check {
                 display: flex;
                 gap: 8px;
-                grid-template-columns: none;
             }
             #lookInfo {
                 margin-top: 8px;
@@ -223,9 +205,7 @@
                 <div class="row">
                     <button id="shakeBtn">Secouer (maintenir) <kbd>S</kbd></button>
                 </div>
-                <p class="hint">
-                    Cliquer sur l’écran le touche. Tourné à l’envers plus d’une demi-seconde, il se fâche.
-                </p>
+                <p class="hint">Tourné à l’envers plus de 0,6 s, il se fâche.</p>
             </section>
 
             <p class="hint">
