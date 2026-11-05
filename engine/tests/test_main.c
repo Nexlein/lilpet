@@ -2,6 +2,16 @@
 
 int lp_test_failures = 0;
 
+/* A NaN must fail a comparison, or a corrupted state would pass every parity test */
+void test_check_near_fails_on_nan(void)
+{
+    const int before = lp_test_failures;
+    CHECK_NEAR(NAN, 1.0f, 0.1f);
+    const int caught = lp_test_failures - before;
+    lp_test_failures = before;
+    CHECK(caught == 1);
+}
+
 static void run(const char *name, void (*fn)(void))
 {
     int before = lp_test_failures;

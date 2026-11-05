@@ -11,6 +11,7 @@
 
 /* Every test function, one per line */
 #define LP_TESTS(X)                                                                                                    \
+    X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
     X(test_rng_matches_prototype)                                                                                      \
     X(test_emotions_match_prototype)                                                                                   \
@@ -89,7 +90,7 @@ extern int lp_test_failures;
     do {                                                                                                               \
         float a_ = (actual);                                                                                           \
         float e_ = (expected);                                                                                         \
-        if (fabsf(a_ - e_) > (tolerance))                                                                              \
+        if (!(fabsf(a_ - e_) <= (tolerance)))                                                                          \
             LP_FAIL("%s is %g, expected %g", #actual, (double)a_, (double)e_);                                         \
     } while (0)
 
