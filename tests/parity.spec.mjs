@@ -16,6 +16,7 @@ test('the C engine renders every reference scene like the prototype', async ({ p
     const results = await page.evaluate(() => window.parity ?? []);
 
     expect(errors, 'console errors on the reference page').toEqual([]);
+    await expect(page.locator('#serveHint')).toBeHidden();
     expect(results.length, 'scenes compared (is the engine built? mise run engine:wasm)').toBe(scenes.length);
     const failing = results
         .filter((r) => !r.pass)

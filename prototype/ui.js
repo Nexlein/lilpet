@@ -9,6 +9,7 @@ import { ENGINE_URL, compareFrame } from './parity.js';
 // inputs: their logic stays in step (as in the parity tests) until a rounding difference flips an event.
 const STEP = 1 / 64;
 
+document.getElementById('serveHint').hidden = true; // the page runs: it is served
 const screens = document.getElementById('screens');
 const jsView = document.getElementById('jsView');
 const cView = document.getElementById('cView');
@@ -21,15 +22,18 @@ const resyncButton = document.getElementById('resync');
 
 let eyes = null; // prototype renderer
 let engine = null; // C engine, loaded the first time it is shown
-let engineMissing = false;
+let engineLoad = null; // its loading, started once
 let mode = 'js'; // 'js' | 'c' | 'side'
+let modeRequest = 0; // counts the clicks: the last one wins over one still waiting for the engine
 let time = 0; // seconds of animation, shared by both renderers
 let look = null;
 let emotion = 'neutral'; // last emotion picked: the mood that reactions come back to
 let shownEmotion = null;
 let paused = false;
 let renderMs = 0;
+const problems = []; // what could not load: stays on screen in every mode
 
+const showInfo = (line = '') => (info.textContent = [...problems, line].join(' '));
 const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 
 // --- Renderers ---------------------------------------------------------------------------------------------------
@@ -67,30 +71,30 @@ function resync(seed = randomSeed()) {
     engine.setEmotion(emotion);
 }
 
-async function loadEngineOnce() {
-    if (!engine && !engineMissing) {
-        try {
-            engine = await loadEngine(ENGINE_URL);
-        } catch (err) {
-            engineMissing = true;
+// Resolves to the C engine, or null when it is not built
+function loadEngineOnce() {
+    engineLoad ??= loadEngine(ENGINE_URL).then(
+        (loaded) => (engine = loaded),
+        (err) => {
+            problems.push('Moteur C absent : lancer « mise run engine:wasm ».');
             console.warn('C engine not built, run: mise run engine:wasm', err);
+            return null;
         }
-    }
-    return engine;
+    );
+    return engineLoad;
 }
 
 async function setMode(next) {
-    if (next !== 'js' && !(await loadEngineOnce())) {
-        info.textContent = 'Moteur C absent : lancer « mise run engine:wasm ».';
-        next = 'js';
-    }
+    const request = ++modeRequest;
+    if (next !== 'js' && !(await loadEngineOnce())) next = 'js';
+    if (request !== modeRequest) return;
     mode = next;
     jsView.hidden = mode === 'c';
     cView.hidden = mode === 'js';
     screens.classList.toggle('side', mode === 'side');
     resyncButton.hidden = mode !== 'side';
     for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.mode === mode);
-    if (mode === 'js') info.textContent = '';
+    if (mode === 'js') showInfo();
     else resync();
 }
 
@@ -152,6 +156,8 @@ async function loadLooks() {
         swatches = (await res.json()).swatches;
     } catch (err) {
         console.error('Cannot load looks.json, serve the repo root over HTTP', err);
+        problems.push('Couleurs absentes : eyes/looks.json ne se charge pas, une seule couleur disponible.');
+        showInfo();
         swatches = [{ id: 'terrarium', sclera: '#6FF5D0', pupilColor: ['#106E54', '#106E54'] }];
     }
     swatchSelect.innerHTML = swatches.map((s, i) => `<option value="${i}">${s.id}</option>`).join('');
@@ -296,7 +302,7 @@ function draw() {
     if (mode === 'side' && frames++ % 30 === 0) lastDiff = diff();
     const gap = mode === 'side' && lastDiff ? ` · écart moyen ${lastDiff.mean.toFixed(2)}` : '';
     const drift = mode === 'side' && lastDiff && !lastDiff.pass ? ' : décalés, resynchroniser' : '';
-    info.textContent = `Moteur C ${engine.version} · rendu ${renderMs.toFixed(2)} ms${gap}${drift}`;
+    showInfo(`Moteur C ${engine.version} · rendu ${renderMs.toFixed(2)} ms${gap}${drift}`);
 }
 
 let last = performance.now();
