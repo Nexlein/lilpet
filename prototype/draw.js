@@ -2,12 +2,20 @@
 // in the C engine. Units are logical pixels of the 466×466 round screen.
 import { SIZE, clamp } from './eyes.js';
 
-// Official pupil names (notes/yeux.md), in the order of the C engine's lp_pupil
-export const PUPIL_TYPES = ['dot', 'cat', 'acorn', 'circle'];
-
-// Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
-// Measured on the official catalogue (notes/yeux.md): pupils converge, a slightly cross-eyed look.
-const PUPIL_REST = { dot: [0.57, 0.12], cat: [0.35, 0.11], circle: [0.36, 0], acorn: [0.18, 0.25] };
+// Official pupils (notes/yeux.md), in the order of the C engine's lp_pupil.
+// rest: resting position, as a fraction of the eye radius: x toward the inner corner, y down. Measured on the official
+// catalogue (notes/yeux.md): pupils converge, a slightly cross-eyed look.
+// rx, ry: radii, as fractions of the eye radii, scaled by the emotion's pupil scale (ps). round: ry follows rx.
+// fixedHeight: ps leaves ry alone. maxHeightScale: ry stops following ps there. overflows: big pupils may run past the
+// edge of the eye and get clipped, the others stay fully visible.
+const PUPILS = {
+    dot: { rest: [0.57, 0.12], rx: 0.105, ry: 0.125 },
+    cat: { rest: [0.35, 0.11], rx: 0.21, ry: 0.72, fixedHeight: true },
+    // A tall ellipse set low: the bottom of the eye cuts it into its acorn shape
+    acorn: { rest: [0.18, 0.25], rx: 0.5, ry: 0.98, maxHeightScale: 1.05, overflows: true },
+    circle: { rest: [0.36, 0], rx: 0.52, round: true }
+};
+export const PUPIL_TYPES = Object.keys(PUPILS);
 // Pupils lean a little, top toward the nose (rad), against the eye tilt
 const PUPIL_LEAN = 0.09;
 
@@ -46,31 +54,14 @@ function drawSparkle(ctx, s) {
 function drawPupil(ctx, eyes, color, RX, RY, inner, uprightAngle) {
     const { gaze, look, cur } = eyes;
     const ps = cur.ps;
-    const type = look.pupil;
-    let prx, pry;
-    switch (type) {
-        case 'dot':
-            prx = RX * 0.105 * ps;
-            pry = RY * 0.125 * ps;
-            break;
-        case 'cat':
-            prx = RX * 0.21 * ps;
-            pry = RY * 0.72;
-            break;
-        case 'acorn':
-            // A tall ellipse set low: the bottom of the eye cuts it into its acorn shape
-            prx = RX * 0.5 * ps;
-            pry = RY * 0.98 * Math.min(ps, 1.05);
-            break;
-        case 'circle':
-            prx = pry = RX * 0.52 * ps;
-            break;
-    }
-    // Pupil travel is limited by how much room is left inside the eye. Big acorn pupils may
-    // run past the edge and get clipped, small ones stay fully visible.
-    const [rx0, ry0] = PUPIL_REST[type];
-    const limX = type === 'acorn' ? RX : RX - prx - 3,
-        limY = type === 'acorn' ? RY : RY - pry - 3;
+    const pupil = PUPILS[look.pupil];
+    const prx = RX * pupil.rx * ps;
+    const heightScale = pupil.fixedHeight ? 1 : Math.min(ps, pupil.maxHeightScale ?? ps);
+    const pry = pupil.round ? prx : RY * pupil.ry * heightScale;
+    // Pupil travel is limited by how much room is left inside the eye
+    const [rx0, ry0] = pupil.rest;
+    const limX = pupil.overflows ? RX : RX - prx - 3,
+        limY = pupil.overflows ? RY : RY - pry - 3;
     const x = clamp(inner * rx0 * RX + gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85, limX);
     const y = clamp(ry0 * RY + gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85, limY);
     // The eye is tilted but pupils stay nearly upright on the original: cancel the eye rotation, then lean
