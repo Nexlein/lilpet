@@ -53,7 +53,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                     aria-current={c.swatch === swatch && c.pupil === pupil}
                                     onClick={() => onPick(c.swatch, c.pupil)}
                                 >
-                                    <EyeGlyph swatch={c.swatch} pupil={c.pupil} />
+                                    <EyeGlyph colors={c.swatch} pupil={c.pupil} />
                                     <span>
                                         {c.swatch.id} <small>{PUPIL_LABELS[c.pupil].toLowerCase()}</small>
                                     </span>
@@ -105,7 +105,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                 tabIndex={s === tabStop ? 0 : -1}
                                 onClick={() => onPick(s)}
                             >
-                                <EyeGlyph swatch={s} pupil={pupil} />
+                                <EyeGlyph colors={s} pupil={pupil} />
                                 <span>{s.id}</span>
                             </button>
                         </li>

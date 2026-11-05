@@ -91,7 +91,7 @@ export function Stage({
                             checked={type === pupil}
                             onChange={() => onPupil(type)}
                         />
-                        <EyeGlyph swatch={swatch} pupil={type} />
+                        <EyeGlyph colors={swatch} pupil={type} />
                         <span>{PUPIL_LABELS[type]}</span>
                     </label>
                 ))}
