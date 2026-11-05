@@ -158,13 +158,13 @@ for (const s of SCENARIOS) {
     if (s.emotion) eyes.setEmotion(s.emotion);
     if (s.react) eyes.react(s.react);
     eyes.shaking = Boolean(s.shaking);
-    if (s.pointer) eyes.mouse = { x: s.pointer[0], y: s.pointer[1] };
-    if (s.gravity) eyes.gravity = { x: s.gravity[0], y: s.gravity[1] };
+    if (s.pointer) eyes.setPointer({ x: s.pointer[0], y: s.pointer[1] });
+    if (s.gravity) eyes.setGravity({ x: s.gravity[0], y: s.gravity[1] });
     const first = states.length;
     let t = 0;
     for (let i = 1; i <= s.steps; i++) {
         t += DT;
-        if (s.spin) eyes.gravity = { x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) };
+        if (s.spin) eyes.setGravity({ x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) });
         eyes.update(DT, t);
         if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
     }
