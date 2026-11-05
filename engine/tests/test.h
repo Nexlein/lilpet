@@ -56,6 +56,7 @@
     X(test_band_rendering_matches_whole_frame)                                                                         \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
+    X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_small_output_regions_stay_inside)
 

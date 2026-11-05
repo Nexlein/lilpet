@@ -94,7 +94,7 @@ static lp_rect clip_to(lp_rect r, int size)
     return r.x0 < r.x1 && r.y0 < r.y1 ? r : rect_empty();
 }
 
-/* Pixel box around a float box, with a one-pixel margin for anti-aliasing, clamped to the screen */
+/* Pixel box around a float box, with a one-pixel margin for anti-aliasing, clamped to the screen; empty outside it */
 static lp_rect rect_around(float x0, float y0, float x1, float y1)
 {
     const int size = LP_SCREEN_SIZE;
@@ -103,7 +103,7 @@ static lp_rect rect_around(float x0, float y0, float x1, float y1)
     r.y0 = r.y0 < 0 ? 0 : r.y0;
     r.x1 = r.x1 > size ? size : r.x1;
     r.y1 = r.y1 > size ? size : r.y1;
-    return r;
+    return rect_is_empty(r) ? rect_empty() : r;
 }
 
 /* --- Polygons --------------------------------------------------------------------------------------- */

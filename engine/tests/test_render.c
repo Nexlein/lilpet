@@ -283,6 +283,38 @@ void test_extreme_poses_render_inside_the_frame(void)
     CHECK(1);
 }
 
+void test_eyes_off_the_screen_render_nothing(void)
+{
+    /* Half past the edge, all the way past it, wider than the screen; open and closed. AddressSanitizer catches any
+     * write outside the buffers. */
+    const lp_shape deflt = lp_default_shape();
+    const lp_shape shapes[] = {
+        {deflt.rx, deflt.ry, 300.0f, deflt.tilt},
+        {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
+        {600.0f, 600.0f, deflt.gap, deflt.tilt},
+    };
+    const char *scenes[] = {"look-cherry", "blink-closed"};
+    const int sizes[] = {SIZE, 128};
+    for (int s = 0; s < 2; s++) {
+        for (int k = 0; k < 3; k++) {
+            for (int i = 0; i < 2; i++) {
+                set_scene(&eyes, scenes[s]);
+                lp_eyes_set_shape(&eyes, &shapes[k]);
+                lp_renderer_init(&renderer);
+                lp_renderer_set_size(&renderer, sizes[i]);
+                lp_render(&renderer, &eyes, frame);
+                const lp_rect d = lp_render(&renderer, &eyes, frame);
+                CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= sizes[i] && d.y1 <= sizes[i]);
+                int lit = 0;
+                for (int p = 0; p < sizes[i] * sizes[i]; p++)
+                    lit += frame[p] != 0;
+                if (k == 1) /* the eyes start past the edge, whatever their state */
+                    CHECK(lit == 0);
+            }
+        }
+    }
+}
+
 /* --- Smaller output (lp_renderer_set_size) ------------------------------------------------------------------- */
 
 enum { SMALL = 128 };
@@ -363,6 +395,7 @@ void test_small_output_regions_stay_inside(void)
     CHECK(renderer.size == 6);
 
     set_scene(&eyes, "head-turn-right");
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts start below the bottom edge of the small screen */
     lp_renderer_set_size(&renderer, SMALL);
     lp_render(&renderer, &eyes, small);
     for (int f = 0; f < 200; f++) {
