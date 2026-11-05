@@ -15,7 +15,7 @@ interface Props {
     device: DeviceState;
     onPupil(pupil: PupilType): void;
     onFavorite(): void;
-    onSend(look: Look): Promise<void>;
+    onSend(look: Look): Promise<unknown>;
 }
 
 type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'error'; message: string };

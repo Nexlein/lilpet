@@ -5,6 +5,8 @@ import { DeviceSession } from './session';
 
 const kite = makeLook(findSwatch('kite')!, 'dot');
 
+const busyPort = () => Promise.reject(new DOMException('Failed to open serial port.', 'NetworkError'));
+
 describe('device session', () => {
     it('connects to lilpet, sends looks and logs the rest', async () => {
         const device = fakePort(firmware());
@@ -17,7 +19,7 @@ describe('device session', () => {
             info: { firmware: 'abc1234', engine: '0.6.0' }
         });
         expect(seen).toContain('connecting');
-        await session.send(kite);
+        expect(await session.send(kite)).toBe('kept');
         expect(session.snapshot().log).toContain('draw 1.2 ms');
         await session.disconnect();
         expect(session.snapshot().state).toEqual({ status: 'idle' });
@@ -50,6 +52,45 @@ describe('device session', () => {
         await session.connect(); // and can connect again
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
+    });
+
+    it('explains an unplug during hello, once, without writing again', async () => {
+        const device = fakePort(() => null);
+        const session = new DeviceSession(async () => device.port);
+        const seen = new Set<unknown>(); // log lines also notify: each state counts once
+        session.subscribe(() => seen.add(session.snapshot().state));
+        const connecting = session.connect();
+        await vi.waitFor(() => expect(device.sent).toHaveLength(1));
+        device.readError({ fatal: true });
+        await connecting;
+        expect(device.sent).toHaveLength(1);
+        expect([...seen]).toEqual([{ status: 'connecting' }, { status: 'idle', error: 'lilpet n’est plus branché.' }]);
+    });
+
+    it('says when another program holds the port', async () => {
+        const session = new DeviceSession(async () => ({ ...fakePort(firmware()).port, open: busyPort }));
+        await session.connect();
+        const state = session.snapshot().state;
+        expect(state.status === 'idle' && state.error).toMatch(/déjà ouvert ailleurs/);
+    });
+
+    it('explains a failed send in French', async () => {
+        const answer = firmware();
+        let reply: string | null = 'err malformed look';
+        const device = fakePort((c) => (c === '> hello' ? answer(c) : reply));
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        await expect(session.send(kite)).rejects.toThrow('Erreur de lilpet : malformed look');
+        reply = null;
+        vi.useFakeTimers();
+        const silent = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
+        await vi.advanceTimersByTimeAsync(2000);
+        vi.useRealTimers();
+        await silent;
+        const unplugged = expect(session.send(kite)).rejects.toThrow('lilpet n’est plus branché');
+        await vi.waitFor(() => expect(device.sent).toHaveLength(4));
+        device.readError({ fatal: true });
+        await unplugged;
     });
 
     it('keeps the last log lines, without the blank ones', async () => {
