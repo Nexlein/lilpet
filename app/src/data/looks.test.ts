@@ -1,11 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FAMILIES, SWATCHES, family, findSwatch, hasTwoPupilColors, hsl, makeLook } from './looks';
-import { loadCurrent, loadFavorites, lookKey, parseLookKey, saveCurrent, saveFavorites } from './favorites';
+import {
+    browserStore,
+    loadCurrent,
+    loadFavorites,
+    lookKey,
+    parseLookKey,
+    saveCurrent,
+    saveFavorites
+} from './favorites';
 
 // In-memory stand-in for localStorage
 function memory() {
     const items = new Map<string, string>();
     return { getItem: (k: string) => items.get(k) ?? null, setItem: (k: string, v: string) => items.set(k, v) };
+}
+
+function refuse(): never {
+    throw new DOMException('refused', 'SecurityError');
 }
 
 describe('swatches', () => {
@@ -56,5 +68,24 @@ describe('favorites and current look', () => {
         saveCurrent(store, parseLookKey('kite/circle')!);
         expect(loadCurrent(store)?.swatch.id).toBe('kite');
         expect(loadCurrent(store)?.pupil).toBe('circle');
+    });
+});
+
+describe('browser storage', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('reads and writes localStorage', () => {
+        vi.stubGlobal('localStorage', memory());
+        browserStore.setItem('key', 'value');
+        expect(browserStore.getItem('key')).toBe('value');
+    });
+
+    it('goes on when the browser blocks or fills the storage', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        vi.stubGlobal('localStorage', { getItem: refuse, setItem: refuse });
+        expect(browserStore.getItem('key')).toBeNull();
+        expect(() => browserStore.setItem('key', 'value')).not.toThrow();
+        expect(warn).toHaveBeenCalledOnce();
+        warn.mockRestore();
     });
 });
