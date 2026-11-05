@@ -468,6 +468,16 @@ void test_cutting_spans(void)
     check_cut(inside_cut, 2, inside_cut, 2); /* nothing inside the hole */
 }
 
+void test_line_too_far_misses_an_ellipse(void)
+{
+    /* So far that the distance overflows into a NaN: no span, and not the whole row */
+    const lp_line line = {.u0 = 1e30f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_ellipse e = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
+    lp_spans s;
+    lp_spans_ellipse(&s, &line, &e, 0.0f, 100.0f);
+    CHECK(s.n == 0);
+}
+
 /* --- Smaller output (lp_renderer_set_size) ------------------------------------------------------------------- */
 
 enum { SMALL = 128 };

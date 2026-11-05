@@ -19,6 +19,7 @@ void test_look_text_round_trips(void)
                            "FFFFFF 000000 FFFFFF circle"};
     for (size_t i = 0; i < sizeof texts / sizeof texts[0]; i++) {
         char out[LP_LOOK_TEXT_SIZE];
+        memset(out, 'x', sizeof out);
         CHECK(lp_look_parse(texts[i], &look));
         CHECK(lp_look_format(&look, out) == (int)strlen(texts[i]));
         CHECK_STR_EQ(out, texts[i]);
