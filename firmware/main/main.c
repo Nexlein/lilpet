@@ -10,7 +10,7 @@
  * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
  * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
  * low side, and the eyes react (REACTIONS in the engine): angry held upside down, dizzy when shaken, happy when the
- * button (the AtomS3R's screen) is pressed.
+ * button (the AtomS3R's screen) is pressed. lp_senses turns what the hardware reports into all of that.
  */
 #include "../../engine/tools/bench_script.h"
 #include "board.h"
@@ -27,7 +27,6 @@
 #include "sdkconfig.h"
 
 #include <inttypes.h>
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,14 +34,13 @@
 #define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
 #define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 #define REPORT_FRAMES (10 * LP_BENCH_FPS)
-#define GRAVITY_RATE  12.0f /* per second: smooths the sensor noise, which would shake the eyes */
-#define BUTTON_SETTLE 30000 /* us: a contact bounce is shorter, so a press after a shorter release is the same one */
 
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
 
 static lp_eyes eyes;
 static lp_renderer renderer;
+static lp_senses senses;
 
 /* Sums over the frames since the last report, in microseconds */
 static struct {
@@ -90,12 +88,9 @@ void app_main(void)
     lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
+    lp_senses_init(&senses);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
-    float gravity[2] = {0.0f, 1.0f}; /* smoothed, in the screen plane */
-    lp_shake shake = {0};
-    bool pressed = false;
-    int64_t button_changed = 0;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
         display_wait_frame();
 
@@ -108,20 +103,7 @@ void app_main(void)
         if (bench)
             lp_bench_script(&eyes, f);
         float g[3];
-        if (motion && imu_gravity(g)) {
-            lp_eyes_set_shaking(&eyes, lp_shake_update(&shake, g[0], g[1], g[2], dt)); /* raw: smoothing hides it */
-            for (int i = 0; i < 2; i++)
-                gravity[i] += (g[i] - gravity[i]) * (1.0f - expf(-GRAVITY_RATE * dt));
-            lp_eyes_set_gravity(&eyes, true, gravity[0], gravity[1]);
-        } else {
-            lp_eyes_set_shaking(&eyes, false); /* no sample: never left dizzy by a sensor that stopped answering */
-        }
-        if (board_button_pressed() != pressed) {
-            pressed = !pressed;
-            if (pressed && start - button_changed > BUTTON_SETTLE)
-                lp_eyes_react(&eyes, LP_EVENT_TAP);
-            button_changed = start;
-        }
+        lp_senses_update(&senses, &eyes, imu_gravity(g) ? g : NULL, board_button_pressed(), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         const lp_rect dirty = lp_render_begin(&renderer, &eyes);
