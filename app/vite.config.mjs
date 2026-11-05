@@ -22,7 +22,7 @@ function engineFiles() {
         configureServer(server) {
             server.middlewares.use('/engine/', (req, res, next) => {
                 const file = req.url.split('?')[0].slice(1);
-                if (!(file in ENGINE_FILES)) return next();
+                if (!Object.hasOwn(ENGINE_FILES, file)) return next();
                 res.setHeader('Content-Type', ENGINE_FILES[file]);
                 res.end(readEngine(file));
             });
