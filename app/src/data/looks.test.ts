@@ -62,6 +62,12 @@ describe('favorites and current look', () => {
         expect(loadFavorites(store)).toEqual([]);
     });
 
+    it('drops favorites that could not be taken off the list', () => {
+        const store = memory();
+        store.setItem('lilpet.favorites', JSON.stringify(['cherry/dot/extra', 'cherry/cat', 'cherry/cat']));
+        expect(loadFavorites(store)).toEqual(['cherry/cat']);
+    });
+
     it('remembers the current look', () => {
         const store = memory();
         expect(loadCurrent(store)).toBeNull();
