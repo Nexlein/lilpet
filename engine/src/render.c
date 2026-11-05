@@ -1,6 +1,6 @@
 /*
- * Renderer: draws the eyes row by row into an RGB565 frame. Port of render() and the drawing helpers of
- * prototype/eyes.js; the shapes and transforms follow the same order as the canvas calls there.
+ * Renderer: draws the eyes row by row into an RGB565 frame. Port of drawEyes() and its helpers in prototype/draw.js;
+ * the shapes and transforms follow the same order as the canvas calls there.
  * Each row is composed in a float RGB buffer: eyes (sclera, pupil, glint, each clipped to the eye), then particles.
  */
 #include "internal.h"
@@ -9,7 +9,7 @@
 
 #include <string.h>
 
-/* Closed-eye stroke, measured on the official footage (see CLOSED in prototype/eyes.js) */
+/* Closed-eye stroke, measured on the official footage (see CLOSED in prototype/draw.js) */
 #define CLOSED_HALF_WIDTH 0.76f
 #define CLOSED_BOTTOM     0.7f
 #define CLOSED_DEPTH      0.245f

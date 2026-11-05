@@ -5,7 +5,7 @@ export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
 export type PupilType = (typeof PUPILS)[number];
 
 // Same look object as the prototype (makeLook in prototype/eyes.js)
-// Names of lp_event (REACTIONS in prototype/eyes.js)
+// Names of lp_event (reactions in eyes/emotions.json)
 export type EyeEvent =
     | 'tap'
     | 'shake'

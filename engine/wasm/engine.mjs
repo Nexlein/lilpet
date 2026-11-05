@@ -36,7 +36,7 @@ export async function loadEngine(moduleUrl) {
         size,
         emotions: [...emotions.keys()],
 
-        // Same as Eyes.renderScene in prototype/eyes.js
+        // Same scene object as Eyes.setScene in prototype/eyes.js
         renderScene(scene, look) {
             setLook(look);
             m._lpw_set_scene(
