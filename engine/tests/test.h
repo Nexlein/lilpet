@@ -36,6 +36,7 @@
     X(test_lying_flat_does_not_slide_the_eyes)                                                                         \
     X(test_clock_keeps_running_for_days)                                                                               \
     X(test_bad_input_is_ignored)                                                                                       \
+    X(test_scene_starts_over)                                                                                          \
     X(test_pointer_stays_inside_its_range)                                                                             \
     X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \

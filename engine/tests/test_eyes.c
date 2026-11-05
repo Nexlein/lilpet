@@ -262,6 +262,35 @@ void test_bad_input_is_ignored(void)
     CHECK(eyes.emotion == emotion);
 }
 
+void test_scene_starts_over(void)
+{
+    /* What came before leaves no trace: time, pointer, gravity, shaking and the rest are those of a fresh start */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_pointer(&eyes, true, 0.5f, 0.5f);
+    lp_eyes_set_gravity(&eyes, true, 0.0f, -1.0f);
+    lp_eyes_set_shaking(&eyes, true);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    lp_eyes_set_follow(&eyes, false);
+    for (int i = 0; i < 64; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+
+    const lp_look look = {0x123456u, LP_PUPIL_CAT, {0x111111u, 0x222222u}};
+    lp_eyes_set_look(&eyes, &look);
+    const lp_scene scene = {.emotion = LP_EMOTION_SAD, .yaw = 0.25f, .gaze_x = 0.5f};
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look); /* its own look: kept */
+
+    lp_eyes fresh;
+    lp_eyes_init(&fresh, scene.particle_seed);
+    CHECK(eyes.time == 0.0f && eyes.rng.state == fresh.rng.state);
+    CHECK(!eyes.pointer.active && !eyes.gravity.active && !eyes.shaking);
+    CHECK(eyes.head_amount == fresh.head_amount && eyes.follow);
+    CHECK(eyes.next_blink == fresh.next_blink);
+    CHECK(eyes.look.pupil == LP_PUPIL_CAT && eyes.look.sclera == look.sclera);
+    CHECK(eyes.emotion == LP_EMOTION_SAD && eyes.mood == LP_EMOTION_SAD);
+    CHECK(eyes.head.yaw == 0.25f && eyes.gaze.x == 0.5f);
+}
+
 void test_pointer_stays_inside_its_range(void)
 {
     lp_eyes eyes;
