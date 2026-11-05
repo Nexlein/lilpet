@@ -313,6 +313,11 @@ typedef struct {
     int x0, y0, x1, y1;
 } lp_rect;
 
+/* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) (internal to the renderer) */
+typedef struct {
+    float a, b, c, d, tx, ty;
+} lp_affine;
+
 #define LP_POLY_MAX 64 /* points per polygon */
 
 /* A filled shape in screen coordinates (internal to the renderer) */
@@ -326,8 +331,8 @@ typedef struct {
 typedef struct {
     bool closed;
     lp_rect box;
-    float inv_eye[6];   /* screen -> eye frame (affine a b c d tx ty) */
-    float inv_pupil[6]; /* screen -> pupil frame: upright, then leaned around the pupil center */
+    lp_affine inv_eye;   /* screen -> eye frame */
+    lp_affine inv_pupil; /* screen -> pupil frame: upright, then leaned around the pupil center */
     float rx, ry;
     float lid_m, lid_c; /* emotion top lid: keep v >= lid_m u + lid_c */
     bool blink_lid;

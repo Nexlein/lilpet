@@ -41,9 +41,9 @@ static void render_scene(const char *id, uint16_t *out)
 }
 
 /* Screen pixel of a point given in a frame whose screen->frame transform is `inv` */
-static void to_screen(const float inv[6], float u, float v, int *x, int *y)
+static void to_screen(lp_affine inv, float u, float v, int *x, int *y)
 {
-    const lp_affine m = lp_affine_inverse((lp_affine){inv[0], inv[1], inv[2], inv[3], inv[4], inv[5]});
+    const lp_affine m = lp_affine_inverse(inv);
     float sx;
     float sy;
     lp_affine_apply(m, u, v, &sx, &sy);

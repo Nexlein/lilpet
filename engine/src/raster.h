@@ -6,7 +6,7 @@
 #ifndef LILPET_RASTER_H
 #define LILPET_RASTER_H
 
-#include <stdbool.h>
+#include "lilpet/lilpet.h"
 
 #define LP_SUBROWS   8 /* vertical samples per pixel row */
 #define LP_MAX_SPANS 8
@@ -17,11 +17,6 @@ typedef struct {
     float a[LP_MAX_SPANS];
     float b[LP_MAX_SPANS];
 } lp_spans;
-
-/* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) */
-typedef struct {
-    float a, b, c, d, tx, ty;
-} lp_affine;
 
 /* A screen sub-row seen in some local frame: the local point for screen column x is (u0 + x du, v0 + x dv) */
 typedef struct {

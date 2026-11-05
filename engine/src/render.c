@@ -38,21 +38,6 @@ static const float PUPIL_REST[LP_PUPIL_COUNT][2] = {
 };
 #define PUPIL_LEAN 0.09f /* pupils lean a little, top toward the nose (rad) */
 
-static void to_array(lp_affine m, float out[6])
-{
-    out[0] = m.a;
-    out[1] = m.b;
-    out[2] = m.c;
-    out[3] = m.d;
-    out[4] = m.tx;
-    out[5] = m.ty;
-}
-
-static lp_affine from_array(const float in[6])
-{
-    return (lp_affine){.a = in[0], .b = in[1], .c = in[2], .d = in[3], .tx = in[4], .ty = in[5]};
-}
-
 static lp_rect rect_empty(void)
 {
     return (lp_rect){.x0 = LP_SCREEN_SIZE, .y0 = LP_SCREEN_SIZE, .x1 = 0, .y1 = 0};
@@ -260,7 +245,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
     lean.tx = g->px - (lean.a * g->px + lean.b * g->py);
     lean.ty = g->py - (lean.c * g->px + lean.d * g->py);
-    to_array(lp_affine_inverse(lp_affine_mul(to_screen, lean)), g->inv_pupil);
+    g->inv_pupil = lp_affine_inverse(lp_affine_mul(to_screen, lean));
     g->glint = e->cur.hl > 0.5f;
     g->gr = lp_maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
     g->gx = g->px - prx * 0.35f;
@@ -287,8 +272,8 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     m = lp_affine_mul(m, lp_affine_scale(cur->es * squash_x * bp.sx * (1.0f + cur->sq * 0.1f),
                                          cur->es * squash_y * bp.sy * (1.0f - cur->sq)));
     const lp_affine pupil = lp_affine_mul(m, lp_affine_rotate(-upright)); /* pupils stay upright */
-    to_array(lp_affine_inverse(m), g->inv_eye);
-    to_array(lp_affine_inverse(pupil), g->inv_pupil); /* setup_pupil leans it when the eye is open */
+    g->inv_eye = lp_affine_inverse(m);
+    g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
     g->rx = rx;
     g->ry = ry;
     g->sclera = e->look.sclera;
@@ -443,8 +428,8 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
     }
     const int x0 = g->box.x0;
     const int width = g->box.x1 - x0;
-    const lp_affine inv_eye = from_array(g->inv_eye);
-    const lp_affine inv_pupil = from_array(g->inv_pupil);
+    const lp_affine inv_eye = g->inv_eye;
+    const lp_affine inv_pupil = g->inv_pupil;
     const float lo = (float)x0;
     const float hi = (float)g->box.x1;
     const float w = 1.0f / (float)LP_SUBROWS;
