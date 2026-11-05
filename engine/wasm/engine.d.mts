@@ -48,6 +48,7 @@ export interface Engine {
     emotions: string[];
     renderScene(scene: Scene, look: Look): Uint8ClampedArray<ArrayBuffer>;
     init(seed: number): void;
+    // Unknown pupil, emotion and event names are ignored
     setLook(look: Look): void;
     setEmotion(name: string, duration?: number): void;
     blink(): void;
