@@ -60,7 +60,7 @@ depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
 # One image per board: BOARD names a folder of firmware/boards, with no default, since the wrong image drives the wrong
-# pins.
+# pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in a command line.
 [tasks."firmware:board"]
 description = "Fail unless BOARD names a folder of firmware/boards"
 hide = true
@@ -84,15 +84,19 @@ run = [
 [tasks."firmware:flash"]
 description = "Flash the firmware of a board (BOARD) to the board plugged in over USB (esptool finds the port)"
 depends = ["firmware:board"]
+tools = { "pypi:esptool" = "5.6.0" }
 # Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
-run = 'cd "firmware/build/$BOARD" && uvx esptool --chip esp32s3 write-flash @flash_args'
+run = 'cd "firmware/build/$BOARD" && esptool --chip esp32s3 write-flash @flash_args'
 
 [tasks."firmware:check-device"]
 description = "Check the flashed board over USB: hello, looks, commands, motion sensor (PORT, /dev/ttyACM0 by default; BOARD, if set, must match)"
-# The only part CI cannot test (no hardware). Puts the board's own look back at the end.
-run = "uvx --from pyserial python scripts/device-check.py"
+tools = { "pypi:pyserial" = "3.5" }
+# The only part CI cannot test (no hardware). Puts the board's own look back at the end. Runs in the Python of the
+# pyserial tool, the one that can import it.
+run = '"$(dirname "$(readlink -f "$(command -v pyserial-miniterm)")")/python" scripts/device-check.py'
 
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
+tools = { "pypi:pyserial" = "3.5" }
 # RTS and DTR stay low so opening the port does not reset the chip into download mode
-run = 'uvx --from pyserial pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
+run = 'pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
