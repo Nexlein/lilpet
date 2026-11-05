@@ -5,27 +5,33 @@ import { SIZE } from './eyes.js';
 
 export const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
 
-// Mean difference per channel (0-255), and share of pixels that differ by more than BIG. Anti-aliasing and RGB565
-// rounding stay well below them.
-export const PARITY = { maxMean: 1.5, big: 32, maxBigShare: 0.002 };
+// Mean difference per channel (0-255), and number of core pixels: pixels that differ by more than BIG, like their 4
+// neighbours. Anti-aliased edges are one pixel wide, so they never make a core, however bright the look; a sparkle
+// that is missing or half its size does.
+export const PARITY = { maxMean: 1.5, big: 32, maxCore: 3 };
 
 // Compares two RGBA images of SIZE × SIZE pixels
 export function compare(a, b) {
     const n = SIZE * SIZE;
+    const diff = new Float32Array(n);
     let sum = 0;
-    let big = 0;
     for (let p = 0; p < n; p++) {
-        const d =
+        diff[p] =
             (Math.abs(a[4 * p] - b[4 * p]) +
                 Math.abs(a[4 * p + 1] - b[4 * p + 1]) +
                 Math.abs(a[4 * p + 2] - b[4 * p + 2])) /
             3;
-        sum += d;
-        if (d > PARITY.big) big++;
+        sum += diff[p];
     }
+    const big = (p) => diff[p] > PARITY.big;
+    let core = 0;
+    for (let y = 1; y < SIZE - 1; y++)
+        for (let x = 1; x < SIZE - 1; x++) {
+            const p = y * SIZE + x;
+            if (big(p) && big(p - 1) && big(p + 1) && big(p - SIZE) && big(p + SIZE)) core++;
+        }
     const mean = sum / n;
-    const bigShare = big / n;
-    return { mean, bigShare, pass: mean <= PARITY.maxMean && bigShare <= PARITY.maxBigShare };
+    return { mean, core, pass: mean <= PARITY.maxMean && core <= PARITY.maxCore };
 }
 
 let flatCtx = null;

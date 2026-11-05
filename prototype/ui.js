@@ -52,8 +52,7 @@ function createEyes(seed) {
 }
 
 // Restarts both renderers from the same seed and the current settings
-function resync() {
-    const seed = randomSeed();
+function resync(seed = randomSeed()) {
     time = 0;
     createEyes(seed);
     if (!engine) return;
@@ -168,10 +167,14 @@ function applyLook() {
     setLook(makeLook(swatches[swatchSelect.value], pupilSelect.value));
 }
 
-function randomLook() {
-    swatchSelect.value = String(Math.floor(Math.random() * swatches.length));
-    pupilSelect.value = PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)];
+function pickLook(swatchIndex, pupil) {
+    swatchSelect.value = String(swatchIndex);
+    pupilSelect.value = pupil;
     applyLook();
+}
+
+function randomLook() {
+    pickLook(Math.floor(Math.random() * swatches.length), PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)]);
 }
 
 // --- Emotions ----------------------------------------------------------------------------------------------------
@@ -247,7 +250,7 @@ function bindControls() {
 
     for (const b of document.querySelectorAll('#modes button'))
         b.addEventListener('click', () => setMode(b.dataset.mode));
-    resyncButton.addEventListener('click', resync);
+    resyncButton.addEventListener('click', () => resync());
     document.getElementById('randomLook').addEventListener('click', randomLook);
     document.getElementById('blinkBtn').addEventListener('click', blink);
     const shakeBtn = document.getElementById('shakeBtn');
@@ -323,8 +326,12 @@ requestAnimationFrame(frame);
 window.live = {
     setMode,
     resync,
+    pickLook: (id, pupil) =>
+        pickLook(
+            swatches.findIndex((s) => s.id === id),
+            pupil
+        ),
     setEmotion,
-    pet,
     setPointer,
     setGravity,
     setShaking,
