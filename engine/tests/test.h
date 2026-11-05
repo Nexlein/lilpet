@@ -65,6 +65,7 @@
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
     X(test_band_rendering_matches_whole_frame)                                                                         \
+    X(test_big_endian_swaps_the_bytes_of_every_pixel)                                                                  \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
     X(test_unknown_pupil_renders_as_a_circle)                                                                          \
