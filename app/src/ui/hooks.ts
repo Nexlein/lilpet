@@ -40,3 +40,14 @@ export function useStored<T>(read: (store: KeyValueStore) => T, write: (store: K
     };
     return [value, update] as const;
 }
+
+const lessMotion = () => matchMedia('(prefers-reduced-motion: reduce)');
+
+function onMotionChange(listener: () => void): () => void {
+    const query = lessMotion();
+    query.addEventListener('change', listener);
+    return () => query.removeEventListener('change', listener);
+}
+
+// Whether the system asks for less motion
+export const useLessMotion = (): boolean => useSyncExternalStore(onMotionChange, () => lessMotion().matches);
