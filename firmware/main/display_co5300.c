@@ -145,11 +145,9 @@ const char *display_init(size_t max_band_bytes)
 #endif
 }
 
-void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
+void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    display_swap_bytes(pixels, count);
-
     const int c0 = x0 + BOARD_LCD_COLUMN_OFFSET;
     const int c1 = x1 - 1 + BOARD_LCD_COLUMN_OFFSET;
     const uint8_t columns[4] = {(uint8_t)(c0 >> 8), (uint8_t)c0, (uint8_t)(c1 >> 8), (uint8_t)c1};

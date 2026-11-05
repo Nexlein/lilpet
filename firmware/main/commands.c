@@ -135,7 +135,7 @@ static void handle_look(commands_state *state, const char *text)
 static void reply_look(const lp_look *look)
 {
     char text[LP_LOOK_TEXT_SIZE];
-    lp_look_format(look, text, sizeof text);
+    lp_look_format(look, text);
     printf("< look %s\n", text);
 }
 
