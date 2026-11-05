@@ -82,7 +82,7 @@ void app_main(void)
     lp_look look = DEFAULT_LOOK;
     look_store_load(&look);
     QueueHandle_t looks = xQueueCreate(1, sizeof(lp_look));
-    commands_start(looks, &look);
+    commands_start(looks, &look, motion);
 
     lp_eyes_init(&eyes, 1);
     /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
