@@ -4,8 +4,8 @@
  * one: no whole frame in memory, so it also runs on boards without PSRAM. The eyes idle on their own (saccades, blinks,
  * the head following the gaze), with the look chosen in the PC app (kept in flash, cherry until one is sent).
  * Without a display, they play the benchmark animation instead (engine/tools/bench_script.h), in a loop, so the
- * timings compare with the host's. Commands from the app and the timings, every 10 seconds, share the USB serial port
- * (mise run firmware:monitor).
+ * timings compare with the host's. Commands from the app and the timings, printed once per round of that animation,
+ * share the USB serial port (mise run firmware:monitor).
  *
  * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
  * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
@@ -33,7 +33,7 @@
 
 #define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
 #define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
-#define REPORT_FRAMES (10 * LP_BENCH_FPS)
+#define REPORT_FRAMES LP_BENCH_FRAMES /* a whole round of the benchmark: every report covers the same frames */
 
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
@@ -51,9 +51,10 @@ static struct {
 static void report(int64_t elapsed_us)
 {
     const int n = stats.frames;
-    printf("%" PRId64 " frames/s | draw mean %" PRId64 " max %" PRId64 " us | draw + send mean %" PRId64 " max %" PRId64
-           " us | redrawn %" PRId64 " per mille of the screen\n",
-           (int64_t)n * 1000000 / elapsed_us, stats.render / n, stats.render_max, stats.frame / n, stats.frame_max,
+    const int64_t tenths = (int64_t)n * 10000000 / elapsed_us; /* frames per second, in tenths */
+    printf("%" PRId64 ".%" PRId64 " frames/s | draw mean %" PRId64 " max %" PRId64 " us | draw + send mean %" PRId64
+           " max %" PRId64 " us | redrawn %" PRId64 " per mille of the screen\n",
+           tenths / 10, tenths % 10, stats.render / n, stats.render_max, stats.frame / n, stats.frame_max,
            stats.area / n);
     memset(&stats, 0, sizeof stats);
 }
