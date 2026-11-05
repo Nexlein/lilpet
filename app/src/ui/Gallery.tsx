@@ -1,5 +1,5 @@
 // Right column: the 100 official colors, as small pairs of eyes wearing the chosen pupil
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { FAMILIES, filterSwatches, type Family, type PupilType, type Swatch } from '../data/looks';
 import { lookKey, parseLookKey } from '../data/favorites';
 import { EyeGlyph } from './EyeGlyph';
@@ -12,12 +12,24 @@ interface Props {
     onPick(swatch: Swatch, pupil?: PupilType): void;
 }
 
+// The arrow keys walk the grid, so that its 100 colors take a single stop of the Tab key
+function walkGrid(e: KeyboardEvent<HTMLUListElement>) {
+    const columns = getComputedStyle(e.currentTarget).gridTemplateColumns.split(' ').length;
+    const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns };
+    const step = steps[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    const chips = [...e.currentTarget.querySelectorAll('button')];
+    chips[chips.indexOf(e.target as HTMLButtonElement) + step]?.focus();
+}
+
 export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
     const [query, setQuery] = useState('');
     const [families, setFamilies] = useState<ReadonlySet<Family>>(new Set());
     const [twoColors, setTwoColors] = useState(false);
 
     const shown = useMemo(() => filterSwatches({ query, families, twoColors }), [query, families, twoColors]);
+    const tabStop = shown.includes(swatch) ? swatch : shown[0];
 
     const toggleFamily = (f: Family) => {
         const next = new Set(families);
@@ -83,13 +95,14 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
             {shown.length === 0 ? (
                 <p className="empty">Aucune couleur ne correspond. Retire un filtre ou change ta recherche.</p>
             ) : (
-                <ul className="grid">
+                <ul className="grid" onKeyDown={walkGrid}>
                     {shown.map((s) => (
                         <li key={s.id}>
                             <button
                                 type="button"
                                 className="chip"
                                 aria-current={s === swatch}
+                                tabIndex={s === tabStop ? 0 : -1}
                                 onClick={() => onPick(s)}
                             >
                                 <EyeGlyph swatch={s} pupil={pupil} />
