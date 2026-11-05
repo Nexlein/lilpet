@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FAMILIES, SWATCHES, contrast, family, findSwatch, hasTwoPupilColors, hsl, inkOn, makeLook } from './looks';
+import {
+    FAMILIES,
+    SWATCHES,
+    contrast,
+    family,
+    filterSwatches,
+    findSwatch,
+    hasTwoPupilColors,
+    hsl,
+    inkOn,
+    makeLook,
+    type SwatchFilter
+} from './looks';
 import {
     browserStore,
     loadCurrent,
@@ -15,6 +27,8 @@ function memory() {
     const items = new Map<string, string>();
     return { getItem: (k: string) => items.get(k) ?? null, setItem: (k: string, v: string) => items.set(k, v) };
 }
+
+const ids = (filter: SwatchFilter) => filterSwatches(filter).map((s) => s.id);
 
 function refuse(): never {
     throw new DOMException('refused', 'SecurityError');
@@ -58,6 +72,27 @@ describe('ink on a color', () => {
         expect(inkOn('#AE0002')).toBe('#FFFFFF');
         const worst = Math.min(...SWATCHES.map((s) => contrast(s.sclera, inkOn(s.sclera))));
         expect(worst).toBeGreaterThan(4.2);
+    });
+});
+
+describe('gallery filter', () => {
+    const none = { query: '', families: new Set<never>(), twoColors: false };
+
+    it('shows every swatch without a filter', () => {
+        expect(filterSwatches(none)).toHaveLength(100);
+    });
+
+    it('searches names, whatever the case and the spaces around', () => {
+        expect(ids({ ...none, query: '  CHERR ' })).toEqual(['cherry']);
+        expect(ids({ ...none, query: 'no such color' })).toEqual([]);
+    });
+
+    it('keeps the chosen families, and the swatches with two pupil colors', () => {
+        const reds = filterSwatches({ ...none, families: new Set(['red']) });
+        expect(reds.length).toBeGreaterThan(0);
+        expect(reds.every((s) => family(s) === 'red')).toBe(true);
+        expect(filterSwatches({ ...none, twoColors: true })).toHaveLength(14);
+        expect(ids({ ...none, query: 'cherry', twoColors: true })).toEqual([]);
     });
 });
 

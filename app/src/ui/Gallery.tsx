@@ -1,7 +1,7 @@
 // Right column: the 100 official colors, as small pairs of eyes wearing the chosen pupil
 import { useMemo, useState } from 'react';
-import { FAMILIES, SWATCHES, family, hasTwoPupilColors, type Family, type PupilType, type Swatch } from '../data/looks';
-import { parseLookKey } from '../data/favorites';
+import { FAMILIES, filterSwatches, type Family, type PupilType, type Swatch } from '../data/looks';
+import { lookKey, parseLookKey } from '../data/favorites';
 import { EyeGlyph } from './EyeGlyph';
 import { FAMILY_COLORS, FAMILY_LABELS, PUPIL_LABELS } from './labels';
 
@@ -17,15 +17,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
     const [families, setFamilies] = useState<ReadonlySet<Family>>(new Set());
     const [twoColors, setTwoColors] = useState(false);
 
-    const shown = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        return SWATCHES.filter(
-            (s) =>
-                s.id.includes(q) &&
-                (families.size === 0 || families.has(family(s))) &&
-                (!twoColors || hasTwoPupilColors(s))
-        );
-    }, [query, families, twoColors]);
+    const shown = useMemo(() => filterSwatches({ query, families, twoColors }), [query, families, twoColors]);
 
     const toggleFamily = (f: Family) => {
         const next = new Set(families);
@@ -42,7 +34,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                     <h2>Tes favoris</h2>
                     <ul>
                         {favoriteLooks.map((c) => (
-                            <li key={`${c.swatch.id}/${c.pupil}`}>
+                            <li key={lookKey(c.swatch.id, c.pupil)}>
                                 <button
                                     type="button"
                                     className="chip"
