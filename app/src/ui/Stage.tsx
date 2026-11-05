@@ -18,9 +18,22 @@ interface Props {
     onPupil(pupil: PupilType): void;
     onFavorite(): void;
     onSend(look: Look): Promise<LookSent>;
+    onEmotion(name: string): void;
+    onPet(): void;
 }
 
-export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavorite, onSend }: Props) {
+export function Stage({
+    engine,
+    swatch,
+    pupil,
+    favorite,
+    device,
+    onPupil,
+    onFavorite,
+    onSend,
+    onEmotion,
+    onPet
+}: Props) {
     const look = useMemo(() => makeLook(swatch, pupil), [swatch, pupil]);
     const [emotion, setEmotion] = useState('neutral');
 
@@ -28,13 +41,20 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
     const chooseEmotion = (name: string) => {
         setEmotion(name);
         ready?.setEmotion(name);
+        onEmotion(name);
+    };
+
+    // Happy for a moment, then back to the emotion picked below
+    const pet = () => {
+        ready?.react('tap');
+        onPet();
     };
 
     return (
         <section className="stage" aria-label="Look choisi">
             <div className="case">
                 <div className="glass">
-                    {ready && <Screen engine={ready} look={look} emotion={emotion} />}
+                    {ready && <Screen engine={ready} look={look} emotion={emotion} onPet={pet} />}
                     {engine.status === 'loading' && <p className="screen-note">Réveil des yeux…</p>}
                     {engine.status === 'error' && (
                         <p className="screen-note">
@@ -78,7 +98,7 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
             </fieldset>
 
             {ready && (
-                <div className="moods" role="group" aria-label="Humeur de l'aperçu">
+                <div className="moods" role="group" aria-label="Humeur de lilpet">
                     {ready.emotions.map((name) => (
                         <button
                             key={name}
