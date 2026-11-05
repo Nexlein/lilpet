@@ -1,6 +1,6 @@
 // The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
 import data from '../../../eyes/looks.json';
-import type { Look, PupilType } from '../../../engine/wasm/engine.mjs';
+import { PUPILS, type Look, type PupilType } from '../../../engine/wasm/engine.mjs';
 
 export type { Look, PupilType };
 
@@ -13,8 +13,7 @@ export interface Swatch {
     pupilColor: readonly [string, string];
 }
 
-// Engine order (lp_pupil)
-export const PUPIL_TYPES: readonly PupilType[] = ['dot', 'cat', 'acorn', 'circle'];
+export const PUPIL_TYPES: readonly PupilType[] = PUPILS;
 
 // Checked by scripts/validate-data.mjs (CI): two pupil colors each
 export const SWATCHES: readonly Swatch[] = data.swatches as unknown as Swatch[];
