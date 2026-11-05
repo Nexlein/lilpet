@@ -38,10 +38,7 @@ export class Preview {
                 stepped = true;
             }
             // A fast screen asks for more frames than the animation has: only draw the new ones
-            if (stepped) {
-                const size = this.#engine.size;
-                this.#ctx.putImageData(new ImageData(this.#engine.render(), size, size), 0, 0);
-            }
+            if (stepped) this.#draw(this.#engine.renderView());
             this.#frame = requestAnimationFrame(tick);
         };
         this.#frame = requestAnimationFrame(tick);
@@ -49,6 +46,11 @@ export class Preview {
 
     stop(): void {
         cancelAnimationFrame(this.#frame);
+    }
+
+    #draw(pixels: Uint8ClampedArray<ArrayBuffer>): void {
+        const { size } = this.#engine;
+        this.#ctx.putImageData(new ImageData(pixels, size, size), 0, 0);
     }
 }
 
