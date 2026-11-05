@@ -61,27 +61,38 @@ void lp_spans_clip(lp_spans *s, float lo, float hi)
     s->n = n;
 }
 
-/* Removes [lo, hi) */
+/* Removes [lo, hi), in place */
 static void spans_cut(lp_spans *s, float lo, float hi)
 {
-    lp_spans out = {0};
-    for (int i = 0; i < s->n && out.n < LP_MAX_SPANS; i++) {
+    const int count = s->n;
+    int n = 0;
+    for (int i = 0; i < count; i++) {
         const float a = s->a[i];
         const float b = s->b[i];
-        const float left_end = b < lo ? b : lo;
-        if (a < left_end) {
-            out.a[out.n] = a;
-            out.b[out.n] = left_end;
-            out.n++;
+        if (a < lo && hi < b &&
+            count < LP_MAX_SPANS) { /* a hole in this span: it splits, the others stay as they are */
+            for (int k = count; k > i; k--) {
+                s->a[k] = s->a[k - 1];
+                s->b[k] = s->b[k - 1];
+            }
+            s->b[i] = lo;
+            s->a[i + 1] = hi;
+            s->n = count + 1;
+            return;
         }
+        const float left_end = b < lo ? b : lo;
         const float right_start = a > hi ? a : hi;
-        if (right_start < b && out.n < LP_MAX_SPANS) {
-            out.a[out.n] = right_start;
-            out.b[out.n] = b;
-            out.n++;
+        if (a < left_end) {
+            s->a[n] = a;
+            s->b[n] = left_end;
+            n++;
+        } else if (right_start < b) {
+            s->a[n] = right_start;
+            s->b[n] = b;
+            n++;
         }
     }
-    *s = out;
+    s->n = n;
 }
 
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb)

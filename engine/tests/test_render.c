@@ -344,6 +344,44 @@ void test_eyes_off_the_screen_render_nothing(void)
     }
 }
 
+/* Cuts [40, 60) out of the spans given as pairs of ends, and checks the pairs left */
+static void check_cut(const float (*in)[2], int count, const float (*want)[2], int want_count)
+{
+    const lp_line line = {.u0 = 0.0f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_ellipse hole = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
+    lp_spans s = {.n = count};
+    for (int i = 0; i < count; i++) {
+        s.a[i] = in[i][0];
+        s.b[i] = in[i][1];
+    }
+    lp_spans_cut_ellipse(&s, &line, &hole);
+    CHECK(s.n == want_count);
+    for (int i = 0; i < want_count && i < s.n; i++) {
+        CHECK_NEAR(s.a[i], want[i][0], 0.001f);
+        CHECK_NEAR(s.b[i], want[i][1], 0.001f);
+    }
+}
+
+void test_cutting_spans(void)
+{
+    const float whole[][2] = {{0.0f, 100.0f}};
+    const float split[][2] = {{0.0f, 40.0f}, {60.0f, 100.0f}};
+    check_cut(whole, 1, split, 2);
+
+    const float around[][2] = {{0.0f, 10.0f}, {20.0f, 100.0f}, {110.0f, 120.0f}};
+    const float around_cut[][2] = {{0.0f, 10.0f}, {20.0f, 40.0f}, {60.0f, 100.0f}, {110.0f, 120.0f}};
+    check_cut(around, 3, around_cut, 4);
+
+    const float ends[][2] = {{0.0f, 45.0f}, {55.0f, 100.0f}};
+    check_cut(ends, 2, split, 2);
+
+    const float inside[][2] = {{0.0f, 20.0f}, {45.0f, 55.0f}, {70.0f, 90.0f}};
+    const float inside_cut[][2] = {{0.0f, 20.0f}, {70.0f, 90.0f}};
+    check_cut(inside, 3, inside_cut, 2);
+
+    check_cut(inside_cut, 2, inside_cut, 2); /* nothing inside the hole */
+}
+
 /* --- Smaller output (lp_renderer_set_size) ------------------------------------------------------------------- */
 
 enum { SMALL = 128 };
