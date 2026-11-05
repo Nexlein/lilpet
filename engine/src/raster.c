@@ -84,26 +84,6 @@ static void spans_cut(lp_spans *s, float lo, float hi)
     *s = out;
 }
 
-void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t)
-{
-    int i = 0;
-    int j = 0;
-    out->n = 0;
-    while (i < s->n && j < t->n && out->n < LP_MAX_SPANS) {
-        const float a = s->a[i] > t->a[j] ? s->a[i] : t->a[j];
-        const float b = s->b[i] < t->b[j] ? s->b[i] : t->b[j];
-        if (a < b) {
-            out->a[out->n] = a;
-            out->b[out->n] = b;
-            out->n++;
-        }
-        if (s->b[i] < t->b[j])
-            i++;
-        else
-            j++;
-    }
-}
-
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb)
 {
     lp_ellipse e = {.cu = cu, .cv = cv, .inv_ra = 1.0f / ra, .inv_rb = 1.0f / rb};

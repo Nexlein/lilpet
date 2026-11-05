@@ -418,6 +418,16 @@ static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, uint32_
     }
 }
 
+/* Adds to a coverage row the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row) */
+static void add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, const lp_spans *shape, float w)
+{
+    if (shape->n == 0)
+        return;
+    lp_spans clipped = *eye;
+    lp_spans_clip(&clipped, shape->a[0], shape->b[0]);
+    lp_coverage_add(cov, x0, width, &clipped, w);
+}
+
 static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
 {
     if (y < g->box.y0 || y >= g->box.y1)
@@ -447,15 +457,12 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
 
         const lp_line pl = lp_line_at(inv_pupil, ys);
         lp_spans shape;
-        lp_spans clipped;
         lp_spans_ellipse(&shape, &pl, &shapes.pupil, lo, hi);
-        lp_spans_intersect(&clipped, &eye, &shape);
-        lp_coverage_add(r->cov[1], x0, width, &clipped, w);
+        add_inside_eye(r->cov[1], x0, width, &eye, &shape, w);
 
         if (g->glint) {
             lp_spans_ellipse(&shape, &pl, &shapes.glint, lo, hi);
-            lp_spans_intersect(&clipped, &eye, &shape);
-            lp_coverage_add(r->cov[2], x0, width, &clipped, w);
+            add_inside_eye(r->cov[2], x0, width, &eye, &shape, w);
         }
     }
 

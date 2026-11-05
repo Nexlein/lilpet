@@ -49,7 +49,6 @@ static inline lp_line lp_line_at(lp_affine inv, float y)
 }
 
 void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */
-void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t);
 
 /* Prepares an ellipse for the sub-rows of a frame (lines of step du, dv) */
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb);
