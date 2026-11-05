@@ -407,33 +407,24 @@ void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look
 {
     if (!scene_is_valid(scene))
         return;
+    const lp_look worn = *look; /* it may be the look of `eyes` */
+    lp_eyes_init(eyes, scene->particle_seed);
     lp_eyes *e = eyes;
-    e->look = *look;
+    e->look = worn;
     e->emotion = scene->emotion;
     e->mood = scene->emotion;
-    e->emotion_timer = 0.0f;
-    e->upside_down = 0.0f;
-    e->shaking = false;
-    e->spin_phase = 0.0f;
     e->cur = lp_emotion_get(scene->emotion)->expr;
-    e->shape = lp_default_shape();
     e->head.yaw = scene->yaw;
     e->head.pitch = scene->pitch;
     e->head.roll = scene->roll;
-    e->head.level = 0.0f;
     e->gaze.x = e->gaze.tx = scene->gaze_x;
     e->gaze.ty = scene->gaze_y;
     e->gaze.y = scene->gaze_y + e->cur.gy;
-    e->gaze.vx = e->gaze.vy = 0.0f;
     e->blink.phase = scene->blink_phase;
     e->blink.t = scene->blink_t;
     e->blink.hold = 0.2f;
     e->blink.open = 0.2f;
-    e->blink.twice = false;
-    e->particle_count = 0;
-    e->emit_debt = 0.0f;
     if (scene->has_particles) {
-        lp_rng_seed(&e->rng, scene->particle_seed);
         const int steps = (int)lroundf(scene->particle_time * 60.0f);
         for (int i = 0; i < steps; i++)
             update_particles(e, 1.0f / 60.0f);

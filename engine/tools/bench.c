@@ -83,7 +83,6 @@ static void bench_scenes(void)
     printf("| --- | ---: | ---: | ---: |\n");
     const int count = (int)(sizeof LPV_SCENES / sizeof LPV_SCENES[0]);
     for (int i = 0; i < count; i++) {
-        lp_eyes_init(&eyes, 1);
         lp_eyes_set_scene(&eyes, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
         int64_t whole[RUNS];
         int64_t still[RUNS];

@@ -29,7 +29,6 @@ static int find_scene(const char *id)
 static void set_scene(lp_eyes *e, const char *id)
 {
     const int i = find_scene(id);
-    lp_eyes_init(e, 1);
     lp_eyes_set_scene(e, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
 }
 
@@ -289,7 +288,6 @@ void test_extreme_poses_render_inside_the_frame(void)
                               .particle_time = 3.0f};
             if (!lp_emotion_get((lp_emotion)e)->emit)
                 scene.has_particles = false;
-            lp_eyes_init(&eyes, 1);
             lp_eyes_set_scene(&eyes, &scene, &LPV_LOOKS[p]);
             lp_renderer_init(&renderer);
             lp_render(&renderer, &eyes, frame);

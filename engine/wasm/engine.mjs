@@ -37,7 +37,6 @@ export async function loadEngine(moduleUrl) {
 
         // Same as Eyes.renderScene in prototype/eyes.js
         renderScene(scene, look) {
-            m._lpw_init(1);
             setLook(look);
             m._lpw_set_scene(
                 emotions.get(scene.emotion ?? 'neutral'),
