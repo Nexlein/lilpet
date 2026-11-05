@@ -142,6 +142,27 @@ void test_closed_eye_shows_only_the_stroke(void)
     }
 }
 
+void test_box_hugs_the_shape(void)
+{
+    /* Coverage is exact: a pixel more on each side would only redraw black */
+    render_scene("blink-closed", frame);
+    for (int side = 0; side < 2; side++) {
+        const lp_polygon *p = &other.eyes[side].shape;
+        float x0 = (float)SIZE;
+        float y0 = (float)SIZE;
+        float x1 = 0.0f;
+        float y1 = 0.0f;
+        for (int i = 0; i < p->count; i++) {
+            x0 = fminf(x0, p->pts[2 * i]);
+            y0 = fminf(y0, p->pts[2 * i + 1]);
+            x1 = fmaxf(x1, p->pts[2 * i]);
+            y1 = fmaxf(y1, p->pts[2 * i + 1]);
+        }
+        CHECK(p->box.x0 == (int)floorf(x0) && p->box.y0 == (int)floorf(y0));
+        CHECK(p->box.x1 == (int)ceilf(x1) && p->box.y1 == (int)ceilf(y1));
+    }
+}
+
 void test_render_is_deterministic(void)
 {
     render_scene("emotion-love", reference);

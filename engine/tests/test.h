@@ -59,6 +59,7 @@
     X(test_render_puts_colors_where_they_belong)                                                                       \
     X(test_render_glint_is_white)                                                                                      \
     X(test_closed_eye_shows_only_the_stroke)                                                                           \
+    X(test_box_hugs_the_shape)                                                                                         \
     X(test_render_is_deterministic)                                                                                    \
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
