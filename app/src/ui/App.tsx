@@ -26,7 +26,7 @@ export function App() {
         setFavorites(favorites.includes(key) ? favorites.filter((k) => k !== key) : [...favorites, key]);
 
     return (
-        <div className="app" style={theme(swatch)}>
+        <div style={theme(swatch)}>
             <header className="top">
                 <p className="wordmark">lilpet</p>
                 <DeviceBar state={device.state} onConnect={device.connect} onDisconnect={device.disconnect} />
