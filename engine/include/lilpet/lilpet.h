@@ -40,7 +40,7 @@ float lp_rng_next(lp_rng *rng);
 /* --- Looks -------------------------------------------------------------------------------------- */
 
 /* Official pupil names (notes/yeux.md) */
-typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE } lp_pupil;
+typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE, LP_PUPIL_COUNT } lp_pupil;
 
 typedef struct {
     uint32_t sclera;         /* eye color, 0xRRGGBB */
