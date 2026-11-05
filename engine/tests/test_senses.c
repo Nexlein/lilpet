@@ -12,7 +12,7 @@ static void start(lp_eyes *eyes, lp_senses *senses)
 /* Runs `seconds` of frames, each with the same input */
 static void run_frames(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float seconds)
 {
-    for (float t = 0.0f; t < seconds; t += STEP) {
+    for (int i = 0; (float)i * STEP < seconds; i++) {
         lp_senses_update(senses, eyes, accel, pressed, STEP);
         lp_eyes_update(eyes, STEP);
     }
