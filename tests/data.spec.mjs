@@ -32,6 +32,8 @@ test('the data files are valid', () => {
     expect(validate().status).toBe(0);
 });
 
+const sleepy = (d) => d.scenes.find((s) => s.id === 'emotion-sleepy');
+
 const CASES = [
     [LOOKS, 'a color that is not a string', (d) => (d.swatches[0].sclera = ['#AE0002']), '"sclera" must be'],
     [LOOKS, 'a pupil color that is not a string', (d) => (d.swatches[0].pupilColor[1] = ['#AE0002']), '"pupilColor"'],
@@ -48,6 +50,7 @@ const CASES = [
     [SCENES, 'an emotion inherited from Object', (d) => (d.scenes[0].emotion = 'toString'), '"emotion" must be'],
     [SCENES, 'a blink that is null', (d) => (d.scenes[0].blink = null), '"blink" must be an object'],
     [SCENES, 'particles that are null', (d) => (d.scenes[0].particles = null), '"particles" must be an object'],
+    [SCENES, 'particles all gone', (d) => (sleepy(d).particles.time = 4), 'no particle is alive'],
     [EMOTIONS, 'no emotions', (d) => delete d.emotions, '"emotions" must be a non-empty object'],
     [EMOTIONS, 'an emotion that is null', (d) => (d.emotions.sad = null), 'emotions.sad: must be an object'],
     [EMOTIONS, 'no label', (d) => delete d.emotions.sad.label, '"label" must be'],

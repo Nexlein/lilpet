@@ -12,6 +12,7 @@ const TABLES = 'engine/src/emotions_table.h';
 // Time step of the simulations: a power of two, so time sums are exact in both float (C) and double (JS)
 const DT = 1 / 64;
 
+const EXPR = Object.keys(BASE); // the fields of lp_expression: a new one breaks the C build until ported
 const emotionEnum = (name) => `LP_EMOTION_${name.toUpperCase()}`;
 const eventEnum = (name) => `LP_EVENT_${name.toUpperCase()}`;
 const particleEnum = (type) => `LP_PARTICLE_${(type ?? 'none').toUpperCase()}`;
@@ -25,6 +26,7 @@ const num = (v) => {
 // State snapshot shared by simulations and scenes (struct lpv_state in the header)
 function snapshot(eyes, time) {
     const { gaze, head, cur, blinkState, particles } = eyes;
+    const sum = (key) => num(particles.reduce((s, p) => s + (p[key] ?? 0), 0)); // hearts have no spin
     return [
         num(time),
         num(gaze.x),
@@ -36,14 +38,17 @@ function snapshot(eyes, time) {
         num(head.yaw),
         num(head.pitch),
         num(head.roll),
-        num(cur.tl),
-        num(cur.bl),
-        num(cur.gy),
-        num(cur.ps),
+        `{${EXPR.map((k) => num(cur[k])).join(', ')}}`,
         phaseEnum(blinkState.phase),
+        num(blinkState.hold),
+        num(blinkState.open),
         String(particles.length),
-        num(particles.reduce((s, p) => s + p.x, 0)),
-        num(particles.reduce((s, p) => s + p.y, 0)),
+        sum('x'),
+        sum('y'),
+        sum('size'),
+        sum('spin'),
+        sum('age'),
+        sum('life'),
         emotionEnum(eyes.emotion)
     ];
 }
@@ -129,10 +134,12 @@ out('};', '');
 // --- Simulations: from a seed, run update() and take snapshots ----------------------------------------
 out(
     'typedef struct {',
-    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, gaze_vx, gaze_vy, yaw, pitch, roll, tl, bl, gy, ps;',
+    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, gaze_vx, gaze_vy, yaw, pitch, roll;',
+    '    lp_expression cur;',
     '    lp_blink_phase blink;',
+    '    float blink_hold, blink_open;',
     '    int particles;',
-    '    float particles_x, particles_y; /* sums of the particle positions */',
+    '    float particles_x, particles_y, particles_size, particles_spin, particles_age, particles_life; /* sums */',
     '    lp_emotion emotion;',
     '} lpv_state;',
     ''
@@ -143,20 +150,30 @@ const SCENARIOS = [
     { name: 'petting', seed: 3, react: 'tap', steps: 256, every: 16 },
     { name: 'dizzy', seed: 23, react: 'shake', steps: 384, every: 16 },
     { name: 'shaken', seed: 29, shaking: true, steps: 256, every: 32 },
-    { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 32 },
+    // Every few steps: the gaze settles in about 30 of them, and its speed only shows on the way
+    { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 4 },
     // Gravity in the screen plane: object turned about 70 degrees, then about 150 (back toward upright)
     { name: 'turned', seed: 13, gravity: [0.9375, 0.34375], steps: 256, every: 32 },
     { name: 'upside-down', seed: 17, gravity: [0.5, -0.875], steps: 256, every: 32 },
+    // Lying nearly flat: little gravity left in the screen plane, so the tilt is only half trusted
+    { name: 'nearly-flat', seed: 31, gravity: [0.25, 0.375], steps: 256, every: 16 },
     // Object turning clockwise at 2 radians per second, standing up: 2.5 turns, the face stays level
     { name: 'turning', seed: 19, spin: 2, steps: 512, every: 32 },
-    { name: 'sleepy', seed: 9, emotion: 'sleepy', steps: 640, every: 64 }
+    { name: 'sleepy', seed: 9, emotion: 'sleepy', steps: 640, every: 64 },
+    { name: 'squint', seed: 37, emotion: 'squint', steps: 256, every: 16 },
+    { name: 'frown', seed: 41, emotion: 'frown', steps: 256, every: 16 },
+    // Two gaze jumps behind a blink, with the gaze bias of the emotion
+    { name: 'sad', seed: 14, emotion: 'sad', steps: 256, every: 4 },
+    { name: 'surprised', seed: 47, emotion: 'surprised', steps: 256, every: 16 },
+    // More sparkles than the engine holds: the limit, and the random sequence going on as if they all fit
+    { name: 'crowded', seed: 53, react: 'tap', reactTimes: 12, steps: 128, every: 16 }
 ];
 const states = [];
 const scenarioRows = [];
 for (const s of SCENARIOS) {
     const eyes = new Eyes(s.seed);
     if (s.emotion) eyes.setEmotion(s.emotion);
-    if (s.react) eyes.react(s.react);
+    for (let i = 0; s.react && i < (s.reactTimes ?? 1); i++) eyes.react(s.react);
     eyes.shaking = Boolean(s.shaking);
     if (s.pointer) eyes.setPointer({ x: s.pointer[0], y: s.pointer[1] });
     if (s.gravity) eyes.setGravity({ x: s.gravity[0], y: s.gravity[1] });
@@ -169,7 +186,8 @@ for (const s of SCENARIOS) {
         if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
     }
     scenarioRows.push(
-        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ${s.react ? eventEnum(s.react) : -1}, ` +
+        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ` +
+            `${s.react ? eventEnum(s.react) : -1}, ${s.reactTimes ?? 1}, ` +
             `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
             `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
             `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}, ` +
@@ -182,7 +200,7 @@ out(
     '    const char *name;',
     '    uint32_t seed;',
     '    lp_emotion emotion;',
-    '    int react; /* lp_event at the start, or -1 */',
+    '    int react, react_times; /* lp_event at the start, or -1, and how many times */',
     '    float pointer_x, pointer_y;',
     '    float gravity_x, gravity_y;',
     '    float spin; /* radians per second: gravity turning in the screen plane, from upright */',
@@ -236,7 +254,6 @@ out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');
 // --- Emotions and reactions as C tables --------------------------------------------------------------
 // Each row names its enumerator, so that a row without one does not compile; the count is checked too, so that an
 // enumerator without a row does not compile either
-const EXPR = Object.keys(BASE); // the fields of lp_expression: a new one breaks the C build until ported
 const note = (entry) => (entry.note ? ` /* ${entry.note} */` : '');
 const countCheck = (count, enumerator, name) =>
     `_Static_assert(${enumerator} == ${count}, "${name} in lilpet.h and in eyes/emotions.json differ");`;
