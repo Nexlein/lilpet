@@ -475,12 +475,20 @@ void lp_renderer_set_size(lp_renderer *renderer, int size)
     renderer->drawn = false; /* the next frame redraws everything */
 }
 
-static uint16_t pack565(const float *px)
+void lp_renderer_set_big_endian(lp_renderer *renderer, bool big_endian)
+{
+    renderer->big_endian = big_endian;
+    renderer->drawn = false; /* the next frame redraws everything */
+}
+
+/* swap: 8 exchanges the two bytes of the pixel, 0 leaves them */
+static uint16_t pack565(const float *px, unsigned swap)
 {
     const uint32_t r = (uint32_t)(px[0] * (31.0f / 255.0f) + 0.5f);
     const uint32_t g = (uint32_t)(px[1] * (63.0f / 255.0f) + 0.5f);
     const uint32_t b = (uint32_t)(px[2] * (31.0f / 255.0f) + 0.5f);
-    return (uint16_t)(r << 11u | g << 5u | b);
+    const uint32_t v = r << 11u | g << 5u | b;
+    return (uint16_t)(v << swap | v >> swap);
 }
 
 lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
@@ -524,11 +532,12 @@ static void draw_row(lp_renderer *r, int y, uint16_t *out)
     /* Most pixels repeat the one before them (background, inside of an eye), and converting to integers is slow */
     static const float NONE[3] = {-1.0f, -1.0f, -1.0f};
     const float *last = NONE;
+    const unsigned swap = r->big_endian ? 8u : 0u;
     uint16_t packed = 0;
     for (int x = d.x0; x < d.x1; x++) {
         const float *px = &r->line[3 * x];
         if (px[0] != last[0] || px[1] != last[1] || px[2] != last[2])
-            packed = pack565(px);
+            packed = pack565(px, swap);
         last = px;
         out[x - d.x0] = packed;
     }

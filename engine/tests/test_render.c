@@ -294,6 +294,52 @@ void test_band_rendering_matches_whole_frame(void)
         CHECK(band[i] == 0xABCD);
 }
 
+static uint16_t swapped(uint16_t px)
+{
+    return (uint16_t)((unsigned)px << 8u | (unsigned)px >> 8u);
+}
+
+void test_big_endian_swaps_the_bytes_of_every_pixel(void)
+{
+    /* The same animation in both orders, whole frames and bands, at both sizes */
+    const int sizes[] = {SIZE, 128};
+    for (int i = 0; i < 2; i++) {
+        const int size = sizes[i];
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+        lp_renderer_init(&renderer);
+        lp_renderer_init(&other);
+        lp_renderer_set_size(&renderer, size);
+        lp_renderer_set_size(&other, size);
+        lp_renderer_set_big_endian(&other, true);
+        memset(reference, 0, sizeof reference);
+        memset(frame, 0, sizeof frame);
+        for (int f = 0; f < 60; f++) {
+            lp_eyes_update(&eyes, 1.0f / 64.0f);
+            lp_render(&renderer, &eyes, reference);
+            if (f % 2) {
+                lp_render(&other, &eyes, frame);
+            } else {
+                const lp_rect d = lp_render_begin(&other, &eyes);
+                for (int y = d.y0; y < d.y1; y++) {
+                    lp_render_rows(&other, y, y + 1, band);
+                    memcpy(&frame[y * size + d.x0], band, (size_t)(d.x1 - d.x0) * sizeof band[0]);
+                }
+            }
+        }
+        int wrong = 0;
+        for (int p = 0; p < size * size; p++)
+            wrong += frame[p] != swapped(reference[p]);
+        CHECK(wrong == 0);
+    }
+
+    /* Back to the CPU's order: the region drawn so far is stale, so the whole frame comes again */
+    lp_renderer_set_big_endian(&other, false);
+    const lp_rect d = lp_render(&other, &eyes, frame);
+    CHECK(d.x0 == 0 && d.y0 == 0 && d.x1 == 128 && d.y1 == 128);
+    CHECK(memcmp(frame, reference, 128u * 128u * sizeof frame[0]) == 0);
+}
+
 void test_dirty_region_has_even_coordinates(void)
 {
     lp_eyes_init(&eyes, 3);

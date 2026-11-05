@@ -370,11 +370,12 @@ typedef struct {
 
 /* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque in practice. */
 typedef struct {
-    lp_rect prev;  /* region covered by the previous frame */
-    lp_rect dirty; /* region of the frame being drawn, set by lp_render_begin */
-    bool drawn;    /* a frame was drawn before (otherwise the whole screen is redrawn) */
-    int size;      /* output width and height in pixels (lp_renderer_set_size) */
-    float scale;   /* size / LP_SCREEN_SIZE */
+    lp_rect prev;    /* region covered by the previous frame */
+    lp_rect dirty;   /* region of the frame being drawn, set by lp_render_begin */
+    bool drawn;      /* a frame was drawn before (otherwise the whole screen is redrawn) */
+    int size;        /* output width and height in pixels (lp_renderer_set_size) */
+    float scale;     /* size / LP_SCREEN_SIZE */
+    bool big_endian; /* pixels written high byte first (lp_renderer_set_big_endian) */
     lp_eye_geometry eyes[2];
     lp_polygon particles[LP_MAX_PARTICLES];
     lp_rgb particle_color[LP_MAX_PARTICLES];
@@ -389,6 +390,9 @@ void lp_renderer_init(lp_renderer *renderer);
 /* Draws at another square size, from 2 to LP_SCREEN_SIZE pixels (rounded down to even), e.g. 128 for a small screen:
  * the same picture, scaled. Frames passed to lp_render are then size x size; the next frame redraws everything. */
 void lp_renderer_set_size(lp_renderer *renderer, int size);
+/* Writes each pixel high byte first in memory, the order display controllers read over SPI, instead of the CPU's (low
+ * byte first on the ESP32-S3 and in WebAssembly). The next frame redraws everything. */
+void lp_renderer_set_big_endian(lp_renderer *renderer, bool big_endian);
 /*
  * Draws the eyes into `frame` (size x size RGB565 pixels, row-major; size is LP_SCREEN_SIZE unless changed by
  * lp_renderer_set_size) and returns the region that changed since the previous call, the only part to send to the
