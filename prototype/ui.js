@@ -125,7 +125,7 @@ function react(event) {
 const pet = () => react('tap');
 
 function setPointer(point) {
-    eyes.mouse = point;
+    eyes.setPointer(point);
     engine?.setPointer(point);
 }
 
@@ -137,7 +137,7 @@ function setShaking(shaking) {
 
 // Accelerometer stand-in: gravity in the screen plane, or null
 function setGravity(g) {
-    eyes.gravity = g;
+    eyes.setGravity(g);
     engine?.setGravity(g);
 }
 

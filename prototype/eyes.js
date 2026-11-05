@@ -44,6 +44,9 @@ const BLINK = { anticip: 0.06, close: 0.1 };
 // Virtual 3D face: eye depth, camera distance, eyes facing slightly outward
 const FACE = { depth: 130, camera: 600, outward: 0.35 };
 
+// Particles alive at once, as many as the engine holds (LP_MAX_PARTICLES)
+const MAX_PARTICLES = 32;
+
 // The emitter debt often reaches exactly 1 (rate × dt sums), where float (C) and double (JS) rounding disagree:
 // the margin makes both spawn on the same frame.
 const EMIT_EPSILON = 1e-4;
@@ -68,10 +71,13 @@ export const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
 
 const TAU = Math.PI * 2;
 const TILT_SLIDE = 0.5; // gaze shift toward the low side, at full tilt
+const MAX_STEP = 1; // seconds, the longest update: after that the state has settled anyway (same as the engine)
 
 // The angle equal to `target` modulo a turn that is nearest to `from`, so that easing toward it never spins around
 const nearestTurn = (target, from) => target + TAU * Math.floor((from - target) / TAU + 0.5);
 const wrapAngle = (a) => (Math.abs(a) > Math.PI ? a - TAU * Math.sign(a) : a);
+// A NaN would spread through the easing to the whole state, for good: points that are not finite are dropped
+const finitePoint = (p) => (p && Number.isFinite(p.x) && Number.isFinite(p.y) ? p : null);
 const settled = (emotion) => Object.fromEntries(Object.keys(BASE).map((k) => [k, EMOTIONS[emotion][k]]));
 
 export class Eyes {
@@ -114,15 +120,26 @@ export class Eyes {
         this.look = look;
     }
 
-    // duration > 0: back to the mood after that many seconds; 0: the new mood
+    // duration > 0: back to the mood after that many seconds; otherwise the new mood. Unknown emotions are ignored.
     setEmotion(name, duration = 0) {
+        if (!Object.hasOwn(EMOTIONS, name)) return;
         this.emotion = name;
         this.emotionTimer = duration;
-        if (!duration) this.mood = name;
+        if (!(duration > 0)) this.mood = name;
         this.onEmotion?.(name);
     }
 
+    setPointer(point) {
+        this.mouse = finitePoint(point);
+    }
+
+    setGravity(gravity) {
+        this.gravity = finitePoint(gravity);
+    }
+
+    // Unknown events are ignored
     react(event) {
+        if (!Object.hasOwn(REACTIONS, event)) return;
         const r = REACTIONS[event];
         this.setEmotion(r.emotion, r.duration);
         for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
@@ -141,8 +158,9 @@ export class Eyes {
 
     spawn(type) {
         const r = this.rand;
+        let particle;
         if (type === 'heart') {
-            this.particles.push({
+            particle = {
                 type,
                 x: C + (r() - 0.5) * 300,
                 y: SIZE - 40 + r() * 30,
@@ -151,12 +169,12 @@ export class Eyes {
                 size: 12 + r() * 7,
                 age: 0,
                 life: 2.6 + r() * 1.4
-            });
+            };
         } else {
             // Sparkles pop around the eyes, never on top of them
             const a = r() * Math.PI * 2,
                 dist = 150 + r() * 60;
-            this.particles.push({
+            particle = {
                 type,
                 x: C + Math.cos(a) * dist,
                 y: C + Math.sin(a) * dist * 0.8,
@@ -164,8 +182,10 @@ export class Eyes {
                 spin: (r() - 0.5) * 2,
                 age: 0,
                 life: 0.6 + r() * 0.5
-            });
+            };
         }
+        // After the random draws, so that a full screen leaves the random sequence as it is (same as the engine)
+        if (this.particles.length < MAX_PARTICLES) this.particles.push(particle);
     }
 
     #updateParticles(dt) {
@@ -232,11 +252,11 @@ export class Eyes {
     }
 
     // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
-    // as it is (no timer).
+    // as it is: the timer only brings it back to itself.
     #holdReaction(event) {
         const r = REACTIONS[event];
         if (this.emotion !== r.emotion) this.react(event);
-        else if (this.emotionTimer > 0) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+        else this.emotionTimer = Math.max(this.emotionTimer, r.duration);
     }
 
     // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
@@ -307,7 +327,8 @@ export class Eyes {
     }
 
     update(dt, t) {
-        if (!(dt > 0)) return; // nothing to advance, and speeds would divide by zero (same as the engine)
+        if (!(dt > 0) || !Number.isFinite(dt)) return; // nothing to advance, and speeds would divide by zero
+        dt = Math.min(dt, MAX_STEP);
         const { cur, head, blinkState } = this;
 
         this.#easeExpression(dt);
