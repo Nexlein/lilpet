@@ -318,6 +318,11 @@ typedef struct {
     float a, b, c, d, tx, ty;
 } lp_affine;
 
+/* A color ready to blend, 0-255 per channel (internal to the renderer) */
+typedef struct {
+    float r, g, b;
+} lp_rgb;
+
 #define LP_POLY_MAX 64 /* points per polygon */
 
 /* A filled shape in screen coordinates (internal to the renderer) */
@@ -343,7 +348,7 @@ typedef struct {
     float px, py, prx, pry;
     bool glint;
     float gx, gy, gr;
-    uint32_t sclera, pupil_color;
+    lp_rgb sclera, pupil_color;
     lp_polygon shape; /* closed-eye stroke */
 } lp_eye_geometry;
 
@@ -356,7 +361,7 @@ typedef struct {
     float scale;   /* size / LP_SCREEN_SIZE */
     lp_eye_geometry eyes[2];
     lp_polygon particles[LP_MAX_PARTICLES];
-    uint32_t particle_color[LP_MAX_PARTICLES];
+    lp_rgb particle_color[LP_MAX_PARTICLES];
     float particle_alpha[LP_MAX_PARTICLES];
     int particle_count;
     float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
