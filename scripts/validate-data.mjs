@@ -124,7 +124,8 @@ eachRow(
 );
 report(); // eyes.js cannot load without its emotions
 
-const { BLINK_PHASES, PUPIL_TYPES } = await import('../prototype/eyes.js');
+const { BLINK_PHASES } = await import('../prototype/eyes.js');
+const { PUPIL_TYPES } = await import('../prototype/draw.js');
 
 const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);

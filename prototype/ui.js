@@ -1,10 +1,10 @@
 // Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard. They drive the prototype
 // (JS), the C engine (WebAssembly, built by `mise run engine:wasm`) or both side by side, as the "Rendu" switch picks.
-import { EMOTIONS, PUPIL_TYPES, Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
+import { PUPIL_TYPES, drawEyes, setupCanvas } from './draw.js';
+import { EMOTIONS, Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { compare } from './parity.js';
+import { ENGINE_URL, compareFrame } from './parity.js';
 
-const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
 // Side by side, both renderers advance in fixed steps of 1/64 s, exact in float and double, with the same seed and
 // inputs: their logic stays in step (as in the parity tests) until a rounding difference flips an event.
 const STEP = 1 / 64;
@@ -16,7 +16,6 @@ const jsCanvas = document.getElementById('screen');
 const cCanvas = document.getElementById('engine');
 const jsCtx = setupCanvas(jsCanvas);
 const cCtx = cCanvas.getContext('2d');
-const flatCtx = setupCanvas(document.createElement('canvas'), 1); // the prototype at screen resolution, to compare
 const info = document.getElementById('engineInfo');
 const resyncButton = document.getElementById('resync');
 
@@ -37,7 +36,7 @@ const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 // A new prototype renderer keeps the settings of the previous one
 function createEyes(seed) {
     const prev = eyes;
-    eyes = new Eyes(jsCtx, { seed });
+    eyes = new Eyes(seed);
     window.eyes = eyes; // drive the renderer from the browser console when debugging
     eyes.onEmotion = highlightEmotion;
     if (prev) {
@@ -277,19 +276,14 @@ function step(dt) {
     if (mode !== 'js') engine.update(dt);
 }
 
-// Prototype against C engine at screen resolution, for the side-by-side view
-function diff() {
-    eyes.ctx = flatCtx;
-    eyes.render(time);
-    eyes.ctx = jsCtx;
-    return compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, engine.render());
-}
+// Prototype against C engine, for the side-by-side view
+const diff = () => compareFrame(eyes, time, engine.render());
 
 let frames = 0;
 let lastDiff = null;
 
 function draw() {
-    if (mode !== 'c') eyes.render(time);
+    if (mode !== 'c') drawEyes(jsCtx, eyes, time);
     if (mode === 'js') return;
     const t0 = performance.now();
     const pixels = engine.render();
