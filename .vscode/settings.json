@@ -1,0 +1,4 @@
+{
+    // clangd reads the engine's compile flags from the CMake build (run `mise run engine:test` once to create it)
+    "clangd.arguments": ["--compile-commands-dir=${workspaceFolder}/engine/build/host-debug"]
+}
