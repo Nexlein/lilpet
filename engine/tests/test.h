@@ -27,6 +27,7 @@
     X(test_senses_forget_a_sensor_that_stopped)                                                                        \
     X(test_senses_stop_a_shake_when_the_sensor_stops)                                                                  \
     X(test_senses_skip_a_bad_sample)                                                                                   \
+    X(test_senses_skip_a_bad_step)                                                                                     \
     X(test_senses_debounce_the_button)                                                                                 \
     X(test_senses_let_go_of_a_face)                                                                                    \
     X(test_senses_greet_only_a_new_face)                                                                               \
@@ -34,9 +35,12 @@
     X(test_tilt_holds_lying_flat)                                                                                      \
     X(test_clock_keeps_running_for_days)                                                                               \
     X(test_bad_input_is_ignored)                                                                                       \
+    X(test_pointer_stays_inside_its_range)                                                                             \
+    X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
     X(test_shake_is_told_from_tilt_and_knocks)                                                                         \
+    X(test_shake_skips_bad_samples)                                                                                    \
     X(test_shaking_makes_it_dizzy_until_a_bit_after)                                                                   \
     X(test_shake_makes_it_dizzy_then_calm)                                                                             \
     X(test_blink_does_not_restart_while_running)                                                                       \

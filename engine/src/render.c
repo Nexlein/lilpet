@@ -94,11 +94,18 @@ static lp_rect clip_to(lp_rect r, int size)
     return r.x0 < r.x1 && r.y0 < r.y1 ? r : rect_empty();
 }
 
+/* A coordinate inside the screen, so that it fits an int whatever the shape; a NaN goes to 0 */
+static float on_screen(float v)
+{
+    return lp_minf(lp_maxf(v, 0.0f), (float)LP_SCREEN_SIZE);
+}
+
 /* Pixel box around a float box, with a one-pixel margin for anti-aliasing, clamped to the screen; empty outside it */
 static lp_rect rect_around(float x0, float y0, float x1, float y1)
 {
     const int size = LP_SCREEN_SIZE;
-    lp_rect r = {(int)floorf(x0) - 1, (int)floorf(y0) - 1, (int)ceilf(x1) + 1, (int)ceilf(y1) + 1};
+    lp_rect r = {(int)floorf(on_screen(x0)) - 1, (int)floorf(on_screen(y0)) - 1, (int)ceilf(on_screen(x1)) + 1,
+                 (int)ceilf(on_screen(y1)) + 1};
     r.x0 = r.x0 < 0 ? 0 : r.x0;
     r.y0 = r.y0 < 0 ? 0 : r.y0;
     r.x1 = r.x1 > size ? size : r.x1;
