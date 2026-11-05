@@ -1,6 +1,6 @@
 // lilpet PC app: pick the eyes, see them live, send them to the device
 import type { CSSProperties } from 'react';
-import { findSwatch, hsl, type PupilType, type Swatch } from '../data/looks';
+import { findSwatch, inkOn, type LookColors, type PupilType } from '../data/looks';
 import { loadCurrent, loadFavorites, lookKey, saveCurrent, saveFavorites, type LookChoice } from '../data/favorites';
 import { DeviceBar } from './DeviceBar';
 import { Gallery } from './Gallery';
@@ -10,13 +10,8 @@ import { useDevice, useEngine, useStored } from './hooks';
 const DEFAULT: LookChoice = { swatch: findSwatch('cherry')!, pupil: 'dot' };
 
 // The interface takes the colors of the chosen eyes
-function theme(swatch: Swatch): CSSProperties {
-    const [, , l] = hsl(swatch.sclera);
-    return {
-        '--eye': swatch.sclera,
-        '--pupil': swatch.pupilColor[0],
-        '--on-eye': l > 0.62 ? '#1A1430' : '#FFFFFF'
-    } as CSSProperties;
+function theme({ sclera }: LookColors): CSSProperties {
+    return { '--eye': sclera, '--on-eye': inkOn(sclera) } as CSSProperties;
 }
 
 export function App() {
