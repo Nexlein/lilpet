@@ -13,7 +13,7 @@ ninja = "1.13.2"
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
 [env]
-LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch]"
+LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -59,28 +59,36 @@ description = "Everything CI checks on the engine"
 depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
+# One image per board: BOARD names a folder of firmware/boards, with no default, since the wrong image drives the wrong
+# pins.
+[tasks."firmware:board"]
+description = "Fail unless BOARD names a folder of firmware/boards"
+hide = true
+run = 'test -f "firmware/boards/$BOARD/sdkconfig.board" || { echo "Set BOARD to one of:" $(ls firmware/boards) >&2; exit 1; }'
+
 [tasks."firmware:build"]
-description = "Build the firmware into firmware/build/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
+description = "Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
+depends = ["firmware:board"]
 # Docker instead of a local ESP-IDF install, like the WebAssembly build; CI runs this same task. The image is pulled
 # on first use. The Dockerfile comes from stdin: no build context to send. ESP-IDF compiles through ccache (in the
 # image); its cache lives in firmware/.ccache, kept between builds here and between runs by CI. COMPILERCHECK=content:
 # the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
-    # ESP-IDF only reads sdkconfig.defaults when it creates firmware/sdkconfig: start over when they changed, or a
-    # local build would keep old settings that CI (always fresh) does not have
-    "if [ firmware/sdkconfig.defaults -nt firmware/sdkconfig ]; then rm -f firmware/sdkconfig; fi",
+    # ESP-IDF only reads the defaults when it creates the board's sdkconfig: start over when they changed, or a local
+    # build would keep old settings that CI (always fresh) does not have
+    'for defaults in firmware/sdkconfig.defaults "firmware/boards/$BOARD/sdkconfig.board"; do if [ "$defaults" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
     "docker build -t lilpet-idf - < firmware/Dockerfile",
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py build merge-bin',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/$BOARD/sdkconfig.board" build merge-bin',
 ]
 
 [tasks."firmware:flash"]
-description = "Flash the firmware to the board plugged in over USB (esptool through uvx finds the port)"
+description = "Flash the firmware of a board (BOARD) to the board plugged in over USB (esptool finds the port)"
+depends = ["firmware:board"]
 # Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
-dir = "firmware/build"
-run = "uvx esptool --chip esp32s3 write-flash @flash_args"
+run = 'cd "firmware/build/$BOARD" && uvx esptool --chip esp32s3 write-flash @flash_args'
 
 [tasks."firmware:check-device"]
-description = "Check the flashed board over USB: hello, keeping a look across a reboot (PORT, /dev/ttyACM0 by default)"
+description = "Check the flashed board over USB: hello, looks, commands, motion sensor (PORT, /dev/ttyACM0 by default; BOARD, if set, must match)"
 # The only part CI cannot test (no hardware). Puts the board's own look back at the end.
 run = "uvx --from pyserial python scripts/device-check.py"
 

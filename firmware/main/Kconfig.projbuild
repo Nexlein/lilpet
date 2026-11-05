@@ -1,0 +1,20 @@
+menu "lilpet"
+
+    choice LILPET_BOARD
+        prompt "Board"
+        default LILPET_BOARD_NONE
+        help
+            One image per board: pins and parts are chosen at build time. Each boards/<board>/sdkconfig.board sets
+            this for mise run firmware:build; with no board, CMake stops the build (main/CMakeLists.txt).
+
+        config LILPET_BOARD_NONE
+            bool "None: the build stops"
+        config LILPET_BOARD_ATOMS3R
+            bool "M5Stack AtomS3R"
+        config LILPET_BOARD_WAVESHARE_132
+            bool "Waveshare ESP32-S3-Touch-AMOLED-1.32"
+        config LILPET_BOARD_STAMP_S3A
+            bool "M5Stamp S3A, no screen: benchmark"
+    endchoice
+
+endmenu

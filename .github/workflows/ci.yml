@@ -64,9 +64,13 @@ jobs:
         run: mise run engine:bench
 
   esp32:
-    name: ESP32-S3 firmware build
+    name: ESP32-S3 firmware build (${{ matrix.board }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [atoms3r, waveshare_132, stamp_s3a]
     steps:
       - uses: actions/checkout@v7
 
@@ -76,31 +80,32 @@ jobs:
           install: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # A new entry per commit, starting from the latest one of the same ESP-IDF image and options.
+      # A new entry per board and commit, starting from the latest one of the same board, ESP-IDF image and options.
       - uses: actions/cache@v6
         with:
           path: firmware/.ccache
-          key: ccache-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-${{ github.sha }}
-          restore-keys: ccache-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-
+          key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-${{ github.sha }}
+          restore-keys: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults') }}-
 
       # Same command as locally; proves the engine compiles for the chip (no hardware needed) and gives a binary
       # ready to flash
       - name: Build the firmware
         run: mise run firmware:build
         env:
+          BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
 
-      # Flash from the artifact folder, keeping the board's look: uvx esptool --chip esp32s3 write-flash @flash_args
+      # Flash from the folder of the right board, keeping its look: uvx esptool --chip esp32s3 write-flash @flash_args
       # merged-binary.bin, written at 0x0, is for a blank board: it also erases the look kept in flash.
       - uses: actions/upload-artifact@v7
         with:
-          name: firmware-esp32s3
+          name: firmware-${{ matrix.board }}
           path: |
-            firmware/build/flash_args
-            firmware/build/bootloader/bootloader.bin
-            firmware/build/partition_table/partition-table.bin
-            firmware/build/lilpet.bin
-            firmware/build/merged-binary.bin
+            firmware/build/${{ matrix.board }}/flash_args
+            firmware/build/${{ matrix.board }}/bootloader/bootloader.bin
+            firmware/build/${{ matrix.board }}/partition_table/partition-table.bin
+            firmware/build/${{ matrix.board }}/lilpet.bin
+            firmware/build/${{ matrix.board }}/merged-binary.bin
           if-no-files-found: error
           retention-days: 30
 

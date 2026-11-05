@@ -6,6 +6,7 @@
 #include "imu.h"
 
 #include "board.h"
+#include "board_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "imu_bmi270.h"
@@ -13,7 +14,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define ADDR       0x68u
 #define HZ         400000
 #define TIMEOUT_MS 50
 
@@ -36,15 +36,11 @@
 #define LSB_PER_G  4096.0f /* at +-8 g, the default range */
 #define CHUNK      64      /* bytes of the configuration per write */
 
-/*
- * Sensor axes to screen axes: which sensor axis, and its sign. Measured on the board (USB port down, then on the
- * left): the sensor's x points to the port, its y to the right. It measures the reaction to gravity (+1 g up when
- * lying still), so the signs also turn it into gravity.
- */
+/* Sensor axes to screen axes: how the sensor is mounted on the board */
 static const struct {
     int axis;
     float sign;
-} SCREEN_AXES[3] = {{1, -1.0f}, {0, -1.0f}, {2, -1.0f}};
+} SCREEN_AXES[3] = BOARD_IMU_AXES;
 
 static i2c_master_dev_handle_t dev;
 
@@ -120,10 +116,10 @@ static bool start(void)
 bool imu_init(void)
 {
     const i2c_master_bus_handle_t bus = board_i2c();
-    if (!bus || i2c_master_probe(bus, ADDR, TIMEOUT_MS) != ESP_OK)
+    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, TIMEOUT_MS) != ESP_OK)
         return false;
     const i2c_device_config_t config = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = ADDR, .scl_speed_hz = HZ};
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BOARD_IMU_ADDR, .scl_speed_hz = HZ};
     if (i2c_master_bus_add_device(bus, &config, &dev) != ESP_OK)
         return false;
     if (start() || start()) /* a second try from a soft reset */

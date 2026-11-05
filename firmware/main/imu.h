@@ -1,4 +1,4 @@
-/* Motion sensor, on the boards that have one (AtomS3R: BMI270) */
+/* Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (main/CMakeLists.txt) */
 #ifndef LILPET_IMU_H
 #define LILPET_IMU_H
 
