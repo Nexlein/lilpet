@@ -2,7 +2,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { browserStore, type KeyValueStore } from '../data/favorites';
 import { portPicker } from '../device/connection';
-import { DeviceSession, type DeviceState } from '../device/session';
+import { DeviceSession } from '../device/session';
 import { loadEyeEngine, type Engine } from '../engine/preview';
 
 export type EngineState = { status: 'loading' } | { status: 'ready'; engine: Engine } | { status: 'error' };
@@ -20,8 +20,6 @@ export function useEngine(): EngineState {
     }, []);
     return state;
 }
-
-export type { DeviceState };
 
 // The connection to lilpet (device/session.ts), closed when the app goes away
 export function useDevice() {
