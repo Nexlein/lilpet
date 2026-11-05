@@ -139,7 +139,8 @@ static void reply_look(const lp_look *look)
     printf("< look %s\n", text);
 }
 
-static void handle(commands_state *state, char *line)
+/* `whole`: the line fit in LINE_SIZE; otherwise it holds its start only */
+static void handle(commands_state *state, char *line, bool whole)
 {
     if (strncmp(line, "> ", 2) != 0)
         return;
@@ -150,7 +151,9 @@ static void handle(commands_state *state, char *line)
     if (*args != '\0')
         *args++ = '\0';
 
-    if (strcmp(name, "hello") == 0 && *args == '\0') {
+    if (!whole) {
+        printf("< err line too long\n");
+    } else if (strcmp(name, "hello") == 0 && *args == '\0') {
         printf("< lilpet fw=%s engine=%s board=%s camera=%d motion=%d\n", esp_app_get_description()->version,
                lp_version(), BOARD_NAME, BOARD_CAMERA, state->motion);
     } else if (strcmp(name, "look?") == 0 && *args == '\0') {
@@ -171,17 +174,34 @@ static void handle(commands_state *state, char *line)
     fflush(stdout);
 }
 
+/* Reads a line, without its end. False when it does not fit: `line` keeps its start, and the rest is thrown away up to
+ * the end of the line, so that it cannot pass for a command. */
+static bool read_line(char *line, size_t size)
+{
+    char rest[32];
+    char *chunk = line;
+    for (;;) {
+        if (!fgets(chunk, (int)size, stdin)) {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            continue;
+        }
+        const size_t length = strcspn(chunk, "\r\n");
+        const bool ended = chunk[length] != '\0' || length + 1 < size;
+        chunk[length] = '\0';
+        if (ended)
+            return chunk == line;
+        chunk = rest;
+        size = sizeof rest;
+    }
+}
+
 static void commands_task(void *arg)
 {
     commands_state *state = arg;
     char line[LINE_SIZE];
     for (;;) {
-        if (!fgets(line, sizeof line, stdin)) {
-            vTaskDelay(pdMS_TO_TICKS(20));
-            continue;
-        }
-        line[strcspn(line, "\r\n")] = '\0';
-        handle(state, line);
+        const bool whole = read_line(line, sizeof line);
+        handle(state, line, whole);
     }
 }
 

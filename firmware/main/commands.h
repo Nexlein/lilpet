@@ -8,7 +8,8 @@
  *   "> gaze <x> <y>"              a face at x, y in -1..1, to send again while it is seen (lp_senses_face)
  *   "> gaze off"                  the face is gone
  * The last four answer "< ok", or "< err <reason>" for bad input. On a board that plays the benchmark animation they
- * are refused, and looks are kept but not shown. Other lines are ignored; the timing reports share the port. */
+ * are refused, and looks are kept but not shown. A line too long gets "< err line too long". Other lines are ignored;
+ * the timing reports share the port. */
 #ifndef LILPET_COMMANDS_H
 #define LILPET_COMMANDS_H
 
