@@ -327,8 +327,13 @@ button {
     color: var(--on-eye);
 }
 
-.moods .blink {
+.gestures {
+    display: flex;
+    gap: 6px;
     margin-left: auto;
+}
+
+.moods .gestures button {
     background: none;
     border: var(--line);
 }

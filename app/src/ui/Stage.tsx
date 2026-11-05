@@ -109,9 +109,14 @@ export function Stage({
                             {EMOTION_LABELS[name] ?? name}
                         </button>
                     ))}
-                    <button type="button" className="blink" onClick={() => ready.blink()}>
-                        Cligner
-                    </button>
+                    <div className="gestures">
+                        <button type="button" onClick={() => ready.blink()}>
+                            Cligner
+                        </button>
+                        <button type="button" onClick={pet}>
+                            Caresser
+                        </button>
+                    </div>
                 </div>
             )}
 
