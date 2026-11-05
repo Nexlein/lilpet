@@ -115,6 +115,23 @@ void test_render_puts_colors_where_they_belong(void)
     }
 }
 
+void test_pixels_differing_in_one_channel_stay_apart(void)
+{
+    /* Over black, each of these eyes changes a single channel: the pixel must not pass for the one before it */
+    const uint32_t colors[] = {0xFF0000u, 0x00FF00u, 0x0000FFu};
+    for (int i = 0; i < 3; i++) {
+        const lp_look look = {colors[i], LP_PUPIL_DOT, {colors[i], colors[i]}};
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_look(&eyes, &look);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, frame);
+        int x;
+        int y;
+        to_screen(renderer.eyes[0].inv_eye, 0.0f, 0.0f, &x, &y);
+        CHECK_COLOR(frame[y * SIZE + x], colors[i]);
+    }
+}
+
 void test_render_glint_is_white(void)
 {
     render_scene("emotion-love", frame); /* looks carry no glint: it comes with emotions */
