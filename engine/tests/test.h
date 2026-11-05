@@ -33,13 +33,16 @@
     X(test_senses_greet_only_a_new_face)                                                                               \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
+    X(test_lying_flat_does_not_slide_the_eyes)                                                                         \
     X(test_clock_keeps_running_for_days)                                                                               \
     X(test_bad_input_is_ignored)                                                                                       \
     X(test_pointer_stays_inside_its_range)                                                                             \
     X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
+    X(test_holding_keeps_a_longer_emotion)                                                                             \
     X(test_shake_is_told_from_tilt_and_knocks)                                                                         \
+    X(test_shake_limits)                                                                                               \
     X(test_shake_skips_bad_samples)                                                                                    \
     X(test_shaking_makes_it_dizzy_until_a_bit_after)                                                                   \
     X(test_shake_makes_it_dizzy_then_calm)                                                                             \
@@ -60,8 +63,10 @@
     X(test_band_rendering_matches_whole_frame)                                                                         \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
+    X(test_unknown_pupil_renders_as_a_circle)                                                                          \
     X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
+    X(test_new_size_redraws_everything)                                                                                \
     X(test_small_output_regions_stay_inside)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
