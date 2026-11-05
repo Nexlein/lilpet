@@ -27,10 +27,20 @@ static const lp_emotion_def LPV_EMOTIONS[10] = {
     {"dizzy", {0.3f, -0.2f, 0.12f, 0.0f, 0.0f, 0.0f, 0.0f, 0.75f, 1.0f, 0.0f, 9.0f}, LP_PARTICLE_NONE, 0.0f},
 };
 
-static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[3] = {
-    {LP_EVENT_TAP, {LP_EMOTION_HAPPY, 1.8f, 4}},
-    {LP_EVENT_SHAKE, {LP_EMOTION_DIZZY, 1.5f, 0}},
-    {LP_EVENT_UPSIDE_DOWN, {LP_EMOTION_ANGRY, 0.5f, 0}},
+static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[13] = {
+    {LP_EVENT_TAP, {"tap", LP_EMOTION_HAPPY, 1.8f, 4}},
+    {LP_EVENT_SHAKE, {"shake", LP_EMOTION_DIZZY, 1.5f, 0}},
+    {LP_EVENT_UPSIDE_DOWN, {"upside_down", LP_EMOTION_ANGRY, 0.5f, 0}},
+    {LP_EVENT_FACE_SEEN, {"face_seen", LP_EMOTION_SURPRISED, 0.8f, 0}},
+    {LP_EVENT_GESTURE_LIKE, {"gesture_like", LP_EMOTION_HAPPY, 2.5f, 4}},
+    {LP_EVENT_GESTURE_DISLIKE, {"gesture_dislike", LP_EMOTION_SAD, 2.5f, 0}},
+    {LP_EVENT_GESTURE_OK, {"gesture_ok", LP_EMOTION_HAPPY, 1.8f, 2}},
+    {LP_EVENT_GESTURE_FIVE, {"gesture_five", LP_EMOTION_SURPRISED, 1.2f, 0}},
+    {LP_EVENT_GESTURE_CALL, {"gesture_call", LP_EMOTION_LOVE, 2.0f, 0}},
+    {LP_EVENT_EXPRESSION_HAPPY, {"expression_happy", LP_EMOTION_HAPPY, 2.0f, 2}},
+    {LP_EVENT_EXPRESSION_SAD, {"expression_sad", LP_EMOTION_SAD, 2.0f, 0}},
+    {LP_EVENT_EXPRESSION_ANGRY, {"expression_angry", LP_EMOTION_FROWN, 1.5f, 0}},
+    {LP_EVENT_EXPRESSION_SURPRISED, {"expression_surprised", LP_EMOTION_SURPRISED, 1.2f, 0}},
 };
 
 typedef struct { lp_blink_phase phase; float t, open; lp_blink_pose pose; } lpv_blink;

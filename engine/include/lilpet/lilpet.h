@@ -96,11 +96,27 @@ const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
 /* Emotion from its name; LP_EMOTION_COUNT when unknown */
 lp_emotion lp_emotion_from_name(const char *name);
 
-/* What happens to the object */
-typedef enum { LP_EVENT_TAP, LP_EVENT_SHAKE, LP_EVENT_UPSIDE_DOWN, LP_EVENT_COUNT } lp_event;
+/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (notes/materiel.md) */
+typedef enum {
+    LP_EVENT_TAP,
+    LP_EVENT_SHAKE,
+    LP_EVENT_UPSIDE_DOWN,
+    LP_EVENT_FACE_SEEN,
+    LP_EVENT_GESTURE_LIKE,
+    LP_EVENT_GESTURE_DISLIKE,
+    LP_EVENT_GESTURE_OK,
+    LP_EVENT_GESTURE_FIVE,
+    LP_EVENT_GESTURE_CALL,
+    LP_EVENT_EXPRESSION_HAPPY,
+    LP_EVENT_EXPRESSION_SAD,
+    LP_EVENT_EXPRESSION_ANGRY,
+    LP_EVENT_EXPRESSION_SURPRISED,
+    LP_EVENT_COUNT
+} lp_event;
 
 /* How the eyes react to an event: an emotion for a while, and a burst of sparkles (REACTIONS in prototype/eyes.js) */
 typedef struct {
+    const char *name; /* same names as the prototype ("tap", "gesture_like"...) */
     lp_emotion emotion;
     float duration; /* seconds */
     int sparkles;
@@ -108,6 +124,8 @@ typedef struct {
 
 /* Reaction to an event; NULL when the event is unknown */
 const lp_reaction *lp_reaction_get(lp_event event);
+/* Event from its name; LP_EVENT_COUNT when unknown */
+lp_event lp_event_from_name(const char *name);
 
 /* --- Eyes state --------------------------------------------------------------------------------- */
 

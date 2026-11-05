@@ -47,7 +47,17 @@ for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 export const REACTIONS = {
     tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
     shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken (told by the device: lp_shake_update)
-    upsideDown: { emotion: 'angry', duration: 0.5, sparkles: 0 } // renewed while the object stays upside down
+    upside_down: { emotion: 'angry', duration: 0.5, sparkles: 0 }, // renewed while the object stays upside down
+    face_seen: { emotion: 'surprised', duration: 0.8, sparkles: 0 }, // someone comes into view
+    gesture_like: { emotion: 'happy', duration: 2.5, sparkles: 4 },
+    gesture_dislike: { emotion: 'sad', duration: 2.5, sparkles: 0 },
+    gesture_ok: { emotion: 'happy', duration: 1.8, sparkles: 2 },
+    gesture_five: { emotion: 'surprised', duration: 1.2, sparkles: 0 }, // an open hand
+    gesture_call: { emotion: 'love', duration: 2, sparkles: 0 },
+    expression_happy: { emotion: 'happy', duration: 2, sparkles: 2 }, // the person's face, mirrored
+    expression_sad: { emotion: 'sad', duration: 2, sparkles: 0 },
+    expression_angry: { emotion: 'frown', duration: 1.5, sparkles: 0 },
+    expression_surprised: { emotion: 'surprised', duration: 1.2, sparkles: 0 }
 };
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
 const UPSIDE_DOWN = { gravity: -0.6, delay: 0.6 };
@@ -254,7 +264,7 @@ export class Eyes {
         // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
         this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
         if (this.shaking) this.#holdReaction('shake');
-        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upsideDown');
+        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upside_down');
 
         // Gaze target: pointer (face tracking stand-in) or idle saccades
         const tracking = this.follow && this.mouse;

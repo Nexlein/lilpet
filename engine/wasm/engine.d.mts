@@ -3,6 +3,22 @@
 export type PupilType = 'dot' | 'cat' | 'acorn' | 'circle';
 
 // Same look object as the prototype (makeLook in prototype/eyes.js)
+// Names of lp_event (REACTIONS in prototype/eyes.js)
+export type EyeEvent =
+    | 'tap'
+    | 'shake'
+    | 'upside_down'
+    | 'face_seen'
+    | 'gesture_like'
+    | 'gesture_dislike'
+    | 'gesture_ok'
+    | 'gesture_five'
+    | 'gesture_call'
+    | 'expression_happy'
+    | 'expression_sad'
+    | 'expression_angry'
+    | 'expression_surprised';
+
 export interface Look {
     id?: string;
     sclera: string;
@@ -41,7 +57,7 @@ export interface Engine {
     setFollow(follow: boolean): void;
     setShape(shape: Shape): void;
     setHeadAmount(amount: number): void;
-    react(event: 'tap' | 'shake' | 'upsideDown'): void;
+    react(event: EyeEvent): void;
     emotion(): string;
     update(dt: number): void;
     // RGBA pixels of the whole screen (size × size × 4)
