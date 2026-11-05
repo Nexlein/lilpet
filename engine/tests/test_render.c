@@ -106,11 +106,13 @@ void test_render_puts_colors_where_they_belong(void)
         const lp_eye_geometry *g = &other.eyes[side];
         int x;
         int y;
-        to_screen(g->inv_pupil, g->px, g->py, &x, &y); /* pupil center */
+        to_screen(g->inv_pupil, g->shapes.pupil.cu, g->shapes.pupil.cv, &x, &y); /* pupil center */
         CHECK_COLOR(frame[y * SIZE + x], look->pupil_color[side]);
-        to_screen(g->inv_eye, side == 0 ? -0.5f * g->rx : 0.5f * g->rx, 0.0f, &x, &y); /* outer half of the eye */
+        const float rx = eyes.shape.rx;
+        const float ry = eyes.shape.ry;
+        to_screen(g->inv_eye, side == 0 ? -0.5f * rx : 0.5f * rx, 0.0f, &x, &y); /* outer half of the eye */
         CHECK_COLOR(frame[y * SIZE + x], look->sclera);
-        to_screen(g->inv_eye, 0.0f, -1.3f * g->ry, &x, &y); /* above the eye */
+        to_screen(g->inv_eye, 0.0f, -1.3f * ry, &x, &y); /* above the eye */
         CHECK_COLOR(frame[y * SIZE + x], 0x000000);
     }
 }
@@ -139,7 +141,7 @@ void test_render_glint_is_white(void)
     CHECK(g->glint);
     int x;
     int y;
-    to_screen(g->inv_pupil, g->gx, g->gy, &x, &y);
+    to_screen(g->inv_pupil, g->shapes.glint.cu, g->shapes.glint.cv, &x, &y);
     CHECK_COLOR(frame[y * SIZE + x], 0xFFFFFF);
 }
 
@@ -154,7 +156,7 @@ void test_closed_eye_shows_only_the_stroke(void)
         int y;
         to_screen(g->inv_pupil, 0.0f, 0.0f, &x, &y); /* eye center: nothing drawn */
         CHECK_COLOR(frame[y * SIZE + x], 0x000000);
-        to_screen(g->inv_pupil, 0.0f, 0.7f * g->ry - 2.25f, &x, &y); /* middle of the stroke */
+        to_screen(g->inv_pupil, 0.0f, 0.7f * eyes.shape.ry - 2.25f, &x, &y); /* middle of the stroke */
         CHECK_COLOR(frame[y * SIZE + x], look->sclera);
     }
 }

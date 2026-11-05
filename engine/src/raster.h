@@ -23,20 +23,6 @@ typedef struct {
     float u0, du, v0, dv;
 } lp_line;
 
-/*
- * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
- * share one step (du, dv): the divisions are done once, not per sub-row (the ESP32-S3 has no fast division).
- */
-typedef struct {
-    float cu, cv, inv_ra, inv_rb;
-    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
-} lp_ellipse;
-
-/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
-typedef struct {
-    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
-} lp_half_plane;
-
 lp_affine lp_affine_mul(lp_affine m, lp_affine n); /* m after n */
 lp_affine lp_affine_inverse(lp_affine m);
 lp_affine lp_affine_rotate(float angle);

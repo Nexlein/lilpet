@@ -237,19 +237,22 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     const int t = (unsigned)type < LP_PUPIL_COUNT ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
-    g->px = lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    g->py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
-    g->prx = prx;
-    g->pry = pry;
+    const float px =
+        lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    const float py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     /* Lean around the pupil center */
     lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
-    lean.tx = g->px - (lean.a * g->px + lean.b * g->py);
-    lean.ty = g->py - (lean.c * g->px + lean.d * g->py);
+    lean.tx = px - (lean.a * px + lean.b * py);
+    lean.ty = py - (lean.c * px + lean.d * py);
     g->inv_pupil = lp_affine_inverse(lp_affine_mul(to_screen, lean));
+    const float du = g->inv_pupil.a;
+    const float dv = g->inv_pupil.c;
+    g->shapes.pupil = lp_ellipse_prepare(du, dv, px, py, prx, pry);
     g->glint = e->cur.hl > 0.5f;
-    g->gr = lp_maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
-    g->gx = g->px - prx * 0.35f;
-    g->gy = g->py - pry * 0.38f;
+    if (g->glint) {
+        const float gr = lp_maxf(lp_minf(prx, pry) * 0.28f, 4.0f);
+        g->shapes.glint = lp_ellipse_prepare(du, dv, px - prx * 0.35f, py - pry * 0.38f, gr, gr);
+    }
 }
 
 /* Mirrors drawEye in the prototype: same transform chain, lids and cuts */
@@ -274,8 +277,6 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     const lp_affine pupil = lp_affine_mul(m, lp_affine_rotate(-upright)); /* pupils stay upright */
     g->inv_eye = lp_affine_inverse(m);
     g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
-    g->rx = rx;
-    g->ry = ry;
     g->sclera = to_rgb(e->look.sclera);
     g->pupil_color = to_rgb(e->look.pupil_color[side < 0 ? 0 : 1]);
     g->closed = bp.closed;
@@ -291,23 +292,24 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     const float hy = hypotf(m.c * rx, m.d * ry);
     g->box = rect_around(m.tx - hx, m.ty - hy, m.tx + hx, m.ty + hy);
 
-    g->lid_m = cur->ts * ry * inner / rx;
-    g->lid_c = -ry + cur->tl * 2.0f * ry;
+    const float du = g->inv_eye.a;
+    const float dv = g->inv_eye.c;
+    g->shapes.eye = lp_ellipse_prepare(du, dv, 0.0f, 0.0f, rx, ry);
+    g->shapes.lid = lp_half_plane_prepare(du, dv, cur->ts * ry * inner / rx, -ry + cur->tl * 2.0f * ry);
     g->crescent = cur->cr > 0.002f;
-    g->crescent_cv = 2.0f * ry * (1.0f - cur->cr);
-    g->crescent_ra = rx * 1.05f;
-    g->crescent_rb = ry;
+    if (g->crescent)
+        g->shapes.crescent = lp_ellipse_prepare(du, dv, 0.0f, 2.0f * ry * (1.0f - cur->cr), rx * 1.05f, ry);
     g->happy = cur->bl > 0.002f;
-    g->happy_ra = rx * 1.6f;
-    g->happy_rb = ry * 1.1f;
-    g->happy_cv = ry + g->happy_rb - cur->bl * 2.0f * ry;
+    if (g->happy) {
+        const float rb = ry * 1.1f;
+        g->shapes.happy = lp_ellipse_prepare(du, dv, 0.0f, ry + rb - cur->bl * 2.0f * ry, rx * 1.6f, rb);
+    }
     g->blink_lid = bp.lid > 0.0f;
     if (g->blink_lid) {
         /* Straight lid coming down, level with the face: its slope cancels the eye tilt */
         const float slope = tanf(inner * (tilt - cur->rot));
         const float slack = fabsf(slope) * (rx + 10.0f);
-        g->blink_m = slope;
-        g->blink_c = -ry - slack + bp.lid * (2.0f * ry + 2.0f * slack);
+        g->shapes.blink = lp_half_plane_prepare(du, dv, slope, -ry - slack + bp.lid * (2.0f * ry + 2.0f * slack));
     }
     setup_pupil(g, e, rx, ry, inner, pupil);
 }
@@ -360,42 +362,18 @@ static float sub_row_y(int y, int sub)
     return (float)y + ((float)sub + 0.5f) / (float)LP_SUBROWS;
 }
 
-/* The shapes of an open eye, made ready for the sub-rows of a row (raster.h: no division left per sub-row) */
-typedef struct {
-    lp_ellipse eye, crescent, happy, pupil, glint;
-    lp_half_plane lid, blink;
-} eye_shapes;
-
-static eye_shapes prepare_shapes(const lp_eye_geometry *g, lp_affine inv_eye, lp_affine inv_pupil)
-{
-    eye_shapes s = {
-        .eye = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, 0.0f, g->rx, g->ry),
-        .lid = lp_half_plane_prepare(inv_eye.a, inv_eye.c, g->lid_m, g->lid_c),
-        .pupil = lp_ellipse_prepare(inv_pupil.a, inv_pupil.c, g->px, g->py, g->prx, g->pry),
-    };
-    if (g->crescent)
-        s.crescent = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, g->crescent_cv, g->crescent_ra, g->crescent_rb);
-    if (g->happy)
-        s.happy = lp_ellipse_prepare(inv_eye.a, inv_eye.c, 0.0f, g->happy_cv, g->happy_ra, g->happy_rb);
-    if (g->blink_lid)
-        s.blink = lp_half_plane_prepare(inv_eye.a, inv_eye.c, g->blink_m, g->blink_c);
-    if (g->glint)
-        s.glint = lp_ellipse_prepare(inv_pupil.a, inv_pupil.c, g->gx, g->gy, g->gr, g->gr);
-    return s;
-}
-
 /* Eye region on one sub-row: ellipse, then lids and cuts */
-static void eye_spans(const lp_eye_geometry *g, const eye_shapes *s, lp_affine inv, float y, lp_spans *out)
+static void eye_spans(const lp_eye_geometry *g, float y, lp_spans *out)
 {
-    const lp_line line = lp_line_at(inv, y);
-    lp_spans_ellipse(out, &line, &s->eye, (float)g->box.x0, (float)g->box.x1);
-    lp_spans_keep_below(out, &line, &s->lid);
+    const lp_line line = lp_line_at(g->inv_eye, y);
+    lp_spans_ellipse(out, &line, &g->shapes.eye, (float)g->box.x0, (float)g->box.x1);
+    lp_spans_keep_below(out, &line, &g->shapes.lid);
     if (g->crescent)
-        lp_spans_cut_ellipse(out, &line, &s->crescent);
+        lp_spans_cut_ellipse(out, &line, &g->shapes.crescent);
     if (g->happy)
-        lp_spans_cut_ellipse(out, &line, &s->happy);
+        lp_spans_cut_ellipse(out, &line, &g->shapes.happy);
     if (g->blink_lid)
-        lp_spans_keep_below(out, &line, &s->blink);
+        lp_spans_keep_below(out, &line, &g->shapes.blink);
 }
 
 static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb color, float alpha)
@@ -438,30 +416,27 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
     }
     const int x0 = g->box.x0;
     const int width = g->box.x1 - x0;
-    const lp_affine inv_eye = g->inv_eye;
-    const lp_affine inv_pupil = g->inv_pupil;
     const float lo = (float)x0;
     const float hi = (float)g->box.x1;
     const float w = 1.0f / (float)LP_SUBROWS;
-    const eye_shapes shapes = prepare_shapes(g, inv_eye, inv_pupil);
     for (int k = 0; k < 3; k++)
         memset(r->cov[k], 0, (size_t)(width + 1) * sizeof r->cov[k][0]);
 
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
         lp_spans eye;
-        eye_spans(g, &shapes, inv_eye, ys, &eye);
+        eye_spans(g, ys, &eye);
         if (eye.n == 0)
             continue;
         lp_coverage_add(r->cov[0], x0, width, &eye, w);
 
-        const lp_line pl = lp_line_at(inv_pupil, ys);
+        const lp_line pl = lp_line_at(g->inv_pupil, ys);
         lp_spans shape;
-        lp_spans_ellipse(&shape, &pl, &shapes.pupil, lo, hi);
+        lp_spans_ellipse(&shape, &pl, &g->shapes.pupil, lo, hi);
         add_inside_eye(r->cov[1], x0, width, &eye, &shape, w);
 
         if (g->glint) {
-            lp_spans_ellipse(&shape, &pl, &shapes.glint, lo, hi);
+            lp_spans_ellipse(&shape, &pl, &g->shapes.glint, lo, hi);
             add_inside_eye(r->cov[2], x0, width, &eye, &shape, w);
         }
     }
