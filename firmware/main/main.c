@@ -1,27 +1,26 @@
 /*
- * Firmware entry point: the eyes, live on the display. Each frame starts on the display refresh signal (TE), draws
- * its dirty region band by band into two small buffers in internal RAM, and sends each band by DMA while drawing the
- * next one: no whole frame in memory, so it also runs on boards without PSRAM. The eyes idle on their own (saccades,
- * blinks, the head following the gaze), with the look chosen in the PC app (kept in flash, cherry until one is sent).
+ * Firmware entry point: the eyes, live on the display. Each frame starts when the display is ready for it, draws its
+ * dirty region band by band into two small buffers in internal RAM, and sends each band by DMA while drawing the next
+ * one: no whole frame in memory, so it also runs on boards without PSRAM. The eyes idle on their own (saccades, blinks,
+ * the head following the gaze), with the look chosen in the PC app (kept in flash, cherry until one is sent).
  * Without a display, they play the benchmark animation instead (engine/tools/bench_script.h), in a loop, so the
  * timings compare with the host's. Commands from the app and the timings, every 10 seconds, share the USB serial port
  * (mise run firmware:monitor).
  *
- * The display is found at startup (display.c), and the engine draws at its size. Without a TE signal (the AtomS3R's
- * small LCD, or no display at all on a bare M5Stamp S3A), frames are paced at 60 per second; without a display, the
- * bands go out on unconnected pins and the timings stay meaningful. With a motion sensor (imu.h), tilting the board
- * turns the face to stay level and slides the eyes toward the low side, and the eyes react (REACTIONS in the engine):
- * angry held upside down, dizzy when shaken, happy when the button (the AtomS3R's screen) is pressed.
+ * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
+ * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
+ * low side, and the eyes react (REACTIONS in the engine): angry held upside down, dizzy when shaken, happy when the
+ * button (the AtomS3R's screen) is pressed.
  */
 #include "../../engine/tools/bench_script.h"
 #include "board.h"
+#include "board_config.h"
 #include "commands.h"
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "freertos/task.h"
 #include "imu.h"
 #include "lilpet/lilpet.h"
 #include "look_store.h"
@@ -34,7 +33,7 @@
 #include <string.h>
 
 #define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
-#define BAND_BYTES    (LP_SCREEN_SIZE * BAND_ROWS * sizeof(uint16_t))
+#define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 #define REPORT_FRAMES (10 * LP_BENCH_FPS)
 #define GRAVITY_RATE  12.0f /* per second: smooths the sensor noise, which would shake the eyes */
 #define BUTTON_SETTLE 30000 /* us: a contact bounce is shorter, so a press after a shorter release is the same one */
@@ -51,29 +50,30 @@ static struct {
     int64_t render, render_max, frame, frame_max, area;
 } stats;
 
-static void report(int64_t elapsed_us, bool synced)
+static void report(int64_t elapsed_us)
 {
     const int n = stats.frames;
-    printf("%" PRId64 " frames/s (%s) | draw mean %" PRId64 " max %" PRId64 " us | draw + send mean %" PRId64
-           " max %" PRId64 " us | redrawn %" PRId64 " per mille of the screen\n",
-           (int64_t)n * 1000000 / elapsed_us, synced ? "display refresh" : "no TE signal, 60 paced", stats.render / n,
-           stats.render_max, stats.frame / n, stats.frame_max, stats.area / n);
+    printf("%" PRId64 " frames/s | draw mean %" PRId64 " max %" PRId64 " us | draw + send mean %" PRId64 " max %" PRId64
+           " us | redrawn %" PRId64 " per mille of the screen\n",
+           (int64_t)n * 1000000 / elapsed_us, stats.render / n, stats.render_max, stats.frame / n, stats.frame_max,
+           stats.area / n);
     memset(&stats, 0, sizeof stats);
 }
 
 void app_main(void)
 {
+    board_init();
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
-    const display_info screen = display_init(BAND_BYTES);
-    const bool synced = screen.synced;
-    const bool bench = !screen.present; /* no screen: replay the host benchmark's animation, for the timings */
+    const char *screen = display_init(BAND_BYTES);
+    const bool bench = BOARD_BENCH; /* no screen: replay the host benchmark's animation, for the timings */
     const bool motion = imu_init();
-    printf("\nlilpet %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d rows, "
-           "%u bytes of internal RAM free\n",
-           lp_version(), CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen.name, screen.size, screen.size,
-           motion ? "yes" : "none", bench ? "benchmark" : "idle", BAND_ROWS,
-           (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    printf(
+        "\nlilpet %s, board %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d "
+        "rows, %u bytes of internal RAM free\n",
+        lp_version(), BOARD_NAME, CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen, BOARD_DISPLAY_SIZE, BOARD_DISPLAY_SIZE,
+        motion ? "yes" : "none", bench ? "benchmark" : "idle", BAND_ROWS,
+        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
     if (!bands[0] || !bands[1]) {
         printf("not enough DMA memory for the bands\n");
         return;
@@ -89,8 +89,7 @@ void app_main(void)
     /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
     lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
     lp_renderer_init(&renderer);
-    lp_renderer_set_size(&renderer, screen.size); /* same picture, scaled to a smaller screen */
-    TickType_t wake = xTaskGetTickCount();
+    lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     float gravity[2] = {0.0f, 1.0f}; /* smoothed, in the screen plane */
@@ -98,10 +97,7 @@ void app_main(void)
     bool pressed = false;
     int64_t button_changed = 0;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
-        if (synced)
-            display_wait_refresh(50);
-        else
-            vTaskDelayUntil(&wake, pdMS_TO_TICKS(1000 / LP_BENCH_FPS));
+        display_wait_frame();
 
         const int64_t start = esp_timer_get_time();
         if (xQueueReceive(looks, &look, 0) == pdTRUE && !bench)
@@ -146,10 +142,11 @@ void app_main(void)
         stats.render_max = render > stats.render_max ? render : stats.render_max;
         stats.frame += frame;
         stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
-        stats.area += (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (screen.size * screen.size);
+        stats.area +=
+            (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (BOARD_DISPLAY_SIZE * BOARD_DISPLAY_SIZE);
         if (stats.frames == REPORT_FRAMES) {
             const int64_t now = esp_timer_get_time();
-            report(now - report_start, synced);
+            report(now - report_start);
             report_start = now;
         }
     }

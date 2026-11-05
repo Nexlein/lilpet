@@ -1,14 +1,14 @@
 /*
  * Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack
- * changed it in 2026), told apart by their ID. Pins, init sequences, offsets, orientation, color inversion and the
- * backlight chip come from M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes). No TE
- * signal: the caller paces the frames.
+ * changed it in 2026), told apart by their ID. Init sequences, offsets, orientation and color inversion come from
+ * M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes), like the board's pins and backlight
+ * (boards/atoms3r/board_config.h, board.c). No TE signal: display_paced.c paces the frames.
  */
 #include "board.h"
-#include "display_driver.h"
+#include "board_config.h"
+#include "display.h"
 
 #include "driver/gpio.h"
-#include "driver/i2c_master.h"
 #include "driver/spi_master.h"
 #include "esp_err.h"
 #include "esp_lcd_io_spi.h"
@@ -18,18 +18,8 @@
 
 #include <stdio.h>
 
-#define PIN_SCLK  GPIO_NUM_15
-#define PIN_MOSI  GPIO_NUM_21 /* also read back: the controller answers on the same wire (3-wire SPI) */
-#define PIN_DC    GPIO_NUM_42
-#define PIN_CS    GPIO_NUM_14
-#define PIN_RESET GPIO_NUM_48
-
-#define SIZE           128
-#define SPI_HZ         (40 * 1000 * 1000) /* M5GFX's write clock */
-#define ID_HZ          (1 * 1000 * 1000)  /* slow and safe, for the one ID read */
-#define BACKLIGHT_ADDR 0x30u
-#define BACKLIGHT_HZ   400000
-#define BRIGHTNESS     160u /* out of 255 */
+#define SPI_HZ (40 * 1000 * 1000) /* M5GFX's write clock */
+#define ID_HZ  (1 * 1000 * 1000)  /* slow and safe, for the one ID read */
 
 #define CMD_NOP          0x00u
 #define CMD_READ_ID      0x04u
@@ -118,7 +108,6 @@ static const panel GC9107 = {"AtomS3R LCD (GC9107)", 0, 32, 0x08u, false, STEPS(
 
 static const panel *chip = &GC9107;
 static esp_lcd_panel_io_handle_t io;
-static i2c_master_dev_handle_t backlight;
 
 static void send(uint8_t cmd, const uint8_t *params, size_t len)
 {
@@ -134,17 +123,17 @@ static const panel *detect(char *raw, size_t raw_size)
     spi_device_handle_t dev;
     const spi_device_interface_config_t config = {
         .clock_speed_hz = ID_HZ,
-        .spics_io_num = PIN_CS,
+        .spics_io_num = BOARD_LCD_CS,
         .queue_size = 1,
         .flags = SPI_DEVICE_3WIRE | SPI_DEVICE_HALFDUPLEX,
     };
     ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &config, &dev));
     ESP_ERROR_CHECK(spi_device_acquire_bus(dev, portMAX_DELAY));
-    gpio_set_level(PIN_DC, 0);
+    gpio_set_level(BOARD_LCD_DC, 0);
     spi_transaction_t command = {
         .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_CS_KEEP_ACTIVE, .length = 8, .tx_data = {CMD_READ_ID}};
     ESP_ERROR_CHECK(spi_device_polling_transmit(dev, &command));
-    gpio_set_level(PIN_DC, 1);
+    gpio_set_level(BOARD_LCD_DC, 1);
     uint8_t answer[6] = {0};
     spi_transaction_t data = {.rxlength = 8 * sizeof answer, .rx_buffer = answer};
     ESP_ERROR_CHECK(spi_device_polling_transmit(dev, &data));
@@ -167,43 +156,19 @@ static const panel *detect(char *raw, size_t raw_size)
     return NULL;
 }
 
-static void set_backlight(uint8_t reg, uint8_t value)
+const char *display_init(size_t max_band_bytes)
 {
-    const uint8_t bytes[2] = {reg, value};
-    if (backlight && i2c_master_transmit(backlight, bytes, sizeof bytes, 50) != ESP_OK)
-        printf("backlight: no answer from the driver at I2C 0x%02X\n", BACKLIGHT_ADDR);
-}
-
-/* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
-static void start_backlight(void)
-{
-    const i2c_master_bus_handle_t bus = board_i2c(); /* shared with the motion sensor */
-    const i2c_device_config_t device = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BACKLIGHT_ADDR, .scl_speed_hz = BACKLIGHT_HZ};
-    if (!bus || i2c_master_bus_add_device(bus, &device, &backlight) != ESP_OK) {
-        printf("backlight: cannot reach its driver on the I2C bus\n");
-        return;
-    }
-    /* Register writes of M5GFX's Light_M5StackAtomS3R */
-    set_backlight(0x00u, 0x40u); /* chip enabled */
-    vTaskDelay(pdMS_TO_TICKS(1));
-    set_backlight(0x08u, 0x01u); /* internal clock */
-    set_backlight(0x70u, 0x00u); /* outputs driven by the brightness registers */
-    set_backlight(0x0Eu, BRIGHTNESS);
-}
-
-static display_info atoms3r_init(size_t max_band_bytes)
-{
-    const gpio_config_t outputs = {.pin_bit_mask = 1ULL << PIN_RESET | 1ULL << PIN_DC, .mode = GPIO_MODE_OUTPUT};
+    const gpio_config_t outputs = {.pin_bit_mask = 1ULL << BOARD_LCD_RESET | 1ULL << BOARD_LCD_DC,
+                                   .mode = GPIO_MODE_OUTPUT};
     ESP_ERROR_CHECK(gpio_config(&outputs));
-    gpio_set_level(PIN_RESET, 0);
+    gpio_set_level(BOARD_LCD_RESET, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(PIN_RESET, 1);
+    gpio_set_level(BOARD_LCD_RESET, 1);
     vTaskDelay(pdMS_TO_TICKS(120));
 
     const spi_bus_config_t bus = {
-        .sclk_io_num = PIN_SCLK,
-        .mosi_io_num = PIN_MOSI,
+        .sclk_io_num = BOARD_LCD_SCLK,
+        .mosi_io_num = BOARD_LCD_MOSI,
         .miso_io_num = GPIO_NUM_NC,
         .quadwp_io_num = GPIO_NUM_NC,
         .quadhd_io_num = GPIO_NUM_NC,
@@ -218,8 +183,8 @@ static display_info atoms3r_init(size_t max_band_bytes)
         printf("display ID not recognized (%s): trying the GC9107 settings\n", raw);
 
     const esp_lcd_panel_io_spi_config_t io_config = {
-        .cs_gpio_num = PIN_CS,
-        .dc_gpio_num = PIN_DC,
+        .cs_gpio_num = BOARD_LCD_CS,
+        .dc_gpio_num = BOARD_LCD_DC,
         .spi_mode = 0,
         .pclk_hz = SPI_HZ,
         .trans_queue_depth = 10,
@@ -238,19 +203,14 @@ static display_info atoms3r_init(size_t max_band_bytes)
     send(chip->invert ? CMD_INVERT_ON : CMD_INVERT_OFF, NULL, 0);
     send(CMD_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
     send(CMD_ORIENTATION, &chip->orientation, 1);
-    start_backlight();
-    return (display_info){.name = chip->name, .size = SIZE, .present = true, .synced = false};
+    board_backlight_on();
+    return chip->name;
 }
 
-static bool atoms3r_wait_refresh(int timeout_ms)
-{
-    (void)timeout_ms;
-    return false; /* no TE signal on this board */
-}
-
-static void atoms3r_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
+void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
+    display_swap_bytes(pixels, count);
 
     const int c0 = x0 + chip->column;
     const int c1 = x1 - 1 + chip->column;
@@ -263,14 +223,7 @@ static void atoms3r_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(io, CMD_WRITE_RAM, pixels, count * sizeof pixels[0]));
 }
 
-static void atoms3r_flush(void)
+void display_flush(void)
 {
     send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
 }
-
-const display_driver DISPLAY_ATOMS3R = {
-    .init = atoms3r_init,
-    .wait_refresh = atoms3r_wait_refresh,
-    .draw = atoms3r_draw,
-    .flush = atoms3r_flush,
-};
