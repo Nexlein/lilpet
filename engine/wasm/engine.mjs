@@ -25,8 +25,11 @@ export async function loadEngine(moduleUrl) {
         m._lpw_set_look(color(look.sclera), pupil, color(look.pupilColor[0]), color(look.pupilColor[1]));
     };
 
-    // Renders the current state; returns a copy of the RGBA pixels (size × size × 4)
-    const render = () => new Uint8ClampedArray(m.HEAPU8.buffer, m._lpw_render(), size * size * 4).slice();
+    // Renders the current state; returns the RGBA pixels (size × size × 4) in the engine's memory, until the next render
+    const renderView = () => new Uint8ClampedArray(m.HEAPU8.buffer, m._lpw_render(), size * size * 4);
+
+    // The same, as a copy to keep
+    const render = () => renderView().slice();
 
     return {
         version: m.UTF8ToString(m._lp_version()),
@@ -70,6 +73,7 @@ export async function loadEngine(moduleUrl) {
         },
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
-        render
+        render,
+        renderView
     };
 }

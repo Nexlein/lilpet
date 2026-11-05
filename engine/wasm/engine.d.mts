@@ -65,6 +65,8 @@ export interface Engine {
     update(dt: number): void;
     // RGBA pixels of the whole screen (size × size × 4)
     render(): Uint8ClampedArray<ArrayBuffer>;
+    // The same without a copy, in the engine's memory: valid until the next render
+    renderView(): Uint8ClampedArray<ArrayBuffer>;
 }
 
 export function loadEngine(moduleUrl: string): Promise<Engine>;
