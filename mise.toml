@@ -7,7 +7,7 @@ gitleaks = "8.30.1"
 # C engine: build (CMake + Ninja), formatting and static analysis
 cmake = "4.4.5"
 ninja = "1.13.2"
-"pypi:clang-format" = "23.1.3"
+"pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
@@ -30,15 +30,6 @@ run = [
     "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
 ]
 
-[tasks."engine:scenes"]
-description = "Render the reference scenes with the engine into engine/build/scenes (PPM) and a contact sheet (PNG)"
-depends = ["engine:test"]
-run = [
-    "mkdir -p engine/build/scenes",
-    "engine/build/host-debug/lilpet_render_scenes engine/build/scenes",
-    "ffmpeg -v error -y -pattern_type glob -i 'engine/build/scenes/*.ppm' -vf 'scale=233:-1,tile=6x6' -frames:v 1 engine/build/scenes.png",
-]
-
 [tasks."engine:bench"]
 description = "Time the renderer per reference scene and over an animation (Release build); compare on one machine"
 dir = "engine"
@@ -59,7 +50,7 @@ description = "Fail if a C source is not formatted"
 run = "clang-format --dry-run --Werror $LILPET_C_SOURCES"
 
 [tasks."engine:tidy"]
-description = "Static analysis of the engine (needs engine:test first for compile_commands.json)"
+description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
 depends = ["engine:test"]
 run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c engine/tools/*.c"
 
