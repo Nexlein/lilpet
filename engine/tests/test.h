@@ -22,6 +22,13 @@
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
+    X(test_senses_smooth_gravity)                                                                                      \
+    X(test_senses_forget_a_sensor_that_stopped)                                                                        \
+    X(test_senses_stop_a_shake_when_the_sensor_stops)                                                                  \
+    X(test_senses_skip_a_bad_sample)                                                                                   \
+    X(test_senses_debounce_the_button)                                                                                 \
+    X(test_senses_let_go_of_a_face)                                                                                    \
+    X(test_senses_greet_only_a_new_face)                                                                               \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
     X(test_clock_keeps_running_for_days)                                                                               \

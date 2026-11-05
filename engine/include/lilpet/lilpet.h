@@ -246,6 +246,30 @@ typedef struct {
 /* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
 bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
+/* --- What the object senses ----------------------------------------------------------------------- */
+
+/*
+ * Turns what the hardware reports into the state of the eyes, the same way on every board (senses.c): gravity and
+ * shakes from an accelerometer, presses of a button, the position of a face seen by a camera. A sensor that stops
+ * reporting never leaves the eyes stuck in what it last said.
+ */
+typedef struct {
+    lp_shake shake;
+    float gravity[2]; /* smoothed, in the screen plane */
+    float motion_age; /* seconds since the last accelerometer sample */
+    bool pressed;
+    float button_age; /* seconds since the button last changed */
+    bool face;        /* the eyes are following a face */
+    float face_age;   /* seconds since the last position of a face */
+} lp_senses;
+
+void lp_senses_init(lp_senses *senses);
+/* Once per frame, before lp_eyes_update. accel: in g, screen axes (x right, y down), raw; NULL without a sample. */
+void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float dt);
+/* A face at x, y in -1..1, whenever the camera reports one; seen = false when it says the face is gone. A face that
+ * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
+void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
+
 /* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
 
 typedef struct {
