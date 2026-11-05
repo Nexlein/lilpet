@@ -159,7 +159,7 @@ button {
     display: grid;
     place-items: center;
     justify-self: center;
-    width: min(100%, max(240px, 100dvh - 530px));
+    width: min(100%, max(160px, 100dvh - 540px));
     aspect-ratio: 1;
     border-radius: 34%;
     background: linear-gradient(150deg, #3b3060 0%, #262042 55%, #1e1834 100%);
