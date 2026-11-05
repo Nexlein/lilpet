@@ -1,2 +1,6 @@
+# Tools come from mise.toml, also for a Git client started outside a mise shell
+if command -v mise >/dev/null 2>&1; then
+  exec mise exec -- sh -c 'sh .husky/no-secrets.sh && npx lint-staged'
+fi
 sh .husky/no-secrets.sh
 npx lint-staged

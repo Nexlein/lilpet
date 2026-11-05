@@ -5,13 +5,15 @@ node_modules/
 .DS_Store
 .env
 .env.*
+!.env.example
 
 # editor directories and files
 .idea
-# Editor: share debug configs and recommended extensions, keep personal settings local
+# Editor: share what every clone needs, keep the rest local
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
+!.vscode/settings.json
 !.vscode/tasks.json
 *.sw?
 
