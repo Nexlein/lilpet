@@ -73,6 +73,20 @@ export function family(swatch: Swatch): Family {
     return 'pink';
 }
 
+export interface SwatchFilter {
+    query: string;
+    families: ReadonlySet<Family>; // empty: all of them
+    twoColors: boolean;
+}
+
+export function filterSwatches({ query, families, twoColors }: SwatchFilter): readonly Swatch[] {
+    const q = query.trim().toLowerCase();
+    return SWATCHES.filter(
+        (s) =>
+            s.id.includes(q) && (families.size === 0 || families.has(family(s))) && (!twoColors || hasTwoPupilColors(s))
+    );
+}
+
 // --- Ink on a color, for the buttons that wear the eye color ---------------------------------------------------------
 
 const LIGHT_INK = '#FFFFFF';
