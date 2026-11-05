@@ -73,19 +73,18 @@ void test_eye_poses_match_prototype(void)
     }
 }
 
-static float sum_x(const lp_eyes *e)
+static lp_particle sum_particles(const lp_eyes *e)
 {
-    float s = 0.0f;
-    for (int i = 0; i < e->particle_count; i++)
-        s += e->particles[i].x;
-    return s;
-}
-
-static float sum_y(const lp_eyes *e)
-{
-    float s = 0.0f;
-    for (int i = 0; i < e->particle_count; i++)
-        s += e->particles[i].y;
+    lp_particle s = {0};
+    for (int i = 0; i < e->particle_count; i++) {
+        const lp_particle *p = &e->particles[i];
+        s.x += p->x;
+        s.y += p->y;
+        s.size += p->size;
+        s.spin += p->spin;
+        s.age += p->age;
+        s.life += p->life;
+    }
     return s;
 }
 
@@ -102,14 +101,28 @@ static void check_state(const lp_eyes *e, const lpv_state *want, const char *wha
     CHECK_NEAR(e->head.yaw, want->yaw, TOL_STATE);
     CHECK_NEAR(e->head.pitch, want->pitch, TOL_STATE);
     CHECK_NEAR(e->head.roll, want->roll, TOL_STATE);
-    CHECK_NEAR(e->cur.tl, want->tl, TOL_STATE);
-    CHECK_NEAR(e->cur.bl, want->bl, TOL_STATE);
-    CHECK_NEAR(e->cur.gy, want->gy, TOL_STATE);
-    CHECK_NEAR(e->cur.ps, want->ps, TOL_STATE);
+    CHECK_NEAR(e->cur.tl, want->cur.tl, TOL_STATE);
+    CHECK_NEAR(e->cur.ts, want->cur.ts, TOL_STATE);
+    CHECK_NEAR(e->cur.bl, want->cur.bl, TOL_STATE);
+    CHECK_NEAR(e->cur.sq, want->cur.sq, TOL_STATE);
+    CHECK_NEAR(e->cur.cr, want->cur.cr, TOL_STATE);
+    CHECK_NEAR(e->cur.rot, want->cur.rot, TOL_STATE);
+    CHECK_NEAR(e->cur.hl, want->cur.hl, TOL_STATE);
+    CHECK_NEAR(e->cur.ps, want->cur.ps, TOL_STATE);
+    CHECK_NEAR(e->cur.es, want->cur.es, TOL_STATE);
+    CHECK_NEAR(e->cur.gy, want->cur.gy, TOL_STATE);
+    CHECK_NEAR(e->cur.spin, want->cur.spin, TOL_STATE);
     CHECK(e->blink.phase == want->blink);
+    CHECK_NEAR(e->blink.hold, want->blink_hold, TOL_STATE);
+    CHECK_NEAR(e->blink.open, want->blink_open, TOL_STATE);
     CHECK(e->particle_count == want->particles);
-    CHECK_NEAR(sum_x(e), want->particles_x, TOL_POSITION);
-    CHECK_NEAR(sum_y(e), want->particles_y, TOL_POSITION);
+    const lp_particle sums = sum_particles(e);
+    CHECK_NEAR(sums.x, want->particles_x, TOL_POSITION);
+    CHECK_NEAR(sums.y, want->particles_y, TOL_POSITION);
+    CHECK_NEAR(sums.size, want->particles_size, TOL_STATE);
+    CHECK_NEAR(sums.spin, want->particles_spin, TOL_STATE);
+    CHECK_NEAR(sums.age, want->particles_age, TOL_STATE);
+    CHECK_NEAR(sums.life, want->particles_life, TOL_STATE);
     CHECK(e->emotion == want->emotion);
     if (lp_test_failures != before)
         fprintf(stderr, "  in %s\n", what);
@@ -123,7 +136,7 @@ void test_simulations_match_prototype(void)
         lp_eyes_init(&eyes, sc->seed);
         if (sc->emotion != LP_EMOTION_NEUTRAL)
             lp_eyes_set_emotion(&eyes, sc->emotion, 0.0f);
-        if (sc->react >= 0)
+        for (int i = 0; sc->react >= 0 && i < sc->react_times; i++)
             lp_eyes_react(&eyes, (lp_event)sc->react);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
         lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);

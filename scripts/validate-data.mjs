@@ -124,7 +124,7 @@ eachRow(
 );
 report(); // eyes.js cannot load without its emotions
 
-const { BLINK_PHASES } = await import('../prototype/eyes.js');
+const { BLINK_PHASES, Eyes } = await import('../prototype/eyes.js');
 const { PUPIL_TYPES } = await import('../prototype/draw.js');
 
 const SCENES = 'prototype/scenes.json';
@@ -161,6 +161,11 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
             fail('"particles.seed" must be a non-negative integer');
         if (!isNum(scene.particles.time, 0.01, 10)) fail('"particles.time" must be between 0.01 and 10 seconds');
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
+        else if (known) {
+            const eyes = new Eyes(1);
+            eyes.setScene(scene, null);
+            if (eyes.particles.length === 0) fail('no particle is alive at "particles.time"');
+        }
     }
 });
 
