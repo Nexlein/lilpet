@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
 import { fakePort, firmware } from './fake-port';
 import { DeviceSession } from './session';
@@ -49,6 +49,17 @@ describe('device session', () => {
         expect(session.snapshot().state).toEqual({ status: 'idle' });
         await session.connect(); // and can connect again
         expect(session.snapshot().state.status).toBe('connected');
+        await session.disconnect();
+    });
+
+    it('keeps the last log lines, without the blank ones', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        for (let i = 0; i < 250; i++) device.log(`line ${i}`);
+        await vi.waitFor(() => expect(session.snapshot().log.at(-1)).toBe('line 249'));
+        expect(session.snapshot().log).toHaveLength(200);
+        expect(session.snapshot().log).not.toContain('');
         await session.disconnect();
     });
 
