@@ -1,0 +1,67 @@
+{
+    "schema": {
+        "emotions": "name: { label, expression fields (BASE in prototype/eyes.js gives the ones left out), emit: { type: heart | sparkle, rate per second } }, in the order of lp_emotion",
+        "reactions": "name, also the protocol name: { emotion, duration in seconds, sparkles }, in the order of lp_event",
+        "note": "optional comment on a row, copied to the generated C table"
+    },
+    "emotions": {
+        "neutral": { "label": "Neutre" },
+        "happy": { "label": "Content", "bl": 0.42, "ps": 1.08, "es": 1.02, "emit": { "type": "sparkle", "rate": 1.2 } },
+        "love": {
+            "label": "Amoureux",
+            "bl": 0.45,
+            "ps": 1.1,
+            "es": 1.04,
+            "gy": -0.45,
+            "hl": 1,
+            "emit": { "type": "heart", "rate": 3 }
+        },
+        "angry": { "label": "Fâché", "tl": 0.25, "ts": 0.7, "ps": 0.6, "es": 0.96, "gy": 0.15 },
+        "squint": { "label": "Plissé", "tl": 0.12, "sq": 0.68, "rot": 0.37, "ps": 0.8, "es": 1.04 },
+        "frown": { "label": "Renfrogné", "cr": 0.72, "rot": 0.65, "ps": 0.8, "es": 1.04 },
+        "sad": { "label": "Triste", "tl": 0.2, "ts": -0.5, "ps": 1.15, "es": 0.98, "gy": 0.45 },
+        "surprised": { "label": "Surpris", "ps": 0.6, "es": 1.12 },
+        "sleepy": {
+            "label": "Endormi",
+            "tl": 0.55,
+            "ts": -0.1,
+            "bl": 0.05,
+            "gy": 0.35,
+            "emit": { "type": "sparkle", "rate": 0.4 }
+        },
+        "dizzy": {
+            "label": "Étourdi",
+            "tl": 0.3,
+            "ts": -0.2,
+            "bl": 0.12,
+            "ps": 0.75,
+            "spin": 9,
+            "note": "my own, after a shake"
+        }
+    },
+    "reactions": {
+        "tap": { "emotion": "happy", "duration": 1.8, "sparkles": 4, "note": "pressed, or petted" },
+        "shake": {
+            "emotion": "dizzy",
+            "duration": 1.5,
+            "sparkles": 0,
+            "note": "renewed while shaken (told by the device: lp_shake_update)"
+        },
+        "upside_down": {
+            "emotion": "angry",
+            "duration": 0.5,
+            "sparkles": 0,
+            "note": "renewed while the object stays upside down"
+        },
+        "face_seen": { "emotion": "surprised", "duration": 0.8, "sparkles": 0, "note": "someone comes into view" },
+        "gesture_like": { "emotion": "happy", "duration": 2.5, "sparkles": 4 },
+        "gesture_dislike": { "emotion": "sad", "duration": 2.5, "sparkles": 0 },
+        "gesture_ok": { "emotion": "happy", "duration": 1.8, "sparkles": 2 },
+        "gesture_five": { "emotion": "surprised", "duration": 1.2, "sparkles": 0, "note": "an open hand" },
+        "gesture_call": { "emotion": "love", "duration": 2, "sparkles": 0 },
+        "expression_happy": { "emotion": "happy", "duration": 2, "sparkles": 2, "note": "the person's face, mirrored" },
+        "expression_sad": { "emotion": "sad", "duration": 2, "sparkles": 0 },
+        "expression_angry": { "emotion": "frown", "duration": 1.5, "sparkles": 0 },
+        "expression_surprised": { "emotion": "surprised", "duration": 1.2, "sparkles": 0 }
+    }
+}

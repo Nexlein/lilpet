@@ -3,7 +3,7 @@
         "id": "unique scene name",
         "swatch": "swatch id from eyes/looks.json",
         "pupil": "pupil type: dot | circle | cat | acorn",
-        "emotion": "optional, emotion name from prototype/eyes.js (default neutral), values are settled",
+        "emotion": "optional, emotion name from eyes/emotions.json (default neutral), values are settled",
         "blink": "optional { phase: anticip | close | closed | open, t: seconds into the phase }",
         "head": "optional { yaw, pitch, roll } in radians",
         "gaze": "optional { x, y } in -1..1, still (no squash)",

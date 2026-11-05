@@ -1,6 +1,7 @@
 // Eye renderer of the design prototype: state, animation and drawing, no DOM access.
 // It is the visual reference for the C engine (see notes/architecture.md).
 // Units are logical pixels of the 466×466 round screen.
+import emotionData from '../eyes/emotions.json' with { type: 'json' };
 
 export const SIZE = 466;
 export const C = SIZE / 2;
@@ -25,40 +26,16 @@ export function makeLook(swatch, pupil) {
 // ps: pupil scale, es: eye scale, gy: gaze bias down, spin: dizzy gaze circling (rad/s, DIZZY)
 // emit: particles spawned while the emotion is on ({ type, rate per second })
 export const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0, spin: 0 };
-export const EMOTIONS = {
-    neutral: { label: 'Neutre' },
-    happy: { label: 'Content', bl: 0.42, ps: 1.08, es: 1.02, emit: { type: 'sparkle', rate: 1.2 } },
-    love: { label: 'Amoureux', bl: 0.45, ps: 1.1, es: 1.04, gy: -0.45, hl: 1, emit: { type: 'heart', rate: 3 } },
-    angry: { label: 'Fâché', tl: 0.25, ts: 0.7, ps: 0.6, es: 0.96, gy: 0.15 },
-    squint: { label: 'Plissé', tl: 0.12, sq: 0.68, rot: 0.37, ps: 0.8, es: 1.04 },
-    frown: { label: 'Renfrogné', cr: 0.72, rot: 0.65, ps: 0.8, es: 1.04 },
-    sad: { label: 'Triste', tl: 0.2, ts: -0.5, ps: 1.15, es: 0.98, gy: 0.45 },
-    surprised: { label: 'Surpris', ps: 0.6, es: 1.12 },
-    sleepy: { label: 'Endormi', tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } },
-    dizzy: { label: 'Étourdi', tl: 0.3, ts: -0.2, bl: 0.12, ps: 0.75, spin: 9 } // my own, after a shake
-};
+export const EMOTIONS = Object.fromEntries(
+    Object.entries(emotionData.emotions).map(([name, emotion]) => [name, { ...BASE, ...emotion }])
+);
 // Dizzy: the gaze circles (radius, in gaze units) and the head wobbles (rad), in proportion to spin / max; the spin
 // wears off slower than it comes, so the eyes calm down after the emotion is over
 const DIZZY = { max: 9, radius: 0.55, wobble: 0.12, wearOff: 1.5 };
-for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // How the eyes react to what happens to the object: an emotion for a while, and a burst of sparkles. Data, not code,
-// so that the PC app can change them later. Same table as lp_reaction_get in the C engine (emotions.c).
-export const REACTIONS = {
-    tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
-    shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken (told by the device: lp_shake_update)
-    upside_down: { emotion: 'angry', duration: 0.5, sparkles: 0 }, // renewed while the object stays upside down
-    face_seen: { emotion: 'surprised', duration: 0.8, sparkles: 0 }, // someone comes into view
-    gesture_like: { emotion: 'happy', duration: 2.5, sparkles: 4 },
-    gesture_dislike: { emotion: 'sad', duration: 2.5, sparkles: 0 },
-    gesture_ok: { emotion: 'happy', duration: 1.8, sparkles: 2 },
-    gesture_five: { emotion: 'surprised', duration: 1.2, sparkles: 0 }, // an open hand
-    gesture_call: { emotion: 'love', duration: 2, sparkles: 0 },
-    expression_happy: { emotion: 'happy', duration: 2, sparkles: 2 }, // the person's face, mirrored
-    expression_sad: { emotion: 'sad', duration: 2, sparkles: 0 },
-    expression_angry: { emotion: 'frown', duration: 1.5, sparkles: 0 },
-    expression_surprised: { emotion: 'surprised', duration: 1.2, sparkles: 0 }
-};
+// so that the PC app can change them later. The table of the C engine comes from the same file (emotions_table.h).
+export const REACTIONS = emotionData.reactions;
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
 const UPSIDE_DOWN = { gravity: -0.6, delay: 0.6 };
 

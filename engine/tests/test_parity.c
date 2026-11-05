@@ -23,38 +23,18 @@ void test_rng_matches_prototype(void)
     }
 }
 
+/* The tables come from eyes/emotions.json (emotions_table.h): what is left to check is the enums, written by hand */
 void test_emotions_match_prototype(void)
 {
-    CHECK(COUNT(LPV_REACTIONS) == LP_EVENT_COUNT);
-    for (int i = 0; i < COUNT(LPV_REACTIONS); i++) {
-        const lp_reaction *got = lp_reaction_get(LPV_REACTIONS[i].event);
-        CHECK(LPV_REACTIONS[i].event == (lp_event)i); /* same order as in the prototype */
-        if (!got) {
-            LP_FAIL("no reaction for event %d", i);
-            continue;
-        }
-        CHECK(strcmp(got->name, LPV_REACTIONS[i].reaction.name) == 0);
-        CHECK(lp_event_from_name(got->name) == (lp_event)i);
-        CHECK(got->emotion == LPV_REACTIONS[i].reaction.emotion);
-        CHECK_NEAR(got->duration, LPV_REACTIONS[i].reaction.duration, TOL_EXACT);
-        CHECK(got->sparkles == LPV_REACTIONS[i].reaction.sparkles);
+    CHECK(COUNT(LPV_EMOTION_NAMES) == LP_EMOTION_COUNT);
+    for (int i = 0; i < COUNT(LPV_EMOTION_NAMES); i++) {
+        CHECK_STR_EQ(lp_emotion_get((lp_emotion)i)->name, LPV_EMOTION_NAMES[i]);
+        CHECK(lp_emotion_from_name(LPV_EMOTION_NAMES[i]) == (lp_emotion)i);
     }
-    CHECK(COUNT(LPV_EMOTIONS) == LP_EMOTION_COUNT);
-    for (int i = 0; i < LP_EMOTION_COUNT; i++) {
-        const lp_emotion_def *got = lp_emotion_get((lp_emotion)i);
-        const lp_emotion_def *want = &LPV_EMOTIONS[i];
-        CHECK_STR_EQ(got->name, want->name);
-        CHECK(lp_emotion_from_name(want->name) == (lp_emotion)i);
-        CHECK(got->emit == want->emit);
-        CHECK_NEAR(got->emit_rate, want->emit_rate, TOL_EXACT);
-        /* lp_expression is 11 floats: compare them as an array */
-        float g[11];
-        float w[11];
-        _Static_assert(sizeof g == sizeof(lp_expression), "lp_expression must be 11 floats");
-        memcpy(g, &got->expr, sizeof g);
-        memcpy(w, &want->expr, sizeof w);
-        for (int k = 0; k < 11; k++)
-            CHECK_NEAR(g[k], w[k], TOL_EXACT);
+    CHECK(COUNT(LPV_EVENT_NAMES) == LP_EVENT_COUNT);
+    for (int i = 0; i < COUNT(LPV_EVENT_NAMES); i++) {
+        CHECK_STR_EQ(lp_reaction_get((lp_event)i)->name, LPV_EVENT_NAMES[i]);
+        CHECK(lp_event_from_name(LPV_EVENT_NAMES[i]) == (lp_event)i);
     }
 }
 
