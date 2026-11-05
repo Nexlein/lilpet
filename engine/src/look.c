@@ -3,13 +3,12 @@
 
 #include <string.h>
 
-static const char *const PUPIL_NAMES[] = {
+static const char *const PUPIL_NAMES[LP_PUPIL_COUNT] = {
     [LP_PUPIL_DOT] = "dot",
     [LP_PUPIL_CAT] = "cat",
     [LP_PUPIL_ACORN] = "acorn",
     [LP_PUPIL_CIRCLE] = "circle",
 };
-#define PUPIL_COUNT (sizeof PUPIL_NAMES / sizeof PUPIL_NAMES[0])
 
 static bool is_space(char c)
 {
@@ -65,7 +64,7 @@ bool lp_look_parse(const char *text, lp_look *look)
         len++;
     if (*skip_spaces(s + len) != '\0')
         return false;
-    for (size_t i = 0; i < PUPIL_COUNT; i++) {
+    for (int i = 0; i < LP_PUPIL_COUNT; i++) {
         if (strlen(PUPIL_NAMES[i]) == len && strncmp(s, PUPIL_NAMES[i], len) == 0) {
             parsed.pupil = (lp_pupil)i;
             *look = parsed;
@@ -90,7 +89,7 @@ static char *put_color(char *p, uint32_t color)
 int lp_look_format(const lp_look *look, char *out, size_t size)
 {
     const size_t pupil = (size_t)look->pupil;
-    if (pupil >= PUPIL_COUNT)
+    if (pupil >= LP_PUPIL_COUNT)
         return -1;
     char text[LP_LOOK_TEXT_SIZE];
     char *p = put_color(text, look->sclera);

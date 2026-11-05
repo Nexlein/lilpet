@@ -29,6 +29,19 @@ void test_look_text_round_trips(void)
     CHECK(lp_look_format(&look, out, sizeof out) == -1);
 }
 
+void test_every_pupil_type_has_a_name(void)
+{
+    /* A pupil added to the enum but forgotten in the table of names would crash, or be unreadable */
+    for (int i = 0; i < LP_PUPIL_COUNT; i++) {
+        const lp_look look = {0x123456u, (lp_pupil)i, {0x111111u, 0x222222u}};
+        char out[LP_LOOK_TEXT_SIZE];
+        CHECK(lp_look_format(&look, out, sizeof out) > 0);
+        lp_look parsed;
+        CHECK(lp_look_parse(out, &parsed));
+        CHECK(parsed.pupil == (lp_pupil)i);
+    }
+}
+
 void test_malformed_look_text_is_rejected(void)
 {
     const lp_look before = {0x123456u, LP_PUPIL_DOT, {0x111111u, 0x222222u}};

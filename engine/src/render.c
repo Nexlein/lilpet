@@ -30,7 +30,7 @@ _Static_assert(4 * SPARKLE_STEPS <= LP_POLY_MAX, "sparkle too long");
 #define GLINT_COLOR   0xFFFFFFu
 
 /* Resting pupil position, fractions of the eye radii (x toward the inner corner, y down) */
-static const float PUPIL_REST[4][2] = {
+static const float PUPIL_REST[LP_PUPIL_COUNT][2] = {
     [LP_PUPIL_DOT] = {0.57f, 0.12f},
     [LP_PUPIL_CAT] = {0.35f, 0.11f},
     [LP_PUPIL_ACORN] = {0.18f, 0.25f},
@@ -249,7 +249,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
-    const int t = (unsigned)type < 4u ? (int)type : LP_PUPIL_CIRCLE;
+    const int t = (unsigned)type < LP_PUPIL_COUNT ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
     g->px = lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
