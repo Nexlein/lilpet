@@ -332,22 +332,38 @@ typedef struct {
     lp_rect box;
 } lp_polygon;
 
+/*
+ * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
+ * share one step (du, dv): the divisions are done once a frame, not per sub-row (the ESP32-S3 has no fast division).
+ * Internal to the renderer, like the half plane.
+ */
+typedef struct {
+    float cu, cv, inv_ra, inv_rb;
+    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
+} lp_ellipse;
+
+/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
+typedef struct {
+    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
+} lp_half_plane;
+
 /* Geometry of one eye for the frame being drawn (internal to the renderer) */
 typedef struct {
     bool closed;
     lp_rect box;
     lp_affine inv_eye;   /* screen -> eye frame */
     lp_affine inv_pupil; /* screen -> pupil frame: upright, then leaned around the pupil center */
-    float rx, ry;
-    float lid_m, lid_c; /* emotion top lid: keep v >= lid_m u + lid_c */
-    bool blink_lid;
-    float blink_m, blink_c;
-    bool crescent, happy; /* cut by an ellipse (center 0, cv; radii ra, rb) */
-    float crescent_cv, crescent_ra, crescent_rb;
-    float happy_cv, happy_ra, happy_rb;
-    float px, py, prx, pry;
-    bool glint;
-    float gx, gy, gr;
+    /* Which of the optional shapes below an open eye has */
+    bool blink_lid, crescent, happy, glint;
+    struct {
+        lp_ellipse eye;
+        lp_half_plane lid;   /* emotion top lid */
+        lp_half_plane blink; /* blink lid */
+        lp_ellipse crescent; /* cuts of the eye */
+        lp_ellipse happy;
+        lp_ellipse pupil; /* in the pupil frame, like the glint */
+        lp_ellipse glint;
+    } shapes;
     lp_rgb sclera, pupil_color;
     lp_polygon shape; /* closed-eye stroke */
 } lp_eye_geometry;
