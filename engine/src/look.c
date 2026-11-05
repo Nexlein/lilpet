@@ -86,22 +86,15 @@ static char *put_color(char *p, uint32_t color)
     return p;
 }
 
-int lp_look_format(const lp_look *look, char *out, size_t size)
+int lp_look_format(const lp_look *look, char *out)
 {
     const size_t pupil = (size_t)look->pupil;
     if (pupil >= LP_PUPIL_COUNT)
         return -1;
-    char text[LP_LOOK_TEXT_SIZE];
-    char *p = put_color(text, look->sclera);
+    char *p = put_color(out, look->sclera);
     p = put_color(p, look->pupil_color[0]);
     p = put_color(p, look->pupil_color[1]);
     const size_t name = strlen(PUPIL_NAMES[pupil]);
-    memcpy(p, PUPIL_NAMES[pupil], name);
-    const size_t len = (size_t)(p - text) + name;
-    if (size > 0) {
-        const size_t n = len < size - 1 ? len : size - 1;
-        memcpy(out, text, n);
-        out[n] = '\0';
-    }
-    return (int)len;
+    memcpy(p, PUPIL_NAMES[pupil], name + 1);
+    return (int)((size_t)(p - out) + name);
 }
