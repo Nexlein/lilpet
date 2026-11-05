@@ -16,7 +16,7 @@ describe('device session', () => {
         await session.connect();
         expect(session.snapshot().state).toEqual({
             status: 'connected',
-            info: { firmware: 'abc1234', engine: '0.6.0' }
+            info: { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r', camera: false, motion: true }
         });
         expect(seen).toContain('connecting');
         expect(await session.send(kite)).toBe('kept');
@@ -101,6 +101,39 @@ describe('device session', () => {
         await vi.waitFor(() => expect(session.snapshot().log.at(-1)).toBe('line 249'));
         expect(session.snapshot().log).toHaveLength(200);
         expect(session.snapshot().log).not.toContain('');
+        await session.disconnect();
+    });
+
+    it('tells the board moods, reactions and gazes in the order they came, behind the looks', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        session.emotion('happy');
+        session.react('tap');
+        session.gaze(null);
+        await session.send(kite);
+        expect(device.sent.slice(1)).toEqual([
+            '> emotion happy',
+            '> react tap',
+            '> gaze off',
+            '> look 7DB5F4 C10787 C10787 dot'
+        ]);
+        await session.disconnect();
+    });
+
+    it('writes a failed mood to the log, and tells nothing without a board', async () => {
+        const answer = firmware();
+        const device = fakePort((c) => (c === '> hello' ? answer(c) : 'err unknown emotion'));
+        const session = new DeviceSession(async () => device.port);
+        session.emotion('happy'); // nothing is connected yet
+        await session.connect();
+        expect(device.sent).toEqual(['> hello']);
+        expect(session.snapshot().log.join()).not.toContain('happy');
+        session.emotion('furious');
+        await vi.waitFor(() =>
+            expect(session.snapshot().log).toContain('> emotion furious : Erreur de lilpet : unknown emotion')
+        );
+        expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
     });
 

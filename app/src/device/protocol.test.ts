@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
-import { LineSplitter, MAX_LINE, classify, lookCommand, parseHello, replyError } from './protocol';
+import {
+    LineSplitter,
+    MAX_LINE,
+    classify,
+    emotionCommand,
+    gazeCommand,
+    lookCommand,
+    parseHello,
+    reactCommand,
+    replyError
+} from './protocol';
 import { Connection, ConnectionClosed } from './connection';
 import { command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
@@ -12,6 +22,15 @@ describe('protocol', () => {
         expect(lookCommand(socks)).toBe('> look B865A8 76D8EB 8F1716 acorn');
     });
 
+    it('writes the commands that move the eyes', () => {
+        expect(emotionCommand('happy')).toBe('> emotion happy');
+        expect(emotionCommand('sad', 2.5)).toBe('> emotion sad 2.5');
+        expect(reactCommand('tap')).toBe('> react tap');
+        expect(gazeCommand({ x: 0.5, y: -0.25 })).toBe('> gaze 0.500 -0.250');
+        expect(gazeCommand({ x: 1e-7, y: 0 })).toBe('> gaze 0.000 0.000'); // never an exponent
+        expect(gazeCommand(null)).toBe('> gaze off');
+    });
+
     it('tells replies from log lines', () => {
         expect(classify('< ok')).toEqual({ kind: 'reply', text: 'ok' });
         expect(classify('frames/s 60.0')).toEqual({ kind: 'log', text: 'frames/s 60.0' });
@@ -19,6 +38,13 @@ describe('protocol', () => {
 
     it('reads the device info', () => {
         expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toEqual({ firmware: '2e62a96', engine: '0.6.0' });
+        expect(parseHello('lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1')).toEqual({
+            firmware: '0.5.0',
+            engine: '0.13.0',
+            board: 'atoms3r',
+            camera: false,
+            motion: true
+        });
         expect(parseHello('something else')).toBeNull();
         expect(parseHello('lilpet fw=1')).toBeNull();
     });
@@ -52,7 +78,7 @@ describe('connection', () => {
         // RTS released before DTR: the other order reboots an ESP32-S3; then a newline ends any half line
         expect(device.signals).toEqual([{ requestToSend: false }, { dataTerminalReady: false }]);
         expect(device.options()?.bufferSize).toBeGreaterThanOrEqual(4096);
-        expect(await hello(connection)).toEqual({ firmware: 'abc1234', engine: '0.6.0' });
+        expect(await hello(connection)).toMatchObject({ firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' });
         expect(device.writes[0]).toBe('\n');
         const look = makeLook(findSwatch('kite')!, 'cat');
         // Sent together: the second waits for the first reply
