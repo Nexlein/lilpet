@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { findSwatch, inkOn, type LookColors, type PupilType } from '../data/looks';
 import { loadCurrent, loadFavorites, lookKey, saveCurrent, saveFavorites, type LookChoice } from '../data/favorites';
 import { DeviceBar } from './DeviceBar';
+import { DeviceLog } from './DeviceLog';
 import { Gallery } from './Gallery';
 import { Stage } from './Stage';
 import { useDevice, useEngine, useStored } from './hooks';
@@ -53,12 +54,7 @@ export function App() {
                 />
             </main>
 
-            {(device.state.status === 'connected' || device.log.length > 0) && (
-                <details className="log">
-                    <summary>Journal de lilpet</summary>
-                    <pre aria-live="off">{device.log.length ? device.log.join('\n') : 'Rien pour l’instant.'}</pre>
-                </details>
-            )}
+            {(device.state.status === 'connected' || device.log.length > 0) && <DeviceLog lines={device.log} />}
         </div>
     );
 }
