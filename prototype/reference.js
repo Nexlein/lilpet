@@ -5,6 +5,7 @@ import { Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
 import { ENGINE_URL, PARITY, compareFrame } from './parity.js';
 
+document.getElementById('serveHint').hidden = true; // the page runs: it is served
 const grid = document.getElementById('grid');
 const summary = document.getElementById('summary');
 
