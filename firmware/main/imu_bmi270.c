@@ -83,10 +83,10 @@ static bool start(void)
     }
     write_reg8(REG_CMD, SOFT_RESET);
     vTaskDelay(pdMS_TO_TICKS(3));
-    /* Writes need 450 us between them until power saving is off */
+    /* Writes need 450 us between them until power saving is off; a delay of n ticks can end up to one tick short */
     if (!write_reg8(REG_PWR_CONF, 0x00u))
         return false;
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(2));
     if (!write_reg8(REG_INIT_CTRL, 0x00u) || !upload_config() || !write_reg8(REG_INIT_CTRL, 0x01u))
         return false;
     uint8_t status = 0;
