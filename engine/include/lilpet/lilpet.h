@@ -17,7 +17,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 12
+#define LP_VERSION_MINOR 13
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -114,7 +114,7 @@ typedef enum {
     LP_EVENT_COUNT
 } lp_event;
 
-/* How the eyes react to an event: an emotion for a while, and a burst of sparkles (REACTIONS in prototype/eyes.js) */
+/* How the eyes react to an event: an emotion for a while, and a burst of sparkles (eyes/emotions.json) */
 typedef struct {
     const char *name; /* same names as the prototype ("tap", "gesture_like"...) */
     lp_emotion emotion;
