@@ -43,18 +43,17 @@ lp_affine lp_affine_rotate(float angle);
 lp_affine lp_affine_scale(float sx, float sy);
 void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy);
 /* The screen sub-row at height y, in the local frame whose local->screen transform has inverse `inv` */
-lp_line lp_line_at(lp_affine inv, float y);
+static inline lp_line lp_line_at(lp_affine inv, float y)
+{
+    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
+}
 
-void lp_spans_set(lp_spans *s, float a, float b);
 void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */
-void lp_spans_cut(lp_spans *s, float lo, float hi);  /* remove [lo, hi) */
 void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t);
 
 /* Prepares an ellipse for the sub-rows of a frame (lines of step du, dv) */
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb);
 lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c);
-/* Screen x interval where the line is inside the ellipse. False when it misses. */
-bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1);
 /* Spans of an ellipse on the line, limited to [lo, hi) */
 void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, float lo, float hi);
 /* Keeps the part of the spans inside the half plane */

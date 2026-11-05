@@ -46,18 +46,6 @@ void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy)
     *oy = m.c * x + m.d * y + m.ty;
 }
 
-lp_line lp_line_at(lp_affine inv, float y)
-{
-    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
-}
-
-void lp_spans_set(lp_spans *s, float a, float b)
-{
-    s->n = a < b ? 1 : 0;
-    s->a[0] = a;
-    s->b[0] = b;
-}
-
 void lp_spans_clip(lp_spans *s, float lo, float hi)
 {
     int n = 0;
@@ -73,7 +61,8 @@ void lp_spans_clip(lp_spans *s, float lo, float hi)
     s->n = n;
 }
 
-void lp_spans_cut(lp_spans *s, float lo, float hi)
+/* Removes [lo, hi) */
+static void spans_cut(lp_spans *s, float lo, float hi)
 {
     lp_spans out = {0};
     for (int i = 0; i < s->n && out.n < LP_MAX_SPANS; i++) {
@@ -131,7 +120,8 @@ lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c)
     return (lp_half_plane){.m = m, .c = c, .g1 = g1, .inv_g1 = fabsf(g1) < 1e-12f ? 0.0f : 1.0f / g1};
 }
 
-bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1)
+/* Screen x interval where the line is inside the ellipse. False when it misses. */
+static bool line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1)
 {
     /* The line in unit-circle space: p + x q; solve |p + x q| = 1 */
     const float pu = (l->u0 - e->cu) * e->inv_ra;
@@ -151,11 +141,13 @@ void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, floa
 {
     float x0;
     float x1;
-    if (!lp_line_ellipse(l, e, &x0, &x1)) {
+    if (!line_ellipse(l, e, &x0, &x1)) {
         out->n = 0;
         return;
     }
-    lp_spans_set(out, x0 > lo ? x0 : lo, x1 < hi ? x1 : hi);
+    out->a[0] = x0 > lo ? x0 : lo;
+    out->b[0] = x1 < hi ? x1 : hi;
+    out->n = out->a[0] < out->b[0] ? 1 : 0;
 }
 
 void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h)
@@ -178,8 +170,8 @@ void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e)
 {
     float x0;
     float x1;
-    if (lp_line_ellipse(l, e, &x0, &x1))
-        lp_spans_cut(s, x0, x1);
+    if (line_ellipse(l, e, &x0, &x1))
+        spans_cut(s, x0, x1);
 }
 
 void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi)
