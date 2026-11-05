@@ -110,24 +110,28 @@ button {
     border-color: var(--haze);
 }
 
+.device button[aria-disabled='true'] {
+    border-color: var(--seam);
+    color: var(--haze);
+    cursor: default;
+}
+
 .device.connected p {
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 8px;
-    align-items: center;
     color: var(--ink);
     font-weight: 600;
 }
 
 .device.connected small {
-    grid-column: 2;
+    display: block;
     color: var(--haze);
     font-weight: 400;
 }
 
 .led {
+    display: inline-block;
     width: 9px;
     height: 9px;
+    margin-right: 8px;
     border-radius: 50%;
     background: #6be39a;
     box-shadow: 0 0 10px #6be39a;
