@@ -1,21 +1,12 @@
 // French names shown in the interface
+import emotions from '../../../eyes/emotions.json';
 import type { Family, PupilType } from '../data/looks';
 
 export const PUPIL_LABELS: Record<PupilType, string> = { dot: 'Point', cat: 'Chat', acorn: 'Gland', circle: 'Rond' };
 
-// Same names as the prototype's emotion buttons (prototype/eyes.js)
-export const EMOTION_LABELS: Record<string, string> = {
-    neutral: 'Neutre',
-    happy: 'Content',
-    love: 'Amoureux',
-    angry: 'Fâché',
-    squint: 'Plissé',
-    frown: 'Renfrogné',
-    sad: 'Triste',
-    surprised: 'Surpris',
-    sleepy: 'Endormi',
-    dizzy: 'Étourdi'
-};
+export const EMOTION_LABELS: Record<string, string> = Object.fromEntries(
+    Object.entries(emotions.emotions).map(([name, emotion]) => [name, emotion.label])
+);
 
 export const FAMILY_LABELS: Record<Family, string> = {
     red: 'Rouges',
