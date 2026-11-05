@@ -1,6 +1,8 @@
 // Types of engine.mjs, for the TypeScript PC app (app/).
 
-export type PupilType = 'dot' | 'cat' | 'acorn' | 'circle';
+export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
+
+export type PupilType = (typeof PUPILS)[number];
 
 // Same look object as the prototype (makeLook in prototype/eyes.js)
 // Names of lp_event (REACTIONS in prototype/eyes.js)

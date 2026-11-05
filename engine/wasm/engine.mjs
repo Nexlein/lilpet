@@ -1,9 +1,8 @@
 // JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the
 // same scene and look objects as the prototype (prototype/scenes.json, eyes/looks.json).
-// Used by prototype/reference.html, the live view of prototype/index.html and the parity tests; the PC app will build
-// on it.
+// Used by prototype/reference.html, the live view of prototype/index.html, the parity tests and the PC app.
 
-const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
+export const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
