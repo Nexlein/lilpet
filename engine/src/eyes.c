@@ -237,13 +237,13 @@ static float dizziness(const lp_eyes *e)
 #define UPSIDE_DOWN_DELAY   0.6f
 
 /* A reaction that goes on as long as its cause (held upside down, shaken), and its duration after. A mood that is
- * already that emotion stays as it is (no timer). */
+ * already that emotion stays as it is: its timer only leads back to it. */
 static void hold_reaction(lp_eyes *e, lp_event event)
 {
     const lp_reaction *r = lp_reaction_get(event);
     if (e->emotion != r->emotion)
         lp_eyes_react(e, event);
-    else if (e->emotion_timer > 0.0f)
+    else
         e->emotion_timer = lp_maxf(e->emotion_timer, r->duration);
 }
 
