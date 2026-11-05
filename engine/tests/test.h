@@ -57,6 +57,7 @@
     X(test_rgb565_conversion)                                                                                          \
     X(test_render_first_frame_is_full_screen)                                                                          \
     X(test_render_puts_colors_where_they_belong)                                                                       \
+    X(test_pixels_differing_in_one_channel_stay_apart)                                                                 \
     X(test_render_glint_is_white)                                                                                      \
     X(test_closed_eye_shows_only_the_stroke)                                                                           \
     X(test_box_hugs_the_shape)                                                                                         \

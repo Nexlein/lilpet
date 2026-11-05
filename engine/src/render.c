@@ -545,8 +545,18 @@ static void draw_row(lp_renderer *r, int y, uint16_t *out)
     draw_eye_row(r, &r->eyes[1], y);
     for (int i = 0; i < r->particle_count; i++)
         draw_polygon_row(r, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
-    for (int x = d.x0; x < d.x1; x++)
-        out[x - d.x0] = pack565(&r->line[3 * x]);
+
+    /* Most pixels repeat the one before them (background, inside of an eye), and converting to integers is slow */
+    static const float NONE[3] = {-1.0f, -1.0f, -1.0f};
+    const float *last = NONE;
+    uint16_t packed = 0;
+    for (int x = d.x0; x < d.x1; x++) {
+        const float *px = &r->line[3 * x];
+        if (px[0] != last[0] || px[1] != last[1] || px[2] != last[2])
+            packed = pack565(px);
+        last = px;
+        out[x - d.x0] = packed;
+    }
 }
 
 void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band)
