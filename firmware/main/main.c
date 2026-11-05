@@ -104,6 +104,7 @@ void app_main(void)
     lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
+    lp_renderer_set_big_endian(&renderer, true);
     lp_senses_init(&senses);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;

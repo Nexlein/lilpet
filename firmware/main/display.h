@@ -17,19 +17,12 @@ const char *display_init(size_t max_band_bytes);
 /* Waits until the next frame can start: the display's refresh signal (TE), or display_paced.c without one */
 void display_wait_frame(void);
 
-/* Every controller here takes the high byte first */
-static inline void display_swap_bytes(uint16_t *pixels, size_t count)
-{
-    for (size_t i = 0; i < count; i++)
-        pixels[i] = __builtin_bswap16(pixels[i]);
-}
-
 /*
- * Sends a band: columns x0 to x1 and rows y0 to y1 (excluded, even coordinates), RGB565 in native byte order,
- * converted in place for the controller. Returns once the band is queued: the DMA sends it while the caller draws
- * the next band in another buffer. `pixels` must stay untouched until the next display call.
+ * Sends a band: columns x0 to x1 and rows y0 to y1 (excluded, even coordinates), RGB565 high byte first, the order of
+ * every controller here (lp_renderer_set_big_endian). Returns once the band is queued: the DMA sends it while the
+ * caller draws the next band in another buffer. `pixels` must stay untouched until the next display call.
  */
-void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels);
+void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels);
 
 /* Waits until every queued band is sent */
 void display_flush(void);

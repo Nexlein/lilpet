@@ -207,11 +207,9 @@ const char *display_init(size_t max_band_bytes)
     return chip->name;
 }
 
-void display_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
+void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    display_swap_bytes(pixels, count);
-
     const int c0 = x0 + chip->column;
     const int c1 = x1 - 1 + chip->column;
     const int r0 = y0 + chip->row;
