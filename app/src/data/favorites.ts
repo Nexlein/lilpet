@@ -6,6 +6,24 @@ export interface KeyValueStore {
     setItem(key: string, value: string): void;
 }
 
+// The browser's localStorage, which throws when it is blocked or full: the app then goes on, and forgets on reload
+export const browserStore: KeyValueStore = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch {
+            return null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (err) {
+            console.warn('Cannot save the choice in the browser', err);
+        }
+    }
+};
+
 export interface LookChoice {
     swatch: Swatch;
     pupil: PupilType;
