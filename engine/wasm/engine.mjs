@@ -5,7 +5,6 @@
 
 const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
-const EVENTS = ['tap', 'shake', 'upsideDown']; // lp_event order (REACTIONS in prototype/eyes.js)
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
 
@@ -16,6 +15,9 @@ export async function loadEngine(moduleUrl) {
     const size = m._lpw_screen_size();
     const names = Array.from({ length: m._lpw_emotion_count() }, (_, i) => m.UTF8ToString(m._lpw_emotion_name(i)));
     const emotions = new Map(names.map((name, i) => [name, i]));
+    const events = new Map(
+        Array.from({ length: m._lpw_event_count() }, (_, i) => [m.UTF8ToString(m._lpw_event_name(i)), i])
+    );
 
     const setLook = (look) =>
         m._lpw_set_look(
@@ -64,7 +66,7 @@ export async function loadEngine(moduleUrl) {
         setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
         setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
         setHeadAmount: (amount) => m._lpw_set_head_amount(amount),
-        react: (event) => m._lpw_react(EVENTS.indexOf(event)),
+        react: (event) => m._lpw_react(events.get(event)),
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render

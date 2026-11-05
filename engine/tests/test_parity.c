@@ -33,6 +33,8 @@ void test_emotions_match_prototype(void)
             LP_FAIL("no reaction for event %d", i);
             continue;
         }
+        CHECK(strcmp(got->name, LPV_REACTIONS[i].reaction.name) == 0);
+        CHECK(lp_event_from_name(got->name) == (lp_event)i);
         CHECK(got->emotion == LPV_REACTIONS[i].reaction.emotion);
         CHECK_NEAR(got->duration, LPV_REACTIONS[i].reaction.duration, TOL_EXACT);
         CHECK(got->sparkles == LPV_REACTIONS[i].reaction.sparkles);

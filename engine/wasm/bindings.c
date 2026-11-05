@@ -27,6 +27,17 @@ EMSCRIPTEN_KEEPALIVE const char *lpw_emotion_name(int emotion)
     return def ? def->name : "";
 }
 
+EMSCRIPTEN_KEEPALIVE int lpw_event_count(void)
+{
+    return LP_EVENT_COUNT;
+}
+
+EMSCRIPTEN_KEEPALIVE const char *lpw_event_name(int event)
+{
+    const lp_reaction *reaction = lp_reaction_get((lp_event)event);
+    return reaction ? reaction->name : "";
+}
+
 EMSCRIPTEN_KEEPALIVE void lpw_init(uint32_t seed)
 {
     lp_eyes_init(&eyes, seed);

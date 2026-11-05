@@ -51,9 +51,19 @@ static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
 
 /* Same table as REACTIONS in prototype/eyes.js (checked like the emotions) */
 static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {
-    [LP_EVENT_TAP] = {LP_EMOTION_HAPPY, 1.8f, 4},         /* pressed, or petted */
-    [LP_EVENT_SHAKE] = {LP_EMOTION_DIZZY, 1.5f, 0},       /* shaken (lp_shake_update) */
-    [LP_EVENT_UPSIDE_DOWN] = {LP_EMOTION_ANGRY, 0.5f, 0}, /* renewed while the object stays upside down */
+    [LP_EVENT_TAP] = {"tap", LP_EMOTION_HAPPY, 1.8f, 4},                 /* pressed, or petted */
+    [LP_EVENT_SHAKE] = {"shake", LP_EMOTION_DIZZY, 1.5f, 0},             /* shaken (lp_shake_update) */
+    [LP_EVENT_UPSIDE_DOWN] = {"upside_down", LP_EMOTION_ANGRY, 0.5f, 0}, /* renewed while it stays upside down */
+    [LP_EVENT_FACE_SEEN] = {"face_seen", LP_EMOTION_SURPRISED, 0.8f, 0}, /* someone comes into view */
+    [LP_EVENT_GESTURE_LIKE] = {"gesture_like", LP_EMOTION_HAPPY, 2.5f, 4},
+    [LP_EVENT_GESTURE_DISLIKE] = {"gesture_dislike", LP_EMOTION_SAD, 2.5f, 0},
+    [LP_EVENT_GESTURE_OK] = {"gesture_ok", LP_EMOTION_HAPPY, 1.8f, 2},
+    [LP_EVENT_GESTURE_FIVE] = {"gesture_five", LP_EMOTION_SURPRISED, 1.2f, 0}, /* an open hand */
+    [LP_EVENT_GESTURE_CALL] = {"gesture_call", LP_EMOTION_LOVE, 2.0f, 0},
+    [LP_EVENT_EXPRESSION_HAPPY] = {"expression_happy", LP_EMOTION_HAPPY, 2.0f, 2}, /* the person's face, mirrored */
+    [LP_EVENT_EXPRESSION_SAD] = {"expression_sad", LP_EMOTION_SAD, 2.0f, 0},
+    [LP_EVENT_EXPRESSION_ANGRY] = {"expression_angry", LP_EMOTION_FROWN, 1.5f, 0},
+    [LP_EVENT_EXPRESSION_SURPRISED] = {"expression_surprised", LP_EMOTION_SURPRISED, 1.2f, 0},
 };
 
 const lp_reaction *lp_reaction_get(lp_event event)
@@ -76,4 +86,12 @@ lp_emotion lp_emotion_from_name(const char *name)
         if (strcmp(EMOTIONS[i].name, name) == 0)
             return (lp_emotion)i;
     return LP_EMOTION_COUNT;
+}
+
+lp_event lp_event_from_name(const char *name)
+{
+    for (int i = 0; i < LP_EVENT_COUNT; i++)
+        if (strcmp(REACTIONS[i].name, name) == 0)
+            return (lp_event)i;
+    return LP_EVENT_COUNT;
 }

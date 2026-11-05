@@ -83,12 +83,12 @@ for (const name of EMOTION_NAMES) {
 out('};', '');
 
 // --- Reactions, in the order of lp_event --------------------------------------------------------
-const eventEnum = (name) => `LP_EVENT_${name.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`;
+const eventEnum = (name) => `LP_EVENT_${name.toUpperCase()}`;
 out(
     `static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[${Object.keys(REACTIONS).length}] = {`
 );
 for (const [name, r] of Object.entries(REACTIONS))
-    out(`    {${eventEnum(name)}, {${emotionEnum(r.emotion)}, ${num(r.duration)}, ${r.sparkles}}},`);
+    out(`    {${eventEnum(name)}, {"${name}", ${emotionEnum(r.emotion)}, ${num(r.duration)}, ${r.sparkles}}},`);
 out('};', '');
 
 // --- Blink poses ---------------------------------------------------------------------------------
