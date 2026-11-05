@@ -1,6 +1,9 @@
 // Parity rule (notes/architecture.md): how far the C engine's image may be from the prototype's. Shared by the
 // reference scenes (reference.js) and the side-by-side live view (ui.js).
+import { drawEyes, setupCanvas } from './draw.js';
 import { SIZE } from './eyes.js';
+
+export const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
 
 // Mean difference per channel (0-255), and share of pixels that differ by more than BIG. Anti-aliasing and RGB565
 // rounding stay well below them.
@@ -23,4 +26,14 @@ export function compare(a, b) {
     const mean = sum / n;
     const bigShare = big / n;
     return { mean, bigShare, pass: mean <= PARITY.maxMean && bigShare <= PARITY.maxBigShare };
+}
+
+let flatCtx = null;
+
+// Compares the state of the prototype at time t with the pixels of the C engine, at screen resolution (a visible canvas
+// follows the device pixel ratio)
+export function compareFrame(eyes, t, pixels) {
+    flatCtx ??= setupCanvas(document.createElement('canvas'), 1);
+    drawEyes(flatCtx, eyes, t);
+    return compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, pixels);
 }

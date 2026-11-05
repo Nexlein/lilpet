@@ -1,10 +1,9 @@
 // Renders every scene of scenes.json with the prototype (JS) and with the C engine (WebAssembly), side by side, and
 // scores the difference. The parity test reads window.parity once window.parityDone is true.
-import { Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
+import { drawEyes, setupCanvas } from './draw.js';
+import { Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { PARITY, compare } from './parity.js';
-
-const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
+import { ENGINE_URL, PARITY, compareFrame } from './parity.js';
 
 const grid = document.getElementById('grid');
 const summary = document.getElementById('summary');
@@ -57,8 +56,10 @@ try {
         figure.append(pair, caption);
         grid.append(figure);
 
+        const eyes = new Eyes(1);
+        eyes.setScene(scene, look);
         const jsCanvas = document.createElement('canvas');
-        new Eyes(setupCanvas(jsCanvas), { seed: 1 }).renderScene(scene, look);
+        drawEyes(setupCanvas(jsCanvas), eyes, 0);
         pair.append(labelled('Prototype (JS)', jsCanvas));
         if (!engine) continue;
 
@@ -68,11 +69,7 @@ try {
         cCanvas.getContext('2d').putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
         pair.append(labelled(`Moteur C ${engine.version}`, cCanvas));
 
-        // Compare at screen resolution (the visible JS canvas follows the device pixel ratio)
-        const flat = document.createElement('canvas');
-        const flatCtx = setupCanvas(flat, 1);
-        new Eyes(flatCtx, { seed: 1 }).renderScene(scene, look);
-        const { mean, bigShare, pass } = compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, pixels);
+        const { mean, bigShare, pass } = compareFrame(eyes, 0, pixels);
         results.push({ id: scene.id, mean, bigShare, pass });
         const score = document.createElement('p');
         score.className = `score ${pass ? 'pass' : 'fail'}`;

@@ -96,7 +96,7 @@ const BLINKS = [
     ['open', 0.2],
     [null, 0]
 ];
-const poser = new Eyes(null, { seed: 1 });
+const poser = new Eyes(1);
 out('typedef struct { lp_blink_phase phase; float t, open; lp_blink_pose pose; } lpv_blink;');
 out(`static const lpv_blink LPV_BLINKS[${BLINKS.length}] = {`);
 for (const [phase, t] of BLINKS) {
@@ -154,7 +154,7 @@ const SCENARIOS = [
 const states = [];
 const scenarioRows = [];
 for (const s of SCENARIOS) {
-    const eyes = new Eyes(null, { seed: s.seed });
+    const eyes = new Eyes(s.seed);
     if (s.emotion) eyes.setEmotion(s.emotion);
     if (s.react) eyes.react(s.react);
     eyes.shaking = Boolean(s.shaking);
@@ -213,7 +213,7 @@ out('};', '');
 out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;');
 out(`static const lpv_scene LPV_SCENES[${scenes.length}] = {`);
 for (const scene of scenes) {
-    const eyes = new Eyes(null, { seed: 1 });
+    const eyes = new Eyes(1);
     eyes.setScene(scene, lookOf(scene));
     const sc = [
         emotionEnum(scene.emotion ?? 'neutral'),
