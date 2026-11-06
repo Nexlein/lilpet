@@ -19,14 +19,13 @@ const PUPILS: Record<PupilType, { rx: number; ry: number; x: number; y: number }
 interface Props {
     colors: LookColors;
     pupil: PupilType;
-    className?: string;
 }
 
-export function EyeGlyph({ colors, pupil, className }: Props) {
+export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
     const p = PUPILS[pupil];
     return (
-        <svg className={className} viewBox="0 0 100 60" aria-hidden="true">
+        <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
                 const cx = 50 + side * 19;
                 const inner = -side;
