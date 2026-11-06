@@ -395,6 +395,20 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
     await page.keyboard.press('Tab');
     await expect(focused).toHaveCount(0); // out of the grid at once
 
+    // Coming back, Tab finds the color last walked to, not the chosen one
+    await stop.focus();
+    await page.keyboard.press('ArrowRight');
+    const walked = await focused.innerText();
+    await page.keyboard.press('Tab');
+    await expect(focused).toHaveCount(0);
+    await page.keyboard.press('Shift+Tab');
+    await expect(focused).toHaveText(walked);
+
+    // A favorite picked meanwhile takes the stop
+    await page.locator('.favorite').click();
+    await page.locator('.favorites .chip').click();
+    await expect(stop).toHaveAttribute('aria-current', 'true');
+
     // With the chosen color filtered out, the first one left takes the stop
     await page.getByLabel('Chercher une couleur par son nom').fill('socks');
     await expect(stop).toContainText('socks');
