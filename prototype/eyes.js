@@ -87,7 +87,7 @@ export class Eyes {
         this.look = null;
         this.emotion = 'neutral';
         this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
-        this.emotionTimer = 0; // > 0: temporary emotion, back to the mood when it hits 0
+        this.emotionTimer = 0; // > 0: seconds before going back to the mood, which may be this very emotion
         this.upsideDown = 0; // seconds held upside down
         this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values

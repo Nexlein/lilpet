@@ -33,7 +33,6 @@ typedef struct {
 } lp_rng;
 
 void lp_rng_seed(lp_rng *rng, uint32_t seed);
-uint32_t lp_rng_next_u32(lp_rng *rng);
 /* Uniform in [0, 1), 24-bit resolution: the exact same values as the prototype */
 float lp_rng_next(lp_rng *rng);
 
@@ -157,7 +156,7 @@ typedef struct {
     lp_look look;
     lp_emotion emotion;
     lp_emotion mood;     /* the emotion picked for good: temporary ones come back to it */
-    float emotion_timer; /* > 0: temporary emotion, back to the mood when it reaches 0 */
+    float emotion_timer; /* > 0: seconds before going back to the mood, which may be this very emotion */
     float upside_down;   /* seconds held upside down (gravity) */
     bool shaking;        /* being shaken (lp_eyes_set_shaking) */
     lp_expression cur;   /* current shape, easing toward the emotion's target */
