@@ -96,9 +96,12 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                 </div>
             </div>
 
-            {shown.length === 0 ? (
-                <p className="empty">Aucune couleur ne correspond. Retire un filtre ou change ta recherche.</p>
-            ) : (
+            {/* Always there: a screen reader only announces what changes in a status it already knows */}
+            <p className="empty" role="status">
+                {shown.length === 0 && 'Aucune couleur ne correspond. Retire un filtre ou change ta recherche.'}
+            </p>
+
+            {shown.length > 0 && (
                 <ul className="grid" onKeyDown={walkGrid}>
                     {shown.map((s) => (
                         <li key={s.id}>

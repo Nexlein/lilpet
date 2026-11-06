@@ -488,6 +488,11 @@ button {
     color: var(--haze);
 }
 
+/* Takes no row of the gallery while it has nothing to say, but stays rendered */
+.empty:empty {
+    position: absolute;
+}
+
 /* --- Device log --------------------------------------------------------------------------------------------------- */
 
 .log {
