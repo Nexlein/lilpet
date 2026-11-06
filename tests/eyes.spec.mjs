@@ -58,20 +58,63 @@ test('the same emotion again within half a second goes on without a new burst, a
     expect(eyes.particles).toHaveLength(like.sparkles);
     expect(eyes.emotionTimer).toBe(like.duration);
 
-    eyes.update(1 / 64); // half a second after the burst
+    eyes.update(1 / 64); // half a second after the burst: a new one, which still cuts nothing short
+    const timer = eyes.emotionTimer;
+    expect(timer).toBeGreaterThan(tap.duration);
     eyes.react('tap');
     expect(eyes.particles).toHaveLength(like.sparkles + tap.sparkles);
-    expect(eyes.emotionTimer).toBe(tap.duration);
+    expect(eyes.emotionTimer).toBe(timer);
 });
 
-test('another emotion reacts at once, as in the engine', () => {
+test('another emotion reacts at once, without a new burst, as in the engine', () => {
+    const { gesture_like: like, gesture_dislike: dislike } = REACTIONS;
     const eyes = new Eyes(1);
     eyes.react('gesture_like');
     eyes.react('gesture_dislike');
-    expect(eyes.emotion).toBe(REACTIONS.gesture_dislike.emotion);
+    expect(eyes.emotion).toBe(dislike.emotion);
+    expect(eyes.emotionTimer).toBe(dislike.duration);
     eyes.react('gesture_like');
-    expect(eyes.emotion).toBe(REACTIONS.gesture_like.emotion);
-    expect(eyes.particles).toHaveLength(2 * REACTIONS.gesture_like.sparkles);
+    expect(eyes.emotion).toBe(like.emotion);
+    expect(eyes.emotionTimer).toBe(like.duration);
+    expect(eyes.particles).toHaveLength(like.sparkles);
+});
+
+test('a reaction without sparkles leaves the wait alone, as in the engine', () => {
+    const { gesture_like: like } = REACTIONS;
+    const eyes = new Eyes(1);
+    eyes.react('gesture_dislike'); // it starts no wait
+    expect(eyes.burstWait).toBe(0);
+    eyes.react('gesture_like');
+    expect(eyes.particles).toHaveLength(like.sparkles);
+
+    for (let i = 0; i < 31; i++) eyes.update(1 / 64);
+    const wait = eyes.burstWait;
+    expect(wait).toBeGreaterThan(0);
+    eyes.react('gesture_dislike'); // it does not start it over
+    expect(eyes.burstWait).toBe(wait);
+    eyes.update(1 / 64);
+    eyes.react('gesture_like');
+    expect(eyes.particles).toHaveLength(2 * like.sparkles);
+});
+
+test('a held reaction bursts once, however long it lasts', () => {
+    const { shake } = REACTIONS;
+    const { sparkles } = shake;
+    shake.sparkles = 3; // the table gives it none, but it may
+    try {
+        const eyes = new Eyes(1);
+        eyes.shaking = true;
+        let spawned = 0;
+        const spawn = eyes.spawn.bind(eyes);
+        eyes.spawn = (type) => {
+            spawned++;
+            spawn(type);
+        };
+        for (let i = 0; i < 128; i++) eyes.update(1 / 64);
+        expect(spawned).toBe(shake.sparkles);
+    } finally {
+        shake.sparkles = sparkles;
+    }
 });
 
 test('an emotion without a positive duration is the new mood, as in the engine', () => {

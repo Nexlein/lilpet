@@ -171,7 +171,18 @@ const SCENARIOS = [
     // More sparkles than the engine holds: the limit, and the random sequence going on as if they all fit
     { name: 'crowded', seed: 53, sparkles: 48, steps: 128, every: 16 },
     // A camera that says the same thing about 10 times a second: one burst of sparkles every half second at most
-    { name: 'chatty', seed: 59, react: 'gesture_like', reactEvery: 6, steps: 256, every: 16 }
+    { name: 'chatty', seed: 59, react: 'gesture_like', reactEvery: 6, steps: 256, every: 16 },
+    // The same camera going back and forth: the emotion follows each time, the bursts stay half a second apart. At this
+    // pace the reaction without sparkles comes first after each wait
+    {
+        name: 'chatty-two',
+        seed: 61,
+        react: 'gesture_like',
+        reactOther: 'expression_sad',
+        reactEvery: 7,
+        steps: 256,
+        every: 16
+    }
 ];
 const states = [];
 const scenarioRows = [];
@@ -187,13 +198,15 @@ for (const s of SCENARIOS) {
     for (let i = 1; i <= s.steps; i++) {
         const t = eyes.time + DT;
         if (s.spin) eyes.setGravity({ x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) });
-        if (s.reactEvery && i % s.reactEvery === 0) eyes.react(s.react);
+        if (s.reactEvery && i % s.reactEvery === 0)
+            eyes.react(s.reactOther && (i / s.reactEvery) % 2 === 1 ? s.reactOther : s.react);
         eyes.update(DT);
         if (i % s.every === 0) states.push(row(snapshot(eyes)));
     }
     scenarioRows.push(
         `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ` +
-            `${s.react ? eventEnum(s.react) : -1}, ${s.reactEvery ?? 0}, ${s.sparkles ?? 0}, ` +
+            `${s.react ? eventEnum(s.react) : -1}, ${s.reactOther ? eventEnum(s.reactOther) : -1}, ` +
+            `${s.reactEvery ?? 0}, ${s.sparkles ?? 0}, ` +
             `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
             `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
             `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}, ` +
@@ -206,7 +219,8 @@ out(
     '    const char *name;',
     '    uint32_t seed;',
     '    lp_emotion emotion;',
-    '    int react, react_every; /* lp_event at the start, or -1, and again every so many steps, or 0 */',
+    '    int react, react_other; /* lp_event at the start, or -1; the one taking turns with it after, or -1 */',
+    '    int react_every; /* steps between reactions, or 0 */',
     '    int sparkles; /* spawned one by one at the start */',
     '    float pointer_x, pointer_y;',
     '    float gravity_x, gravity_y;',

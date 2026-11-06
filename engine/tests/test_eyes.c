@@ -365,41 +365,81 @@ void test_repeated_reaction_goes_on_without_a_new_burst(void)
     CHECK(eyes.particle_count == like->sparkles);
     CHECK(eyes.emotion_timer == like->duration);
 
-    /* Half a second after the burst: a new one */
+    /* Half a second after the burst: a new one, which still cuts nothing short */
     lp_eyes_update(&eyes, 1.0f / 64.0f);
+    const float timer = eyes.emotion_timer;
+    CHECK(timer > tap->duration);
     lp_eyes_react(&eyes, LP_EVENT_TAP);
     CHECK(eyes.particle_count == like->sparkles + tap->sparkles);
-    CHECK(eyes.emotion_timer == tap->duration);
+    CHECK(eyes.emotion_timer == timer);
 }
 
-void test_another_emotion_reacts_at_once(void)
+void test_another_emotion_reacts_at_once_without_a_new_burst(void)
 {
     const lp_reaction *like = lp_reaction_get(LP_EVENT_GESTURE_LIKE);
+    const lp_reaction *dislike = lp_reaction_get(LP_EVENT_GESTURE_DISLIKE);
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
     lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
     lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
-    CHECK(eyes.emotion == lp_reaction_get(LP_EVENT_GESTURE_DISLIKE)->emotion);
+    CHECK(eyes.emotion == dislike->emotion);
+    CHECK(eyes.emotion_timer == dislike->duration);
     lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
     CHECK(eyes.emotion == like->emotion);
+    CHECK(eyes.emotion_timer == like->duration);
+    CHECK(eyes.particle_count == like->sparkles);
+}
+
+void test_reaction_without_sparkles_leaves_the_wait_alone(void)
+{
+    const lp_reaction *like = lp_reaction_get(LP_EVENT_GESTURE_LIKE);
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+
+    /* It starts no wait: the sparkles right after it burst */
+    lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
+    CHECK(eyes.burst_wait == 0.0f);
+    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
+    CHECK(eyes.particle_count == like->sparkles);
+
+    /* It does not start the wait over: half a second after the burst, the next one comes */
+    for (int i = 0; i < 31; i++)
+        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    const float wait = eyes.burst_wait;
+    CHECK(wait > 0.0f);
+    lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
+    CHECK(eyes.burst_wait == wait);
+    lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
     CHECK(eyes.particle_count == 2 * like->sparkles);
+}
+
+/* 10 events a second for 10 s, taking turns; returns the most particles at once */
+static int chatter(lp_eyes *eyes, lp_event first, lp_event second)
+{
+    int most = 0;
+    for (int i = 0; i < 10 * 60; i++) {
+        if (i % 6 == 0)
+            lp_eyes_react(eyes, i % 12 == 0 ? first : second);
+        lp_eyes_update(eyes, 1.0f / 60.0f);
+        most = eyes->particle_count > most ? eyes->particle_count : most;
+    }
+    return most;
 }
 
 void test_chatty_events_never_fill_the_screen(void)
 {
-    /* 10 events a second for 10 s. Bursts are half a second apart, and sparkles last 1.1 s at most. */
+    /* Bursts are half a second apart, and sparkles last 1.1 s at most */
     const int sparkles = lp_reaction_get(LP_EVENT_GESTURE_LIKE)->sparkles;
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
-    int most = 0;
-    for (int i = 0; i < 10 * 60; i++) {
-        if (i % 6 == 0)
-            lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-        lp_eyes_update(&eyes, 1.0f / 60.0f);
-        most = eyes.particle_count > most ? eyes.particle_count : most;
-    }
-    CHECK(most <= 3 * sparkles);
+    CHECK(chatter(&eyes, LP_EVENT_GESTURE_LIKE, LP_EVENT_GESTURE_LIKE) <= 3 * sparkles);
     CHECK(eyes.emotion == LP_EMOTION_HAPPY);
+
+    /* Whatever the emotion in between, which still follows each event */
+    lp_eyes_init(&eyes, 1);
+    CHECK(chatter(&eyes, LP_EVENT_GESTURE_LIKE, LP_EVENT_EXPRESSION_SAD) <= 3 * sparkles);
+    CHECK(eyes.emotion == LP_EMOTION_SAD);
 }
 
 void test_scene_forgets_the_last_burst(void)

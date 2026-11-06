@@ -157,7 +157,7 @@ typedef struct {
     lp_emotion emotion;
     lp_emotion mood;     /* the emotion picked for good: temporary ones come back to it */
     float emotion_timer; /* > 0: seconds before going back to the mood, which may be this very emotion */
-    float burst_wait;    /* > 0: a reaction just burst, the same emotion again only goes on (lp_eyes_react) */
+    float burst_wait;    /* > 0: sparkles just burst, no reaction brings more yet (lp_eyes_react) */
     float upside_down;   /* seconds held upside down (gravity) */
     bool shaking;        /* being shaken (lp_eyes_set_shaking) */
     lp_expression cur;   /* current shape, easing toward the emotion's target */
@@ -213,8 +213,9 @@ void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
 void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look);
 /* duration > 0: back to the mood after that many seconds; 0: the new mood */
 void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration);
-/* Reacts to an event (lp_reaction_get); unknown events are ignored. The same emotion again within half a second of a
- * burst goes on for as long as the event asks, without a new burst: a camera can repeat itself as often as it likes. */
+/* Reacts to an event (lp_reaction_get); unknown events are ignored. The emotion changes at once; one already on lasts
+ * at least as long as the event asks. Sparkles burst half a second apart at most, whatever the emotion, and a reaction
+ * with none leaves that wait alone: a camera can repeat itself as often as it likes. */
 void lp_eyes_react(lp_eyes *eyes, lp_event event);
 /* Starts a blink, unless one is running */
 void lp_eyes_blink(lp_eyes *eyes);
