@@ -72,7 +72,10 @@ static void apply(const lp_command *c)
     case LP_COMMAND_FACE:
         lp_senses_face(&senses, &eyes, c->face.seen, c->face.x, c->face.y);
         break;
-    default: /* the others are answered by the task that reads commands */
+    case LP_COMMAND_NONE: /* the others are answered by the task that reads commands */
+    case LP_COMMAND_HELLO:
+    case LP_COMMAND_LOOK_QUERY:
+    case LP_COMMAND_IMU_QUERY:
         break;
     }
 }
