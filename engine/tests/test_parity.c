@@ -1,4 +1,5 @@
 /* The C engine against values computed by the JS prototype (js_vectors.h, from scripts/gen-engine-vectors.mjs) */
+#include "../src/internal.h"
 #include "js_vectors.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
@@ -36,6 +37,12 @@ void test_emotions_match_prototype(void)
         CHECK_STR_EQ(lp_reaction_get((lp_event)i)->name, LPV_EVENT_NAMES[i]);
         CHECK(lp_event_from_name(LPV_EVENT_NAMES[i]) == (lp_event)i);
     }
+}
+
+void test_clamp_matches_prototype(void)
+{
+    for (int i = 0; i < COUNT(LPV_CLAMPS); i++)
+        CHECK(lp_clampf(LPV_CLAMPS[i].v, LPV_CLAMPS[i].lim) == LPV_CLAMPS[i].clamped);
 }
 
 void test_blink_poses_match_prototype(void)

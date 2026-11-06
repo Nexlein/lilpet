@@ -17,6 +17,16 @@ static const uint32_t LPV_RNG_K[3][16] = {
 static const char *const LPV_EMOTION_NAMES[10] = {"neutral", "happy", "love", "angry", "squint", "frown", "sad", "surprised", "sleepy", "dizzy"};
 static const char *const LPV_EVENT_NAMES[13] = {"tap", "shake", "upside_down", "face_seen", "gesture_like", "gesture_dislike", "gesture_ok", "gesture_five", "gesture_call", "expression_happy", "expression_sad", "expression_angry", "expression_surprised"};
 
+typedef struct { float v, lim, clamped; } lpv_clamp;
+static const lpv_clamp LPV_CLAMPS[6] = {
+    {0.25f, 1.0f, 0.25f},
+    {2.0f, 1.0f, 1.0f},
+    {-2.0f, 1.0f, -1.0f},
+    {33.5f, -6.75f, 6.75f},
+    {-33.5f, -6.75f, 6.75f},
+    {0.0f, -6.75f, 6.75f},
+};
+
 typedef struct { lp_blink_phase phase; float t, open; lp_blink_pose pose; } lpv_blink;
 static const lpv_blink LPV_BLINKS[8] = {
     {LP_BLINK_ANTICIP, 0.03f, 0.2f, {0.05f, 1.025f, 0.985f, false}},

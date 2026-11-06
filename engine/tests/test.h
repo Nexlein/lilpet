@@ -15,6 +15,7 @@
     X(test_version_matches_macros)                                                                                     \
     X(test_rng_matches_prototype)                                                                                      \
     X(test_emotions_match_prototype)                                                                                   \
+    X(test_clamp_matches_prototype)                                                                                    \
     X(test_blink_poses_match_prototype)                                                                                \
     X(test_eye_poses_match_prototype)                                                                                  \
     X(test_simulations_match_prototype)                                                                                \

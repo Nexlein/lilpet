@@ -3,7 +3,7 @@
 // Run it after changing eyes.js, scenes.json, looks.json or emotions.json (npm run vectors runs both).
 // Usage: node scripts/gen-engine-vectors.mjs [--check]   (--check: fail if the committed file is out of date)
 import { readFileSync } from 'node:fs';
-import { EMOTIONS, Eyes, REACTIONS, createRng, makeLook } from '../prototype/eyes.js';
+import { EMOTIONS, Eyes, REACTIONS, clamp, createRng, makeLook } from '../prototype/eyes.js';
 import { EXPR, emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
 const VECTORS = 'engine/tests/js_vectors.h';
@@ -78,6 +78,20 @@ out(
     `static const char *const LPV_EVENT_NAMES[${Object.keys(REACTIONS).length}] = {${cNames(Object.keys(REACTIONS))}};`
 );
 out('');
+
+// --- clamp: a pupil bigger than its eye makes the limit negative ---------------------------------------
+const CLAMPS = [
+    [0.25, 1],
+    [2, 1],
+    [-2, 1],
+    [33.5, -6.75],
+    [-33.5, -6.75],
+    [0, -6.75]
+];
+out('typedef struct { float v, lim, clamped; } lpv_clamp;');
+out(`static const lpv_clamp LPV_CLAMPS[${CLAMPS.length}] = {`);
+for (const [v, lim] of CLAMPS) out(`    {${num(v)}, ${num(lim)}, ${num(clamp(v, lim))}},`);
+out('};', '');
 
 // --- Blink poses ---------------------------------------------------------------------------------
 const BLINKS = [

@@ -43,11 +43,10 @@ static inline float lp_maxf(float a, float b)
     return a > b ? a : b;
 }
 
+/* Same order as clamp in the prototype: the limit goes negative when a pupil is bigger than its eye */
 static inline float lp_clampf(float v, float lim)
 {
-    if (v < -lim)
-        return -lim;
-    return v > lim ? lim : v;
+    return lp_maxf(-lim, lp_minf(lim, v));
 }
 
 #endif /* LILPET_INTERNAL_H */
