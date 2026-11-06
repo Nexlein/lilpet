@@ -10,6 +10,7 @@ const SCRIPT = 'scripts/validate-data.mjs';
 const TABLES_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const VECTORS_SCRIPT = 'scripts/gen-engine-vectors.mjs';
 const TABLES = 'engine/src/emotions_table.h';
+const VECTORS = 'engine/tests/js_vectors.h';
 const LOOKS = 'eyes/looks.json';
 const EMOTIONS = 'eyes/emotions.json';
 const SCENES = 'prototype/scenes.json';
@@ -19,7 +20,7 @@ const SCENES = 'prototype/scenes.json';
 function withCopy(use) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
-        for (const path of ['package.json', 'scripts', 'eyes', 'prototype', TABLES])
+        for (const path of ['package.json', 'scripts', 'eyes', 'prototype', TABLES, VECTORS])
             cpSync(path, join(dir, path), { recursive: true });
         return use(dir);
     } finally {
@@ -109,6 +110,7 @@ for (const [file, what, change, message] of CASES)
 
 test('a fault in scenes.json stops the vectors, not the emotion tables', () => {
     withCopy((dir) => {
+        expect(run(dir, VECTORS_SCRIPT, '--check').status).toBe(0); // only the fault can stop them
         writeFileSync(join(dir, SCENES), 'not JSON');
         expect(run(dir, VECTORS_SCRIPT, '--check').status).not.toBe(0);
         expect(run(dir, TABLES_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
