@@ -15,6 +15,7 @@ from board_link import BOARDS, ROOT, SERIAL_ERRORS, ask, board_from_env, find_po
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
+WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 
 failures = 0
 
@@ -63,6 +64,27 @@ def reboot(port):
     time.sleep(0.1)
     port.rts = False
     return any(BOOT_LINE in line for line in read_lines(port, 3))
+
+
+def open_booted_board():
+    """Opens the port of a board that has booted, or one that stays silent for WAIT_SECONDS. After a flash the port
+    comes and goes, and a boot in progress must not pass for a reboot caused by opening the port: the port is opened
+    again once the board answers, and a boot line after that can only come from the opening."""
+    problem = "No board plugged in: plug it in, or name its port with PORT=<port>."
+    end = time.time() + WAIT_SECONDS
+    while True:
+        name = find_port()
+        if name is not None:
+            try:
+                with open_port(name) as port:
+                    answered = ask(port, "> hello", 2)  # not sooner: a board not reading yet only takes a few bytes
+                if answered or time.time() >= end:
+                    return open_port(name)
+            except SERIAL_ERRORS as err:
+                problem = f"cannot open {name}: {err}. Plug the board in, or close the serial monitor."
+        if time.time() >= end:
+            sys.exit(problem)
+        time.sleep(0.2)
 
 
 def finish(port):
@@ -153,16 +175,10 @@ def put_back(port, before):
 
 
 def check_board(board_name):
-    name = find_port()
-    if name is None:
-        sys.exit("No board plugged in: plug it in, or name its port with PORT=<port>.")
     config = BOARDS / board_name / "board_config.h"
     board = Board(board_name, define(config, "BOARD_BENCH") == 1, define(config, "BOARD_MOTION") == 1)
 
-    try:
-        port = open_port(name)
-    except SERIAL_ERRORS as err:
-        sys.exit(f"cannot open {name}: {err}. Plug the board in, or close the serial monitor.")
+    port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
 
     hello = ask(port, "> hello")
@@ -194,4 +210,7 @@ def check_board(board_name):
     finish(port)
 
 
-check_board(board_from_env())
+try:
+    check_board(board_from_env())
+except SERIAL_ERRORS as err:
+    sys.exit(f"port lost: {err}")
