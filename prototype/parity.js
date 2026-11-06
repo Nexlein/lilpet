@@ -5,6 +5,12 @@ import { SIZE } from './eyes.js';
 
 export const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
 
+export async function fetchJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+    return res.json();
+}
+
 // Mean difference per channel (0-255), and number of core pixels: pixels that differ by more than BIG, like their 4
 // neighbours. Anti-aliased edges are one pixel wide, so they never make a core, however bright the look; a sparkle
 // that is missing or half its size does.

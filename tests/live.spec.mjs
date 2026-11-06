@@ -137,13 +137,20 @@ test('the last mode clicked wins over one waiting for the engine', async ({ page
     await expect(page.locator('#cView')).toBeHidden();
 });
 
-test('colors that cannot load are said', async ({ page }) => {
-    await page.route('**/eyes/looks.json', (route) => route.fulfill({ status: 404, body: 'gone' }));
-    await page.goto('/prototype/index.html');
+const swatch = { id: 'stale', sclera: '#000000', pupilColor: ['#000000', '#000000'] };
+const BAD_LOOKS = [
+    ['a missing file', { status: 404, body: 'gone' }],
+    ['an error status, whatever the body', { status: 500, json: { swatches: [swatch] } }],
+    ['a file with no swatches', { json: {} }]
+];
+for (const [what, reply] of BAD_LOOKS)
+    test(`colors that cannot load are said: ${what}`, async ({ page }) => {
+        await page.route('**/eyes/looks.json', (route) => route.fulfill(reply));
+        await page.goto('/prototype/index.html');
 
-    await expect(page.locator('#engineInfo')).toContainText('Couleurs absentes');
-    await expect(page.locator('#swatchSelect option')).toHaveCount(1);
-});
+        await expect(page.locator('#engineInfo')).toContainText('Couleurs absentes');
+        await expect(page.locator('#swatchSelect option')).toHaveCount(1);
+    });
 
 test('an emotion label is text, not HTML', async ({ page }) => {
     await page.route('**/eyes/emotions.json', async (route) => {

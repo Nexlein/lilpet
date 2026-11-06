@@ -3,7 +3,7 @@
 import { PUPIL_TYPES, drawEyes, setupCanvas } from './draw.js';
 import { EMOTIONS, Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { ENGINE_URL, compareFrame } from './parity.js';
+import { ENGINE_URL, compareFrame, fetchJson } from './parity.js';
 
 // Side by side, both renderers advance in fixed steps of 1/64 s, exact in float and double, with the same seed and
 // inputs: their logic stays in step (as in the parity tests) until a rounding difference flips an event.
@@ -153,8 +153,8 @@ const pupilSelect = document.getElementById('pupilSelect');
 
 async function loadLooks() {
     try {
-        const res = await fetch('../eyes/looks.json');
-        swatches = (await res.json()).swatches;
+        swatches = (await fetchJson('../eyes/looks.json')).swatches;
+        if (!swatches?.length) throw new Error('looks.json: no swatches');
     } catch (err) {
         console.error('Cannot load looks.json, serve the repo root over HTTP', err);
         problems.push('Couleurs absentes : eyes/looks.json ne se charge pas, une seule couleur disponible.');

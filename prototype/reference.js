@@ -3,7 +3,7 @@
 import { drawEyes, setupCanvas } from './draw.js';
 import { Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { ENGINE_URL, PARITY, compareFrame } from './parity.js';
+import { ENGINE_URL, PARITY, compareFrame, fetchJson } from './parity.js';
 
 document.getElementById('serveHint').hidden = true; // the page runs: it is served
 const grid = document.getElementById('grid');
@@ -26,12 +26,6 @@ function labelled(label, canvas) {
     span.textContent = label;
     box.append(span, canvas);
     return box;
-}
-
-async function fetchJson(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-    return res.json();
 }
 
 try {
