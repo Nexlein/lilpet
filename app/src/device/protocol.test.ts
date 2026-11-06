@@ -172,6 +172,15 @@ describe('connection', () => {
         await connection.close();
     });
 
+    it('stops reading when a read error leaves the port the same stream', async () => {
+        const device = fakePort(firmware());
+        let closes = 0;
+        await Connection.open(device.port, { onClose: () => closes++ });
+        device.readError({ fatal: true, sameStream: true });
+        await vi.waitFor(() => expect(closes).toBe(1));
+        expect(device.closed()).toBe(true);
+    });
+
     it('closes the port and says so when the board is unplugged', async () => {
         const device = fakePort(() => null); // never answers: the request is still waiting when the board goes
         let closes = 0;

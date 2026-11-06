@@ -87,10 +87,11 @@ export function fakePort(
         }
     };
 
-    // Chrome gives the port a new stream after a passing error, and none once the device is gone
-    const readError = ({ fatal }: { fatal: boolean }) => {
+    // Chrome gives the port a new stream after a passing error, and none once the device is gone. sameStream: a browser
+    // that goes on handing out the dead stream instead
+    const readError = ({ fatal, sameStream = false }: { fatal: boolean; sameStream?: boolean }) => {
         const failing = device;
-        readable = fatal ? null : stream();
+        if (!sameStream) readable = fatal ? null : stream();
         failing.error(new Error(fatal ? 'device lost' : 'buffer overrun'));
     };
 
