@@ -57,20 +57,22 @@ static void report(int64_t elapsed_us)
     memset(&stats, 0, sizeof stats);
 }
 
-static void apply(const command *c)
+static void apply(const lp_command *c)
 {
     switch (c->type) {
-    case COMMAND_LOOK:
+    case LP_COMMAND_LOOK:
         lp_eyes_set_look(&eyes, &c->look);
         break;
-    case COMMAND_EMOTION:
+    case LP_COMMAND_EMOTION:
         lp_eyes_set_emotion(&eyes, c->emotion.name, c->emotion.seconds);
         break;
-    case COMMAND_REACT:
+    case LP_COMMAND_REACT:
         lp_eyes_react(&eyes, c->event);
         break;
-    case COMMAND_GAZE:
+    case LP_COMMAND_GAZE:
         lp_senses_face(&senses, &eyes, c->gaze.seen, c->gaze.x, c->gaze.y);
+        break;
+    default: /* the others are answered by the task that reads commands */
         break;
     }
 }
@@ -112,7 +114,7 @@ void app_main(void)
         display_wait_frame();
 
         const int64_t start = esp_timer_get_time();
-        command c;
+        lp_command c;
         while (commands_next(&c))
             apply(&c);
         const float elapsed = (float)(start - last) * 1e-6f;
