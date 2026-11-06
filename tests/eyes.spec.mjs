@@ -249,3 +249,42 @@ test('a mood that is already the reaction stays after it', () => {
     expect(eyes.emotion).toBe('dizzy');
     expect(eyes.mood).toBe('dizzy');
 });
+
+// Seconds of animation with the object held that way, gravity in the screen plane
+function hold(eyes, gravity, seconds) {
+    eyes.setGravity(gravity);
+    for (let i = 0; i < seconds * 64; i++) eyes.update(1 / 64);
+}
+
+const UPRIGHT = { x: 0, y: 1 };
+const UPSIDE_DOWN = { x: 0, y: -1 };
+
+test('a shake wins over being upside down, as in the engine', () => {
+    const eyes = new Eyes(1);
+    eyes.shaking = true;
+    hold(eyes, UPSIDE_DOWN, 1);
+    expect(eyes.emotion).toBe('dizzy');
+    eyes.shaking = false;
+    hold(eyes, UPSIDE_DOWN, 1);
+    expect(eyes.emotion).toBe('angry');
+});
+
+test('a held reaction does not cut a longer one short, as in the engine', () => {
+    const eyes = new Eyes(1);
+    eyes.setEmotion('angry', 3);
+    hold(eyes, UPSIDE_DOWN, 1); // renews 0.5 s at most
+    hold(eyes, UPRIGHT, 1);
+    expect(eyes.emotion).toBe('angry');
+    hold(eyes, UPRIGHT, 1.5);
+    expect(eyes.emotion).toBe('neutral');
+});
+
+test('after a scene, a reaction comes back to the emotion of the scene, as in the engine', () => {
+    const { tap } = REACTIONS;
+    const eyes = new Eyes(1);
+    eyes.setScene({ emotion: 'sad' }, null);
+    eyes.react('tap');
+    expect(eyes.emotion).toBe(tap.emotion);
+    hold(eyes, null, tap.duration + 0.25);
+    expect(eyes.emotion).toBe('sad');
+});
