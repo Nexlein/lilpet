@@ -5,7 +5,6 @@ import {
     MAX_LINE,
     classify,
     emotionCommand,
-    gazeCommand,
     lookCommand,
     parseHello,
     reactCommand,
@@ -26,9 +25,6 @@ describe('protocol', () => {
         expect(emotionCommand('happy')).toBe('> emotion happy');
         expect(emotionCommand('sad', 2.5)).toBe('> emotion sad 2.5');
         expect(reactCommand('tap')).toBe('> react tap');
-        expect(gazeCommand({ x: 0.5, y: -0.25 })).toBe('> gaze 0.500 -0.250');
-        expect(gazeCommand({ x: 1e-7, y: 0 })).toBe('> gaze 0.000 0.000'); // never an exponent
-        expect(gazeCommand(null)).toBe('> gaze off');
     });
 
     it('tells replies from log lines', () => {

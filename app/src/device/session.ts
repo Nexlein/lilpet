@@ -4,7 +4,7 @@ import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
 import { Connection, ConnectionClosed, type PortLike } from './connection';
 import { command, hello, sendLook, type LookSent } from './device';
-import { emotionCommand, gazeCommand, reactCommand, type DeviceInfo } from './protocol';
+import { emotionCommand, reactCommand, type DeviceInfo } from './protocol';
 
 export type DeviceState =
     | { status: 'unsupported' }
@@ -84,8 +84,6 @@ export class DeviceSession {
     emotion = (name: string, seconds?: number): void => this.#tell(emotionCommand(name, seconds));
 
     react = (event: EyeEvent): void => this.#tell(reactCommand(event));
-
-    gaze = (point: { x: number; y: number } | null): void => this.#tell(gazeCommand(point));
 
     // Tells the board something in passing, if it is there: same queue as the looks, and a failure only goes to the log
     #tell(line: string): void {

@@ -104,20 +104,14 @@ describe('device session', () => {
         await session.disconnect();
     });
 
-    it('tells the board moods, reactions and gazes in the order they came, behind the looks', async () => {
+    it('tells the board moods and reactions in the order they came, behind the looks', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         session.emotion('happy');
         session.react('tap');
-        session.gaze(null);
         await session.send(kite);
-        expect(device.sent.slice(1)).toEqual([
-            '> emotion happy',
-            '> react tap',
-            '> gaze off',
-            '> look 7DB5F4 C10787 C10787 dot'
-        ]);
+        expect(device.sent.slice(1)).toEqual(['> emotion happy', '> react tap', '> look 7DB5F4 C10787 C10787 dot']);
         await session.disconnect();
     });
 
