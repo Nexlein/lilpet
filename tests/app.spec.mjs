@@ -249,6 +249,22 @@ test('a favorite keeps its pupil, comes back with it, and goes when removed', as
     await expect(favorite).toHaveCount(0);
 });
 
+// On base: this failure is meant to reach the console
+base('says when the eye engine cannot load, and the rest goes on', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.route('**/engine/lilpet.mjs', (route) => route.abort());
+    await page.goto(APP);
+    await expect(page.locator('.screen-note')).toHaveText(
+        'Moteur des yeux introuvable. Lance « mise run engine:wasm », puis recharge la page.'
+    );
+    await expect.poll(() => errors.join('\n')).toContain('Cannot load the eye engine');
+    await expect(page.locator('canvas.screen')).toHaveCount(0);
+    await expect(page.locator('.moods')).toHaveCount(0);
+
+    await chip(page, 'socks').click();
+    await expect(page.locator('.look-name h1')).toHaveText('socks');
+});
+
 test('Cligner shuts the eyes, which stay open at first without it', async ({ page }) => {
     await page.addInitScript(watchScreen);
     await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
