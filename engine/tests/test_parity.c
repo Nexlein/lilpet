@@ -143,8 +143,10 @@ void test_simulations_match_prototype(void)
         lp_eyes_init(&eyes, sc->seed);
         if (sc->emotion != LP_EMOTION_NEUTRAL)
             lp_eyes_set_emotion(&eyes, sc->emotion, 0.0f);
-        for (int i = 0; sc->react >= 0 && i < sc->react_times; i++)
+        if (sc->react >= 0)
             lp_eyes_react(&eyes, (lp_event)sc->react);
+        for (int i = 0; i < sc->sparkles; i++)
+            lp_eyes_spawn(&eyes, LP_PARTICLE_SPARKLE);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
         lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);
         lp_eyes_set_shaking(&eyes, sc->shaking);
@@ -155,6 +157,8 @@ void test_simulations_match_prototype(void)
                 const float a = sc->spin * (eyes.time + LPV_DT);
                 lp_eyes_set_gravity(&eyes, true, sinf(a), cosf(a));
             }
+            if (sc->react_every && step % sc->react_every == 0)
+                lp_eyes_react(&eyes, (lp_event)sc->react);
             lp_eyes_update(&eyes, LPV_DT);
             if (step % sc->every == 0) {
                 char what[64];

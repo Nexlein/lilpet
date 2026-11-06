@@ -34,6 +34,7 @@ const DIZZY = { max: 9, radius: 0.55, wobble: 0.12, wearOff: 1.5 };
 // How the eyes react to what happens to the object: an emotion for a while, and a burst of sparkles. Data, not code,
 // so that the PC app can change them later. The table of the C engine comes from the same file (emotions_table.h).
 export const REACTIONS = emotionData.reactions;
+const BURST_GAP = 0.5; // seconds: a burst of sparkles fills the screen if repeated any faster (same as the engine)
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
 const UPSIDE_DOWN = { gravity: -0.6, delay: 0.6 };
 
@@ -111,6 +112,7 @@ export class Eyes {
         this.emotion = 'neutral';
         this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
         this.emotionTimer = 0; // > 0: seconds before going back to the mood, which may be this very emotion
+        this.burstWait = 0; // > 0: a reaction just burst, the same emotion again only goes on
         this.upsideDown = 0; // seconds held upside down
         this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values
@@ -161,11 +163,17 @@ export class Eyes {
         this.gravity = finitePoint(gravity);
     }
 
-    // Unknown events are ignored
+    // Unknown events are ignored. The same emotion again within half a second of a burst goes on for as long as the event
+    // asks, without a new burst: a camera can repeat itself as often as it likes.
     react(event) {
         if (!Object.hasOwn(REACTIONS, event)) return;
         const r = REACTIONS[event];
+        if (this.burstWait > 0 && this.emotion === r.emotion) {
+            this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+            return;
+        }
         this.setEmotion(r.emotion, r.duration);
+        this.burstWait = BURST_GAP;
         for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
     }
 
@@ -359,6 +367,7 @@ export class Eyes {
 
         this.#easeExpression(dt);
         if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
+        this.burstWait = Math.max(this.burstWait - dt, 0);
         this.#updateHeldReactions(dt);
 
         const aim = this.#updateGaze(dt, t, this.#updateTilt(dt));

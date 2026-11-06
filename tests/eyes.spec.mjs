@@ -35,13 +35,43 @@ test('a long update counts for one second', () => {
 
 test('particles stop at the limit of the engine, after their random draws', () => {
     const eyes = new Eyes(5);
-    const taps = 12;
-    for (let i = 0; i < taps; i++) eyes.react('tap');
+    const sparkles = MAX_PARTICLES + 16;
+    for (let i = 0; i < sparkles; i++) eyes.spawn('sparkle');
     expect(eyes.particles).toHaveLength(MAX_PARTICLES);
 
     const sequence = createRng(5);
-    for (let i = 0; i < taps * REACTIONS.tap.sparkles * SPARKLE_DRAWS; i++) sequence();
+    for (let i = 0; i < sparkles * SPARKLE_DRAWS; i++) sequence();
     expect(eyes.rand()).toBe(sequence());
+});
+
+test('the same emotion again within half a second goes on without a new burst, as in the engine', () => {
+    const { gesture_like: like, tap } = REACTIONS;
+    const eyes = new Eyes(1);
+    eyes.react('gesture_like');
+    expect(eyes.particles).toHaveLength(like.sparkles);
+
+    for (let i = 0; i < 31; i++) eyes.update(1 / 64);
+    eyes.rand = createRng(1);
+    eyes.react('gesture_like');
+    eyes.react('tap'); // another event of the same emotion, and a shorter one
+    expect(eyes.rand()).toBe(createRng(1)()); // no random draw
+    expect(eyes.particles).toHaveLength(like.sparkles);
+    expect(eyes.emotionTimer).toBe(like.duration);
+
+    eyes.update(1 / 64); // half a second after the burst
+    eyes.react('tap');
+    expect(eyes.particles).toHaveLength(like.sparkles + tap.sparkles);
+    expect(eyes.emotionTimer).toBe(tap.duration);
+});
+
+test('another emotion reacts at once, as in the engine', () => {
+    const eyes = new Eyes(1);
+    eyes.react('gesture_like');
+    eyes.react('gesture_dislike');
+    expect(eyes.emotion).toBe(REACTIONS.gesture_dislike.emotion);
+    eyes.react('gesture_like');
+    expect(eyes.emotion).toBe(REACTIONS.gesture_like.emotion);
+    expect(eyes.particles).toHaveLength(2 * REACTIONS.gesture_like.sparkles);
 });
 
 test('an emotion without a positive duration is the new mood, as in the engine', () => {

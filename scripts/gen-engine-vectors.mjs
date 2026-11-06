@@ -169,14 +169,17 @@ const SCENARIOS = [
     { name: 'sad', seed: 14, emotion: 'sad', steps: 256, every: 4 },
     { name: 'surprised', seed: 47, emotion: 'surprised', steps: 256, every: 16 },
     // More sparkles than the engine holds: the limit, and the random sequence going on as if they all fit
-    { name: 'crowded', seed: 53, react: 'tap', reactTimes: 12, steps: 128, every: 16 }
+    { name: 'crowded', seed: 53, sparkles: 48, steps: 128, every: 16 },
+    // A camera that says the same thing about 10 times a second: one burst of sparkles every half second at most
+    { name: 'chatty', seed: 59, react: 'gesture_like', reactEvery: 6, steps: 256, every: 16 }
 ];
 const states = [];
 const scenarioRows = [];
 for (const s of SCENARIOS) {
     const eyes = new Eyes(s.seed);
     if (s.emotion) eyes.setEmotion(s.emotion);
-    for (let i = 0; s.react && i < (s.reactTimes ?? 1); i++) eyes.react(s.react);
+    if (s.react) eyes.react(s.react);
+    for (let i = 0; i < (s.sparkles ?? 0); i++) eyes.spawn('sparkle');
     eyes.shaking = Boolean(s.shaking);
     if (s.pointer) eyes.setPointer({ x: s.pointer[0], y: s.pointer[1] });
     if (s.gravity) eyes.setGravity({ x: s.gravity[0], y: s.gravity[1] });
@@ -184,12 +187,13 @@ for (const s of SCENARIOS) {
     for (let i = 1; i <= s.steps; i++) {
         const t = eyes.time + DT;
         if (s.spin) eyes.setGravity({ x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) });
+        if (s.reactEvery && i % s.reactEvery === 0) eyes.react(s.react);
         eyes.update(DT);
         if (i % s.every === 0) states.push(row(snapshot(eyes)));
     }
     scenarioRows.push(
         `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ` +
-            `${s.react ? eventEnum(s.react) : -1}, ${s.reactTimes ?? 1}, ` +
+            `${s.react ? eventEnum(s.react) : -1}, ${s.reactEvery ?? 0}, ${s.sparkles ?? 0}, ` +
             `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
             `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
             `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}, ` +
@@ -202,7 +206,8 @@ out(
     '    const char *name;',
     '    uint32_t seed;',
     '    lp_emotion emotion;',
-    '    int react, react_times; /* lp_event at the start, or -1, and how many times */',
+    '    int react, react_every; /* lp_event at the start, or -1, and again every so many steps, or 0 */',
+    '    int sparkles; /* spawned one by one at the start */',
     '    float pointer_x, pointer_y;',
     '    float gravity_x, gravity_y;',
     '    float spin; /* radians per second: gravity turning in the screen plane, from upright */',

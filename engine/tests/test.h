@@ -42,6 +42,10 @@
     X(test_pointer_stays_inside_its_range)                                                                             \
     X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
+    X(test_repeated_reaction_goes_on_without_a_new_burst)                                                              \
+    X(test_another_emotion_reacts_at_once)                                                                             \
+    X(test_chatty_events_never_fill_the_screen)                                                                        \
+    X(test_scene_forgets_the_last_burst)                                                                               \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
     X(test_holding_keeps_a_longer_emotion)                                                                             \
     X(test_shake_is_told_from_tilt_and_knocks)                                                                         \
