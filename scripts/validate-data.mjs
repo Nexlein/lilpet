@@ -1,7 +1,7 @@
 // Checks the data files the renderers read:
 // - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
-//   and those the code asks for by name exist
+//   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - prototype/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
 //   fields
 // Usage: node scripts/validate-data.mjs
@@ -72,7 +72,7 @@ function eachRow(path, rows, name, required, keys, check) {
             if (!keys.includes(k)) fail(`unknown key "${k}", expected ${keys.join(', ')}`);
         if (row.note !== undefined && (typeof row.note !== 'string' || /\/\*|\*\//.test(row.note)))
             fail('"note" must be a string without /* or */: it becomes a C comment');
-        check(row, fail);
+        check(row, fail, id);
     }
 }
 
@@ -106,6 +106,7 @@ const EXPRESSION = {
 };
 const EMIT_TYPES = ['heart', 'sparkle'];
 const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
+const HELD = ['shake', 'upside_down']; // they repeat every frame while their cause lasts
 eachRow(
     EMOTIONS,
     emotions,
@@ -126,14 +127,15 @@ eachRow(
     EMOTIONS,
     emotionData?.reactions,
     'reactions',
-    ['shake', 'upside_down'],
+    HELD,
     ['emotion', 'duration', 'sparkles', 'note'],
-    (reaction, fail) => {
+    (reaction, fail, id) => {
         if (!Object.hasOwn(emotions, reaction.emotion))
             fail(`"emotion" must be one of ${Object.keys(emotions).join(', ')}`);
         if (!isNum(reaction.duration, 0.01, 60)) fail('"duration" must be between 0.01 and 60 seconds');
         if (!Number.isInteger(reaction.sparkles) || !isNum(reaction.sparkles, 0, MAX_SPARKLES))
             fail(`"sparkles" must be a whole number between 0 and ${MAX_SPARKLES}`);
+        else if (HELD.includes(id) && reaction.sparkles !== 0) fail('"sparkles" must be 0: it repeats while held');
     }
 );
 report(); // eyes.js cannot load without its emotions
