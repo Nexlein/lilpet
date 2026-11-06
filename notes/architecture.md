@@ -111,7 +111,7 @@ comme en `double`.
 - **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
 - **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache. La
-  version est épinglée dans `engine/wasm/Dockerfile` (6.0.13 début novembre 2026) : avec `latest`, une nouvelle
+  version est épinglée dans `engine/wasm/Dockerfile` (7.0.0 début novembre 2026) : avec `latest`, une nouvelle
   version pouvait casser la CI sans changement de notre côté. Dependabot propose chaque nouvelle version.
 - **ESP-IDF dans Docker**, avec la même commande en local et en CI (`BOARD=<carte> mise run firmware:build`). La version est
   épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
@@ -147,6 +147,39 @@ La liaison UART lira les mêmes lignes que l'USB : `lp_command_parse` ignore tou
 journal de démarrage de l'autre puce. À l'arrivée de la XIAO, il faudra une seconde tâche, qui donne ses lignes au même
 analyseur et réponde sur son propre flux. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
 sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux figés.
+
+## Points ouverts
+
+Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash, ni corruption mémoire, ni perte de données
+(118 400 images et 3 millions de lignes de commande au hasard), et JS et C restent identiques. Tout le reste est corrigé.
+
+À mesurer ou à essayer sur du vrai matériel :
+
+- **Temps de dessin à 466 px sur la puce**, jamais mesuré : `BOARD=stamp_s3a mise run firmware:deploy` sur la M5Stamp. Il est
+  estimé entre 16 et 30 ms pour 16,7 ms disponibles, et tout le budget de 60 images/s en dépend. À faire avant l'achat.
+- **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La démo de Waveshare définit la broche TE sans
+  s'en servir.
+- **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
+- **App et vraie carte dans Chrome** : les pannes de port (écriture morte, réponse restée en attente) sont prouvées sur un faux
+  port seulement.
+- **Renovate** : il n'a encore ouvert aucune pull request. Vérifier qu'il suit les `tools` des tâches de `mise.toml` et
+  `scripts/requirements.txt`.
+
+À décider ou à construire pour l'objet final :
+
+- **Mouvement et toucher** : le 1,32" n'a pas de capteur de mouvement, et son bouton n'est pas celui de l'AtomS3R. Sans module
+  ajouté, pas d'inclinaison ni de vertige ; le toucher demande un pilote pour le CST820.
+- **Modèle** : aucun modèle ESP-DL listé dans [materiel.md](materiel.md) ne lit les expressions du visage.
+- **Carte vision** : le projet `vision/`, et sa tâche UART, qui devra répondre sur son propre flux, avec un verrou autour du
+  look courant. Son firmware devra répondre à `> hello` : une image `stamp_s3a` sur la XIAO n'est pas arrêtée par le boîtier de
+  la puce, les deux sont en QFN56.
+
+Limites connues, à reprendre quand elles gêneront :
+
+- L'app associe une réponse à une demande par ordre d'arrivée : le protocole n'a pas d'identifiants.
+- Le WebAssembly garde une seule instance d'yeux, ce que l'éditeur devra changer.
+- `EyeGlyph` recopie les constantes de pupilles du moteur.
+- Les lignes de particules parcourent toute leur boîte : les limiter aux colonnes touchées déplaçait un pixel.
 
 ## Performance (mise en place en 2e)
 
