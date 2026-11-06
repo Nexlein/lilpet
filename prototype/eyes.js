@@ -120,9 +120,10 @@ export class Eyes {
         this.look = look;
     }
 
-    // duration > 0: back to the mood after that many seconds; otherwise the new mood. Unknown emotions are ignored.
+    // duration > 0: back to the mood after that many seconds; otherwise the new mood. Unknown emotions and durations
+    // that are not finite are ignored.
     setEmotion(name, duration = 0) {
-        if (!Object.hasOwn(EMOTIONS, name)) return;
+        if (!Object.hasOwn(EMOTIONS, name) || !Number.isFinite(duration)) return;
         this.emotion = name;
         this.emotionTimer = duration;
         if (!(duration > 0)) this.mood = name;
