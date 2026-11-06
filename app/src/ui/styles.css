@@ -538,6 +538,13 @@ button {
     }
 }
 
+/* Taller than the window, a sticky stage keeps its send note out of reach */
+@media (max-height: 640px) {
+    .stage {
+        position: static;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;
