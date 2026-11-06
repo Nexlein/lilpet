@@ -28,6 +28,7 @@ export class DeviceSession {
     readonly #listeners = new Set<() => void>();
     #snapshot: DeviceSnapshot;
     #connection: Connection | null = null;
+    #connecting = false; // from the call on: the state only says so once a port is picked
     #mood: string | null = null; // the last one picked: the interface shows it, so a board plugged in later gets it
 
     // requestPort: the browser's port picker, or null without Web Serial
@@ -44,7 +45,8 @@ export class DeviceSession {
     snapshot = (): DeviceSnapshot => this.#snapshot;
 
     connect = async (): Promise<void> => {
-        if (!this.#requestPort || this.#snapshot.state.status !== 'idle') return;
+        if (!this.#requestPort || this.#connecting || this.#snapshot.state.status !== 'idle') return;
+        this.#connecting = true;
         let opened: Connection | null = null;
         try {
             const port = await this.#requestPort();
@@ -66,6 +68,8 @@ export class DeviceSession {
             // Closing the port picker without choosing is not an error
             const cancelled = err instanceof DOMException && err.name === 'NotFoundError';
             this.#set({ state: cancelled ? { status: 'idle' } : { status: 'idle', error: describe(err, NOT_LILPET) } });
+        } finally {
+            this.#connecting = false;
         }
     };
 
