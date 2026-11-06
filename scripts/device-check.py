@@ -151,11 +151,11 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     check(kept == f"look {test_look}", "does not run the end of a line too long", kept or "no reply")
 
     accepted = "err benchmark animation running" if bench else "ok"
-    for command in ["> emotion happy", "> emotion love 1.5", "> react tap", "> react gesture_like", "> gaze 0.5 -0.25"]:
+    for command in ["> emotion happy", "> emotion love 1.5", "> react tap", "> react gesture_like", "> face 0.5 -0.25"]:
         reply = ask(port, command)
         check(reply == accepted, f'answers "{command}" as it should', reply or "no reply")
-    reply = ask(port, "> gaze off")
-    check(reply == accepted, 'answers "> gaze off" as it should', reply or "no reply")
+    reply = ask(port, "> face off")
+    check(reply == accepted, 'answers "> face off" as it should', reply or "no reply")
 
     for command in [
         "> emotion furious",
@@ -168,11 +168,11 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
         "> react wag",
         "> react",
         "> react tap now",
-        "> gaze 2 0",
-        "> gaze 0 nan",
-        "> gaze 0.5",
-        "> gaze 0 0 0",
-        "> gaze on",
+        "> face 2 0",
+        "> face 0 nan",
+        "> face 0.5",
+        "> face 0 0 0",
+        "> face on",
     ]:
         reply = ask(port, command)
         check(bool(reply) and reply.startswith("err "), f'rejects "{command}"', reply or "no reply")

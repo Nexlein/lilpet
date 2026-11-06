@@ -120,13 +120,13 @@ void test_command_reads_every_command(void)
     check_accepted("> react gesture_like", LP_COMMAND_REACT, &c);
     CHECK(c.event == LP_EVENT_GESTURE_LIKE);
 
-    check_accepted("> gaze 0.5 -0.25", LP_COMMAND_GAZE, &c);
-    CHECK(c.gaze.seen);
-    CHECK_NEAR(c.gaze.x, 0.5f, 0.0f);
-    CHECK_NEAR(c.gaze.y, -0.25f, 0.0f);
-    check_accepted("> gaze 1 -1", LP_COMMAND_GAZE, &c);
-    check_accepted("> gaze off", LP_COMMAND_GAZE, &c);
-    CHECK(!c.gaze.seen);
+    check_accepted("> face 0.5 -0.25", LP_COMMAND_FACE, &c);
+    CHECK(c.face.seen);
+    CHECK_NEAR(c.face.x, 0.5f, 0.0f);
+    CHECK_NEAR(c.face.y, -0.25f, 0.0f);
+    check_accepted("> face 1 -1", LP_COMMAND_FACE, &c);
+    check_accepted("> face off", LP_COMMAND_FACE, &c);
+    CHECK(!c.face.seen);
 }
 
 void test_command_refuses_bad_input(void)
@@ -142,6 +142,7 @@ void test_command_refuses_bad_input(void)
         {"> look? now", "unknown command"},
         {"> imu? now", "unknown command"},
         {"> HELLO", "unknown command"},
+        {"> gaze 0.5 -0.25", "unknown command"},
         {"> look", "malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle"},
         {"> look 7DB5F4 C10787 slit", "malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle"},
         {"> emotion", "malformed emotion, expected: <name> [seconds]"},
@@ -156,12 +157,12 @@ void test_command_refuses_bad_input(void)
         {"> react", "malformed react, expected: <event>"},
         {"> react tap now", "malformed react, expected: <event>"},
         {"> react wag", "unknown event"},
-        {"> gaze", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
-        {"> gaze on", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
-        {"> gaze 0.5", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
-        {"> gaze 0 0 0", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
-        {"> gaze 2 0", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
-        {"> gaze 0 nan", "malformed gaze, expected: <x> <y> from -1 to 1, or off"},
+        {"> face", "malformed face, expected: <x> <y> from -1 to 1, or off"},
+        {"> face on", "malformed face, expected: <x> <y> from -1 to 1, or off"},
+        {"> face 0.5", "malformed face, expected: <x> <y> from -1 to 1, or off"},
+        {"> face 0 0 0", "malformed face, expected: <x> <y> from -1 to 1, or off"},
+        {"> face 2 0", "malformed face, expected: <x> <y> from -1 to 1, or off"},
+        {"> face 0 nan", "malformed face, expected: <x> <y> from -1 to 1, or off"},
     };
     for (size_t i = 0; i < sizeof CASES / sizeof CASES[0]; i++)
         check_refused(CASES[i].text, CASES[i].error);

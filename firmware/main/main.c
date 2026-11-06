@@ -69,8 +69,8 @@ static void apply(const lp_command *c)
     case LP_COMMAND_REACT:
         lp_eyes_react(&eyes, c->event);
         break;
-    case LP_COMMAND_GAZE:
-        lp_senses_face(&senses, &eyes, c->gaze.seen, c->gaze.x, c->gaze.y);
+    case LP_COMMAND_FACE:
+        lp_senses_face(&senses, &eyes, c->face.seen, c->face.x, c->face.y);
         break;
     default: /* the others are answered by the task that reads commands */
         break;
