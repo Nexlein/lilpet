@@ -124,6 +124,24 @@ for (const [what, set] of SETTINGS)
 
 const modeOn = (page) => page.locator('#modes button.on');
 
+test('the C engine shows on its own, with its version', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/prototype/index.html');
+    await page.locator('#modes button', { hasText: 'Moteur C' }).click();
+
+    await expect(modeOn(page)).toHaveText('Moteur C');
+    await expect(page.locator('#cView')).toBeVisible();
+    await expect(page.locator('#jsView')).toBeHidden();
+    await expect(page.locator('#engineInfo')).toContainText(/Moteur C \d+\.\d+\.\d+ · rendu/);
+    const drawn = await page.evaluate(() => {
+        const canvas = document.getElementById('engine');
+        const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        return data.some((value, i) => i % 4 !== 3 && value > 0); // a blank canvas has no color, whatever its alpha
+    });
+    expect(drawn, 'the eyes on the canvas of the engine').toBe(true);
+    expect(errors, 'console errors on the interactive page').toEqual([]);
+});
+
 test('the prototype keeps up while only the C engine shows', async ({ page }) => {
     await page.goto('/prototype/index.html');
     await page.waitForFunction(() => window.live !== undefined);
