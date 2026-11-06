@@ -7,10 +7,10 @@
 
 #define GRAVITY_RATE 12.0f /* per second: smooths the sensor noise, which would shake the eyes */
 #define MOTION_LOST  0.25f /* seconds without a sample: the sensor stopped answering */
-#define BUTTON_SETTLE                                                                                                  \
-    0.03f              /* seconds: a contact bounce is shorter, so a press after a shorter release is the same one */
-#define FACE_LOST 0.5f /* seconds without a position: the camera no longer sees the face */
-#define FACE_NEW  3.0f /* seconds away before a face counts as new: detection flickers, which is not an arrival */
+/* Seconds: a contact bounce is shorter, so a press after a shorter release is the same one */
+#define BUTTON_SETTLE 0.03f
+#define FACE_LOST     0.5f /* seconds without a position: the camera no longer sees the face */
+#define FACE_NEW      3.0f /* seconds away before a face counts as new: detection flickers, which is not an arrival */
 
 void lp_senses_init(lp_senses *senses)
 {
