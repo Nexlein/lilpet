@@ -84,7 +84,7 @@ reference until the engine takes over each feature.
   from Waveshare's demo, not yet run on the board, also used without a display) or `display_atoms3r.c` for the AtomS3R
   LCD (128 px SPI, ST7735S or GC9107 told apart by their ID; values from M5GFX), `display_paced.c` timing the frames of
   those with no TE signal; `imu.h` is `imu_bmi270.c` (BMI270, which needs Bosch's configuration file,
-  `bmi270_config.c`, BSD-3, copied unmodified) or `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c`
+  `bmi270_config.c`, BSD-3, its bytes unchanged) or `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c`
   holds the board itself: power hold, button, I2C bus, backlight.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for `display_wait_frame`, applies the queued commands, gives the sensors to `lp_senses_update`, draws band by
