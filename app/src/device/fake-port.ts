@@ -14,7 +14,7 @@ export function firmware(): (command: string) => string | null {
 // atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
 export function fakePort(
     answer: (command: string) => string | null,
-    { failSignals = false, delay = (): number => 0, atOpen = '' } = {}
+    { failSignals = false, delay = (): number => 0, atOpen = '', quiet = (): boolean => false } = {}
 ) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
@@ -44,7 +44,7 @@ export function fakePort(
                 sent.push(command);
                 const reply = answer(command);
                 // A log line first, then the reply on a line of its own, split in two chunks as a real serial port may
-                device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
+                if (!quiet()) device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
                 if (reply === null) return;
                 const from = readable;
                 const send = () => {
