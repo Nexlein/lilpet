@@ -4,7 +4,6 @@ export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
 
 export type PupilType = (typeof PUPILS)[number];
 
-// Same look object as the prototype (makeLook in prototype/eyes.js)
 // Names of lp_event (reactions in eyes/emotions.json)
 export type EyeEvent =
     | 'tap'
@@ -21,6 +20,7 @@ export type EyeEvent =
     | 'expression_angry'
     | 'expression_surprised';
 
+// Same look object as the prototype (makeLook in prototype/eyes.js)
 export interface Look {
     id?: string;
     sclera: string;
