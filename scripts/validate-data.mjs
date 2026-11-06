@@ -175,8 +175,9 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     if (isObject(scene.particles)) {
         if (!Number.isInteger(scene.particles.seed) || scene.particles.seed < 0)
             fail('"particles.seed" must be a non-negative integer');
-        const timeOk = isNum(scene.particles.time, 0.01, 10);
-        if (!timeOk) fail('"particles.time" must be between 0.01 and 10 seconds');
+        // Whole steps of 1/60 s, and exact in a float: JS and C replay as many of them
+        const timeOk = isNum(scene.particles.time, 0.25, 10) && Number.isInteger(scene.particles.time * 4);
+        if (!timeOk) fail('"particles.time" must be a multiple of 0.25 seconds, up to 10');
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
         else if (known && timeOk) {
             const eyes = new Eyes(1);
