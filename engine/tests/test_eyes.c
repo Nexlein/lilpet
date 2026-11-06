@@ -236,11 +236,12 @@ void test_bad_input_is_ignored(void)
     CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
 
     /* A scene with an unknown emotion or blink phase leaves the eyes as they were */
-    lp_scene scene = {.emotion = LP_EMOTION_COUNT};
     const float roll = eyes.head.roll;
+    lp_scene scene = {.emotion = LP_EMOTION_COUNT, .roll = roll + 1.0f}; /* the roll would show as a change */
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    CHECK(eyes.head.roll == roll);
     scene.emotion = LP_EMOTION_NEUTRAL;
-    scene.blink_phase = (lp_blink_phase)9;
+    scene.blink_phase = (lp_blink_phase)(LP_BLINK_OPEN + 1); /* the first past the end: no phase would ever leave it */
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
     CHECK(eyes.head.roll == roll);
 
@@ -248,7 +249,6 @@ void test_bad_input_is_ignored(void)
     float *const values[] = {&scene.blink_t, &scene.yaw,    &scene.pitch,        &scene.roll,
                              &scene.gaze_x,  &scene.gaze_y, &scene.particle_time};
     scene.blink_phase = LP_BLINK_NONE;
-    scene.roll = roll + 1.0f; /* would show as a change */
     for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
         const float kept = *values[i];
         *values[i] = NAN;
