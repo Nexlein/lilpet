@@ -401,12 +401,43 @@ static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb 
     blend_row(r->line, x0, cov, width, color);
 }
 
-/* Adds to a coverage row the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row);
- * returns whether there was one */
-static bool add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, const lp_spans *shape, float w)
+/* A layer of an eye on one row: its coverage over the eye box, and the columns touched so far, none while lo >= hi */
+typedef struct {
+    float *cov;
+    int x0, width;
+    float lo, hi;
+} layer;
+
+static layer layer_start(float *cov, lp_rect box)
+{
+    const int width = box.x1 - box.x0;
+    memset(cov, 0, (size_t)(width + 1) * sizeof *cov);
+    return (layer){.cov = cov, .x0 = box.x0, .width = width, .lo = (float)box.x1, .hi = (float)box.x0};
+}
+
+static void layer_add(layer *l, const lp_spans *s, float w)
+{
+    if (s->n == 0)
+        return;
+    lp_coverage_add(l->cov, l->x0, l->width, s, w);
+    l->lo = lp_minf(l->lo, s->a[0]);
+    l->hi = lp_maxf(l->hi, s->b[s->n - 1]);
+}
+
+/* Blends a layer on the columns it touched, often a small part of the eye box */
+static void layer_blend(const layer *l, float *line, lp_rgb color)
+{
+    if (l->lo >= l->hi)
+        return;
+    const int first = (int)l->lo;
+    blend_row(line, first, &l->cov[first - l->x0], (int)ceilf(l->hi) - first, color);
+}
+
+/* Adds to a layer the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row) */
+static void add_inside_eye(layer *l, const lp_spans *eye, const lp_spans *shape, float w)
 {
     if (shape->n == 0)
-        return false;
+        return;
     lp_spans clipped;
     clipped.n = eye->n;
     for (int i = 0; i < eye->n; i++) { /* the spans in use only: the whole structure is 68 bytes, per sub-row */
@@ -414,8 +445,7 @@ static bool add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, c
         clipped.b[i] = eye->b[i];
     }
     lp_spans_clip(&clipped, shape->a[0], shape->b[0]);
-    lp_coverage_add(cov, x0, width, &clipped, w);
-    return clipped.n > 0;
+    layer_add(l, &clipped, w);
 }
 
 static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
@@ -426,44 +456,36 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
         draw_polygon_row(r, &g->shape, y, g->sclera, 1.0f);
         return;
     }
-    const int x0 = g->box.x0;
-    const int width = g->box.x1 - x0;
-    const float lo = (float)x0;
+    const float lo = (float)g->box.x0;
     const float hi = (float)g->box.x1;
     const float w = 1.0f / (float)LP_SUBROWS;
-    for (int k = 0; k < 3; k++)
-        memset(r->cov[k], 0, (size_t)(width + 1) * sizeof r->cov[k][0]);
+    layer sclera = layer_start(r->cov[0], g->box);
+    layer pupil = layer_start(r->cov[1], g->box);
+    layer glint = g->glint ? layer_start(r->cov[2], g->box) : (layer){0};
 
-    bool sclera = false;
-    bool pupil = false;
-    bool glint = false;
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
         lp_spans eye;
         eye_spans(g, ys, &eye);
         if (eye.n == 0)
             continue;
-        sclera = true;
-        lp_coverage_add(r->cov[0], x0, width, &eye, w);
+        layer_add(&sclera, &eye, w);
 
         const lp_line pl = lp_line_at(g->inv_pupil, ys);
         lp_spans shape;
         lp_spans_ellipse(&shape, &pl, &g->shapes.pupil, lo, hi);
-        pupil |= add_inside_eye(r->cov[1], x0, width, &eye, &shape, w);
+        add_inside_eye(&pupil, &eye, &shape, w);
 
         if (g->glint) {
             lp_spans_ellipse(&shape, &pl, &g->shapes.glint, lo, hi);
-            glint |= add_inside_eye(r->cov[2], x0, width, &eye, &shape, w);
+            add_inside_eye(&glint, &eye, &shape, w);
         }
     }
 
     /* Layer after layer: most rows of an eye have no pupil or glint, and a pixel only sees its own layers in order */
-    if (sclera)
-        blend_row(r->line, x0, r->cov[0], width, g->sclera);
-    if (pupil)
-        blend_row(r->line, x0, r->cov[1], width, g->pupil_color);
-    if (glint)
-        blend_row(r->line, x0, r->cov[2], width, g->glint_color);
+    layer_blend(&sclera, r->line, g->sclera);
+    layer_blend(&pupil, r->line, g->pupil_color);
+    layer_blend(&glint, r->line, g->glint_color);
 }
 
 /* --- Public API ------------------------------------------------------------------------------------- */
