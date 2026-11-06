@@ -1,8 +1,10 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
-# reboot, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change nothing.
-# With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
-# put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
+# reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
+# and lines too long, which change nothing.
+# With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look and
+# usual mood are put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and
+# firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
 # uv installs pyserial, from scripts/requirements.txt.
 import re
@@ -10,11 +12,30 @@ import sys
 import time
 from dataclasses import dataclass
 
-from board_link import BOARDS, ROOT, SERIAL_ERRORS, ask, board_from_env, find_port, hello_fields, open_port, read_reply
+from board_link import (
+    BOARDS,
+    ROOT,
+    SERIAL_ERRORS,
+    ask,
+    ask_hello,
+    board_from_env,
+    find_port,
+    has_motion_sensor,
+    hello_fields,
+    open_port,
+    read_reply,
+)
 
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
+BOOT_SECONDS = 3
+SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
+REPORT_LINE = r"^(\d+\.\d) frames/s"
+# Catches a dead or crawling drawing loop, not a slow screen: a board reports every 1080 frames (LP_BENCH_FRAMES), so
+# 17.3 s at full speed and 54 s at this rate, and the wait covers that
+MIN_FRAMES_PER_SECOND = 20
+REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 
 failures = 0
@@ -48,22 +69,29 @@ def check_reply(ok, what, reply):
     check(ok, what, reply or "no reply")
 
 
-def read_lines(port, seconds):
+def read_lines(port, seconds, until=None):
+    """What the board prints for that long, or up to and with the first line that matches `until`"""
     lines, end = [], time.time() + seconds
     while time.time() < end:
         line = port.readline().decode(errors="replace").strip()
         if line:
             lines.append(line)
+            if until and re.search(until, line):
+                break
     return lines
 
 
 def reboot(port):
-    """The ESP32-S3 USB port reboots the chip when RTS is asserted without DTR (what esptool does)"""
+    """Returns what the board prints from its boot to its first report, nothing if it does not boot. The ESP32-S3 USB
+    port reboots the chip when RTS is asserted without DTR (what esptool does)."""
     port.dtr = False
     port.rts = True
     time.sleep(0.1)
     port.rts = False
-    return any(BOOT_LINE in line for line in read_lines(port, 3))
+    boot = read_lines(port, BOOT_SECONDS, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
+    if not (boot and BOOT_LINE in boot[0]):
+        return []
+    return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
 
 
 def open_booted_board():
@@ -77,7 +105,7 @@ def open_booted_board():
         if name is not None:
             try:
                 with open_port(name) as port:
-                    answered = ask(port, "> hello", 2)  # not sooner: a board not reading yet only takes a few bytes
+                    answered = ask_hello(port, 2)  # not sooner: a board not reading yet only takes a few bytes
                 if answered or time.time() >= end:
                     return open_port(name)
             except SERIAL_ERRORS as err:
@@ -98,7 +126,17 @@ def run_checks(port, board, test_look, other_look):
     check(ask(port, f"> look {test_look}") == "ok", "keeps a new look")
     check(ask(port, "> look?") == f"look {test_look}", "tells the new look back")
 
-    check(reboot(port), "reboots on request")
+    log = reboot(port)
+    check(bool(log), "reboots on request")
+    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
+    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
+    report = re.search(REPORT_LINE, log[-1]) if log else None
+    rate = float(report.group(1)) if report else 0.0
+    check(
+        rate >= MIN_FRAMES_PER_SECOND,
+        f"draws at least {MIN_FRAMES_PER_SECOND} frames/s",
+        f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
+    )
     after = ask(port, "> look?")
     check_reply(after == f"look {test_look}", "still has the look after the reboot", after)
 
@@ -150,9 +188,6 @@ def run_checks(port, board, test_look, other_look):
     expected = f"{replies.count(accepted)} as expected"
     check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
-    if not board.bench:
-        check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
-
     imu = ask(port, "> imu?")
     if imu == "err no motion sensor" and not board.motion:
         print("-    no motion sensor on this board")
@@ -164,24 +199,29 @@ def run_checks(port, board, test_look, other_look):
         check_reply(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu)
 
 
-def put_back(port, before):
-    """Gives the board its own look back, whatever stopped the checks"""
+def put_back(port, board, before):
+    """Gives the board its own look and usual mood back, whatever stopped the checks"""
     try:
+        if port.rts:  # stopped during a reboot: the chip stays in reset until RTS is released
+            port.rts = False
+            read_lines(port, BOOT_SECONDS)
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
+        if not board.bench:
+            check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
     except SERIAL_ERRORS:
         check(False, "gets its own look back", f"port lost, send it again: > {before}")
 
 
 def check_board(board_name):
     config = BOARDS / board_name / "board_config.h"
-    board = Board(board_name, define(config, "BOARD_BENCH") == 1, define(config, "BOARD_MOTION") == 1)
+    board = Board(board_name, define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name))
 
     port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
 
-    hello = ask(port, "> hello")
+    hello = ask_hello(port)
     check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello)
     fields = hello_fields(hello)
     check(fields.get("board") == board.name, f"runs the image of {board.name}", fields.get("board", "no board"))
@@ -206,7 +246,7 @@ def check_board(board_name):
     except SERIAL_ERRORS as err:
         check(False, "runs to the end", f"port lost: {err}")
     finally:
-        put_back(port, before)
+        put_back(port, board, before)
     finish(port)
 
 

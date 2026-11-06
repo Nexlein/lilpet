@@ -42,6 +42,12 @@ typedef struct {
     lp_rect box;
 } lp_polygon;
 
+/* An edge of a polygon: it starts at (x, y0), ends at the height y1, and moves `slope` in x for each unit of y: the
+ * division is done once a pixel row, not per sub-row */
+typedef struct {
+    float x, y0, y1, slope;
+} lp_edge;
+
 /* Geometry of one eye for the frame being drawn */
 typedef struct {
     bool closed;
@@ -77,6 +83,7 @@ typedef struct {
     int particle_count;
     float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
     float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
+    lp_edge edges[LP_POLY_MAX];       /* those of the polygon being drawn that reach the row */
 } lp_renderer;
 
 #endif /* LILPET_RENDER_STATE_H */

@@ -21,6 +21,13 @@ for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 200) lit++;
 const share = lit / (engine.size * engine.size);
 if (share < 0.05 || share > 0.5) fail(`rendered frame looks wrong: ${(share * 100).toFixed(1)}% red pixels`);
 
+// RGB565 widens to the nearest 8-bit value: a color that fits 565 comes back as it went in
+const exact = engine.renderScene({}, { ...look, sclera: '#192D19' });
+let kept = 0;
+for (let i = 0; i < exact.length; i += 4)
+    if (exact[i] === 0x19 && exact[i + 1] === 0x2d && exact[i + 2] === 0x19) kept++;
+if (kept / (engine.size * engine.size) < 0.05) fail('a color that fits RGB565 changed on its way out');
+
 // Unknown names never reach the module: nothing changes
 engine.init(1);
 engine.setLook(look);

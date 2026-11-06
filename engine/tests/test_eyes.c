@@ -236,11 +236,12 @@ void test_bad_input_is_ignored(void)
     CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
 
     /* A scene with an unknown emotion or blink phase leaves the eyes as they were */
-    lp_scene scene = {.emotion = LP_EMOTION_COUNT};
     const float roll = eyes.head.roll;
+    lp_scene scene = {.emotion = LP_EMOTION_COUNT, .roll = roll + 1.0f}; /* the roll would show as a change */
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    CHECK(eyes.head.roll == roll);
     scene.emotion = LP_EMOTION_NEUTRAL;
-    scene.blink_phase = (lp_blink_phase)9;
+    scene.blink_phase = (lp_blink_phase)(LP_BLINK_OPEN + 1); /* the first past the end: no phase would ever leave it */
     lp_eyes_set_scene(&eyes, &scene, &eyes.look);
     CHECK(eyes.head.roll == roll);
 
@@ -248,7 +249,6 @@ void test_bad_input_is_ignored(void)
     float *const values[] = {&scene.blink_t, &scene.yaw,    &scene.pitch,        &scene.roll,
                              &scene.gaze_x,  &scene.gaze_y, &scene.particle_time};
     scene.blink_phase = LP_BLINK_NONE;
-    scene.roll = roll + 1.0f; /* would show as a change */
     for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
         const float kept = *values[i];
         *values[i] = NAN;
@@ -620,7 +620,7 @@ void test_shake_makes_it_dizzy_then_calm(void)
     }
     CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
     CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */
-    /* Back to its mood after 2 s, and the spinning dies down soon after */
+    /* Back to its mood when the reaction is over, and the spinning dies down soon after */
     for (int i = 0; i < 3 * 64; i++)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);

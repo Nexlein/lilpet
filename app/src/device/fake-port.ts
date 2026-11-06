@@ -11,7 +11,11 @@ export function firmware(): (command: string) => string | null {
 }
 
 // Stands alone, using nothing from around it: tests/app.spec.mjs sends its text to the page, for the browser tests
-export function fakePort(answer: (command: string) => string | null, { failSignals = false, delay = () => 0 } = {}) {
+// atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
+export function fakePort(
+    answer: (command: string) => string | null,
+    { failSignals = false, delay = (): number => 0, atOpen = '', quiet = (): boolean => false } = {}
+) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
     // As in Chrome, a cancelled stream makes way for a new one: only closing the port ends reading
@@ -40,9 +44,11 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
                 sent.push(command);
                 const reply = answer(command);
                 // A log line first, then the reply on a line of its own, split in two chunks as a real serial port may
-                device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
+                if (!quiet()) device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
                 if (reply === null) return;
+                const from = readable;
                 const send = () => {
+                    if (readable !== from) return; // a late reply goes with its stream: unplugged, or lost in an error
                     device.enqueue(encoder.encode('\n< '));
                     device.enqueue(encoder.encode(`${reply}\r\n`));
                 };
@@ -60,6 +66,7 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
             closed = false;
             readable = stream();
             writable = output();
+            if (atOpen) setTimeout(() => device.enqueue(encoder.encode(atOpen)));
         },
         // As in Chrome, a port does not close while a stream is locked
         close: async () => {
@@ -80,10 +87,11 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
         }
     };
 
-    // Chrome gives the port a new stream after a passing error, and none once the device is gone
-    const readError = ({ fatal }: { fatal: boolean }) => {
+    // Chrome gives the port a new stream after a passing error, and none once the device is gone. sameStream: a browser
+    // that goes on handing out the dead stream instead
+    const readError = ({ fatal, sameStream = false }: { fatal: boolean; sameStream?: boolean }) => {
         const failing = device;
-        readable = fatal ? null : stream();
+        if (!sameStream) readable = fatal ? null : stream();
         failing.error(new Error(fatal ? 'device lost' : 'buffer overrun'));
     };
 

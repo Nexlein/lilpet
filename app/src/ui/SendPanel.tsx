@@ -1,5 +1,5 @@
 // Sends the chosen look to the device and says how it went
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { lookKey, type LookChoice } from '../data/favorites';
 import { makeLook, type Look } from '../data/looks';
 import type { LookSent } from '../device/device';
@@ -17,6 +17,7 @@ type LastSend = { name: string; key: string; device: DeviceState } & (
 );
 
 export function SendPanel({ choice: { swatch, pupil }, device, onSend }: Props) {
+    const noteId = useId();
     const [sending, setSending] = useState(false);
     const [last, setLast] = useState<LastSend | null>(null);
     const key = lookKey(swatch.id, pupil);
@@ -39,10 +40,10 @@ export function SendPanel({ choice: { swatch, pupil }, device, onSend }: Props) 
     return (
         <div className="send">
             {/* Not disabled, as in DeviceBar: the keyboard focus would go away with it. A blocked click does nothing */}
-            <button type="button" className="primary" aria-disabled={blocked} onClick={send}>
+            <button type="button" className="primary" aria-disabled={blocked} aria-describedby={noteId} onClick={send}>
                 {sending ? 'Envoi…' : 'Envoyer à lilpet'}
             </button>
-            <p className="send-note" role="status">
+            <p id={noteId} className="send-note" role="status">
                 {sendNote(device, last, key)}
             </p>
         </div>
@@ -59,6 +60,6 @@ function sendNote(device: DeviceState, last: LastSend | null, key: string): stri
             ? `${last.name} est sur lilpet, et y reste même éteint.`
             : `${last.name} est sur lilpet, mais ne sera pas gardé.`;
     if (device.status === 'unsupported') return 'Pour envoyer un look, ouvre l’app dans Chrome ou Edge sur ordinateur.';
-    if (device.status !== 'connected') return 'Branche lilpet en USB pour lui envoyer ce look.';
+    if (device.status === 'idle') return 'Branche lilpet en USB pour lui envoyer ce look.';
     return '';
 }

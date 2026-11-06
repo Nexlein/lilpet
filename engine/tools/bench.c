@@ -1,7 +1,7 @@
 /*
  * Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build). Times
- * depend on the machine, so only compare runs made on the same one; the real budget is measured on the ESP32-S3
- * later. Prints Markdown tables (CI appends them to the job summary).
+ * depend on the machine, so only compare runs made on the same one; the firmware of a board with no display
+ * (BOARD_BENCH) times the same animation on the ESP32-S3. Prints Markdown tables (CI appends them to the job summary).
  *
  * - Each reference scene is drawn on a fresh renderer (whole screen, like the first frame), then drawn again (only
  *   the region of the eyes and particles, like a still frame on the device). Median of RUNS renders.

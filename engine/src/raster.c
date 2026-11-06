@@ -165,17 +165,30 @@ void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e)
         spans_cut(s, x0, x1);
 }
 
-void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi)
+int lp_polygon_edges(lp_edge *out, const float *pts, int count, float y0, float y1)
 {
-    float xs[2 * LP_MAX_SPANS];
     int n = 0;
-    for (int i = 0, j = count - 1; i < count && n < 2 * LP_MAX_SPANS; j = i++) {
+    for (int i = 0, j = count - 1; i < count; j = i++) {
         const float xi = pts[2 * i];
         const float yi = pts[2 * i + 1];
         const float xj = pts[2 * j];
         const float yj = pts[2 * j + 1];
-        if ((yi > y) != (yj > y)) {
-            const float x = xi + (y - yi) * (xj - xi) / (yj - yi);
+        const bool above = yi <= y0 && yj <= y0;
+        const bool below = yi > y1 && yj > y1;
+        if (!above && !below)
+            out[n++] = (lp_edge){.x = xi, .y0 = yi, .y1 = yj, .slope = yi != yj ? (xj - xi) / (yj - yi) : 0.0f};
+    }
+    return n;
+}
+
+void lp_spans_polygon(lp_spans *out, const lp_edge *edges, int count, float y, float lo, float hi)
+{
+    float xs[2 * LP_MAX_SPANS];
+    int n = 0;
+    for (int i = 0; i < count && n < 2 * LP_MAX_SPANS; i++) {
+        const lp_edge *e = &edges[i];
+        if ((e->y0 > y) != (e->y1 > y)) {
+            const float x = e->x + (y - e->y0) * e->slope;
             int k = n++;
             while (k > 0 && xs[k - 1] > x) { /* insertion sort, few crossings */
                 xs[k] = xs[k - 1];
@@ -211,10 +224,6 @@ void lp_coverage_add(float *diff, int origin, int width, const lp_spans *s, floa
             continue;
         const int ia = (int)a;
         const int ib = (int)b;
-        if (ia == ib) {
-            add_cell(diff, ia, weight * (b - a));
-            continue;
-        }
         add_cell(diff, ia, weight * ((float)(ia + 1) - a));
         diff[ia + 1] += weight; /* full pixels ia + 1 .. ib - 1 */
         diff[ib] -= weight;

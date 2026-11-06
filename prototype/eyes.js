@@ -282,20 +282,13 @@ export class Eyes {
         return Math.min(this.cur.spin / DIZZY.max, 1);
     }
 
-    // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
-    // as it is: the timer only brings it back to itself. This runs every frame, so react() only starts it: sparkles in
-    // the table burst once, not every BURST_GAP for as long as the cause lasts.
-    #holdReaction(event) {
-        const r = REACTIONS[event];
-        if (this.emotion !== r.emotion) this.react(event);
-        else this.emotionTimer = Math.max(this.emotionTimer, r.duration);
-    }
-
-    // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
+    // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time). Reacting
+    // every frame, each goes on as long as its cause, and its duration after. The table gives them no sparkles, which
+    // would burst every BURST_GAP as long as the cause lasts.
     #updateHeldReactions(dt) {
         this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
-        if (this.shaking) this.#holdReaction('shake');
-        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upside_down');
+        if (this.shaking) this.react('shake');
+        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.react('upside_down');
     }
 
     // Tilting the object turns the face to stay level and slides the eyes toward the low side; returns the slide. The
