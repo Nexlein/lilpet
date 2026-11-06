@@ -11,6 +11,25 @@
 #define LP_SUBROWS   8 /* vertical samples per pixel row */
 #define LP_MAX_SPANS 8
 
+/* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) */
+typedef struct {
+    float a, b, c, d, tx, ty;
+} lp_affine;
+
+/*
+ * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
+ * share one step (du, dv): the divisions are done once a frame, not per sub-row (the ESP32-S3 has no fast division).
+ */
+typedef struct {
+    float cu, cv, inv_ra, inv_rb;
+    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
+} lp_ellipse;
+
+/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
+typedef struct {
+    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
+} lp_half_plane;
+
 /* Sorted, disjoint intervals [a, b) on a sub-row, in screen x */
 typedef struct {
     int n;
