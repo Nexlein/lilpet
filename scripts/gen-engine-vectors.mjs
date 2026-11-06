@@ -230,7 +230,10 @@ for (const key of lookKeys) {
     );
 }
 out('};', '');
-out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;');
+// Played on for a while too: the seed and the deadlines a scene leaves are the same on both sides
+const SCENE_PLAY = 128;
+out(`#define LPV_SCENE_PLAY ${SCENE_PLAY}`);
+out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected, played; } lpv_scene;');
 out(`static const lpv_scene LPV_SCENES[${scenes.length}] = {`);
 for (const scene of scenes) {
     const eyes = new Eyes(1);
@@ -249,7 +252,10 @@ for (const scene of scenes) {
         num(scene.particles?.time ?? 0)
     ];
     const lookIndex = lookKeys.indexOf(`${scene.swatch} ${scene.pupil}`);
-    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes).join(', ')}}},`);
+    const expected = snapshot(eyes);
+    for (let i = 0; i < SCENE_PLAY; i++) eyes.update(DT);
+    const played = snapshot(eyes);
+    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${expected.join(', ')}}, {${played.join(', ')}}},`);
 }
 out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');
 

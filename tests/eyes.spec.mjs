@@ -6,6 +6,9 @@ import { EMOTIONS, Eyes, REACTIONS, createRng } from '../prototype/eyes.js';
 const MAX_PARTICLES = 32; // LP_MAX_PARTICLES
 const SPARKLE_DRAWS = 5; // random numbers spawn() takes for a sparkle
 
+// Everything but the random generator, a closure, and the listener
+const fields = (eyes) => ({ ...eyes, rand: null, onEmotion: null });
+
 // What update() changes
 const state = ({ time, cur, gaze, head, blinkState, emotion, emotionTimer, particles }) =>
     structuredClone({ time, cur, gaze, head, blinkState, emotion, emotionTimer, particles });
@@ -91,6 +94,59 @@ test('points that are not finite are dropped, as in the engine', () => {
         expect(eyes.mouse).toBeNull();
         expect(eyes.gravity).toBeNull();
     }
+});
+
+test('a scene starts over, as in the engine', () => {
+    const scene = { emotion: 'love', head: { yaw: 0.25 }, gaze: { x: 0.5 }, particles: { seed: 3, time: 1 } };
+    const fresh = new Eyes(1);
+    fresh.setScene(scene, null);
+
+    const eyes = new Eyes(1);
+    eyes.onEmotion = console.log;
+    eyes.setPointer({ x: 0.5, y: 0.5 });
+    eyes.setGravity({ x: 0, y: -1 });
+    eyes.shaking = true;
+    eyes.follow = false;
+    eyes.headAmount = 0;
+    eyes.shape.rx = 50;
+    for (let i = 0; i < 64; i++) eyes.update(1 / 64);
+    eyes.setScene(scene, null);
+
+    expect(eyes.onEmotion).toBe(console.log); // the listener stays
+    expect(fields(eyes)).toEqual(fields(fresh));
+    expect(eyes.rand()).toBe(fresh.rand());
+});
+
+test('a scene without particles starts from seed 0, as in the engine', () => {
+    const eyes = new Eyes(1);
+    eyes.setScene({}, null);
+    expect(eyes.rand()).toBe(createRng(0)());
+});
+
+test('a scene that is not valid is ignored, as in the engine', () => {
+    const eyes = new Eyes(1);
+    eyes.setEmotion('love');
+    eyes.update(1 / 64);
+    const before = state(eyes);
+    for (const scene of [
+        { emotion: 'furious' },
+        { emotion: 'toString' },
+        { blink: { phase: 'wink', t: 0 } },
+        { blink: { phase: 'open', t: Number.NaN } },
+        { head: { yaw: Number.NaN } },
+        { head: { pitch: Infinity } },
+        { head: { roll: -Infinity } },
+        { gaze: { x: Number.NaN } },
+        { gaze: { y: Infinity } },
+        { particles: { seed: 1, time: Number.NaN } },
+        { particles: { seed: 1, time: 60.5 } },
+        { particles: { seed: 1, time: -1 } }
+    ]) {
+        eyes.setScene(scene, null);
+        expect(state(eyes)).toEqual(before);
+    }
+    eyes.setScene({ particles: { seed: 1, time: 60 } }, null); // the limit itself is a scene
+    expect(eyes.time).toBe(0);
 });
 
 test('a held reaction outlives its cause by its duration, then the mood comes back', () => {
