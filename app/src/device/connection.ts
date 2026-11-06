@@ -31,6 +31,13 @@ export class ConnectionClosed extends Error {
     }
 }
 
+// The port is there, but the board kept quiet for too long
+export class NoReply extends Error {
+    constructor(command: string) {
+        super(`no reply to "${command}"`);
+    }
+}
+
 interface ConnectionEvents {
     onLog?(line: string): void;
     onClose?(): void;
@@ -124,7 +131,7 @@ export class Connection {
                 };
                 const timer = setTimeout(() => {
                     done();
-                    reject(new Error(`no reply to "${command}"`));
+                    reject(new NoReply(command));
                 }, timeoutMs);
                 this.#pending = {
                     resolve: (reply) => {

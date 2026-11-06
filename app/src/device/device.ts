@@ -14,7 +14,14 @@ export class BoardBusy extends Error {
     }
 }
 
-// Asked a few times: a board that reboots as the port opens misses the first one. A board that is gone is not asked again
+// Something answered hello, but not lilpet
+export class NotLilpet extends Error {
+    constructor(reply: string | null) {
+        super(`not a lilpet device (reply: ${reply})`);
+    }
+}
+
+// Asked a few times: a board that reboots as the port opens misses the first one. Once it is gone, asking is over
 export async function hello(connection: Connection): Promise<DeviceInfo> {
     let reply: string | null = null;
     for (let i = 0; i < HELLO_ATTEMPTS && reply === null; i++)
@@ -25,7 +32,7 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
                 err instanceof ConnectionClosed || i === HELLO_ATTEMPTS - 1 ? Promise.reject(err) : null
             );
     const info = parseHello(reply ?? '');
-    if (!info) throw new Error(`not a lilpet device (reply: ${reply})`);
+    if (!info) throw new NotLilpet(reply);
     return info;
 }
 
