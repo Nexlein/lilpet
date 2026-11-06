@@ -28,7 +28,6 @@ let modeRequest = 0; // counts the clicks: the last one wins over one still wait
 let time = 0; // seconds of animation, shared by both renderers
 let look = null;
 let emotion = 'neutral'; // last emotion picked: the mood that reactions come back to
-let shownEmotion = null;
 let paused = false;
 let renderMs = 0;
 const problems = []; // what could not load: stays on screen in every mode
@@ -200,7 +199,6 @@ Object.entries(EMOTIONS).forEach(([name, e], i) => {
 });
 
 function highlightEmotion(name) {
-    shownEmotion = name;
     emotionsEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.e === name));
 }
 
@@ -287,7 +285,7 @@ function bindControls() {
 // --- Loop --------------------------------------------------------------------------------------------------------
 function step(dt) {
     time += dt;
-    if (mode !== 'c') eyes.update(dt);
+    eyes.update(dt);
     if (mode !== 'js') engine.update(dt);
 }
 
@@ -304,7 +302,6 @@ function draw() {
     const pixels = engine.render();
     renderMs += (performance.now() - t0 - renderMs) * 0.05;
     cCtx.putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
-    if (mode === 'c' && engine.emotion() !== shownEmotion) highlightEmotion(engine.emotion());
     if (mode === 'side' && frames++ % 30 === 0) lastDiff = diff();
     const gap = mode === 'side' && lastDiff ? ` · écart moyen ${lastDiff.mean.toFixed(2)}` : '';
     const drift = mode === 'side' && lastDiff && !lastDiff.pass ? ' : décalés, resynchroniser' : '';
