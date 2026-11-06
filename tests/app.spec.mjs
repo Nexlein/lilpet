@@ -21,8 +21,8 @@ const test = base.extend({
 
 test.skip(!existsSync('app/dist/index.html') && !process.env.CI, 'build the app first: npm run app:build');
 
-// Runs in the page. A serial port like Chrome's (a new stream after a cancel, no close while a stream is locked) with a
-// board on it, driven from the tests through window.board.
+// Runs in the page. A serial port like Chrome's (no second open, a new stream after a cancel, no close while a stream is
+// locked) with a board on it, driven from the tests through window.board.
 function fakeSerial() {
     const encoder = new TextEncoder();
     let input = null;
@@ -64,6 +64,7 @@ function fakeSerial() {
 
     const port = {
         async open() {
+            if (opened) throw new DOMException('The port is already open.', 'InvalidStateError');
             opened = true;
             lost = false;
             readable = null;
@@ -195,6 +196,27 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
 
     await page.getByRole('button', { name: 'Débrancher' }).click();
     await expect(button).toHaveText('Brancher lilpet');
+});
+
+test('a second press while connecting changes nothing, and a mood picked meanwhile reaches the board', async ({
+    page
+}) => {
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    await page.evaluate(() => (window.board.hello = null)); // connecting lasts until the board answers
+
+    const status = page.locator('.device [role=status]');
+    await page.locator('.device button').focus();
+    await page.keyboard.press('Enter');
+    await expect(status).toHaveText('Connexion à lilpet…');
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: 'Triste' }).click();
+    await expect(status).toHaveText('Connexion à lilpet…');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.5.0 engine=0.13.0'));
+    await expect(status).toContainText('lilpet est branché');
+    await expect.poll(async () => (await sent(page)).at(-1)).toBe('> emotion sad');
 });
 
 test('says when the flash refuses a look, and when the board does', async ({ page }) => {

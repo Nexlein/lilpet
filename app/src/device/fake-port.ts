@@ -47,7 +47,9 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
         });
 
     const port: PortLike = {
+        // As in Chrome, a port does not open twice
         open: async (opts) => {
+            if (writable) throw new DOMException('The port is already open.', 'InvalidStateError');
             options = opts;
             closed = false;
             readable = stream();

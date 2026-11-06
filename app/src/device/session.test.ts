@@ -14,6 +14,7 @@ describe('device session', () => {
         const seen: string[] = [];
         session.subscribe(() => seen.push(session.snapshot().state.status));
         await session.connect();
+        await session.connect(); // already connected: nothing happens
         expect(session.snapshot().state).toEqual({
             status: 'connected',
             info: { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' }
