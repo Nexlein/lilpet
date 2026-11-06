@@ -5,6 +5,10 @@
 #ifndef LILPET_RENDER_STATE_H
 #define LILPET_RENDER_STATE_H
 
+#include "lilpet/screen.h"
+
+#include <stdbool.h>
+
 /* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) */
 typedef struct {
     float a, b, c, d, tx, ty;

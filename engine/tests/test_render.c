@@ -1,4 +1,6 @@
 /* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses */
+#include "lilpet/render_state.h" /* first: it compiles on its own */
+
 #include "../src/raster.h"
 #include "js_vectors.h"
 #include "lilpet/lilpet.h"

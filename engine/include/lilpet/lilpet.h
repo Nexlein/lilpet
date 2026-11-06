@@ -7,6 +7,9 @@
 #ifndef LILPET_LILPET_H
 #define LILPET_LILPET_H
 
+#include "lilpet/render_state.h"
+#include "lilpet/screen.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -22,9 +25,6 @@ extern "C" {
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
 const char *lp_version(void);
-
-#define LP_SCREEN_SIZE   466
-#define LP_MAX_PARTICLES 32
 
 /* --- Random numbers: mulberry32, same sequence as createRng in prototype/eyes.js ---------------- */
 
@@ -359,13 +359,8 @@ lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
 
 /* --- Rendering into an RGB565 frame ------------------------------------------------------------- */
 
-/* Pixel rectangle, x1 and y1 excluded; empty when x0 >= x1 or y0 >= y1 */
-typedef struct {
-    int x0, y0, x1, y1;
-} lp_rect;
-
-/* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Do not read its fields. */
-#include "lilpet/render_state.h"
+/* lp_renderer: scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Do not read
+ * its fields. */
 
 /* Prepares a renderer for the full LP_SCREEN_SIZE screen */
 void lp_renderer_init(lp_renderer *renderer);
