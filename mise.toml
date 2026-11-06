@@ -104,9 +104,7 @@ description = "Take care of one object: build the firmware of a board (BOARD), f
 run = [
     { task = "firmware:build" },
     { task = "firmware:flash" },
-    # The flash ends with a reboot: the check must not take it for one caused by opening the port
-    "sleep 3",
-    { task = "firmware:check-device" },
+    { task = "firmware:check-device" }, # waits for the board, which reboots at the end of the flash
 ]
 
 [tasks."firmware:monitor"]
