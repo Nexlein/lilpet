@@ -27,7 +27,9 @@ commandes `emotion`, `react` et `gaze` (novembre 2026) n'ont pas encore été es
 2. **Envoi à l'objet**
     - Bouton « Brancher lilpet » (Web Serial), puis les infos de l'objet : carte, versions du firmware et du moteur.
     - Bouton « Envoyer à lilpet » : l'objet affiche le look tout de suite et le garde en mémoire flash.
-    - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder.
+    - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder. La
+      dernière humeur repart après `hello`. Après un rechargement de la page, l'app montre Neutre, et l'objet garde la
+      sienne : il faudrait une commande `emotion?` pour la lire.
     - Journal de l'objet (les mesures qu'il écrit déjà) dans un panneau repliable.
 
 Version 1 testée sur l'AtomS3R (voir [materiel.md](materiel.md)) : le look envoyé est gardé (`> look?`,
@@ -77,13 +79,17 @@ lignes par UART :
   Sert au calage des axes et à `mise run firmware:check-device` ;
 - `> emotion <nom> [secondes]` : une émotion pour ce temps (plus de 0, 3600 au plus), ou la nouvelle humeur sans durée ;
 - `> react <événement>` : la réaction à un événement, par son nom dans `eyes/emotions.json` (`tap`, `gesture_like`,
-  `expression_happy`…). Une ligne par changement, pas par image de la caméra : chaque ligne relance la réaction ;
+  `expression_happy`…). Une ligne par changement, pas par image de la caméra. Une même émotion relancée à moins de 0,5 s
+  prolonge la réaction sans nouvelles étincelles ;
 - `> gaze <x> <y>` : un visage en x, y de -1 à 1, à renvoyer tant qu'il est vu : sans nouvelle position pendant 0,5 s,
   les yeux le lâchent. Un visage absent depuis 3 s compte comme nouveau et déclenche `face_seen`. `> gaze off` dit
   qu'il est parti.
 
 Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` si la boucle de dessin
 ne suit plus. Sur la carte qui joue le benchmark, elles sont refusées.
+
+L'app n'utilise que `hello`, `look`, `emotion` sans durée et `react`, et ne lit de `hello` que les versions et `board`. Le
+reste sert au modèle d'IA et aux essais au port série. Elle attend 2 s la réponse à un look, 500 ms pour le reste.
 
 Du texte simple : lisible dans le moniteur série, lu en C sans bibliothèque, facile à tester des deux côtés. Côté
 firmware, le look reçu est appliqué et gardé dans la mémoire flash (NVS d'ESP-IDF), puis rechargé au démarrage.

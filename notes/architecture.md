@@ -84,8 +84,8 @@ dessin ligne par ligne lissent différemment), donc la comparaison tolère un pe
 le moteur devient la source de vérité pour elle.
 
 Pour l'image, `prototype/reference.html` rend chaque scène avec le prototype et avec le moteur compilé en WebAssembly,
-côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, et au plus 3 pixels de cœur, c'est-à-
-dire qui diffèrent de plus de 32 comme leurs 4 voisins. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si
+côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, au plus 760 gros pixels, dont un canal
+s'écarte de plus de 32, et au plus 3 pixels de cœur, c'est-à-dire gros comme leurs 4 voisins. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si
 une scène sort de la tolérance. La règle a changé en novembre 2026 : compter tous les pixels à plus de 32 laissait
 passer des étincelles absentes, et faisait échouer des looks blancs sur leurs seuls bords lissés. L'écart de cœur
 mesuré vaut 0 sur les scènes et sur 12 600 combinaisons, 1 au plus sur 450 scènes de particules.
@@ -96,7 +96,8 @@ souris, cœurs, caresse, endormi) et échoue s'ils sortent de la même toléranc
 et `double` qui ferait basculer un événement les décalerait : la page affiche l'écart et propose de les resynchroniser.
 
 Pour la logique (hasard, émotions, clignement, regard, tête, particules), la comparaison est **exacte** : le script
-`scripts/gen-engine-vectors.mjs` fait tourner le prototype et écrit les valeurs attendues dans
+`scripts/gen-engine-vectors.mjs` (lancé par `npm run vectors`, avec `gen-emotions-table.mjs` pour les tables C) fait
+tourner le prototype et écrit les valeurs attendues dans
 `engine/tests/js_vectors.h`, que les tests C vérifient. Le hasard donne les mêmes nombres dans les deux langages (24
 bits, exacts dans un `float`), et les simulations avancent par pas de 1/64 s pour que le temps soit exact en `float`
 comme en `double`.
