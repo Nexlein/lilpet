@@ -25,6 +25,7 @@ LINE_MAX = int(
         r"LP_COMMAND_LINE_MAX\s+(\d+)", (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
     ).group(1)
 )
+REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
     "emotion": r"(neutral|happy|love)( [1-9.]+)?",
@@ -57,10 +58,14 @@ class Board:
         motion=True,
         reads_after=0.0,  # still booting: what it is sent until then is lost
         stale=(),  # lines on their way to the port when it is opened
+        boot_log=(),  # what it prints when it starts, past the boot line
+        report=REPORT,  # the timing report it prints after a round of the animation, if any
+        report_after=12.5,  # seconds after booting
         open_error=None,
         dtr_error=None,
     ):
         self.name, self.bench, self.motion = name, bench, motion
+        self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
         self.open_error, self.dtr_error = open_error, dtr_error
@@ -73,7 +78,10 @@ class Board:
     def boot(self):
         self.mood = "neutral"
         self.reads_from = clock.now + 1
-        self.output.append((clock.now + 0.3, "I (250) main_task: Calling app_main()"))
+        for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
+            self.output.append((clock.now + 0.3, line))
+        if self.report:
+            self.output.append((clock.now + 0.3 + self.report_after, self.report))
 
     def set_reset(self, held):
         if self.in_reset and not held:
@@ -337,6 +345,16 @@ class DeviceCheck(unittest.TestCase):
 
     def test_a_stale_reply_does_not_pass_for_hello(self):
         self.assert_passes(Board("atoms3r", stale=["< ok"], reads_after=3))
+
+    def test_fails_on_a_screen_fault_in_the_boot_log(self):
+        for fault in (
+            "display ID not recognized (00 00 00 00 00 00): trying the GC9107 settings",
+            "backlight: no answer from the driver at I2C 0x30",
+        ):
+            with self.subTest(fault):
+                status, out, _ = check_device(Board("atoms3r", boot_log=[fault]))
+                self.assertEqual(status, 1)
+                self.assertIn(f"FAIL starts its screen ({fault})", out)
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):
         status, out, _ = check_device(Board("atoms3r", motion=False))

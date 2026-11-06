@@ -1,6 +1,7 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
-# reboot, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change nothing.
+# reboot, logs no fault of its screen, takes the commands that drive the eyes, and rejects bad commands and lines too
+# long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
 # put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
@@ -27,6 +28,7 @@ from board_link import (
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
+SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 
 failures = 0
@@ -70,12 +72,15 @@ def read_lines(port, seconds):
 
 
 def reboot(port):
-    """The ESP32-S3 USB port reboots the chip when RTS is asserted without DTR (what esptool does)"""
+    """Returns what the board prints as it starts, nothing if it does not. The ESP32-S3 USB port reboots the chip when
+    RTS is asserted without DTR (what esptool does)."""
     port.dtr = False
     port.rts = True
     time.sleep(0.1)
     port.rts = False
-    return any(BOOT_LINE in line for line in read_lines(port, 3))
+    lines = read_lines(port, 3)
+    booted = [index for index, line in enumerate(lines) if BOOT_LINE in line]
+    return lines[booted[0] :] if booted else []
 
 
 def open_booted_board():
@@ -110,7 +115,10 @@ def run_checks(port, board, test_look, other_look):
     check(ask(port, f"> look {test_look}") == "ok", "keeps a new look")
     check(ask(port, "> look?") == f"look {test_look}", "tells the new look back")
 
-    check(reboot(port), "reboots on request")
+    log = reboot(port)
+    check(bool(log), "reboots on request")
+    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
+    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
     after = ask(port, "> look?")
     check_reply(after == f"look {test_look}", "still has the look after the reboot", after)
 
