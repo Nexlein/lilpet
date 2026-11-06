@@ -25,6 +25,7 @@
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
     X(test_senses_smooth_gravity)                                                                                      \
+    X(test_senses_start_over_when_a_sensor_comes_back)                                                                 \
     X(test_senses_forget_a_sensor_that_stopped)                                                                        \
     X(test_senses_stop_a_shake_when_the_sensor_stops)                                                                  \
     X(test_senses_skip_a_bad_sample)                                                                                   \
