@@ -17,9 +17,15 @@ void lp_senses_init(lp_senses *senses)
     *senses = (lp_senses){.gravity = {0.0f, 1.0f}, .motion_age = MOTION_LOST, .face_age = FACE_NEW};
 }
 
-static void update_motion(lp_senses *s, lp_eyes *eyes, const float *accel, float dt)
+/* No sample, or one that is not a number or whose length overflows (the rule of lp_shake_update) */
+static bool sample_is_valid(const float accel[3])
 {
-    if (accel && isfinite(accel[0]) && isfinite(accel[1]) && isfinite(accel[2])) {
+    return accel && isfinite(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
+}
+
+static void update_motion(lp_senses *s, lp_eyes *eyes, const float accel[3], float dt)
+{
+    if (sample_is_valid(accel)) {
         s->motion_age = 0.0f;
         /* Raw sample: smoothing hides a shake */
         lp_eyes_set_shaking(eyes, lp_shake_update(&s->shake, accel[0], accel[1], accel[2], dt));
@@ -47,9 +53,9 @@ static void update_button(lp_senses *s, lp_eyes *eyes, bool pressed, float dt)
     s->button_age = 0.0f;
 }
 
-void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float dt)
+void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bool pressed, float dt)
 {
-    if (!isfinite(dt))
+    if (!(dt >= 0.0f) || !isfinite(dt))
         return;
     update_motion(senses, eyes, accel, dt);
     update_button(senses, eyes, pressed, dt);

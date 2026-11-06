@@ -82,6 +82,13 @@ void test_senses_skip_a_bad_sample(void)
     CHECK(isfinite(senses.gravity[0]));
     CHECK(isfinite(senses.shake.energy));
     CHECK(eyes.gravity.active);
+
+    /* Finite, but its length overflows: no more of a sample than a NaN */
+    const float huge[3] = {1e30f, 1.0f, 0.0f};
+    const float age = senses.motion_age;
+    lp_senses_update(&senses, &eyes, huge, false, STEP);
+    CHECK(fabsf(senses.gravity[0]) < 0.01f);
+    CHECK(senses.motion_age > age);
 }
 
 void test_senses_skip_a_bad_step(void)
@@ -95,6 +102,12 @@ void test_senses_skip_a_bad_step(void)
     lp_senses_update(&senses, &eyes, good, false, INFINITY);
     CHECK(isfinite(senses.gravity[0]) && isfinite(senses.gravity[1]));
     CHECK(isfinite(senses.motion_age) && isfinite(senses.button_age) && isfinite(senses.face_age));
+
+    /* Time going backward: the smoothing would grow without limit */
+    const float face_age = senses.face_age;
+    lp_senses_update(&senses, &eyes, good, false, -100.0f);
+    CHECK(isfinite(senses.gravity[0]) && isfinite(senses.gravity[1]));
+    CHECK(senses.face_age == face_age);
 }
 
 void test_senses_debounce_the_button(void)

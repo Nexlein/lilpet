@@ -264,8 +264,9 @@ typedef struct {
 } lp_senses;
 
 void lp_senses_init(lp_senses *senses);
-/* Once per frame, before lp_eyes_update. accel: in g, screen axes (x right, y down), raw; NULL without a sample. */
-void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float dt);
+/* Once per frame, before lp_eyes_update. accel: x, y, z in g, on the screen axes (x right, y down, z through the
+ * screen), raw; NULL without a sample. A step that is negative or not finite is ignored. */
+void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bool pressed, float dt);
 /* A face at x, y in -1..1, whenever the camera reports one; seen = false when it says the face is gone. A face that
  * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
 void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
