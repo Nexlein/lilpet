@@ -10,7 +10,18 @@ import sys
 import time
 from dataclasses import dataclass
 
-from board_link import BOARDS, ROOT, SERIAL_ERRORS, ask, board_from_env, find_port, hello_fields, open_port, read_reply
+from board_link import (
+    BOARDS,
+    ROOT,
+    SERIAL_ERRORS,
+    ask,
+    board_from_env,
+    find_port,
+    has_motion_sensor,
+    hello_fields,
+    open_port,
+    read_reply,
+)
 
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
@@ -176,7 +187,7 @@ def put_back(port, before):
 
 def check_board(board_name):
     config = BOARDS / board_name / "board_config.h"
-    board = Board(board_name, define(config, "BOARD_BENCH") == 1, define(config, "BOARD_MOTION") == 1)
+    board = Board(board_name, define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name))
 
     port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")

@@ -238,6 +238,22 @@ class HelloFields(unittest.TestCase):
         self.assertEqual(board_link.hello_fields(None), {})
 
 
+class MotionSensor(unittest.TestCase):
+    def test_reads_the_parts_of_each_board(self):
+        self.assertTrue(board_link.has_motion_sensor("atoms3r"))
+        self.assertFalse(board_link.has_motion_sensor("waveshare_132"))
+        self.assertFalse(board_link.has_motion_sensor("stamp_s3a"))
+
+    def test_any_sensor_counts(self):
+        with mock.patch.object(Path, "read_text", return_value="list(APPEND srcs display.c imu_other.c)\n"):
+            self.assertTrue(board_link.has_motion_sensor("atoms3r"))
+
+    def test_leaves_comments_out(self):
+        cmake = "# imu_bmi270.c once soldered\nlist(APPEND srcs imu_none.c) # not imu_bmi270.c\n"
+        with mock.patch.object(Path, "read_text", return_value=cmake):
+            self.assertFalse(board_link.has_motion_sensor("atoms3r"))
+
+
 class FlashGuard(unittest.TestCase):
     def test_allows_the_same_board(self):
         self.assertEqual(guard(Board("atoms3r"))[:2], (0, f"{PORT}\n"))

@@ -1,6 +1,7 @@
 # What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in
 # notes/app.md). uv installs pyserial, from scripts/requirements.txt.
 import os
+import re
 import sys
 import termios
 import time
@@ -23,6 +24,12 @@ def board_from_env():
     if board not in known:
         sys.exit(f"Set BOARD to one of: {' '.join(known)}")
     return board
+
+
+def has_motion_sensor(board):
+    """Whether board.cmake links a motion sensor: an imu_*.c other than imu_none.c, comments left out"""
+    parts = re.sub(r"#.*", "", (BOARDS / board / "board.cmake").read_text())
+    return any(part != "imu_none.c" for part in re.findall(r"\bimu_\w+\.c\b", parts))
 
 
 def read_reply(port, timeout=3):
