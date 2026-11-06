@@ -60,6 +60,12 @@
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
+    X(test_command_line_ends_on_lf_or_cr)                                                                              \
+    X(test_command_line_limit)                                                                                         \
+    X(test_command_line_drops_what_does_not_fit)                                                                       \
+    X(test_command_reads_every_command)                                                                                \
+    X(test_command_refuses_bad_input)                                                                                  \
+    X(test_command_ignores_other_lines)                                                                                \
     X(test_rgb565_conversion)                                                                                          \
     X(test_render_first_frame_is_full_screen)                                                                          \
     X(test_render_puts_colors_where_they_belong)                                                                       \
