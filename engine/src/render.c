@@ -279,6 +279,7 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
     g->sclera = to_rgb(e->look.sclera);
     g->pupil_color = to_rgb(e->look.pupil_color[side < 0 ? 0 : 1]);
+    g->glint_color = to_rgb(GLINT_COLOR);
     g->closed = bp.closed;
 
     if (bp.closed) {
@@ -464,7 +465,7 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
     if (pupil)
         blend_row(r->line, x0, r->cov[1], width, g->pupil_color);
     if (glint)
-        blend_row(r->line, x0, r->cov[2], width, to_rgb(GLINT_COLOR));
+        blend_row(r->line, x0, r->cov[2], width, g->glint_color);
 }
 
 /* --- Public API ------------------------------------------------------------------------------------- */
