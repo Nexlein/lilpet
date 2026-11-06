@@ -80,8 +80,30 @@ const wrapAngle = (a) => (Math.abs(a) > Math.PI ? a - TAU * Math.sign(a) : a);
 const finitePoint = (p) => (p && Number.isFinite(p.x) && Number.isFinite(p.y) ? p : null);
 const settled = (emotion) => Object.fromEntries(Object.keys(BASE).map((k) => [k, EMOTIONS[emotion][k]]));
 
+const SCENE_MAX_TIME = 60; // seconds of particles to replay: a larger time would block for as long (same as the engine)
+
+// A scene with an unknown emotion or blink phase, a value that is not finite or a time out of range (same as the engine)
+function sceneIsValid({ emotion, blink, head, gaze, particles }) {
+    const phase = blink?.phase ?? null;
+    const time = particles?.time ?? 0;
+    const values = [blink?.t, head?.yaw, head?.pitch, head?.roll, gaze?.x, gaze?.y];
+    return (
+        Object.hasOwn(EMOTIONS, emotion ?? 'neutral') &&
+        (phase === null || BLINK_PHASES.includes(phase)) &&
+        values.every((v) => Number.isFinite(v ?? 0)) &&
+        time >= 0 &&
+        time <= SCENE_MAX_TIME
+    );
+}
+
 export class Eyes {
     constructor(seed) {
+        this.onEmotion = null; // called with the new emotion, also when a temporary one ends
+        this.#start(seed);
+    }
+
+    // A fresh start, for the constructor and setScene: lp_eyes_init in the engine
+    #start(seed) {
         this.rand = createRng(seed);
         this.time = 0; // seconds of animation: the steps of update(), after their limit
 
@@ -92,7 +114,6 @@ export class Eyes {
         this.upsideDown = 0; // seconds held upside down
         this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values
-        this.onEmotion = null; // called with the new emotion, also when a temporary one ends
 
         this.shape = { ...DEFAULT_SHAPE };
         this.gaze = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 };
@@ -364,34 +385,24 @@ export class Eyes {
         head.roll = wrapAngle(approach(head.roll, nearestTurn(roll, head.roll), 3, dt));
     }
 
-    // Puts the eyes in the state of a scene (format: prototype/scenes.json): emotion values settled, gaze still, particles replayed
-    // from a fixed seed. Same as lp_eyes_set_scene in the C engine.
+    // Starts over, as new Eyes(seed) does with the seed of its particles, in the state of a scene (format:
+    // prototype/scenes.json): emotion settled, gaze still, particles replayed from their seed. A scene that is not valid
+    // is ignored. Same as lp_eyes_set_scene in the C engine.
     setScene(scene, look) {
+        if (!sceneIsValid(scene)) return;
+        const { blink, particles } = scene;
         const emotion = scene.emotion ?? 'neutral';
+        this.#start(particles?.seed ?? 0);
         this.look = look;
         this.emotion = emotion;
         this.mood = emotion;
-        this.emotionTimer = 0;
-        this.upsideDown = 0;
-        this.shaking = false;
-        this.spinPhase = 0;
-        Object.assign(this.cur, settled(emotion));
-        this.shape = { ...DEFAULT_SHAPE };
-        Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });
+        this.cur = settled(emotion);
+        Object.assign(this.head, scene.head);
         const g = { x: 0, y: 0, ...scene.gaze };
-        Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y, vx: 0, vy: 0 });
-        Object.assign(this.blinkState, {
-            phase: scene.blink?.phase ?? null,
-            t: scene.blink?.t ?? 0,
-            hold: 0.2,
-            open: 0.2,
-            double: false
-        });
-        this.particles.length = 0;
-        this.emitDebt = 0;
-        if (scene.particles) {
-            this.rand = createRng(scene.particles.seed);
-            const steps = Math.round(scene.particles.time * 60);
+        Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y });
+        Object.assign(this.blinkState, { phase: blink?.phase ?? null, t: blink?.t ?? 0, hold: 0.2, open: 0.2 });
+        if (particles) {
+            const steps = Math.round(particles.time * 60);
             for (let i = 0; i < steps; i++) this.#updateParticles(1 / 60);
         }
     }

@@ -175,5 +175,8 @@ void test_scenes_match_prototype(void)
         lp_eyes_init(&eyes, 1);
         lp_eyes_set_scene(&eyes, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
         check_state(&eyes, &LPV_SCENES[i].expected, LPV_SCENES[i].id);
+        for (int step = 0; step < LPV_SCENE_PLAY; step++)
+            lp_eyes_update(&eyes, LPV_DT);
+        check_state(&eyes, &LPV_SCENES[i].played, LPV_SCENES[i].id);
     }
 }
