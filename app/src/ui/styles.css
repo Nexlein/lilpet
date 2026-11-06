@@ -90,7 +90,6 @@ button {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin: 0;
     color: var(--haze);
     text-align: right;
 }
