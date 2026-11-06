@@ -162,6 +162,16 @@ void test_senses_let_go_of_a_face(void)
     CHECK(!eyes.pointer.active);
 }
 
+void test_senses_leave_alone_a_pointer_they_did_not_set(void)
+{
+    lp_eyes eyes;
+    lp_senses senses;
+    start(&eyes, &senses);
+    lp_eyes_set_pointer(&eyes, true, 0.5f, 0.0f); /* as the benchmark animation does, with no camera */
+    run_frames(&senses, &eyes, NULL, false, 1.0f);
+    CHECK(eyes.pointer.active);
+}
+
 void test_senses_greet_only_a_new_face(void)
 {
     lp_eyes eyes;
