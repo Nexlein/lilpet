@@ -27,14 +27,15 @@ function plugBoard(makePort) {
     const board = {
         hello: 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1',
         replies: { look: 'ok', emotion: 'ok', react: 'ok' }, // null: the board stays silent
-        delay: 0
+        delay: 0,
+        quiet: false // true: no log line
     };
     const device = makePort(
         (command) => {
             const word = command.split(' ')[1];
             return word === 'hello' ? board.hello : board.replies[word];
         },
-        { delay: () => board.delay }
+        { delay: () => board.delay, quiet: () => board.quiet }
     );
     window.board = Object.assign(board, {
         sent: device.sent,
@@ -455,6 +456,28 @@ test('the log follows the last line, unless it was scrolled up', async ({ page }
     await write(60, 70);
     await expect(log).toContainText('line 69');
     expect(await log.evaluate((el) => el.scrollTop)).toBe(0);
+});
+
+test('the log shows while connected, and stays after only if lilpet wrote something', async ({ page }) => {
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const log = page.locator('.log');
+    const unplug = page.getByRole('button', { name: 'Débrancher' });
+    await expect(log).toHaveCount(0);
+
+    await page.evaluate(() => (window.board.quiet = true));
+    await plugIn(page);
+    await log.locator('summary').click();
+    await expect(log.locator('pre')).toHaveText('Rien pour l’instant.');
+    await unplug.click();
+    await expect(log).toHaveCount(0);
+
+    await page.evaluate(() => (window.board.quiet = false));
+    await plugIn(page);
+    await unplug.click();
+    await expect(page.locator('.device button')).toHaveText('Brancher lilpet');
+    await log.locator('summary').click();
+    await expect(log.locator('pre')).toHaveText('draw 1.2 ms');
 });
 
 test('the color grid is one stop of the Tab key, walked with the arrows', async ({ page }) => {
