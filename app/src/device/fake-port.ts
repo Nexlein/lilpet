@@ -14,7 +14,7 @@ export function firmware(): (command: string) => string | null {
 // atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
 export function fakePort(
     answer: (command: string) => string | null,
-    { failSignals = false, delay = () => 0, atOpen = '' } = {}
+    { failSignals = false, delay = (): number => 0, atOpen = '' } = {}
 ) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
