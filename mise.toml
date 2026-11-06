@@ -90,7 +90,7 @@ description = "Flash the firmware of a board (BOARD) over USB (PORT, or the only
 depends = ["firmware:board"]
 tools = { "pypi:esptool" = "5.6.0" }
 run = [
-    "uv run --with-requirements scripts/requirements.txt scripts/device-check.py --before-flash",
+    "uv run --with-requirements scripts/requirements.txt scripts/flash-guard.py",
     # Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
     'cd "firmware/build/$BOARD" && esptool --chip esp32s3 ${PORT:+--port "$PORT"} write-flash @flash_args',
 ]
