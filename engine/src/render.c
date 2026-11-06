@@ -350,11 +350,10 @@ static inline void composite(float *line, int x, lp_rgb color, float coverage)
 {
     if (coverage <= 0.0f)
         return;
-    const float a = coverage > 1.0f ? 1.0f : coverage;
     float *px = &line[3 * x];
-    px[0] += (color.r - px[0]) * a;
-    px[1] += (color.g - px[1]) * a;
-    px[2] += (color.b - px[2]) * a;
+    px[0] += (color.r - px[0]) * coverage;
+    px[1] += (color.g - px[1]) * coverage;
+    px[2] += (color.b - px[2]) * coverage;
 }
 
 static float sub_row_y(int y, int sub)
