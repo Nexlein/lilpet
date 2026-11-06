@@ -1,7 +1,7 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
-# reboot, logs no fault of its screen, takes the commands that drive the eyes, and rejects bad commands and lines too
-# long, which change nothing.
+# reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
+# and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
 # put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
@@ -29,6 +29,11 @@ TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look 
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
+REPORT_LINE = r"^(\d+\.\d) frames/s"
+# Catches a dead or crawling drawing loop, not a slow screen: a board reports every 780 frames (LP_BENCH_FRAMES), about
+# 12.5 s at full speed and 39 s at this rate, so the wait covers that
+MIN_FRAMES_PER_SECOND = 20
+REPORT_SECONDS = 42
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 
 failures = 0
@@ -62,25 +67,29 @@ def check_reply(ok, what, reply):
     check(ok, what, reply or "no reply")
 
 
-def read_lines(port, seconds):
+def read_lines(port, seconds, until=None):
+    """What the board prints for that long, or up to and with the first line that matches `until`"""
     lines, end = [], time.time() + seconds
     while time.time() < end:
         line = port.readline().decode(errors="replace").strip()
         if line:
             lines.append(line)
+            if until and re.search(until, line):
+                break
     return lines
 
 
 def reboot(port):
-    """Returns what the board prints as it starts, nothing if it does not. The ESP32-S3 USB port reboots the chip when
-    RTS is asserted without DTR (what esptool does)."""
+    """Returns what the board prints from its boot to its first report, nothing if it does not boot. The ESP32-S3 USB
+    port reboots the chip when RTS is asserted without DTR (what esptool does)."""
     port.dtr = False
     port.rts = True
     time.sleep(0.1)
     port.rts = False
-    lines = read_lines(port, 3)
-    booted = [index for index, line in enumerate(lines) if BOOT_LINE in line]
-    return lines[booted[0] :] if booted else []
+    boot = read_lines(port, 3, until=BOOT_LINE)[-1:]  # what comes before may be a report from before the reboot
+    if not (boot and BOOT_LINE in boot[0]):
+        return []
+    return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
 
 
 def open_booted_board():
@@ -119,6 +128,13 @@ def run_checks(port, board, test_look, other_look):
     check(bool(log), "reboots on request")
     faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
     check(bool(log) and not faults, "starts its screen", "; ".join(faults))
+    report = re.search(REPORT_LINE, log[-1]) if log else None
+    rate = float(report.group(1)) if report else 0.0
+    check(
+        rate >= MIN_FRAMES_PER_SECOND,
+        f"draws at least {MIN_FRAMES_PER_SECOND} frames/s",
+        f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
+    )
     after = ask(port, "> look?")
     check_reply(after == f"look {test_look}", "still has the look after the reboot", after)
 

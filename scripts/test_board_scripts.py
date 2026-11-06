@@ -356,6 +356,19 @@ class DeviceCheck(unittest.TestCase):
                 self.assertEqual(status, 1)
                 self.assertIn(f"FAIL starts its screen ({fault})", out)
 
+    def test_fails_a_drawing_loop_that_does_not_report(self):
+        status, out, _ = check_device(Board("atoms3r", report=None))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL draws at least 20 frames/s (no report", out)
+
+    def test_fails_a_drawing_loop_that_crawls(self):
+        status, out, _ = check_device(Board("atoms3r", report="19.9 frames/s | draw mean", report_after=39.2))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL draws at least 20 frames/s (19.9 frames/s)", out)
+
+    def test_a_slow_screen_is_not_a_fault(self):
+        self.assert_passes(Board("atoms3r", report="20.0 frames/s | draw mean", report_after=39))
+
     def test_fails_when_the_motion_sensor_does_not_answer(self):
         status, out, _ = check_device(Board("atoms3r", motion=False))
         self.assertEqual(status, 1)
