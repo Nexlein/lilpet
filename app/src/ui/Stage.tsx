@@ -1,6 +1,7 @@
 // Left column: the device with the eyes, the chosen look and what can be done with it
 import { useMemo, useState } from 'react';
-import { PUPIL_TYPES, makeLook, type Look, type PupilType, type Swatch } from '../data/looks';
+import type { LookChoice } from '../data/favorites';
+import { PUPIL_TYPES, makeLook, type Look, type PupilType } from '../data/looks';
 import type { LookSent } from '../device/device';
 import type { DeviceState } from '../device/session';
 import { useLessMotion, type EngineState } from './hooks';
@@ -11,8 +12,7 @@ import { EMOTION_LABELS, PUPIL_LABELS } from './labels';
 
 interface Props {
     engine: EngineState;
-    swatch: Swatch;
-    pupil: PupilType;
+    choice: LookChoice;
     favorite: boolean;
     device: DeviceState;
     onPupil(pupil: PupilType): void;
@@ -22,18 +22,8 @@ interface Props {
     onPet(): void;
 }
 
-export function Stage({
-    engine,
-    swatch,
-    pupil,
-    favorite,
-    device,
-    onPupil,
-    onFavorite,
-    onSend,
-    onEmotion,
-    onPet
-}: Props) {
+export function Stage({ engine, choice, favorite, device, onPupil, onFavorite, onSend, onEmotion, onPet }: Props) {
+    const { swatch, pupil } = choice;
     const look = useMemo(() => makeLook(swatch, pupil), [swatch, pupil]);
     const [emotion, setEmotion] = useState('neutral');
     const lessMotion = useLessMotion();
@@ -124,7 +114,7 @@ export function Stage({
                 </div>
             )}
 
-            <SendPanel swatch={swatch} pupil={pupil} device={device} onSend={onSend} />
+            <SendPanel choice={choice} device={device} onSend={onSend} />
         </section>
     );
 }

@@ -1,13 +1,12 @@
 // Sends the chosen look to the device and says how it went
 import { useState } from 'react';
-import { lookKey } from '../data/favorites';
-import { makeLook, type Look, type PupilType, type Swatch } from '../data/looks';
+import { lookKey, type LookChoice } from '../data/favorites';
+import { makeLook, type Look } from '../data/looks';
 import type { LookSent } from '../device/device';
 import type { DeviceState } from '../device/session';
 
 interface Props {
-    swatch: Swatch;
-    pupil: PupilType;
+    choice: LookChoice;
     device: DeviceState;
     onSend(look: Look): Promise<LookSent>;
 }
@@ -17,7 +16,7 @@ type LastSend = { name: string; key: string; device: DeviceState } & (
     { result: LookSent } | { result: 'failed'; message: string }
 );
 
-export function SendPanel({ swatch, pupil, device, onSend }: Props) {
+export function SendPanel({ choice: { swatch, pupil }, device, onSend }: Props) {
     const [sending, setSending] = useState(false);
     const [last, setLast] = useState<LastSend | null>(null);
     const key = lookKey(swatch.id, pupil);
