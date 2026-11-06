@@ -102,6 +102,22 @@ test('the C engine missing is said, and stays said', async ({ page }) => {
     await expect(page.locator('#engineInfo')).toContainText('Moteur C absent');
 });
 
+test('the C engine failing after another mode was clicked is said', async ({ page }) => {
+    let release;
+    const released = new Promise((done) => (release = done));
+    await page.route('**/lilpet.mjs', async (route) => {
+        await released;
+        await route.abort();
+    });
+    await page.goto('/prototype/index.html');
+    await page.locator('#modes button', { hasText: 'Moteur C' }).click();
+    await page.locator('#modes button', { hasText: 'Prototype JS' }).click();
+    release();
+
+    await expect(page.locator('#engineInfo')).toContainText('Moteur C absent');
+    await expect(modeOn(page)).toHaveText('Prototype JS');
+});
+
 test('the last mode clicked wins over one waiting for the engine', async ({ page }) => {
     let release;
     const released = new Promise((done) => (release = done));
@@ -134,6 +150,16 @@ for (const file of ['index.html', 'reference.html'])
         await page.goto(pathToFileURL(resolve('prototype', file)).href);
         await expect(page.locator('#serveHint')).toBeVisible();
         await expect(page.locator('#serveHint')).toContainText('npm run serve');
+    });
+
+for (const file of ['index.html', 'reference.html'])
+    test(`${file} with a broken emotions.json points to the console`, async ({ page }) => {
+        await page.route('**/eyes/emotions.json', (route) =>
+            route.fulfill({ contentType: 'application/json', body: '{,}' })
+        );
+        await page.goto(`/prototype/${file}`);
+        await expect(page.locator('#serveHint')).toBeVisible();
+        await expect(page.locator('#serveHint')).toContainText('voir la console');
     });
 
 test('the hint is gone once the page runs', async ({ page }) => {

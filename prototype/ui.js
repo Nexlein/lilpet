@@ -77,6 +77,7 @@ function loadEngineOnce() {
         (loaded) => (engine = loaded),
         (err) => {
             problems.push('Moteur C absent : lancer « mise run engine:wasm ».');
+            showInfo();
             console.warn('C engine not built, run: mise run engine:wasm', err);
             return null;
         }
