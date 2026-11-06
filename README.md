@@ -6,7 +6,8 @@ Projet strictement personnel, non commercial.
 ## Objectif
 
 - Écran rond de haute qualité (AMOLED 466×466 visé).
-- Réactions à ce que voit une caméra : le visage, les gestes de la main, les expressions de la personne. Pas la voix.
+- Réactions aux mouvements et à ce que voit une caméra : le visage, les gestes de la main, les expressions de la
+  personne. Pas la voix. Un modèle d'IA dans l'objet traite l'image et choisit les réactions.
 - Yeux dans le même esprit que le Starboy : 4 types de pupilles, des variantes de couleur, beaucoup d'animations.
 - Forme simple : galet rond d'environ 45-50 mm (à affiner).
 - Pas de rareté ni de tirage au sort : c'est moi qui choisis. À terme, une **petite app sur PC** pour changer ses
@@ -23,7 +24,8 @@ Projet strictement personnel, non commercial.
 - [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
       écran rond à tester sur la carte
-- [ ] Vision : modèle sur la carte caméra (gestes, visage, expressions) ; le firmware sait déjà recevoir ses événements
+- [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
+      recevoir
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
 - [ ] App PC : looks perso, réglages, animations

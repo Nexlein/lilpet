@@ -77,7 +77,7 @@ Planches : [vue d'ensemble](../references/eyes-gallery-overview.png), [clignemen
 
 ## Analyse de deux TikTok d'utilisateurs (2026-10-27)
 
-Sources : vidéos @lilguynet et @pikespicks, fournies par Nielsen (non versionnées).
+Sources : vidéos @lilguynet et @pikespicks, fournies par Nielsen (vidéos non versionnées, planches dans `references/`).
 Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../references/tiktok-tilt.png), [colère](../references/tiktok-angry.png), [choix des yeux](../references/tiktok-eye-picking.png), [réaction au geste](../references/tiktok-gesture-reaction.png).
 
 ### Nouvelles expressions
@@ -153,7 +153,7 @@ fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis
   près. Pas d'œuf dessiné à la main.
 - Les pupilles penchent d'environ 5°, le haut vers le nez (mesuré sur `cat` et `acorn`, aux deux yeux), à l'inverse
   de l'inclinaison de l'œil.
-- Prototype et moteur suivent ces valeurs (`PUPIL_REST`, `PUPIL_LEAN` et `#drawPupil` dans `prototype/eyes.js`). Notre
+- Prototype et moteur suivent ces valeurs (`PUPILS`, `PUPIL_LEAN` et `drawPupil` dans `prototype/draw.js`). Notre
   rendu, mesuré de la même façon que la page officielle, tombe à 0,011 largeur d'œil près au pire (largeur du `dot`).
 - Looks : repris tels quels dans `eyes/looks.json`, sans reflet (le reflet ne vient qu'avec certaines émotions).
 

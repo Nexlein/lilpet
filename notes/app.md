@@ -70,7 +70,7 @@ lignes par UART :
   une carte sans les trois derniers champs ;
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ; le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`) ;
-- `> look?` répond le look gardé, au même format : de quoi vérifier sans écran (`mise run firmware:check-device` ;
+- `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`mise run firmware:check-device` ;
   l'app ne s'en sert pas) ;
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
   le bas, z vers celui qui regarde) : `< imu 0.000 1.000 0.000` tenu droit, ou `< err no motion sensor` sans capteur.

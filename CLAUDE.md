@@ -4,8 +4,9 @@ Personal, non-commercial keychain "digital pet" inspired by the Starboy (lilguy 
 expressive eyes that react to what a camera sees: gestures, faces and the person's expressions (no voice). Stage: eye
 engine in C done (host, WebAssembly, ESP32-S3); PC app v1 (pick the eyes, send them over USB); hardware chosen in
 `notes/materiel.md` (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; until
-then the eyes run on an M5Stack AtomS3R (128 px LCD, no camera). The vision model does not exist yet; what it will send
-is ready (`> react`, `> gaze` in `notes/app.md`).
+then the eyes run on an M5Stack AtomS3R (128 px LCD, no camera). The goal is an AI model inside the object that processes what
+the camera sees and chooses the reactions; it does not exist yet, what it will send is ready (`> react`, `> emotion`,
+`> gaze` in `notes/app.md`).
 No rarity or random eye draw: the owner picks. Long-term, a small PC app edits the eyes and animations and sends
 them to the device, so keep looks (and later animations) as data, not code.
 
@@ -102,8 +103,8 @@ reference until the engine takes over each feature.
 ## Commands
 
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
-- `npm run check` — Prettier check, oxlint, data validation, app types and Vitest tests. Same as CI
-  (`.github/workflows/ci.yml`).
+- `npm run check` — Prettier check, oxlint, data validation, generated files up to date, app types and Vitest tests.
+  Same as CI (`.github/workflows/ci.yml`).
 - `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix.
@@ -111,7 +112,8 @@ reference until the engine takes over each feature.
   app, served on their own port 8468, which must be free: two runs at once collide (needs `mise run engine:wasm`, and `npm run app:build` for the app test, skipped locally otherwise, failed
   in CI; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
-  build. Single steps: `engine:test`, `engine:tidy`, `engine:wasm`, `engine:format`.
+  build. Single steps: `engine:format-check`, `engine:test`, `engine:tidy`, `engine:wasm`; `engine:format` fixes the
+  formatting.
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
@@ -126,12 +128,15 @@ reference until the engine takes over each feature.
   reboot on opening, hello and its board, a look kept across a reboot, emotion, react, gaze, bad commands and lines too
   long rejected, about 1 g from a motion sensor; puts the board's look back). The one check CI cannot run.
 
+- A new git worktree needs `mise trust` and `npm ci`: Git silently skips every hook without `.husky/_`, which only
+  `npm ci` creates.
+
 ## Conventions
 
 - Code, comments, commits: English. Notes and README: French.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
-  `app/src/ui` may import React.
+  `app/src/ui` and `main.tsx` may import React.
 - Tool versions live in `mise.toml`, exact (Node on the LTS line), used locally and by CI through `jdx/mise-action`;
   Renovate proposes each new release as a pull request (`.github/renovate.json5`), Dependabot the rest
   (`.github/dependabot.yml`: npm, Docker images, Actions).
