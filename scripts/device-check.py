@@ -15,14 +15,25 @@ from pathlib import Path
 import serial
 from serial.tools import list_ports
 
-BOARDS = Path(__file__).resolve().parent.parent / "firmware" / "boards"
+ROOT = Path(__file__).resolve().parent.parent
+BOARDS = ROOT / "firmware" / "boards"
 ESPRESSIF_USB = 0x303A  # the chip's own USB port: firmware or blank, the board shows up with this vendor
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
-LINE_MAX = 94  # longest line of the firmware (LP_COMMAND_LINE_MAX)
 
 failures = 0
+
+
+def define(header, name):
+    """The number a C header defines under that name"""
+    found = re.search(rf"#define\s+{name}\s+(\d+)\b", header.read_text())
+    if found is None:
+        sys.exit(f"{header} does not define {name}")
+    return int(found.group(1))
+
+
+LINE_MAX = define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
 
 
 def check(ok, what, detail=""):
@@ -139,7 +150,7 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     unknown = ask(port, "> wag")
     check(unknown == "err unknown command", "rejects an unknown command", unknown or "no reply")
 
-    too_long = ask(port, "> " + "x" * 200)
+    too_long = ask(port, "> " + "x" * LINE_MAX)
     check(too_long == "err line too long", "rejects a line too long", too_long or "no reply")
     hello = ask(port, "> hello")
     check(bool(hello) and hello.startswith("lilpet fw="), "answers after a line too long", hello or "no reply")
@@ -210,11 +221,11 @@ def check_board(board):
     name = find_port()
     if name is None:
         sys.exit("No board plugged in: plug it in, or name its port with PORT=<port>.")
-    config = (BOARDS / board / "board_config.h").read_text()
+    config = BOARDS / board / "board_config.h"
     # They play the benchmark animation, and refuse what would change it
-    bench = re.search(r"#define\s+BOARD_BENCH\s+1\b", config) is not None
+    bench = define(config, "BOARD_BENCH") == 1
     # A sensor that does not answer is a fault
-    motion = re.search(r"#define\s+BOARD_MOTION\s+1\b", config) is not None
+    motion = define(config, "BOARD_MOTION") == 1
 
     port = open_port(name)
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
