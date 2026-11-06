@@ -162,6 +162,23 @@ async function openEyes(page) {
     return seen.reduce((best, frame) => (frame.lit > best.lit ? frame : best));
 }
 
+// Where the eyes come to rest: they ease toward their target, so two readings in a row must agree
+async function settledHeight(page) {
+    let before = Number.NaN;
+    let height = Number.NaN;
+    await expect
+        .poll(
+            async () => {
+                before = height;
+                ({ height } = await openEyes(page));
+                return Math.abs(height - before);
+            },
+            { timeout: 15_000 }
+        )
+        .toBeLessThan(0.002);
+    return height;
+}
+
 // The engine draws in RGB565 and shades the eyes: near the color of the swatch, not exactly it
 const wears = async (page, [r, g, b]) => {
     const { color } = await openEyes(page);
@@ -244,14 +261,18 @@ test('the live eyes wear the chosen look, show the mood, and answer a blink and 
 test('the live eyes follow the pointer, and let go when it leaves the page', async ({ page }) => {
     await page.addInitScript(watchScreen);
     await page.goto(APP);
-    const height = async () => (await openEyes(page)).height;
     const screen = await page.locator('canvas.screen').boundingBox();
+    const middle = screen.x + screen.width / 2;
 
-    // On their own the eyes never look up that far (lowest of 75 s measured: 0.46)
-    await page.mouse.move(screen.x + screen.width / 2, screen.y);
-    await expect.poll(height).toBeLessThan(0.45);
+    await page.mouse.move(middle, screen.y);
+    const up = await settledHeight(page);
+    await page.mouse.move(middle, screen.y + screen.height);
+    const down = await settledHeight(page);
+    // The pointer takes them across 0.13 of the screen. On their own they cover 0.083 at most: saccades reach 0.63 of it
+    expect(down - up).toBeGreaterThan(0.1);
+
     await page.evaluate(() => document.documentElement.dispatchEvent(new PointerEvent('pointerleave')));
-    await expect.poll(height).toBeGreaterThan(0.455);
+    await expect.poll(async () => (await openEyes(page)).height).toBeLessThan(up + (down - up) * 0.75);
 });
 
 test('plugs in by keyboard, sends a look, and claims nothing after an unplug', async ({ page }) => {
