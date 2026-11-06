@@ -298,7 +298,7 @@ typedef enum {
     LP_COMMAND_LOOK,
     LP_COMMAND_EMOTION,
     LP_COMMAND_REACT,
-    LP_COMMAND_GAZE
+    LP_COMMAND_FACE
 } lp_command_type;
 
 /* What a line asks */
@@ -314,7 +314,7 @@ typedef struct {
         struct {
             bool seen; /* false: the face is gone */
             float x, y;
-        } gaze;
+        } face;
     };
 } lp_command;
 
