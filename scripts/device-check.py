@@ -32,10 +32,10 @@ BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 REPORT_LINE = r"^(\d+\.\d) frames/s"
-# Catches a dead or crawling drawing loop, not a slow screen: a board reports every 780 frames (LP_BENCH_FRAMES), about
-# 12.5 s at full speed and 39 s at this rate, so the wait covers that
+# Catches a dead or crawling drawing loop, not a slow screen: a board reports every 1080 frames (LP_BENCH_FRAMES), so
+# 17.3 s at full speed and 54 s at this rate, and the wait covers that
 MIN_FRAMES_PER_SECOND = 20
-REPORT_SECONDS = 42
+REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 
 failures = 0
