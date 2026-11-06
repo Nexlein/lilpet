@@ -5,7 +5,7 @@
         {
             "label": "engine: build debug",
             "type": "shell",
-            "command": "mise exec -- cmake --build --preset host-debug",
+            "command": "mise exec -- sh -c 'cmake --preset host-debug && cmake --build --preset host-debug'",
             "options": { "cwd": "${workspaceFolder}/engine" },
             "problemMatcher": ["$gcc"],
             "group": "build"
