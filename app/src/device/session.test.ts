@@ -115,14 +115,37 @@ describe('device session', () => {
         await session.disconnect();
     });
 
-    it('writes a failed mood to the log, and tells nothing without a board', async () => {
+    it('gives the last mood picked to a board plugged in later, each time', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        session.emotion('happy'); // nothing is connected yet
+        session.emotion('sad');
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        await session.disconnect();
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent.slice(2)).toEqual(['> hello', '> emotion sad']));
+        await session.disconnect();
+    });
+
+    it('sends a mood picked while connecting, once', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        session.subscribe(() => {
+            if (session.snapshot().state.status === 'connecting') session.emotion('sad');
+        });
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        await session.disconnect();
+    });
+
+    it('tells a board no mood until one is picked, and a failed one goes to the log', async () => {
         const answer = firmware();
         const device = fakePort((c) => (c === '> hello' ? answer(c) : 'err unknown emotion'));
         const session = new DeviceSession(async () => device.port);
-        session.emotion('happy'); // nothing is connected yet
         await session.connect();
+        await new Promise((r) => setTimeout(r, 10));
         expect(device.sent).toEqual(['> hello']);
-        expect(session.snapshot().log.join()).not.toContain('happy');
         session.emotion('furious');
         await vi.waitFor(() =>
             expect(session.snapshot().log).toContain('> emotion furious : Erreur de lilpet : unknown emotion')

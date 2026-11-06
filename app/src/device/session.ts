@@ -28,6 +28,7 @@ export class DeviceSession {
     readonly #listeners = new Set<() => void>();
     #snapshot: DeviceSnapshot;
     #connection: Connection | null = null;
+    #mood: string | null = null; // the last one picked: the interface shows it, so a board plugged in later gets it
 
     // requestPort: the browser's port picker, or null without Web Serial
     constructor(requestPort: (() => Promise<PortLike>) | null) {
@@ -59,6 +60,7 @@ export class DeviceSession {
             const info = await hello(opened);
             this.#connection = opened;
             this.#set({ state: { status: 'connected', info } });
+            if (this.#mood) this.#tell(emotionCommand(this.#mood));
         } catch (err) {
             await opened?.close();
             // Closing the port picker without choosing is not an error
@@ -81,7 +83,10 @@ export class DeviceSession {
         }
     };
 
-    emotion = (name: string): void => this.#tell(emotionCommand(name));
+    emotion = (name: string): void => {
+        this.#mood = name;
+        this.#tell(emotionCommand(name));
+    };
 
     react = (event: EyeEvent): void => this.#tell(reactCommand(event));
 

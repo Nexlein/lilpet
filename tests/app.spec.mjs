@@ -290,12 +290,14 @@ test('moods and pets reach the board, and a failure only goes to the log', async
 
     await page.getByRole('button', { name: 'Triste' }).click();
     await plugIn(page);
-    expect(await sent(page), 'no board yet when the mood was picked').toEqual(['> hello']);
+    await expect.poll(() => sent(page), 'the mood on screen reaches the board').toEqual(['> hello', '> emotion sad']);
 
     await page.getByRole('button', { name: 'Content' }).click();
     await page.locator('canvas.screen').click();
     await page.getByRole('button', { name: 'Caresser' }).press('Enter');
-    await expect.poll(() => sent(page)).toEqual(['> hello', '> emotion happy', '> react tap', '> react tap']);
+    await expect
+        .poll(() => sent(page))
+        .toEqual(['> hello', '> emotion sad', '> emotion happy', '> react tap', '> react tap']);
 
     await page.evaluate(() => (window.board.replies.emotion = 'err unknown emotion'));
     await page.getByRole('button', { name: 'Surpris' }).click();
