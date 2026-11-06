@@ -41,7 +41,7 @@ test('particles stop at the limit of the engine, after their random draws', () =
 });
 
 test('an emotion without a positive duration is the new mood, as in the engine', () => {
-    for (const duration of [0, -1, Number.NaN]) {
+    for (const duration of [0, -1]) {
         const eyes = new Eyes(1);
         eyes.setEmotion('sad', duration);
         expect(eyes.mood).toBe('sad');
@@ -49,6 +49,15 @@ test('an emotion without a positive duration is the new mood, as in the engine',
     const eyes = new Eyes(1);
     eyes.setEmotion('sad', 1);
     expect(eyes.mood).toBe('neutral');
+});
+
+test('a duration that is not finite is ignored, as in the engine', () => {
+    for (const duration of [Number.NaN, Infinity, -Infinity]) {
+        const eyes = new Eyes(1);
+        eyes.setEmotion('sad', duration);
+        expect(eyes.emotion).toBe('neutral');
+        expect(eyes.mood).toBe('neutral');
+    }
 });
 
 test('unknown emotions and events are ignored, as in the engine', () => {
@@ -60,6 +69,12 @@ test('unknown emotions and events are ignored, as in the engine', () => {
     expect(eyes.emotion).toBe('neutral');
     eyes.update(1 / 64, 1 / 64); // throws on an emotion without a row
     expect(Object.hasOwn(EMOTIONS, eyes.mood)).toBe(true);
+});
+
+test('the pointer stays inside its range', () => {
+    const eyes = new Eyes(1);
+    eyes.setPointer({ x: 2, y: -2 });
+    expect(eyes.mouse).toEqual({ x: 1, y: -1 });
 });
 
 test('points that are not finite are dropped, as in the engine', () => {
