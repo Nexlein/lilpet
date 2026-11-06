@@ -42,9 +42,10 @@ typedef struct {
     lp_rect box;
 } lp_polygon;
 
-/* An edge of a polygon: it starts at (x, y0), ends at the height y1, and dx and dy go from one end to the other */
+/* An edge of a polygon: it starts at (x, y0), ends at the height y1, and moves `slope` in x for each unit of y: the
+ * division is done once a pixel row, not per sub-row */
 typedef struct {
-    float x, y0, y1, dx, dy;
+    float x, y0, y1, slope;
 } lp_edge;
 
 /* Geometry of one eye for the frame being drawn */
