@@ -109,6 +109,19 @@ void test_senses_debounce_the_button(void)
     CHECK(eyes.emotion == LP_EMOTION_HAPPY);
 }
 
+void test_senses_react_to_a_press_not_a_release(void)
+{
+    lp_eyes eyes;
+    lp_senses senses;
+    start(&eyes, &senses);
+    run_frames(&senses, &eyes, NULL, false, 0.1f);
+    run_frames(&senses, &eyes, NULL, true, 1.0f); /* a long press, past the settling time */
+    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_NEUTRAL, 0.0f);
+    lp_senses_update(&senses, &eyes, NULL, false, STEP);
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
+}
+
 void test_senses_let_go_of_a_face(void)
 {
     lp_eyes eyes;
@@ -135,6 +148,8 @@ void test_senses_greet_only_a_new_face(void)
     lp_senses senses;
     start(&eyes, &senses);
     const lp_emotion seen = lp_reaction_get(LP_EVENT_FACE_SEEN)->emotion;
+    lp_senses_face(&senses, &eyes, true, NAN, 0.0f); /* not a position: nobody to greet */
+    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
     lp_senses_face(&senses, &eyes, true, 0.0f, 0.0f);
     CHECK(eyes.emotion == seen);
 

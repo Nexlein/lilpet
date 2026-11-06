@@ -182,6 +182,32 @@ void test_box_hugs_the_shape(void)
     }
 }
 
+/* Pixels of a fresh render that are not black */
+static int lit_pixels(void)
+{
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    int lit = 0;
+    for (int i = 0; i < PIXELS; i++)
+        lit += frame[i] != 0;
+    return lit;
+}
+
+void test_lid_level_with_the_rows(void)
+{
+    /* Upright eyes, no tilt: the top lid never crosses a row, each row is whole above or below it */
+    lp_shape level = lp_default_shape();
+    level.tilt = 0.0f;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_shape(&eyes, &level);
+    const float both_eyes = 2.0f * 3.14159265f * level.rx * level.ry;
+    const float edge = 0.02f * both_eyes; /* partly covered pixels count as lit */
+    CHECK_NEAR((float)lit_pixels(), both_eyes, edge);
+
+    eyes.cur.tl = 0.5f; /* lid down to the middle of the eye */
+    CHECK_NEAR((float)lit_pixels(), both_eyes / 2.0f, edge);
+}
+
 void test_render_is_deterministic(void)
 {
     render_scene("emotion-love", reference);
