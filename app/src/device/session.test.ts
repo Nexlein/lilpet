@@ -94,6 +94,17 @@ describe('device session', () => {
         await unplugged;
     });
 
+    it('explains a busy board in French', async () => {
+        const answer = firmware();
+        const device = fakePort((c) => (c === '> hello' ? answer(c) : 'err busy'));
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        await expect(session.send(kite)).rejects.toThrow('lilpet est occupé');
+        session.react('tap');
+        await vi.waitFor(() => expect(session.snapshot().log.join()).toContain('> react tap : lilpet est occupé'));
+        await session.disconnect();
+    });
+
     it('keeps the last log lines, without the blank ones', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
