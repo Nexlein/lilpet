@@ -89,7 +89,9 @@ Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse
 ne suit plus. Sur la carte qui joue le benchmark, elles sont refusées.
 
 L'app n'utilise que `hello`, `look`, `emotion` sans durée et `react`, et ne lit de `hello` que les versions et `board`. Le
-reste sert au modèle d'IA et aux essais au port série. Elle attend 2 s la réponse à un look, 500 ms pour le reste.
+reste sert au modèle d'IA et aux essais au port série. Elle attend 2 s la réponse à un look, 500 ms pour
+le reste, et 1 s pour `hello`, qu'elle pose trois fois avant de conclure que ce n'est pas lilpet. Une écriture refusée
+ferme la connexion.
 
 Du texte simple : lisible dans le moniteur série, lu en C sans bibliothèque, facile à tester des deux côtés. Côté
 firmware, le look reçu est appliqué et gardé dans la mémoire flash (NVS d'ESP-IDF), puis rechargé au démarrage.

@@ -60,7 +60,7 @@ reference until the engine takes over each feature.
   in the same order in JS and C: keep it that way when changing either side.
 - `engine/wasm/` — WebAssembly bindings (`bindings.c`, `lpw_*` functions) and `engine.mjs`, the JS wrapper that
   loads `engine/build/wasm/lilpet.mjs` and takes the same scene and look objects as the prototype; unknown names are
-  ignored; `renderView` gives the pixels without a copy, `PUPILS` the pupil list; `engine.d.mts` types it for the app, with `EyeEvent` read from `eyes/emotions.json`. `src/look.c` reads and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
+  ignored; `renderView` gives the pixels without a copy, `PUPILS` the pupil list; `engine.d.mts` types what the app uses of it, with `EyeEvent` read from `eyes/emotions.json`. `src/look.c` reads and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
 - `app/` — PC app v1 (spec and protocol in `notes/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
   connection and text protocol of `notes/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
@@ -74,8 +74,8 @@ reference until the engine takes over each feature.
   the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright, with a fake `navigator.serial`.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one image per board (`atoms3r`, `waveshare_132`, `stamp_s3a`), chosen at
   build time. A board is one folder, nothing else to touch: `boards/<board>/board.cmake` lists its parts and
-  `board_config.h` its pins, mounting, display size, chip package and motion sensor, an optional `sdkconfig.defaults`
-  its own ESP-IDF options; CMake, CI and the scripts read the folders. The
+  `board_config.h` its pins, mounting, display size and chip package, an optional `sdkconfig.defaults` its own ESP-IDF
+  options; the folder gives the board its name; CMake, CI and the scripts read the folders. The
   chip package cannot tell boards apart (the AtomS3R and the Waveshare 1.32" are both ESP32-S3-PICO), but `board_init`
   stops on the wrong package before touching a pin, and `firmware:flash` refuses a board that answers `hello` with
   another name (`scripts/flash-guard.py`, which also gives esptool the port it asked). An image flashed on another board drives that board's pins.
@@ -89,7 +89,7 @@ reference until the engine takes over each feature.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for `display_wait_frame`, applies the queued commands, gives the sensors to `lp_senses_update`, draws band by
   band into two DMA buffers in internal RAM while the previous band is sent, and prints timings over USB after each
-  round of 780 frames. A board with no display (`BOARD_BENCH`, a bare M5Stamp S3A) plays the benchmark animation
+  round of 1080 frames. A board with no display (`BOARD_BENCH`, a bare M5Stamp S3A) plays the benchmark animation
   (`engine/tools/bench_script.h`) at 62.5 frames/s instead, with the host's look, seed and fixed step, so that image
   measures the engine on the chip, comparable with `mise run engine:bench`.
   `main/commands.c` reads the commands on the same USB port and queues them for the drawing loop (the engine is not
@@ -105,8 +105,8 @@ reference until the engine takes over each feature.
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
   Looks carry no glint: only emotions add one.
 - `scripts/validate-data.mjs` — validates `looks.json`, `emotions.json` and `scenes.json` (ids, colors, exactly 100
-  swatches, known pupil types and emotions, `neutral`, `shake` and `upside_down` present, ranges, no comment marks in
-  a `note`).
+  swatches, known pupil types and emotions, the names the code asks for, ranges, no sparkles on the held reactions
+  `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`).
 - `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
 - `references/` — frame sheets extracted from videos (not formatted, not code).
@@ -114,14 +114,15 @@ reference until the engine takes over each feature.
 ## Commands
 
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
-- `npm run check` — Prettier check, oxlint, data validation, generated files up to date, app types and Vitest tests.
+- `npm run check` — Prettier check, oxlint, data validation, generated files up to date, the board scripts on a fake
+  port (`scripts/test_board_scripts.py`, through `uv`), app types and Vitest tests.
   Same as CI (`.github/workflows/ci.yml`).
 - `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix.
 - `npm run test:parity` — Playwright tests: reference scenes, live side by side, data and state checks, and the built
-  app, served on their own port 8468, which must be free: two runs at once collide (needs `mise run engine:wasm`, and `npm run app:build` for the app test, skipped locally otherwise, failed
-  in CI; first time: `npx playwright install --only-shell chromium`).
+  app, built first, served on their own port 8468, which must be free: two runs at once collide (needs `mise run
+engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build. Single steps: `engine:format-check`, `engine:test`, `engine:tidy`, `engine:wasm`; `engine:format` fixes the
   formatting.
@@ -134,8 +135,9 @@ reference until the engine takes over each feature.
   blank board, which also erases the stored look), in the ESP-IDF image pinned in `firmware/Dockerfile` (latest release;
   Dependabot proposes new ones); `firmware:flash` writes the bootloader, partition table and app only, so the look kept
   in NVS survives; `firmware:check-device` (`scripts/device-check.py`, through `uv`: no reboot on opening, hello and its
-  board, a look kept across a reboot, emotion, react, face, bad commands and lines too long rejected, about 1 g from a
-  motion sensor; puts the board's look back, the one check CI cannot run). `PORT` picks the board, otherwise the only
+  board, a look kept across a reboot, no screen fault in the boot log, at least 20 frames/s, emotion, react, face, bad
+  commands and lines too long rejected, about 1 g from a motion sensor; puts the board's look and mood back, the one
+  check CI cannot run). `PORT` picks the board, otherwise the only
   one plugged in; `FORCE=1` flashes over another board's image. `firmware:monitor` reads the port. esptool and uv come
   from mise, pyserial from `scripts/requirements.txt` through uv: no local ESP-IDF install. CI builds every folder of `firmware/boards` and keeps one artifact each.
   The build keeps its ccache in `firmware/.ccache` (CI caches it too).

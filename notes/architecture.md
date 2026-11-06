@@ -45,9 +45,9 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
   l'écran (CO5300) n'accepte que des fenêtres qui commencent sur un pixel pair et de taille paire.
 - **Ne renvoyer que ce qui bouge** (zones modifiées). À 40 MHz en QSPI, l'horloge utilisée pour cet écran
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonne vers
-  45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 42 % de l'écran en moyenne
-  et 68 % au pire (particules du mode amoureux), soit environ 9 ms et 15 ms d'envoi par image (estimation), sous les
-  16,7 ms d'une image à 60 images/s, mais avec peu de marge au pire.
+  45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 50 % de l'écran en moyenne
+  et 70 % au pire (particules du mode amoureux), soit environ 11 ms et 16 ms d'envoi par image (estimation), sous les
+  16,7 ms d'une image à 60 images/s, mais avec très peu de marge au pire.
 - **`float` et entiers, jamais `double`** : sur l'ESP32-S3, les `double` sont émulés en logiciel et très lents, et même
   les `float` restent plus lents que les entiers
   ([guide de performance ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/performance/speed.html)).
@@ -152,7 +152,8 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
 
 - `mise run engine:bench` compile le moteur en mode optimisé et mesure le temps de rendu :
     - pour chaque scène de référence, l'écran entier (première image) puis les yeux seuls (image suivante) ;
-    - sur une animation de 13 s à 60 images/s : chaque émotion pendant une seconde, avec saccades, clignements et
+    - sur une animation de 18 s à 60 images/s : chaque émotion pendant une seconde, amoureux pendant 5 s pour que les cœurs
+      s'accumulent, avec saccades, clignements et
       particules, puis le regard qui suit un visage. Chaque image ne redessine que sa zone modifiée, comme sur
       l'objet.
 - En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d'un commit à l'autre. Il n'y a pas de
@@ -167,14 +168,14 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
 
 - `BOARD=atoms3r mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, qui
   vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi dans l'app PC (gardé en mémoire
-  flash, `cherry` tant qu'aucun n'a été envoyé). À chaque tour de 780 images, il écrit sur le port USB
+  flash, `cherry` tant qu'aucun n'a été envoyé). À chaque tour de 1080 images, il écrit sur le port USB
   le nombre d'images par seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
 - **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
-  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran, le boîtier de sa
-  puce et son capteur de mouvement, un `sdkconfig.defaults` facultatif ses options ESP-IDF. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
+  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
+  puce, un `sdkconfig.defaults` facultatif ses options ESP-IDF. Le dossier donne son nom à la carte. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
   composant un fichier `.c`, sans table de fonctions : tout est choisi à la compilation. Un seul binaire reconnaissant sa
   carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le même boîtier (ESP32-S3-PICO), et sonder un bus ou lire
   l'identifiant d'un écran obligerait à piloter des broches sur une carte inconnue. Ajouter un écran : un `.c` de 4
