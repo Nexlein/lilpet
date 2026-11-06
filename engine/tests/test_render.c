@@ -1,5 +1,6 @@
 /* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses */
 #include "../src/raster.h"
+#include "../src/renderer.h"
 #include "js_vectors.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
@@ -103,7 +104,7 @@ void test_render_puts_colors_where_they_belong(void)
     const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("look-cherry")].look];
     CHECK_COLOR(frame[5 * SIZE + 5], 0x000000); /* corner: background */
     for (int side = 0; side < 2; side++) {
-        const lp_eye_geometry *g = &other.eyes[side];
+        const lp_eye_geometry *g = &lp_render_state_of(&other)->eyes[side];
         int x;
         int y;
         to_screen(g->inv_pupil, g->shapes.pupil.cu, g->shapes.pupil.cv, &x, &y); /* pupil center */
@@ -129,7 +130,7 @@ void test_pixels_differing_in_one_channel_stay_apart(void)
         lp_render(&renderer, &eyes, frame);
         int x;
         int y;
-        to_screen(renderer.eyes[0].inv_eye, 0.0f, 0.0f, &x, &y);
+        to_screen(lp_render_state_of(&renderer)->eyes[0].inv_eye, 0.0f, 0.0f, &x, &y);
         CHECK_COLOR(frame[y * SIZE + x], colors[i]);
     }
 }
@@ -137,7 +138,7 @@ void test_pixels_differing_in_one_channel_stay_apart(void)
 void test_render_glint_is_white(void)
 {
     render_scene("emotion-love", frame); /* looks carry no glint: it comes with emotions */
-    const lp_eye_geometry *g = &other.eyes[0];
+    const lp_eye_geometry *g = &lp_render_state_of(&other)->eyes[0];
     CHECK(g->glint);
     int x;
     int y;
@@ -150,7 +151,7 @@ void test_closed_eye_shows_only_the_stroke(void)
     render_scene("blink-closed", frame);
     const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("blink-closed")].look];
     for (int side = 0; side < 2; side++) {
-        const lp_eye_geometry *g = &other.eyes[side];
+        const lp_eye_geometry *g = &lp_render_state_of(&other)->eyes[side];
         CHECK(g->closed);
         int x;
         int y;
@@ -166,7 +167,7 @@ void test_box_hugs_the_shape(void)
     /* Coverage is exact: a pixel more on each side would only redraw black */
     render_scene("blink-closed", frame);
     for (int side = 0; side < 2; side++) {
-        const lp_polygon *p = &other.eyes[side].shape;
+        const lp_polygon *p = &lp_render_state_of(&other)->eyes[side].shape;
         float x0 = (float)SIZE;
         float y0 = (float)SIZE;
         float x1 = 0.0f;
@@ -589,9 +590,9 @@ void test_small_output_regions_stay_inside(void)
     static uint16_t small[SMALL * SMALL];
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, 1000);
-    CHECK(renderer.size == SIZE);
+    CHECK(lp_render_state_of(&renderer)->size == SIZE);
     lp_renderer_set_size(&renderer, 7);
-    CHECK(renderer.size == 6);
+    CHECK(lp_render_state_of(&renderer)->size == 6);
 
     set_scene(&eyes, "head-turn-right");
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts start below the bottom edge of the small screen */
