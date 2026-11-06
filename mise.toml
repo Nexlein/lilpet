@@ -78,10 +78,11 @@ depends = ["firmware:board"]
 # the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
     # ESP-IDF only reads the defaults when it creates the board's sdkconfig: start over when they changed, or a local
-    # build would keep old settings that CI (always fresh) does not have
-    'if [ firmware/sdkconfig.defaults -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi',
+    # build would keep old settings that CI (always fresh) does not have. The board's folder changes date when its
+    # defaults are added or removed.
+    'for file in firmware/sdkconfig.defaults "firmware/boards/$BOARD" "firmware/boards/$BOARD/sdkconfig.defaults"; do if [ "$file" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
     "docker build -t lilpet-idf - < firmware/Dockerfile",
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" -D SDKCONFIG_DEFAULTS=sdkconfig.defaults build merge-bin',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" build merge-bin',
 ]
 
 [tasks."firmware:flash"]
