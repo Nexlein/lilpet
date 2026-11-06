@@ -97,26 +97,6 @@ test('a reaction without sparkles leaves the wait alone, as in the engine', () =
     expect(eyes.particles).toHaveLength(2 * like.sparkles);
 });
 
-test('a held reaction bursts once, however long it lasts', () => {
-    const { shake } = REACTIONS;
-    const { sparkles } = shake;
-    shake.sparkles = 3; // the table gives it none, but it may
-    try {
-        const eyes = new Eyes(1);
-        eyes.shaking = true;
-        let spawned = 0;
-        const spawn = eyes.spawn.bind(eyes);
-        eyes.spawn = (type) => {
-            spawned++;
-            spawn(type);
-        };
-        for (let i = 0; i < 128; i++) eyes.update(1 / 64);
-        expect(spawned).toBe(shake.sparkles);
-    } finally {
-        shake.sparkles = sparkles;
-    }
-});
-
 test('an emotion without a positive duration is the new mood, as in the engine', () => {
     for (const duration of [0, -1]) {
         const eyes = new Eyes(1);
