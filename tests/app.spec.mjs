@@ -424,6 +424,7 @@ test('the log follows the last line, unless it was scrolled up', async ({ page }
     await page.addInitScript(fakeSerial);
     await page.goto(APP);
     await plugIn(page);
+    await expect(page.getByRole('region', { name: 'Journal de lilpet' }), 'a landmark to jump to').toBeVisible();
 
     const log = page.locator('.log pre');
     const write = (from, to) =>
