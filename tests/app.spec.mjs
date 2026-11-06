@@ -193,6 +193,60 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
     await page.reload();
     await expect(page.locator('.look-name h1')).toHaveText('socks');
     await expect(page.getByLabel('Gland')).toBeChecked();
+    await expect(page.locator('.favorites .chip')).toHaveText(['socks gland']);
+});
+
+test('the filters narrow the colors down, and let go', async ({ page }) => {
+    await page.goto(APP);
+    const chips = page.locator('.grid .chip');
+    await expect(chips).toHaveCount(100);
+
+    const reds = page.getByRole('button', { name: 'Rouges' });
+    await reds.click();
+    await expect(reds).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(page, 'cherry')).toHaveCount(1);
+    await expect(chip(page, 'kite')).toHaveCount(0);
+    await reds.click();
+    await expect(reds).toHaveAttribute('aria-pressed', 'false');
+    await expect(chips).toHaveCount(100);
+
+    const twoPupils = page.getByRole('button', { name: 'Deux pupilles différentes' });
+    await twoPupils.click();
+    await expect(twoPupils).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(page, 'socks')).toHaveCount(1);
+    await expect(chip(page, 'cherry')).toHaveCount(0);
+    await twoPupils.click();
+    await expect(twoPupils).toHaveAttribute('aria-pressed', 'false');
+    await expect(chips).toHaveCount(100);
+});
+
+test('a favorite keeps its pupil, comes back with it, and goes when removed', async ({ page }) => {
+    await page.goto(APP);
+    const heart = page.locator('.favorite');
+    const favorite = page.locator('.favorites .chip');
+    await expect(favorite).toHaveCount(0);
+
+    await chip(page, 'socks').click();
+    await page.locator('.pupil', { hasText: 'Gland' }).click();
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+    await expect(favorite).toHaveText(['socks gland']);
+    await expect(favorite).toHaveAttribute('aria-current', 'true');
+
+    await page.locator('.pupil', { hasText: 'Chat' }).click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+    await expect(favorite).toHaveAttribute('aria-current', 'false');
+    await chip(page, 'kite').click();
+    await expect(page.getByLabel('Chat'), 'a color of the grid keeps the pupil worn').toBeChecked();
+
+    await favorite.click();
+    await expect(page.locator('.look-name h1')).toHaveText('socks');
+    await expect(page.getByLabel('Gland')).toBeChecked();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+    await expect(favorite).toHaveCount(0);
 });
 
 test('Cligner shuts the eyes, which stay open at first without it', async ({ page }) => {
