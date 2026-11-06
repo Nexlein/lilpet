@@ -213,10 +213,11 @@ def check_board(board):
     name = find_port()
     if name is None:
         sys.exit("No board plugged in: plug it in, or name its port with PORT=<port>.")
+    config = (BOARDS / board / "board_config.h").read_text()
     # They play the benchmark animation, and refuse what would change it
-    bench = re.search(r"#define\s+BOARD_BENCH\s+1\b", (BOARDS / board / "board_config.h").read_text()) is not None
+    bench = re.search(r"#define\s+BOARD_BENCH\s+1\b", config) is not None
     # A sensor that does not answer is a fault
-    motion = "imu_none.c" not in (BOARDS / board / "board.cmake").read_text()
+    motion = re.search(r"#define\s+BOARD_MOTION\s+1\b", config) is not None
 
     port = open_port(name)
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")

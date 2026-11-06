@@ -6,6 +6,7 @@
 #define BOARD_DISPLAY_SIZE 128
 #define BOARD_BENCH        0 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CAMERA       0
+#define BOARD_MOTION       1 /* 1: has a motion sensor, which must answer */
 #define BOARD_CHIP_PICO    1 /* ESP32-S3-PICO-1 */
 
 /* Internal I2C bus: backlight driver, motion sensor */
