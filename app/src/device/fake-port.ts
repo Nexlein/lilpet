@@ -10,7 +10,8 @@ export function firmware(): (command: string) => string | null {
     };
 }
 
-export function fakePort(answer: (command: string) => string | null, { failSignals = false } = {}) {
+// Stands alone, using nothing from around it: tests/app.spec.mjs sends its text to the page, for the browser tests
+export function fakePort(answer: (command: string) => string | null, { failSignals = false, delay = () => 0 } = {}) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
     // As in Chrome, a cancelled stream makes way for a new one: only closing the port ends reading
@@ -41,8 +42,13 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
                 // A log line first, then the reply on a line of its own, split in two chunks as a real serial port may
                 device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
                 if (reply === null) return;
-                device.enqueue(encoder.encode('\n< '));
-                device.enqueue(encoder.encode(`${reply}\r\n`));
+                const send = () => {
+                    device.enqueue(encoder.encode('\n< '));
+                    device.enqueue(encoder.encode(`${reply}\r\n`));
+                };
+                const wait = delay();
+                if (wait > 0) setTimeout(send, wait);
+                else send();
             }
         });
 

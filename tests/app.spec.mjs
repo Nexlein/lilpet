@@ -3,6 +3,7 @@
 // is built.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
+import { fakePort } from '../app/src/device/fake-port.ts';
 import { collectErrors } from './page-errors.mjs';
 
 const APP = '/app/dist/index.html';
@@ -21,73 +22,29 @@ const test = base.extend({
 
 test.skip(!existsSync('app/dist/index.html') && !process.env.CI, 'build the app first: npm run app:build');
 
-// Runs in the page. A serial port like Chrome's (no second open, a new stream after a cancel, no close while a stream is
-// locked) with a board on it, driven from the tests through window.board.
-function fakeSerial() {
-    const encoder = new TextEncoder();
-    let input = null;
-    let output = null;
-    let readable = null;
-    let opened = false;
-    let lost = false;
-
+// Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
+function plugBoard(makePort) {
     const board = {
         hello: 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1',
         replies: { look: 'ok', emotion: 'ok', react: 'ok' }, // null: the board stays silent
-        delay: 0,
-        sent: [],
-        log: (line) => output.enqueue(encoder.encode(`${line}\r\n`)),
-        unplug() {
-            lost = true;
-            output.error(new DOMException('The device has been lost.', 'NetworkError'));
-        }
+        delay: 0
     };
-    window.board = board;
-
-    const newReadable = () =>
-        new ReadableStream({
-            start: (controller) => void (output = controller),
-            cancel: () => void (readable = null)
-        });
-    const newWritable = () =>
-        new WritableStream({
-            write(chunk) {
-                const command = new TextDecoder().decode(chunk).trim();
-                if (!command) return;
-                board.sent.push(command);
-                const word = command.split(' ')[1];
-                const reply = word === 'hello' ? board.hello : board.replies[word];
-                if (reply === null) return;
-                setTimeout(() => output.enqueue(encoder.encode(`\n< ${reply}\r\n`)), board.delay);
-            }
-        });
-
-    const port = {
-        async open() {
-            if (opened) throw new DOMException('The port is already open.', 'InvalidStateError');
-            opened = true;
-            lost = false;
-            readable = null;
-            input = newWritable();
+    const device = makePort(
+        (command) => {
+            const word = command.split(' ')[1];
+            return word === 'hello' ? board.hello : board.replies[word];
         },
-        async close() {
-            if (readable?.locked || input?.locked) throw new TypeError('a stream of the port is locked');
-            opened = false;
-            readable = null;
-            input = null;
-        },
-        async setSignals() {},
-        get readable() {
-            if (!opened || lost) return null;
-            readable ??= newReadable();
-            return readable;
-        },
-        get writable() {
-            return input;
-        }
-    };
-    Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => port } });
+        { delay: () => board.delay }
+    );
+    window.board = Object.assign(board, {
+        sent: device.sent,
+        log: device.log,
+        unplug: () => device.readError({ fatal: true })
+    });
+    Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => device.port } });
 }
+
+const fakeSerial = `(${plugBoard})(${fakePort})`;
 
 // Runs in the page: counts the frames drawn on the canvas
 function countFrames() {
