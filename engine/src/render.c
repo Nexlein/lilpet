@@ -212,7 +212,7 @@ static void poly_sparkle(lp_polygon *p, float s)
 static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry, float inner, lp_affine to_screen)
 {
     const float ps = e->cur.ps;
-    const lp_pupil type = e->look.pupil;
+    const lp_pupil type = (unsigned)e->look.pupil < LP_PUPIL_COUNT ? e->look.pupil : LP_PUPIL_CIRCLE;
     float prx;
     float pry;
     switch (type) {
@@ -229,17 +229,16 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
         pry = ry * 0.98f * lp_minf(ps, 1.05f);
         break;
     case LP_PUPIL_CIRCLE:
-    default:
+    case LP_PUPIL_COUNT:
         prx = pry = rx * 0.52f * ps;
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
-    const int t = (unsigned)type < LP_PUPIL_COUNT ? (int)type : LP_PUPIL_CIRCLE;
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
     const float px =
-        lp_clampf(inner * PUPIL_REST[t][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    const float py = lp_clampf(PUPIL_REST[t][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
+        lp_clampf(inner * PUPIL_REST[type][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    const float py = lp_clampf(PUPIL_REST[type][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     /* Lean around the pupil center */
     lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
     lean.tx = px - (lean.a * px + lean.b * py);
