@@ -97,7 +97,7 @@ const EXPRESSION = {
     bl: [0, 1],
     sq: [0, 0.95], // 1 squashes the eye flat: lp_affine_inverse would divide by zero
     cr: [0, 1],
-    rot: [-1.5, 1.5],
+    rot: [-1.2, 1.5], // lower turns the eye past a quarter turn with the 0.37 tilt: the lid would come up from below
     hl: [0, 1],
     ps: [0.2, 2],
     es: [0.5, 1.5],
