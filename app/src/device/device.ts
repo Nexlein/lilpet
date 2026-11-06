@@ -21,19 +21,21 @@ export class NotLilpet extends Error {
     }
 }
 
-// Asked a few times: a board that reboots as the port opens misses the first one. Once it is gone, asking is over
+// Asked a few times: a board that reboots as the port opens misses the first one, and a reply still on its way from
+// before a page reload answers it. Once the board is gone, asking is over
 export async function hello(connection: Connection): Promise<DeviceInfo> {
     let reply: string | null = null;
-    for (let i = 0; i < HELLO_ATTEMPTS && reply === null; i++)
+    for (let i = 0; i < HELLO_ATTEMPTS; i++) {
         // oxlint-disable-next-line no-await-in-loop -- each attempt waits for the previous one to time out
         reply = await connection
             .request(HELLO, 1000)
             .catch((err: unknown) =>
                 err instanceof ConnectionClosed || i === HELLO_ATTEMPTS - 1 ? Promise.reject(err) : null
             );
-    const info = parseHello(reply ?? '');
-    if (!info) throw new NotLilpet(reply);
-    return info;
+        const info = parseHello(reply ?? '');
+        if (info) return info;
+    }
+    throw new NotLilpet(reply);
 }
 
 // Sends a line and fails unless the board took it
