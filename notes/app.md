@@ -33,7 +33,7 @@ commandes `emotion`, `react` et `gaze` (novembre 2026) n'ont pas encore été es
     - Journal de l'objet (les mesures qu'il écrit déjà) dans un panneau repliable.
 
 Version 1 testée sur l'AtomS3R (voir [materiel.md](materiel.md)) : le look envoyé est gardé (`> look?`,
-`mise run firmware:check-device`), et l'AtomS3R l'affiche sur son petit écran. Le moteur sait aussi dessiner en petit
+`BOARD=<carte> mise run firmware:check-device`), et l'AtomS3R l'affiche sur son petit écran. Le moteur sait aussi dessiner en petit
 (`lp_renderer_set_size`), de quoi faire plus tard des vignettes rendues par le vrai moteur dans la galerie.
 
 Hors version 1, dans l'ordre probable :
@@ -72,11 +72,11 @@ lignes par UART :
   une carte sans les trois derniers champs ;
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ; le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`) ;
-- `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`mise run firmware:check-device` ;
+- `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`BOARD=<carte> mise run firmware:check-device` ;
   l'app ne s'en sert pas) ;
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
   le bas, z vers celui qui regarde) : `< imu 0.000 1.000 0.000` tenu droit, ou `< err no motion sensor` sans capteur.
-  Sert au calage des axes et à `mise run firmware:check-device` ;
+  Sert au calage des axes et à `BOARD=<carte> mise run firmware:check-device` ;
 - `> emotion <nom> [secondes]` : une émotion pour ce temps (plus de 0, 3600 au plus), ou la nouvelle humeur sans durée ;
 - `> react <événement>` : la réaction à un événement, par son nom dans `eyes/emotions.json` (`tap`, `gesture_like`,
   `expression_happy`…). Une ligne par changement, pas par image de la caméra. Une même émotion relancée à moins de 0,5 s
