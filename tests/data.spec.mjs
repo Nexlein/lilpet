@@ -1,4 +1,5 @@
-// scripts/validate-data.mjs refuses bad data: each case breaks a copy of the data files and reads the error.
+// scripts/validate-data.mjs refuses bad data: each case breaks a copy of the data files and reads the error. The
+// generators of the C files work on such a copy too.
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
