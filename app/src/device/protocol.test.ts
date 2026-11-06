@@ -95,11 +95,13 @@ describe('connection', () => {
     it('stops asking hello once the board is gone', async () => {
         const device = fakePort(() => null);
         const connection = await Connection.open(device.port);
+        const request = vi.spyOn(connection, 'request');
         const asking = hello(connection);
         await vi.waitFor(() => expect(device.sent).toHaveLength(1));
         device.readError({ fatal: true });
         await expect(asking).rejects.toThrow(ConnectionClosed);
         expect(device.sent).toHaveLength(1);
+        expect(request).toHaveBeenCalledOnce(); // writing fails by now: only the count tells a retry
     });
 
     it('refuses commands once closed, without writing', async () => {
