@@ -99,12 +99,74 @@ function countFrames() {
     };
 }
 
+// Runs in the page: what the screen shows, frame by frame. Eyes that blink are shut for less than 0.7 s, and a blink is
+// over too soon to be seen from outside the page.
+function watchScreen() {
+    window.readScreen = () => {
+        const canvas = document.querySelector('canvas.screen');
+        const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        const colors = new Map();
+        let lit = 0;
+        let rows = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            const color = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+            if (color === 0) continue;
+            lit++;
+            rows += Math.floor(i / 4 / canvas.width);
+            colors.set(color, (colors.get(color) ?? 0) + 1);
+        }
+        const [top] = [...colors].toSorted((a, b) => b[1] - a[1])[0] ?? [0];
+        return {
+            lit: lit / (canvas.width * canvas.height), // share of lit pixels
+            height: rows / lit / canvas.height, // of the middle of the eyes: 0 at the top of the screen, 1 at the bottom
+            color: [top >> 16, (top >> 8) & 255, top & 255] // the most common one
+        };
+    };
+
+    window.watch = async (ms) => {
+        const seen = [];
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            seen.push(window.readScreen());
+            // oxlint-disable-next-line no-await-in-loop -- one frame after the other
+            await new Promise(requestAnimationFrame);
+        }
+        return seen;
+    };
+
+    // A click on Cligner does nothing during a blink: waits for eyes that stayed open, then watches what the click does
+    window.clickWithOpenEyes = async (button, ms) => {
+        const open = Math.max(...(await window.watch(700)).map((frame) => frame.lit));
+        let since = performance.now();
+        while (performance.now() - since < 300) {
+            if (window.readScreen().lit < open * 0.9) since = performance.now();
+            // oxlint-disable-next-line no-await-in-loop -- one frame after the other
+            await new Promise(requestAnimationFrame);
+        }
+        button.click();
+        return window.watch(ms);
+    };
+}
+
 const frames = (page) => page.evaluate(() => window.drawn);
 const sent = (page) => page.evaluate(() => window.board.sent);
 const looks = async (page) => (await sent(page)).filter((line) => line.startsWith('> look'));
 const note = (page) => page.locator('.send-note');
 const chip = (page, name) => page.locator('.grid .chip', { hasText: name });
 const place = (locator) => locator.evaluate((el) => ({ x: el.offsetLeft, y: el.offsetTop }));
+const picture = (page) => page.locator('canvas.screen').evaluate((canvas) => canvas.toDataURL());
+
+// The screen with the eyes open: the frame with the most lit pixels of the time a blink takes
+async function openEyes(page) {
+    const seen = await page.locator('canvas.screen').evaluate(() => window.watch(700));
+    return seen.reduce((best, frame) => (frame.lit > best.lit ? frame : best));
+}
+
+// The engine draws in RGB565 and shades the eyes: near the color of the swatch, not exactly it
+const wears = async (page, [r, g, b]) => {
+    const { color } = await openEyes(page);
+    return Math.max(Math.abs(color[0] - r), Math.abs(color[1] - g), Math.abs(color[2] - b)) <= 8;
+};
 
 async function plugIn(page) {
     await page.getByRole('button', { name: 'Brancher lilpet' }).click();
@@ -156,6 +218,40 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
     await page.reload();
     await expect(page.locator('.look-name h1')).toHaveText('socks');
     await expect(page.getByLabel('Gland')).toBeChecked();
+});
+
+test('the live eyes wear the chosen look, show the mood, and answer a blink and a pet', async ({ page }) => {
+    await page.addInitScript(watchScreen);
+    await page.goto(APP);
+    await expect.poll(() => wears(page, [0xae, 0x00, 0x02])).toBe(true);
+    await chip(page, 'socks').click();
+    await expect.poll(() => wears(page, [0xb8, 0x65, 0xa8])).toBe(true);
+
+    const open = (await openEyes(page)).lit;
+    const seen = await page
+        .getByRole('button', { name: 'Cligner' })
+        .evaluate((button) => window.clickWithOpenEyes(button, 450));
+    expect(Math.min(...seen.map((frame) => frame.lit)), 'the eyes shut').toBeLessThan(open / 2);
+
+    const lit = async () => (await openEyes(page)).lit;
+    await page.getByRole('button', { name: 'Endormi' }).click();
+    await expect.poll(lit).toBeLessThan(open * 0.6);
+    const sleepy = await lit();
+    await page.getByRole('button', { name: 'Caresser' }).click();
+    await expect.poll(lit, 'happy for a moment').toBeGreaterThan(sleepy * 1.3);
+});
+
+test('the live eyes follow the pointer, and let go when it leaves the page', async ({ page }) => {
+    await page.addInitScript(watchScreen);
+    await page.goto(APP);
+    const height = async () => (await openEyes(page)).height;
+    const screen = await page.locator('canvas.screen').boundingBox();
+
+    // On their own the eyes never look up that far (lowest of 75 s measured: 0.46)
+    await page.mouse.move(screen.x + screen.width / 2, screen.y);
+    await expect.poll(height).toBeLessThan(0.45);
+    await page.evaluate(() => document.documentElement.dispatchEvent(new PointerEvent('pointerleave')));
+    await expect.poll(height).toBeGreaterThan(0.455);
 });
 
 test('plugs in by keyboard, sends a look, and claims nothing after an unplug', async ({ page }) => {
@@ -434,14 +530,20 @@ test('with less motion asked, the eyes are a still frame that follows the choice
     await page.waitForTimeout(200);
     expect(await frames(page)).toBe(1);
     await expect(page.getByRole('button', { name: 'Cligner' })).toHaveCount(0);
+    const neutral = await picture(page);
 
     await page.getByRole('button', { name: 'Triste' }).click();
     await expect.poll(() => frames(page)).toBe(2);
+    const sad = await picture(page);
+    expect(sad).not.toBe(neutral);
     await chip(page, 'socks').click();
     await expect.poll(() => frames(page)).toBe(3);
+    const socks = await picture(page);
+    expect(socks).not.toBe(sad);
     await page.getByRole('button', { name: 'Caresser' }).click();
     await page.waitForTimeout(100);
     expect(await frames(page)).toBe(3);
+    expect(await picture(page)).toBe(socks);
 
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect.poll(() => frames(page)).toBeGreaterThan(10);
