@@ -153,13 +153,14 @@ button {
     gap: 18px;
 }
 
-/* Molded keychain case around the round screen, with its ring. Sized so the whole stage fits the window height. */
+/* Molded keychain case around the round screen, with its ring. Sized so the whole stage fits the window height, with
+   the send note on two lines. */
 .case {
     position: relative;
     display: grid;
     place-items: center;
     justify-self: center;
-    width: min(100%, max(160px, 100dvh - 540px));
+    width: min(100%, max(160px, 100dvh - 562px));
     aspect-ratio: 1;
     border-radius: 34%;
     background: linear-gradient(150deg, #3b3060 0%, #262042 55%, #1e1834 100%);
