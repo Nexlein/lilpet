@@ -63,12 +63,13 @@ class Board:
         report_after=12.5,  # seconds after booting
         open_error=None,
         dtr_error=None,
+        stop_at=None,  # Ctrl+C when the board gets this line
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
-        self.open_error, self.dtr_error = open_error, dtr_error
+        self.open_error, self.dtr_error, self.stop_at = open_error, dtr_error, stop_at
         self.look = "AE0002 FF5252 FF5252 dot"
         self.mood = "neutral"
         self.in_reset = False
@@ -96,6 +97,12 @@ class Board:
             reply = self.reply(line.decode())
             if reply:
                 self.output.append((clock.now, f"< {reply}"))
+            self.stop_if(line.decode())
+
+    def stop_if(self, event):
+        if event == self.stop_at:
+            self.stop_at = None
+            raise KeyboardInterrupt
 
     def reply(self, text):
         if not text.startswith("> "):
@@ -324,7 +331,7 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(board)
         self.assertEqual(status, 0, out)
         self.assertIn("all checks passed", out)
-        self.assertEqual(board.look, look)
+        self.assertEqual((board.look, board.mood), (look, "neutral"))
 
     def test_passes_a_healthy_board(self):
         self.assert_passes(Board("atoms3r"))
@@ -368,6 +375,14 @@ class DeviceCheck(unittest.TestCase):
 
     def test_a_slow_screen_is_not_a_fault(self):
         self.assert_passes(Board("atoms3r", report="20.0 frames/s | draw mean", report_after=39))
+
+    def test_ctrl_c_gives_the_look_and_the_mood_back(self):
+        board = Board("atoms3r", stop_at="> emotion happy")
+        look = board.look
+        status, out, _ = check_device(board)
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL runs to the end (interrupted)", out)
+        self.assertEqual((board.look, board.mood), (look, "neutral"))
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):
         status, out, _ = check_device(Board("atoms3r", motion=False))
