@@ -259,7 +259,7 @@ test('the send button keeps the keyboard focus and only sends once connected, on
     await expect.poll(() => looks(page)).toHaveLength(2);
 });
 
-test('a send that an unplug cuts short keeps its failure', async ({ page }) => {
+test('a send that an unplug cuts short keeps its failure, until lilpet is back', async ({ page }) => {
     await page.addInitScript(fakeSerial);
     await page.goto(APP);
     await plugIn(page);
@@ -267,6 +267,8 @@ test('a send that an unplug cuts short keeps its failure', async ({ page }) => {
     await page.locator('.primary').click();
     await page.evaluate(() => window.board.unplug());
     await expect(note(page)).toHaveText('cherry n’est pas envoyé : lilpet n’est plus branché.');
+    await plugIn(page);
+    await expect(note(page)).toBeEmpty();
 });
 
 test('explains an unplug during hello in French, and can plug in again', async ({ page }) => {

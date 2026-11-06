@@ -50,10 +50,11 @@ export function SendPanel({ swatch, pupil, device, onSend }: Props) {
     );
 }
 
-// A failure stays until the next send. A success only holds for its look, on its connection: a board plugged in since
-// may show something else.
+// A failure stays until the next send, or until another connection: its message may say the board is gone. A success
+// only holds for its look, on its connection: a board plugged in since may show something else.
 function sendNote(device: DeviceState, last: LastSend | null, key: string): string {
-    if (last?.result === 'failed') return `${last.name} n’est pas envoyé : ${last.message}`;
+    if (last?.result === 'failed' && (device.status !== 'connected' || last.device === device))
+        return `${last.name} n’est pas envoyé : ${last.message}`;
     if (last?.device === device && last.key === key)
         return last.result === 'kept'
             ? `${last.name} est sur lilpet, et y reste même éteint.`
