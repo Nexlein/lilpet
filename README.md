@@ -61,8 +61,8 @@ npm run check
 ```
 
 Vérifie le formatage (Prettier), le code (oxlint), les données (`eyes/` et `prototype/scenes.json`), que les fichiers
-générés sont à jour (`engine/tests/js_vectors.h`, `engine/src/emotions_table.h`), puis les types et les tests de l'app
-PC.
+générés sont à jour (`engine/tests/js_vectors.h`, `engine/src/emotions_table.h`), les scripts de carte sur un faux port
+(avec `uv`), puis les types et les tests de l'app PC.
 
 Pour le moteur C (outils installés par `mise install`, Docker nécessaire pour le WebAssembly) :
 
@@ -72,7 +72,7 @@ mise run engine:check
 
 Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
 compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène et ouvrir l'app PC compilée
-(`npm run app:build` avant ; première fois : `npx playwright install --only-shell chromium`) :
+(première fois : `npx playwright install --only-shell chromium`) :
 
 ```bash
 npm run test:parity
@@ -109,7 +109,7 @@ pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un au
 Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
 la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
 
-Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 780 images, soit environ 12 s (quitter
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 1080 images, soit environ 17 s (quitter
 avec Ctrl+]) :
 
 ```bash
