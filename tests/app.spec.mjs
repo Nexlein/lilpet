@@ -1,6 +1,6 @@
 // The built PC app (npm run app:build) opens, runs the C engine, picks looks and talks to a board over a fake serial
-// port. CI builds it before these tests, and fails them if the build is missing; locally they are skipped until the app
-// is built.
+// port. npm run test:parity builds it first. Run alone, these tests are skipped until the app is built, and fail in CI
+// if the build is missing.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
 import { fakePort } from '../app/src/device/fake-port.ts';
