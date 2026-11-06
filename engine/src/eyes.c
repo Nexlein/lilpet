@@ -396,11 +396,13 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
     e->head.roll = wrap_angle(lp_approach(e->head.roll, nearest_turn(roll, e->head.roll), 3.0f, dt));
 }
 
+#define SCENE_MAX_TIME 60.0f /* seconds of particles to replay: a larger time would block for as long */
+
 static bool scene_is_valid(const lp_scene *s)
 {
     return (unsigned)s->emotion < LP_EMOTION_COUNT && (unsigned)s->blink_phase <= LP_BLINK_OPEN &&
            isfinite(s->blink_t) && isfinite(s->yaw) && isfinite(s->pitch) && isfinite(s->roll) && isfinite(s->gaze_x) &&
-           isfinite(s->gaze_y) && isfinite(s->particle_time);
+           isfinite(s->gaze_y) && s->particle_time >= 0.0f && s->particle_time <= SCENE_MAX_TIME;
 }
 
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look)

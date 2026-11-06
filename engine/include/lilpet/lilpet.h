@@ -285,8 +285,8 @@ typedef struct {
 } lp_scene;
 
 /* Starts the eyes over, as lp_eyes_init does with particle_seed, in the state of a scene: emotion settled, gaze still,
- * particles replayed from their seed. A scene with an unknown emotion or blink phase, or a value that is not finite,
- * is ignored. */
+ * particles replayed from their seed. A scene with an unknown emotion or blink phase, a value that is not finite, or
+ * a particle_time outside 0 to 60 seconds, is ignored. */
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look);
 
 /* --- Derived geometry, used by the renderer ----------------------------------------------------- */

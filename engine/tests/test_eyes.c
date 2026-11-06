@@ -257,6 +257,17 @@ void test_bad_input_is_ignored(void)
         *values[i] = kept;
     }
 
+    /* And a time of particles it would take too long to replay, or that went backward */
+    const float bad_times[] = {60.5f, 1e7f, -1.0f};
+    for (size_t i = 0; i < sizeof bad_times / sizeof bad_times[0]; i++) {
+        scene.particle_time = bad_times[i];
+        lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+        CHECK(eyes.head.roll == roll);
+    }
+    scene.particle_time = 60.0f; /* the limit itself is a scene */
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    CHECK(eyes.head.roll == scene.roll);
+
     /* An unknown event does nothing */
     const lp_emotion emotion = eyes.emotion;
     lp_eyes_react(&eyes, LP_EVENT_COUNT);
