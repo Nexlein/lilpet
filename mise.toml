@@ -9,6 +9,8 @@ cmake = "4.4.5"
 ninja = "1.13.2"
 "pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
+# Runs the Python scripts that talk to a board (scripts/device-check.py), with the dependency in their header
+uv = "0.13.7"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
