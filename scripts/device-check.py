@@ -42,6 +42,10 @@ def check(ok, what, detail=""):
     print(f"{'ok  ' if ok else 'FAIL'} {what}{f' ({detail})' if detail else ''}")
 
 
+def check_reply(ok, what, reply):
+    check(ok, what, reply or "no reply")
+
+
 def read_lines(port, seconds):
     lines, end = [], time.time() + seconds
     while time.time() < end:
@@ -141,29 +145,29 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
 
     check(reboot(port), "reboots on request")
     after = ask(port, "> look?")
-    check(after == f"look {test_look}", "still has the look after the reboot", after or "no reply")
+    check_reply(after == f"look {test_look}", "still has the look after the reboot", after)
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
-    check(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad or "no reply")
+    check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
     kept = ask(port, "> look?")
-    check(kept == f"look {test_look}", "keeps its look after a refused one", kept or "no reply")
+    check_reply(kept == f"look {test_look}", "keeps its look after a refused one", kept)
     unknown = ask(port, "> wag")
-    check(unknown == "err unknown command", "rejects an unknown command", unknown or "no reply")
+    check_reply(unknown == "err unknown command", "rejects an unknown command", unknown)
 
     too_long = ask(port, "> " + "x" * LINE_MAX)
-    check(too_long == "err line too long", "rejects a line too long", too_long or "no reply")
+    check_reply(too_long == "err line too long", "rejects a line too long", too_long)
     hello = ask(port, "> hello")
-    check(bool(hello) and hello.startswith("lilpet fw="), "answers after a line too long", hello or "no reply")
+    check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers after a line too long", hello)
     port.write(b"x" * (LINE_MAX + 1) + f"> look {other_look}\n".encode())  # right where the line stops fitting
     kept = ask(port, "> look?")
-    check(kept == f"look {test_look}", "does not run the end of a line too long", kept or "no reply")
+    check_reply(kept == f"look {test_look}", "does not run the end of a line too long", kept)
 
     accepted = "err benchmark animation running" if bench else "ok"
     for command in ["> emotion happy", "> emotion love 1.5", "> react tap", "> react gesture_like", "> face 0.5 -0.25"]:
         reply = ask(port, command)
-        check(reply == accepted, f'answers "{command}" as it should', reply or "no reply")
+        check_reply(reply == accepted, f'answers "{command}" as it should', reply)
     reply = ask(port, "> face off")
-    check(reply == accepted, 'answers "> face off" as it should', reply or "no reply")
+    check_reply(reply == accepted, 'answers "> face off" as it should', reply)
 
     for command in [
         "> emotion furious",
@@ -183,7 +187,7 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
         "> face on",
     ]:
         reply = ask(port, command)
-        check(bool(reply) and reply.startswith("err "), f'rejects "{command}"', reply or "no reply")
+        check_reply(bool(reply) and reply.startswith("err "), f'rejects "{command}"', reply)
 
     burst = 30  # more than the queue to the drawing loop holds, which must lose none
     port.write(b"> react tap\n" * burst)
@@ -204,7 +208,7 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
             g = sum(float(v) ** 2 for v in imu.split()[1:4]) ** 0.5 if imu and imu.startswith("imu ") else 0.0
         except ValueError:
             g = 0.0
-        check(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu or "no reply")
+        check_reply(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu)
 
 
 def put_back(port, before):
@@ -231,7 +235,7 @@ def check_board(board):
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
 
     hello = ask(port, "> hello")
-    check(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello or "no reply")
+    check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello)
     fields = hello_fields(hello)
     check(fields.get("board") == board, f"runs the image of {board}", fields.get("board", "no board"))
     if fields.get("board") != board:
@@ -240,7 +244,7 @@ def check_board(board):
     check(fields.get("motion") in ("0", "1"), "tells if it has a motion sensor", fields.get("motion", "no field"))
 
     before = ask(port, "> look?")
-    check(bool(before) and before.startswith("look "), "tells its look", before or "no reply")
+    check_reply(bool(before) and before.startswith("look "), "tells its look", before)
     if not (before and before.startswith("look ")):
         finish(port)  # its look could not be put back
 
