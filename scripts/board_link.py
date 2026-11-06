@@ -48,6 +48,17 @@ def ask(port, command, timeout=3):
     return read_reply(port, timeout)
 
 
+def ask_hello(port, timeout=3):
+    """Asks hello until the reply is one, and returns it without the "< " prefix, or None. Any other reply is left from
+    a connection that stopped, and says nothing about the board."""
+    end = time.time() + timeout
+    while (left := end - time.time()) > 0:
+        reply = ask(port, "> hello", left)
+        if reply and reply.startswith("lilpet "):
+            return reply
+    return None
+
+
 def find_port():
     """PORT, or the only board plugged in, or None. Stops when several could be meant: it may be the wrong one."""
     if "PORT" in os.environ:

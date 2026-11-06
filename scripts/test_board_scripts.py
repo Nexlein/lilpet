@@ -268,6 +268,11 @@ class FlashGuard(unittest.TestCase):
         self.assertIn("runs the image of waveshare_132", status)
         self.assertEqual(out, "")
 
+    def test_a_stale_reply_does_not_pass_for_hello(self):
+        status, out, _ = guard(Board("waveshare_132", stale=["< ok", "< ok"]))
+        self.assertIn("runs the image of waveshare_132", status)
+        self.assertEqual(out, "")
+
     def test_goes_on_with_a_silent_board(self):
         self.assertEqual(guard(Board("waveshare_132", reads_after=math.inf))[:2], (0, f"{PORT}\n"))
 
@@ -329,6 +334,9 @@ class DeviceCheck(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("FAIL runs the image of atoms3r", out)
         self.assertEqual(board.look, look)
+
+    def test_a_stale_reply_does_not_pass_for_hello(self):
+        self.assert_passes(Board("atoms3r", stale=["< ok"], reads_after=3))
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):
         status, out, _ = check_device(Board("atoms3r", motion=False))
