@@ -89,7 +89,7 @@ export function filterSwatches({ query, families, twoColors }: SwatchFilter): re
 // --- Ink on a color, for the buttons that wear the eye color ---------------------------------------------------------
 
 const LIGHT_INK = '#FFFFFF';
-const DARK_INK = '#1A1430';
+const DARK_INK = '#000000';
 
 // Relative luminance and contrast ratio, as WCAG defines them
 function luminance(hex: string): number {
