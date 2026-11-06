@@ -54,12 +54,19 @@ void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
     eyes->pointer.y = lp_clampf(y, 1.0f);
 }
 
+#define BURST_GAP 0.5f /* seconds: a burst of sparkles fills the screen if repeated any faster */
+
 void lp_eyes_react(lp_eyes *eyes, lp_event event)
 {
     const lp_reaction *r = lp_reaction_get(event);
     if (!r)
         return;
+    if (eyes->burst_wait > 0.0f && eyes->emotion == r->emotion) {
+        eyes->emotion_timer = lp_maxf(eyes->emotion_timer, r->duration);
+        return;
+    }
     lp_eyes_set_emotion(eyes, r->emotion, r->duration);
+    eyes->burst_wait = BURST_GAP;
     for (int i = 0; i < r->sparkles; i++)
         lp_eyes_spawn(eyes, LP_PARTICLE_SPARKLE);
 }
@@ -370,6 +377,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
         if (e->emotion_timer <= 0.0f)
             lp_eyes_set_emotion(e, e->mood, 0.0f);
     }
+    e->burst_wait = lp_maxf(e->burst_wait - dt, 0.0f);
     update_held_reactions(e, dt);
 
     const gaze_aim aim = update_gaze(e, dt, t, update_tilt(e, dt));
