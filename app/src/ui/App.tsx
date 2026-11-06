@@ -36,8 +36,7 @@ export function App() {
             <main className="layout">
                 <Stage
                     engine={engine}
-                    swatch={swatch}
-                    pupil={pupil}
+                    choice={choice}
                     favorite={favorites.includes(key)}
                     device={device.state}
                     onPupil={(p: PupilType) => setChoice({ swatch, pupil: p })}
