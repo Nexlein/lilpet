@@ -7,7 +7,7 @@
         "blink": "optional { phase: anticip | close | closed | open, t: seconds into the phase }",
         "head": "optional { yaw, pitch, roll } in radians",
         "gaze": "optional { x, y } in -1..1, still (no squash)",
-        "particles": "optional { seed, time }: replays the emotion's emitter for `time` seconds from `seed`"
+        "particles": "optional { seed, time }: replays the emotion's emitter for `time` seconds, a multiple of 0.25, from `seed`"
     },
     "scenes": [
         { "id": "look-cherry", "swatch": "cherry", "pupil": "dot" },
@@ -38,6 +38,7 @@
         { "id": "emotion-surprised", "swatch": "denim", "pupil": "acorn", "emotion": "surprised" },
         { "id": "emotion-surprised-dot", "swatch": "popcorn", "pupil": "dot", "emotion": "surprised" },
         { "id": "emotion-love-cat", "swatch": "kite", "pupil": "cat", "emotion": "love" },
+        { "id": "emotion-love-dot", "swatch": "cherry", "pupil": "dot", "emotion": "love" },
         { "id": "emotion-angry-circle", "swatch": "laser", "pupil": "circle", "emotion": "angry" },
         {
             "id": "emotion-dizzy",

@@ -11,7 +11,7 @@ import {
     reactCommand
 } from './protocol';
 import { Connection, ConnectionClosed, portPicker } from './connection';
-import { command, hello, sendLook } from './device';
+import { NotLilpet, command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
 
 describe('protocol', () => {
@@ -97,6 +97,22 @@ describe('connection', () => {
         await connection.close();
     });
 
+    it('asks hello again when a reply left from before a reload answers the first one', async () => {
+        const device = fakePort(firmware(), { atOpen: '< ok\n', delay: () => 5 });
+        const connection = await Connection.open(device.port);
+        expect((await hello(connection)).firmware).toBe('abc1234');
+        expect(device.sent).toEqual(['> hello', '> hello']);
+        await connection.close();
+    });
+
+    it('gives up on a device that never answers like lilpet, after the last attempt', async () => {
+        const device = fakePort(() => 'something else');
+        const connection = await Connection.open(device.port);
+        await expect(hello(connection)).rejects.toThrow(NotLilpet);
+        expect(device.sent).toHaveLength(3);
+        await connection.close();
+    });
+
     it('stops asking hello once the board is gone', async () => {
         const device = fakePort(() => null);
         const connection = await Connection.open(device.port);
@@ -147,6 +163,20 @@ describe('connection', () => {
         await connection.close();
     });
 
+    it('stops the clock of an answered command, which would cut off the next one', async () => {
+        vi.useFakeTimers();
+        let wait = 0;
+        const device = fakePort(firmware(), { delay: () => wait });
+        const connection = await Connection.open(device.port);
+        await connection.request('> hello', 100);
+        wait = 200;
+        const answered = expect(connection.request('> hello', 1000)).resolves.toContain('lilpet');
+        await vi.advanceTimersByTimeAsync(1000);
+        vi.useRealTimers();
+        await answered;
+        await connection.close();
+    });
+
     it('keeps reading after a passing read error', async () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
@@ -154,6 +184,15 @@ describe('connection', () => {
         expect((await hello(connection)).firmware).toBe('abc1234');
         expect(device.closed()).toBe(false);
         await connection.close();
+    });
+
+    it('stops reading when a read error leaves the port the same stream', async () => {
+        const device = fakePort(firmware());
+        let closes = 0;
+        await Connection.open(device.port, { onClose: () => closes++ });
+        device.readError({ fatal: true, sameStream: true });
+        await vi.waitFor(() => expect(closes).toBe(1));
+        expect(device.closed()).toBe(true);
     });
 
     it('closes the port and says so when the board is unplugged', async () => {

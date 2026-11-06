@@ -23,12 +23,38 @@ void test_senses_smooth_gravity(void)
     lp_eyes eyes;
     lp_senses senses;
     start(&eyes, &senses);
+    const float upright[3] = {0.0f, 1.0f, 0.0f};
     const float flat_left[3] = {-1.0f, 0.0f, 0.0f};
+    lp_senses_update(&senses, &eyes, upright, false, STEP);
     lp_senses_update(&senses, &eyes, flat_left, false, STEP);
     CHECK(eyes.gravity.active);
     CHECK(eyes.gravity.x > -0.5f); /* smoothed: one sample does not jump there */
     run_frames(&senses, &eyes, flat_left, false, 1.0f);
     CHECK_NEAR(eyes.gravity.x, -1.0f, 0.01f);
+
+    run_frames(&senses, &eyes, NULL, false, 0.1f); /* a few failed reads: it goes on from where it was */
+    lp_senses_update(&senses, &eyes, upright, false, STEP);
+    CHECK(eyes.gravity.x < -0.5f);
+}
+
+void test_senses_start_over_when_a_sensor_comes_back(void)
+{
+    lp_eyes eyes;
+    lp_senses senses;
+    start(&eyes, &senses);
+    lp_eyes_set_head_amount(&eyes, 0.0f);
+    const float upside_down[3] = {0.0f, -1.0f, 0.0f};
+    const float upright[3] = {0.0f, 1.0f, 0.0f};
+    run_frames(&senses, &eyes, upside_down, false, 2.0f);
+    run_frames(&senses, &eyes, NULL, false, 5.0f);
+    CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
+
+    /* Upright all along: what the sensor said before it went quiet no longer turns the face */
+    for (int i = 0; i < 30; i++) {
+        lp_senses_update(&senses, &eyes, upright, false, STEP);
+        lp_eyes_update(&eyes, STEP);
+        CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
+    }
 }
 
 void test_senses_forget_a_sensor_that_stopped(void)
@@ -160,6 +186,16 @@ void test_senses_let_go_of_a_face(void)
     CHECK(!eyes.pointer.active);
     lp_senses_face(&senses, &eyes, true, NAN, 0.0f);
     CHECK(!eyes.pointer.active);
+}
+
+void test_senses_leave_alone_a_pointer_they_did_not_set(void)
+{
+    lp_eyes eyes;
+    lp_senses senses;
+    start(&eyes, &senses);
+    lp_eyes_set_pointer(&eyes, true, 0.5f, 0.0f); /* as the benchmark animation does, with no camera */
+    run_frames(&senses, &eyes, NULL, false, 1.0f);
+    CHECK(eyes.pointer.active);
 }
 
 void test_senses_greet_only_a_new_face(void)

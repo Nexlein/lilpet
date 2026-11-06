@@ -85,9 +85,11 @@ void app_main(void)
     board_init();
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
+    /* Before the display: starting the sensor takes 0.25 s, with the backlight on it would show noise until the first
+     * frame */
+    const bool motion = imu_init();
     const char *screen = display_init(BAND_BYTES);
     const bool bench = BOARD_BENCH; /* no screen: replay the host benchmark's animation, for the timings */
-    const bool motion = imu_init();
     printf(
         "\nlilpet %s, board %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d "
         "rows, %u bytes of internal RAM free\n",

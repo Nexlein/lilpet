@@ -461,7 +461,7 @@ void test_eyes_off_the_screen_render_nothing(void)
 /* Cuts [40, 60) out of the spans given as pairs of ends, and checks the pairs left */
 static void check_cut(const float (*in)[2], int count, const float (*want)[2], int want_count)
 {
-    const lp_line line = {.u0 = 0.0f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_line line = {.u0 = 0.0f, .v0 = 0.0f};
     const lp_ellipse hole = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
     lp_spans s = {.n = count};
     for (int i = 0; i < count; i++) {
@@ -496,10 +496,37 @@ void test_cutting_spans(void)
     check_cut(inside_cut, 2, inside_cut, 2); /* nothing inside the hole */
 }
 
+void test_polygon_edges_reach_every_sub_row(void)
+{
+    /* A flat top on the last sub-row of a pixel row, a tip halfway through a pixel row */
+    const float pts[] = {0.0f, 10.9375f, 50.0f, 30.5f, 100.0f, 10.9375f};
+    lp_edge all[3];
+    lp_edge kept[3];
+    CHECK(lp_polygon_edges(all, pts, 3, -1e9f, 1e9f) == 3);
+    for (int row = 0; row < 40; row++) {
+        const float first = (float)row + 0.5f / (float)LP_SUBROWS;
+        const float last = (float)row + ((float)LP_SUBROWS - 0.5f) / (float)LP_SUBROWS;
+        const int count = lp_polygon_edges(kept, pts, 3, first, last);
+        for (int sub = 0; sub < LP_SUBROWS; sub++) {
+            const float y = (float)row + ((float)sub + 0.5f) / (float)LP_SUBROWS;
+            lp_spans want;
+            lp_spans got;
+            lp_spans_polygon(&want, all, 3, y, 0.0f, 100.0f);
+            lp_spans_polygon(&got, kept, count, y, 0.0f, 100.0f);
+            CHECK(got.n == want.n);
+            for (int i = 0; i < want.n && i < got.n; i++)
+                CHECK(got.a[i] == want.a[i] && got.b[i] == want.b[i]);
+        }
+    }
+    /* A row in the middle meets the two sides only, a row past the tip nothing */
+    CHECK(lp_polygon_edges(kept, pts, 3, 20.0625f, 20.9375f) == 2);
+    CHECK(lp_polygon_edges(kept, pts, 3, 35.0625f, 35.9375f) == 0);
+}
+
 void test_line_too_far_misses_an_ellipse(void)
 {
     /* So far that the distance overflows into a NaN: no span, and not the whole row */
-    const lp_line line = {.u0 = 1e30f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_line line = {.u0 = 1e30f, .v0 = 0.0f};
     const lp_ellipse e = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
     lp_spans s;
     lp_spans_ellipse(&s, &line, &e, 0.0f, 100.0f);

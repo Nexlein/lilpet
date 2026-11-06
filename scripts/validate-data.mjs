@@ -1,7 +1,7 @@
 // Checks the data files the renderers read:
 // - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
-//   and those the code asks for by name exist
+//   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - prototype/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
 //   fields
 // Usage: node scripts/validate-data.mjs
@@ -72,7 +72,7 @@ function eachRow(path, rows, name, required, keys, check) {
             if (!keys.includes(k)) fail(`unknown key "${k}", expected ${keys.join(', ')}`);
         if (row.note !== undefined && (typeof row.note !== 'string' || /\/\*|\*\//.test(row.note)))
             fail('"note" must be a string without /* or */: it becomes a C comment');
-        check(row, fail);
+        check(row, fail, id);
     }
 }
 
@@ -97,7 +97,7 @@ const EXPRESSION = {
     bl: [0, 1],
     sq: [0, 0.95], // 1 squashes the eye flat: lp_affine_inverse would divide by zero
     cr: [0, 1],
-    rot: [-1.5, 1.5],
+    rot: [-1.2, 1.5], // lower turns the eye past a quarter turn with the 0.37 tilt: the lid would come up from below
     hl: [0, 1],
     ps: [0.2, 2],
     es: [0.5, 1.5],
@@ -106,11 +106,12 @@ const EXPRESSION = {
 };
 const EMIT_TYPES = ['heart', 'sparkle'];
 const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
+const HELD = ['shake', 'upside_down']; // they repeat every frame while their cause lasts
 eachRow(
     EMOTIONS,
     emotions,
     'emotions',
-    ['neutral'],
+    ['neutral', 'sleepy'],
     ['label', 'emit', 'note', ...Object.keys(EXPRESSION)],
     (emotion, fail) => {
         if (typeof emotion.label !== 'string' || !emotion.label) fail('"label" must be a non-empty string');
@@ -126,14 +127,15 @@ eachRow(
     EMOTIONS,
     emotionData?.reactions,
     'reactions',
-    ['shake', 'upside_down'],
+    [...HELD, 'tap', 'face_seen'],
     ['emotion', 'duration', 'sparkles', 'note'],
-    (reaction, fail) => {
+    (reaction, fail, id) => {
         if (!Object.hasOwn(emotions, reaction.emotion))
             fail(`"emotion" must be one of ${Object.keys(emotions).join(', ')}`);
         if (!isNum(reaction.duration, 0.01, 60)) fail('"duration" must be between 0.01 and 60 seconds');
         if (!Number.isInteger(reaction.sparkles) || !isNum(reaction.sparkles, 0, MAX_SPARKLES))
             fail(`"sparkles" must be a whole number between 0 and ${MAX_SPARKLES}`);
+        else if (HELD.includes(id) && reaction.sparkles !== 0) fail('"sparkles" must be 0: it repeats while held');
     }
 );
 report(); // eyes.js cannot load without its emotions
@@ -145,6 +147,7 @@ const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set(looks.swatches.map((s) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
+const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C vectors would not compile past it
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     // A misspelled key would be ignored, and the scene would test less than it says
     for (const k of Object.keys(scene))
@@ -171,10 +174,11 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
         if (!['x', 'y'].includes(k) || !isNum(scene.gaze[k], -1, 1))
             fail(`"gaze.${k}" must be x or y, between -1 and 1`);
     if (isObject(scene.particles)) {
-        if (!Number.isInteger(scene.particles.seed) || scene.particles.seed < 0)
-            fail('"particles.seed" must be a non-negative integer');
-        const timeOk = isNum(scene.particles.time, 0.01, 10);
-        if (!timeOk) fail('"particles.time" must be between 0.01 and 10 seconds');
+        if (!Number.isInteger(scene.particles.seed) || !isNum(scene.particles.seed, 0, MAX_SEED))
+            fail(`"particles.seed" must be a whole number between 0 and ${MAX_SEED}`);
+        // Whole steps of 1/60 s, and exact in a float: JS and C replay as many of them
+        const timeOk = isNum(scene.particles.time, 0.25, 10) && Number.isInteger(scene.particles.time * 4);
+        if (!timeOk) fail('"particles.time" must be a multiple of 0.25 seconds, up to 10');
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
         else if (known && timeOk) {
             const eyes = new Eyes(1);

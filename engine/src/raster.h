@@ -18,9 +18,9 @@ typedef struct {
     float b[LP_MAX_SPANS];
 } lp_spans;
 
-/* A screen sub-row seen in some local frame: the local point for screen column x is (u0 + x du, v0 + x dv) */
+/* A screen sub-row seen in some local frame: the local point at column 0; shapes keep the step per column (du, dv) */
 typedef struct {
-    float u0, du, v0, dv;
+    float u0, v0;
 } lp_line;
 
 lp_affine lp_affine_mul(lp_affine m, lp_affine n); /* m after n */
@@ -31,7 +31,7 @@ void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy);
 /* The screen sub-row at height y, in the local frame whose local->screen transform has inverse `inv` */
 static inline lp_line lp_line_at(lp_affine inv, float y)
 {
-    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
+    return (lp_line){.u0 = inv.b * y + inv.tx, .v0 = inv.d * y + inv.ty};
 }
 
 void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */
@@ -45,8 +45,14 @@ void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, floa
 void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h);
 /* Removes the part inside an ellipse */
 void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e);
-/* Spans of a closed polygon (screen points, x0 y0 x1 y1 ...) on the sub-row y, even-odd rule, limited to [lo, hi) */
-void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi);
+/*
+ * Keeps the edges of a closed polygon (`count` screen points, x0 y0 x1 y1 ...) that may cross a sub-row between y0 and
+ * y1, in order, and returns how many: a polygon has many edges and a pixel row meets few of them. `out` has `count`
+ * cells.
+ */
+int lp_polygon_edges(lp_edge *out, const float *pts, int count, float y0, float y1);
+/* Spans of a polygon on the sub-row y, from its edges that reach it, even-odd rule, limited to [lo, hi) */
+void lp_spans_polygon(lp_spans *out, const lp_edge *edges, int count, float y, float lo, float hi);
 
 /*
  * Adds the spans to a coverage row stored as differences: after a prefix sum, cell i holds the covered fraction of

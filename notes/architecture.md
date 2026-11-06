@@ -45,9 +45,9 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
   l'écran (CO5300) n'accepte que des fenêtres qui commencent sur un pixel pair et de taille paire.
 - **Ne renvoyer que ce qui bouge** (zones modifiées). À 40 MHz en QSPI, l'horloge utilisée pour cet écran
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonne vers
-  45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 42 % de l'écran en moyenne
-  et 68 % au pire (particules du mode amoureux), soit environ 9 ms et 15 ms d'envoi par image (estimation), sous les
-  16,7 ms d'une image à 60 images/s, mais avec peu de marge au pire.
+  45 images/s (estimation). Mesuré par `mise run engine:bench` : la zone redessinée couvre 50 % de l'écran en moyenne
+  et 70 % au pire (particules du mode amoureux), soit environ 11 ms et 16 ms d'envoi par image (estimation), sous les
+  16,7 ms d'une image à 60 images/s, mais avec très peu de marge au pire.
 - **`float` et entiers, jamais `double`** : sur l'ESP32-S3, les `double` sont émulés en logiciel et très lents, et même
   les `float` restent plus lents que les entiers
   ([guide de performance ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/performance/speed.html)).
@@ -71,7 +71,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait           |
 | `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2) |
 | `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1      |
-| `firmware/`  | ESP-IDF, carte écran : pilotes, capteurs, appelle le moteur                    | AtomS3R        |
+| `firmware/`  | ESP-IDF, carte écran : pilotes, capteurs, appelle le moteur                    | 3 cartes       |
 | `vision/`    | ESP-IDF, carte caméra (XIAO), sans le moteur : modèle, événements par UART     | Créé à l'achat |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait           |
 
@@ -111,7 +111,7 @@ comme en `double`.
 - **Tests** : mini-lanceur maison (`engine/tests/test.h`), sans dépendance.
 - **Emscripten dans Docker** (image officielle `emscripten/emsdk`), en local comme en CI. Installé par mise, emsdk
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache. La
-  version est épinglée dans `engine/wasm/Dockerfile` (6.0.13 début novembre 2026) : avec `latest`, une nouvelle
+  version est épinglée dans `engine/wasm/Dockerfile` (7.0.0 début novembre 2026) : avec `latest`, une nouvelle
   version pouvait casser la CI sans changement de notre côté. Dependabot propose chaque nouvelle version.
 - **ESP-IDF dans Docker**, avec la même commande en local et en CI (`BOARD=<carte> mise run firmware:build`). La version est
   épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
@@ -148,11 +148,45 @@ journal de démarrage de l'autre puce. À l'arrivée de la XIAO, il faudra une s
 analyseur et réponde sur son propre flux. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
 sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux figés.
 
+## Points ouverts
+
+Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash, ni corruption mémoire, ni perte de données
+(118 400 images et 3 millions de lignes de commande au hasard), et JS et C restent identiques. Tout le reste est corrigé.
+
+À mesurer ou à essayer sur du vrai matériel :
+
+- **Temps de dessin à 466 px sur la puce**, jamais mesuré : `BOARD=stamp_s3a mise run firmware:deploy` sur la M5Stamp. Il est
+  estimé entre 16 et 30 ms pour 16,7 ms disponibles, et tout le budget de 60 images/s en dépend. À faire avant l'achat.
+- **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La démo de Waveshare définit la broche TE sans
+  s'en servir.
+- **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
+- **App et vraie carte dans Chrome** : les pannes de port (écriture morte, réponse restée en attente) sont prouvées sur un faux
+  port seulement.
+- **Renovate** : il n'a encore ouvert aucune pull request. Vérifier qu'il suit les `tools` des tâches de `mise.toml` et
+  `scripts/requirements.txt`.
+
+À décider ou à construire pour l'objet final :
+
+- **Mouvement et toucher** : le 1,32" n'a pas de capteur de mouvement, et son bouton n'est pas celui de l'AtomS3R. Sans module
+  ajouté, pas d'inclinaison ni de vertige ; le toucher demande un pilote pour le CST820.
+- **Modèle** : aucun modèle ESP-DL listé dans [materiel.md](materiel.md) ne lit les expressions du visage.
+- **Carte vision** : le projet `vision/`, et sa tâche UART, qui devra répondre sur son propre flux, avec un verrou autour du
+  look courant. Son firmware devra répondre à `> hello` : une image `stamp_s3a` sur la XIAO n'est pas arrêtée par le boîtier de
+  la puce, les deux sont en QFN56.
+
+Limites connues, à reprendre quand elles gêneront :
+
+- L'app associe une réponse à une demande par ordre d'arrivée : le protocole n'a pas d'identifiants.
+- Le WebAssembly garde une seule instance d'yeux, ce que l'éditeur devra changer.
+- `EyeGlyph` recopie les constantes de pupilles du moteur.
+- Les lignes de particules parcourent toute leur boîte : les limiter aux colonnes touchées déplaçait un pixel.
+
 ## Performance (mise en place en 2e)
 
 - `mise run engine:bench` compile le moteur en mode optimisé et mesure le temps de rendu :
     - pour chaque scène de référence, l'écran entier (première image) puis les yeux seuls (image suivante) ;
-    - sur une animation de 13 s à 60 images/s : chaque émotion pendant une seconde, avec saccades, clignements et
+    - sur une animation de 18 s à 60 images/s : chaque émotion pendant une seconde, amoureux pendant 5 s pour que les cœurs
+      s'accumulent, avec saccades, clignements et
       particules, puis le regard qui suit un visage. Chaque image ne redessine que sa zone modifiée, comme sur
       l'objet.
 - En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d'un commit à l'autre. Il n'y a pas de
@@ -167,14 +201,14 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
 
 - `BOARD=atoms3r mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, qui
   vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi dans l'app PC (gardé en mémoire
-  flash, `cherry` tant qu'aucun n'a été envoyé). À chaque tour de 780 images, il écrit sur le port USB
+  flash, `cherry` tant qu'aucun n'a été envoyé). À chaque tour de 1080 images, il écrit sur le port USB
   le nombre d'images par seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
 - **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
-  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran, le boîtier de sa
-  puce et son capteur de mouvement, un `sdkconfig.defaults` facultatif ses options ESP-IDF. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
+  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
+  puce, un `sdkconfig.defaults` facultatif ses options ESP-IDF. Le dossier donne son nom à la carte. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
   composant un fichier `.c`, sans table de fonctions : tout est choisi à la compilation. Un seul binaire reconnaissant sa
   carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le même boîtier (ESP32-S3-PICO), et sonder un bus ou lire
   l'identifiant d'un écran obligerait à piloter des broches sur une carte inconnue. Ajouter un écran : un `.c` de 4

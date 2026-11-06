@@ -1,6 +1,7 @@
 # What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in
 # notes/app.md). uv installs pyserial, from scripts/requirements.txt.
 import os
+import re
 import sys
 import termios
 import time
@@ -25,6 +26,12 @@ def board_from_env():
     return board
 
 
+def has_motion_sensor(board):
+    """Whether board.cmake links a motion sensor: an imu_*.c other than imu_none.c, comments left out"""
+    parts = re.sub(r"#.*", "", (BOARDS / board / "board.cmake").read_text())
+    return any(part != "imu_none.c" for part in re.findall(r"\bimu_\w+\.c\b", parts))
+
+
 def read_reply(port, timeout=3):
     """Returns the next reply without the "< " prefix, or None"""
     end = time.time() + timeout
@@ -39,6 +46,17 @@ def ask(port, command, timeout=3):
     """Sends a command and returns its reply without the "< " prefix, or None"""
     port.write(f"{command}\n".encode())
     return read_reply(port, timeout)
+
+
+def ask_hello(port, timeout=3):
+    """Asks hello until the reply is one, and returns it without the "< " prefix, or None. Any other reply is left from
+    a connection that stopped, and says nothing about the board."""
+    end = time.time() + timeout
+    while (left := end - time.time()) > 0:
+        reply = ask(port, "> hello", left)
+        if reply and reply.startswith("lilpet "):
+            return reply
+    return None
 
 
 def find_port():
@@ -57,6 +75,7 @@ def open_port(name):
     port.port = name
     port.baudrate = 115200
     port.timeout = 0.2
+    port.exclusive = True  # the lock esptool and pyserial-miniterm take: a monitor cannot open during a check
     # Opening asserts both lines: keep DTR while releasing RTS, then release DTR, never RTS alone (same as the app)
     port.dtr = True
     port.rts = False

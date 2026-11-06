@@ -8,3 +8,5 @@ endif()
 idf_component_register(SRCS ${srcs} INCLUDE_DIRS ../boards/${LILPET_BOARD}
                        REQUIRES lilpet esp_timer esp_lcd esp_driver_spi esp_driver_gpio esp_driver_i2c
                                 esp_driver_usb_serial_jtag esp_app_format efuse nvs_flash)
+# A board's name is its folder: a copied board cannot keep the name of the first one
+target_compile_definitions(${COMPONENT_LIB} PRIVATE BOARD_NAME="${LILPET_BOARD}")

@@ -1,6 +1,6 @@
 // The built PC app (npm run app:build) opens, runs the C engine, picks looks and talks to a board over a fake serial
-// port. CI builds it before these tests, and fails them if the build is missing; locally they are skipped until the app
-// is built.
+// port. npm run test:parity builds it first. Run alone, these tests are skipped until the app is built, and fail in CI
+// if the build is missing.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
 import { fakePort } from '../app/src/device/fake-port.ts';
@@ -27,14 +27,15 @@ function plugBoard(makePort) {
     const board = {
         hello: 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1',
         replies: { look: 'ok', emotion: 'ok', react: 'ok' }, // null: the board stays silent
-        delay: 0
+        delay: 0,
+        quiet: false // true: no log line
     };
     const device = makePort(
         (command) => {
             const word = command.split(' ')[1];
             return word === 'hello' ? board.hello : board.replies[word];
         },
-        { delay: () => board.delay }
+        { delay: () => board.delay, quiet: () => board.quiet }
     );
     window.board = Object.assign(board, {
         sent: device.sent,
@@ -192,6 +193,76 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
     await page.reload();
     await expect(page.locator('.look-name h1')).toHaveText('socks');
     await expect(page.getByLabel('Gland')).toBeChecked();
+    await expect(page.locator('.favorites .chip')).toHaveText(['socks gland']);
+});
+
+test('the filters narrow the colors down, and let go', async ({ page }) => {
+    await page.goto(APP);
+    const chips = page.locator('.grid .chip');
+    await expect(chips).toHaveCount(100);
+
+    const reds = page.getByRole('button', { name: 'Rouges' });
+    await reds.click();
+    await expect(reds).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(page, 'cherry')).toHaveCount(1);
+    await expect(chip(page, 'kite')).toHaveCount(0);
+    await reds.click();
+    await expect(reds).toHaveAttribute('aria-pressed', 'false');
+    await expect(chips).toHaveCount(100);
+
+    const twoPupils = page.getByRole('button', { name: 'Deux pupilles différentes' });
+    await twoPupils.click();
+    await expect(twoPupils).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(page, 'socks')).toHaveCount(1);
+    await expect(chip(page, 'cherry')).toHaveCount(0);
+    await twoPupils.click();
+    await expect(twoPupils).toHaveAttribute('aria-pressed', 'false');
+    await expect(chips).toHaveCount(100);
+});
+
+test('a favorite keeps its pupil, comes back with it, and goes when removed', async ({ page }) => {
+    await page.goto(APP);
+    const heart = page.locator('.favorite');
+    const favorite = page.locator('.favorites .chip');
+    await expect(favorite).toHaveCount(0);
+
+    await chip(page, 'socks').click();
+    await page.locator('.pupil', { hasText: 'Gland' }).click();
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+    await expect(favorite).toHaveText(['socks gland']);
+    await expect(favorite).toHaveAttribute('aria-current', 'true');
+
+    await page.locator('.pupil', { hasText: 'Chat' }).click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+    await expect(favorite).toHaveAttribute('aria-current', 'false');
+    await chip(page, 'kite').click();
+    await expect(page.getByLabel('Chat'), 'a color of the grid keeps the pupil worn').toBeChecked();
+
+    await favorite.click();
+    await expect(page.locator('.look-name h1')).toHaveText('socks');
+    await expect(page.getByLabel('Gland')).toBeChecked();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+    await expect(favorite).toHaveCount(0);
+});
+
+// On base: this failure is meant to reach the console
+base('says when the eye engine cannot load, and the rest goes on', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.route('**/engine/lilpet.mjs', (route) => route.abort());
+    await page.goto(APP);
+    await expect(page.locator('.screen-note')).toHaveText(
+        'Moteur des yeux introuvable. Lance « mise run engine:wasm », puis recharge la page.'
+    );
+    await expect.poll(() => errors.join('\n')).toContain('Cannot load the eye engine');
+    await expect(page.locator('canvas.screen')).toHaveCount(0);
+    await expect(page.locator('.moods')).toHaveCount(0);
+
+    await chip(page, 'socks').click();
+    await expect(page.locator('.look-name h1')).toHaveText('socks');
 });
 
 test('Cligner shuts the eyes, which stay open at first without it', async ({ page }) => {
@@ -292,6 +363,7 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await page.locator('.device button').focus();
     await page.keyboard.press('Enter');
     await expect(status).toHaveText('Connexion à lilpet…');
+    await expect(note(page), 'no need to ask for what is under way').toBeEmpty();
     await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Triste' }).click();
     await expect(status).toHaveText('Connexion à lilpet…');
@@ -352,6 +424,9 @@ test('the send button keeps the keyboard focus and only sends once connected, on
     await send.focus();
     await page.keyboard.press('Enter');
     await expect(note(page)).toHaveText('Branche lilpet en USB pour lui envoyer ce look.');
+    await expect(send, 'says why it does nothing').toHaveAccessibleDescription(
+        'Branche lilpet en USB pour lui envoyer ce look.'
+    );
 
     await plugIn(page);
     await page.evaluate(() => (window.board.delay = 300));
@@ -420,6 +495,7 @@ test('the log follows the last line, unless it was scrolled up', async ({ page }
     await page.addInitScript(fakeSerial);
     await page.goto(APP);
     await plugIn(page);
+    await expect(page.getByRole('region', { name: 'Journal de lilpet' }), 'a landmark to jump to').toBeVisible();
 
     const log = page.locator('.log pre');
     const write = (from, to) =>
@@ -450,6 +526,28 @@ test('the log follows the last line, unless it was scrolled up', async ({ page }
     await write(60, 70);
     await expect(log).toContainText('line 69');
     expect(await log.evaluate((el) => el.scrollTop)).toBe(0);
+});
+
+test('the log shows while connected, and stays after only if lilpet wrote something', async ({ page }) => {
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const log = page.locator('.log');
+    const unplug = page.getByRole('button', { name: 'Débrancher' });
+    await expect(log).toHaveCount(0);
+
+    await page.evaluate(() => (window.board.quiet = true));
+    await plugIn(page);
+    await log.locator('summary').click();
+    await expect(log.locator('pre')).toHaveText('Rien pour l’instant.');
+    await unplug.click();
+    await expect(log).toHaveCount(0);
+
+    await page.evaluate(() => (window.board.quiet = false));
+    await plugIn(page);
+    await unplug.click();
+    await expect(page.locator('.device button')).toHaveText('Brancher lilpet');
+    await log.locator('summary').click();
+    await expect(log.locator('pre')).toHaveText('draw 1.2 ms');
 });
 
 test('the color grid is one stop of the Tab key, walked with the arrows', async ({ page }) => {
@@ -504,6 +602,8 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
 test('the arrow keys do not scroll the page as well', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto(APP);
+    await page.locator('.moods').waitFor(); // they arrive with the engine, and push the gallery down
+    await page.evaluate(() => document.fonts.ready);
     await page.locator('.grid .chip').first().focus();
     const scrolled = await page.evaluate(() => window.scrollY);
     expect(scrolled).toBeGreaterThan(0);
@@ -568,6 +668,18 @@ test('on a short window, the send note is in reach', async ({ page }) => {
     const bottom = await note(page).evaluate((el) => el.getBoundingClientRect().bottom);
     await page.evaluate((y) => window.scrollTo(0, y - window.innerHeight), bottom);
     await expect(note(page)).toBeInViewport();
+});
+
+test('a send note on two lines fits the window with the rest of the stage', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    await plugIn(page);
+    await page.evaluate(() => (window.board.replies.look = 'err cannot read this look: the third color is too long'));
+    await page.locator('.primary').click();
+    await expect(note(page)).toContainText('n’est pas envoyé');
+    expect((await note(page).boundingBox()).height, 'two lines').toBeGreaterThan(30);
+    await expect(note(page)).toBeInViewport({ ratio: 1 });
 });
 
 test('the animation pauses while the screen is out of sight', async ({ page }) => {

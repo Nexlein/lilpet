@@ -25,6 +25,7 @@
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
     X(test_senses_smooth_gravity)                                                                                      \
+    X(test_senses_start_over_when_a_sensor_comes_back)                                                                 \
     X(test_senses_forget_a_sensor_that_stopped)                                                                        \
     X(test_senses_stop_a_shake_when_the_sensor_stops)                                                                  \
     X(test_senses_skip_a_bad_sample)                                                                                   \
@@ -32,6 +33,7 @@
     X(test_senses_debounce_the_button)                                                                                 \
     X(test_senses_react_to_a_press_not_a_release)                                                                      \
     X(test_senses_let_go_of_a_face)                                                                                    \
+    X(test_senses_leave_alone_a_pointer_they_did_not_set)                                                              \
     X(test_senses_greet_only_a_new_face)                                                                               \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
@@ -84,6 +86,7 @@
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
     X(test_unknown_pupil_renders_as_a_circle)                                                                          \
     X(test_cutting_spans)                                                                                              \
+    X(test_polygon_edges_reach_every_sub_row)                                                                          \
     X(test_line_too_far_misses_an_ellipse)                                                                             \
     X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \

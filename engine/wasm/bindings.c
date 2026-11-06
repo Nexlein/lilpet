@@ -134,9 +134,9 @@ EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
         for (int x = dirty.x0; x < dirty.x1; x++) {
             const int i = y * LP_SCREEN_SIZE + x;
             const uint32_t p = frame[i];
-            rgba[4 * i] = (uint8_t)(((p >> 11u) & 0x1Fu) * 255u / 31u);
-            rgba[4 * i + 1] = (uint8_t)(((p >> 5u) & 0x3Fu) * 255u / 63u);
-            rgba[4 * i + 2] = (uint8_t)((p & 0x1Fu) * 255u / 31u);
+            rgba[4 * i] = (uint8_t)((((p >> 11u) & 0x1Fu) * 255u + 15u) / 31u);
+            rgba[4 * i + 1] = (uint8_t)((((p >> 5u) & 0x3Fu) * 255u + 31u) / 63u);
+            rgba[4 * i + 2] = (uint8_t)(((p & 0x1Fu) * 255u + 15u) / 31u);
             rgba[4 * i + 3] = 255u;
         }
     }

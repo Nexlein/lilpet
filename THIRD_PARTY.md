@@ -54,7 +54,7 @@ Emscripten: <https://github.com/emscripten-core/emscripten/blob/main/LICENSE>.
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * Configuration file of the BMI270, from bmi270.c in Bosch Sensortec's BMI270_SensorAPI
- * (https://github.com/boschsensortec/BMI270_SensorAPI), unmodified.
+ * (https://github.com/boschsensortec/BMI270_SensorAPI): its bytes are unchanged, the code around them is reformatted.
  *
  * @file       bmi270.c
  * @date       2023-05-03

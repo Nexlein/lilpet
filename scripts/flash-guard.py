@@ -8,7 +8,7 @@
 import os
 import sys
 
-from board_link import SERIAL_ERRORS, ask, board_from_env, find_port, hello_fields, open_port
+from board_link import SERIAL_ERRORS, ask_hello, board_from_env, find_port, hello_fields, open_port
 
 
 def running_board(name):
@@ -16,7 +16,7 @@ def running_board(name):
     try:
         with open_port(name) as port:
             # Twice: a board still booting misses the first
-            hello = ask(port, "> hello", 1.5) or ask(port, "> hello", 1.5)
+            hello = ask_hello(port, 1.5) or ask_hello(port, 1.5)
     except SERIAL_ERRORS:
         return None
     return hello_fields(hello).get("board")
