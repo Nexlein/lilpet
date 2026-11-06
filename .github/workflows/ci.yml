@@ -14,17 +14,17 @@ concurrency:
 
 jobs:
   check:
-    name: Format, lint, data, app tests
+    name: Format, lint, data, script and app tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Installs the tools from mise.toml, same as local development (only Node is needed here). Actions are pinned by
-      # commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      # Installs the tools from mise.toml, same as local development (only Node and uv are needed here). Actions are
+      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
-          install_args: node
+          install_args: node uv
 
       - run: npm ci
 
@@ -40,6 +40,10 @@ jobs:
       # engine/tests/js_vectors.h must match what the prototype computes today
       - name: Engine test values up to date
         run: npm run check:vectors
+
+      # The flash guard and the device check, on a fake serial port (no hardware needed)
+      - name: Board scripts
+        run: npm run check:scripts
 
       # TypeScript types and Vitest tests of the PC app (no browser or engine build needed)
       - name: PC app types and tests
