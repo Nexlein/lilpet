@@ -189,7 +189,12 @@ const emotionsEl = document.getElementById('emotions');
 Object.entries(EMOTIONS).forEach(([name, e], i) => {
     const b = document.createElement('button');
     b.dataset.e = name;
-    b.innerHTML = i < 9 ? `${e.label} <kbd>${i + 1}</kbd>` : e.label; // digit keys 1 to 9
+    b.textContent = e.label;
+    if (i < 9) {
+        const key = document.createElement('kbd'); // digit keys 1 to 9
+        key.textContent = i + 1;
+        b.append(' ', key);
+    }
     b.addEventListener('click', () => setEmotion(name));
     emotionsEl.append(b);
 });
