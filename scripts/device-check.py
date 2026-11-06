@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import serial
@@ -23,6 +24,13 @@ OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
 
 failures = 0
+
+
+@dataclass
+class Board:
+    name: str
+    bench: bool  # plays the benchmark animation, and refuses what would change it
+    motion: bool  # has a motion sensor: one that does not answer is a fault
 
 
 def define(header, name):
@@ -138,7 +146,7 @@ def finish(port):
     sys.exit(1 if failures else 0)
 
 
-def run_checks(port, test_look, other_look, bench, motion, fields):
+def run_checks(port, board, test_look, other_look):
     """Everything that changes the board's look or mood"""
     check(ask(port, f"> look {test_look}") == "ok", "keeps a new look")
     check(ask(port, "> look?") == f"look {test_look}", "tells the new look back")
@@ -162,7 +170,7 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     kept = ask(port, "> look?")
     check_reply(kept == f"look {test_look}", "does not run the end of a line too long", kept)
 
-    accepted = "err benchmark animation running" if bench else "ok"
+    accepted = "err benchmark animation running" if board.bench else "ok"
     for command in ["> emotion happy", "> emotion love 1.5", "> react tap", "> react gesture_like", "> face 0.5 -0.25"]:
         reply = ask(port, command)
         check_reply(reply == accepted, f'answers "{command}" as it should', reply)
@@ -195,13 +203,11 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     expected = f"{replies.count(accepted)} as expected"
     check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
-    if not bench:
+    if not board.bench:
         check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
 
     imu = ask(port, "> imu?")
-    if motion:
-        check(fields.get("motion") == "1", "has its motion sensor", f"motion={fields.get('motion')}")
-    if imu == "err no motion sensor" and not motion:
+    if imu == "err no motion sensor" and not board.motion:
         print("-    no motion sensor on this board")
     else:
         try:
@@ -221,15 +227,12 @@ def put_back(port, before):
         check(False, "gets its own look back", f"port lost, send it again: > {before}")
 
 
-def check_board(board):
+def check_board(board_name):
     name = find_port()
     if name is None:
         sys.exit("No board plugged in: plug it in, or name its port with PORT=<port>.")
-    config = BOARDS / board / "board_config.h"
-    # They play the benchmark animation, and refuse what would change it
-    bench = define(config, "BOARD_BENCH") == 1
-    # A sensor that does not answer is a fault
-    motion = define(config, "BOARD_MOTION") == 1
+    config = BOARDS / board_name / "board_config.h"
+    board = Board(board_name, define(config, "BOARD_BENCH") == 1, define(config, "BOARD_MOTION") == 1)
 
     port = open_port(name)
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
@@ -237,11 +240,13 @@ def check_board(board):
     hello = ask(port, "> hello")
     check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello)
     fields = hello_fields(hello)
-    check(fields.get("board") == board, f"runs the image of {board}", fields.get("board", "no board"))
-    if fields.get("board") != board:
+    check(fields.get("board") == board.name, f"runs the image of {board.name}", fields.get("board", "no board"))
+    if fields.get("board") != board.name:
         finish(port)  # not the board asked for, or no firmware: nothing else would mean anything
     check(fields.get("camera") in ("0", "1"), "tells if it has a camera", fields.get("camera", "no field"))
     check(fields.get("motion") in ("0", "1"), "tells if it has a motion sensor", fields.get("motion", "no field"))
+    if board.motion:
+        check(fields.get("motion") == "1", "has its motion sensor", f"motion={fields.get('motion')}")
 
     before = ask(port, "> look?")
     check_reply(bool(before) and before.startswith("look "), "tells its look", before)
@@ -251,7 +256,7 @@ def check_board(board):
     # A run stopped by a power cut leaves the test look on the board: the checks need one it does not wear
     test_look, other_look = (OTHER_LOOK, TEST_LOOK) if before == f"look {TEST_LOOK}" else (TEST_LOOK, OTHER_LOOK)
     try:
-        run_checks(port, test_look, other_look, bench, motion, fields)
+        run_checks(port, board, test_look, other_look)
     except KeyboardInterrupt:
         check(False, "runs to the end", "interrupted")
     except serial.SerialException as err:
