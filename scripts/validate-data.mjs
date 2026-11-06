@@ -147,6 +147,7 @@ const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set(looks.swatches.map((s) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
+const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C vectors would not compile past it
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     // A misspelled key would be ignored, and the scene would test less than it says
     for (const k of Object.keys(scene))
@@ -173,8 +174,8 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
         if (!['x', 'y'].includes(k) || !isNum(scene.gaze[k], -1, 1))
             fail(`"gaze.${k}" must be x or y, between -1 and 1`);
     if (isObject(scene.particles)) {
-        if (!Number.isInteger(scene.particles.seed) || scene.particles.seed < 0)
-            fail('"particles.seed" must be a non-negative integer');
+        if (!Number.isInteger(scene.particles.seed) || !isNum(scene.particles.seed, 0, MAX_SEED))
+            fail(`"particles.seed" must be a whole number between 0 and ${MAX_SEED}`);
         // Whole steps of 1/60 s, and exact in a float: JS and C replay as many of them
         const timeOk = isNum(scene.particles.time, 0.25, 10) && Number.isInteger(scene.particles.time * 4);
         if (!timeOk) fail('"particles.time" must be a multiple of 0.25 seconds, up to 10');
