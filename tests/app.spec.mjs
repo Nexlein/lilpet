@@ -602,6 +602,8 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
 test('the arrow keys do not scroll the page as well', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto(APP);
+    await page.locator('.moods').waitFor(); // they arrive with the engine, and push the gallery down
+    await page.evaluate(() => document.fonts.ready);
     await page.locator('.grid .chip').first().focus();
     const scrolled = await page.evaluate(() => window.scrollY);
     expect(scrolled).toBeGreaterThan(0);
