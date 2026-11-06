@@ -100,6 +100,16 @@ depends = ["firmware:board"]
 # the script.
 run = "uv run scripts/device-check.py"
 
+[tasks."firmware:deploy"]
+description = "Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)"
+run = [
+    { task = "firmware:build" },
+    { task = "firmware:flash" },
+    # The flash ends with a reboot: the check must not take it for one caused by opening the port
+    "sleep 3",
+    { task = "firmware:check-device" },
+]
+
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
 tools = { "pypi:pyserial" = "3.5" }
