@@ -155,6 +155,20 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('gives up on moods soon, so a silent board does not hold back the look behind them for long', async () => {
+        const answer = firmware();
+        const device = fakePort((c) => (c === '> hello' ? answer(c) : null));
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        vi.useFakeTimers();
+        for (let i = 0; i < 10; i++) session.emotion('happy');
+        const look = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
+        await vi.advanceTimersByTimeAsync(10 * 500 + 2000);
+        vi.useRealTimers();
+        await look;
+        await session.disconnect();
+    });
+
     it('says when Web Serial is missing', async () => {
         const session = new DeviceSession(null);
         expect(session.snapshot().state).toEqual({ status: 'unsupported' });

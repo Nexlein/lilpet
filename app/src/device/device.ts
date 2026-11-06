@@ -4,6 +4,8 @@ import type { Connection } from './connection';
 import { HELLO, lookCommand, parseHello, replyError, type DeviceInfo } from './protocol';
 
 const HELLO_ATTEMPTS = 3;
+// A command told in passing waits less than a look: a silent board would hold back the look queued behind ten moods
+const COMMAND_TIMEOUT_MS = 500;
 
 // Asked a few times: a board that reboots as the port opens misses the first one
 export async function hello(connection: Connection): Promise<DeviceInfo> {
@@ -20,7 +22,7 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
 
 // A command that answers "ok" or "err <reason>"
 export async function command(connection: Connection, line: string): Promise<void> {
-    const error = replyError(await connection.request(line));
+    const error = replyError(await connection.request(line, COMMAND_TIMEOUT_MS));
     if (error) throw new Error(error);
 }
 
