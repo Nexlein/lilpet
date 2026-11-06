@@ -13,8 +13,6 @@ export interface Swatch {
     pupilColor: readonly [string, string];
 }
 
-export const PUPIL_TYPES: readonly PupilType[] = PUPILS;
-
 // Checked by scripts/validate-data.mjs (CI): two pupil colors each
 export const SWATCHES: readonly Swatch[] = data.swatches as unknown as Swatch[];
 
@@ -28,7 +26,7 @@ export function findSwatch(id: string): Swatch | undefined {
 }
 
 export function isPupilType(value: string): value is PupilType {
-    return (PUPIL_TYPES as readonly string[]).includes(value);
+    return (PUPILS as readonly string[]).includes(value);
 }
 
 export const hasTwoPupilColors = (s: Swatch): boolean => s.pupilColor[0] !== s.pupilColor[1];

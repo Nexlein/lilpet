@@ -1,7 +1,8 @@
 // Left column: the device with the eyes, the chosen look and what can be done with it
 import { useMemo, useState } from 'react';
+import { PUPILS } from '../../../engine/wasm/engine.mjs';
 import type { LookChoice } from '../data/favorites';
-import { PUPIL_TYPES, makeLook, type Look, type PupilType } from '../data/looks';
+import { makeLook, type Look, type PupilType } from '../data/looks';
 import type { LookSent } from '../device/device';
 import type { DeviceState } from '../device/session';
 import { useLessMotion, type EngineState } from './hooks';
@@ -73,7 +74,7 @@ export function Stage({ engine, choice, favorite, device, onPupil, onFavorite, o
 
             <fieldset className="pupils">
                 <legend>Pupille</legend>
-                {PUPIL_TYPES.map((type) => (
+                {PUPILS.map((type) => (
                     <label key={type} className="pupil">
                         <input
                             type="radio"
