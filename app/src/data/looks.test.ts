@@ -68,10 +68,10 @@ describe('swatches', () => {
 describe('ink on a color', () => {
     it('picks the ink that reads best on an eye color', () => {
         expect(contrast('#000000', '#FFFFFF')).toBeCloseTo(21);
-        expect(inkOn('#F6FD21')).toBe('#1A1430'); // HSL lightness alone calls this yellow dark
+        expect(inkOn('#F6FD21')).toBe('#000000'); // HSL lightness alone calls this yellow dark
         expect(inkOn('#AE0002')).toBe('#FFFFFF');
         const worst = Math.min(...SWATCHES.map((s) => contrast(s.sclera, inkOn(s.sclera))));
-        expect(worst).toBeGreaterThan(4.2);
+        expect(worst).toBeGreaterThan(4.5);
     });
 });
 
