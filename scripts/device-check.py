@@ -1,6 +1,3 @@
-# /// script
-# dependencies = ["pyserial==3.5"]
-# ///
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
 # reboot, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change nothing.
@@ -8,7 +5,7 @@
 # put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
 # With --before-flash it checks nothing of that: it only stops a flash on a board that says it is another one.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
-# uv installs pyserial, from the header above.
+# uv installs pyserial, from scripts/requirements.txt.
 import os
 import re
 import sys

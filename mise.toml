@@ -9,7 +9,7 @@ cmake = "4.4.5"
 ninja = "1.13.2"
 "pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
-# Runs the Python scripts that talk to a board (scripts/device-check.py), with the dependency in their header
+# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt
 uv = "0.13.7"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
@@ -62,8 +62,8 @@ depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
 # One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong
-# image drives the wrong pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in
-# a command line.
+# image drives the wrong pins. The version of esptool goes in the task's `tools`: Renovate reads it there, not in a
+# command line.
 [tasks."firmware:board"]
 description = "Fail unless BOARD names a folder of firmware/boards"
 hide = true
@@ -90,7 +90,7 @@ description = "Flash the firmware of a board (BOARD) over USB (PORT, or the only
 depends = ["firmware:board"]
 tools = { "pypi:esptool" = "5.6.0" }
 run = [
-    "uv run scripts/device-check.py --before-flash",
+    "uv run --with-requirements scripts/requirements.txt scripts/device-check.py --before-flash",
     # Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
     'cd "firmware/build/$BOARD" && esptool --chip esp32s3 ${PORT:+--port "$PORT"} write-flash @flash_args',
 ]
@@ -98,9 +98,8 @@ run = [
 [tasks."firmware:check-device"]
 description = "Check the flashed board over USB: hello, looks, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)"
 depends = ["firmware:board"]
-# The only part CI cannot test (no hardware). Puts the board's own look back at the end. uv reads its dependency from
-# the script.
-run = "uv run scripts/device-check.py"
+# The only part CI cannot test (no hardware). Puts the board's own look back at the end.
+run = "uv run --with-requirements scripts/requirements.txt scripts/device-check.py"
 
 [tasks."firmware:deploy"]
 description = "Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)"
@@ -114,6 +113,5 @@ run = [
 
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
-tools = { "pypi:pyserial" = "3.5" }
 # RTS and DTR stay low so opening the port does not reset the chip into download mode
-run = 'pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
+run = 'uv run --with-requirements scripts/requirements.txt pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
