@@ -14,7 +14,7 @@
 
 void lp_senses_init(lp_senses *senses)
 {
-    *senses = (lp_senses){.gravity = {0.0f, 1.0f}, .motion_age = MOTION_LOST, .face_age = FACE_NEW};
+    *senses = (lp_senses){.motion_age = MOTION_LOST, .face_age = FACE_NEW};
 }
 
 /* No sample, or one that is not a number or whose length overflows (the rule of lp_shake_update) */
@@ -26,11 +26,13 @@ static bool sample_is_valid(const float accel[3])
 static void update_motion(lp_senses *s, lp_eyes *eyes, const float accel[3], float dt)
 {
     if (sample_is_valid(accel)) {
+        const bool back = s->motion_age >= MOTION_LOST;
         s->motion_age = 0.0f;
         /* Raw sample: smoothing hides a shake */
         lp_eyes_set_shaking(eyes, lp_shake_update(&s->shake, accel[0], accel[1], accel[2], dt));
+        /* A sensor that comes back starts from its sample: easing from what it last said would turn the face */
         for (int i = 0; i < 2; i++)
-            s->gravity[i] = lp_approach(s->gravity[i], accel[i], GRAVITY_RATE, dt);
+            s->gravity[i] = back ? accel[i] : lp_approach(s->gravity[i], accel[i], GRAVITY_RATE, dt);
         lp_eyes_set_gravity(eyes, true, s->gravity[0], s->gravity[1]);
         return;
     }
