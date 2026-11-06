@@ -45,8 +45,14 @@ void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, floa
 void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h);
 /* Removes the part inside an ellipse */
 void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e);
-/* Spans of a closed polygon (screen points, x0 y0 x1 y1 ...) on the sub-row y, even-odd rule, limited to [lo, hi) */
-void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi);
+/*
+ * Keeps the edges of a closed polygon (`count` screen points, x0 y0 x1 y1 ...) that may cross a sub-row between y0 and
+ * y1, in order, and returns how many: a polygon has many edges and a pixel row meets few of them. `out` has `count`
+ * cells.
+ */
+int lp_polygon_edges(lp_edge *out, const float *pts, int count, float y0, float y1);
+/* Spans of a polygon on the sub-row y, from its edges that reach it, even-odd rule, limited to [lo, hi) */
+void lp_spans_polygon(lp_spans *out, const lp_edge *edges, int count, float y, float lo, float hi);
 
 /*
  * Adds the spans to a coverage row stored as differences: after a prefix sum, cell i holds the covered fraction of
