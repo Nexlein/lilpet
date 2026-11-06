@@ -134,19 +134,19 @@ function watchScreen() {
         return seen;
     };
 
-    // A click on Cligner does nothing during a blink: waits for eyes that stayed open, then watches what the click does
-    window.clickWithOpenEyes = async (button, ms) => {
-        const open = Math.max(...(await window.watch(700)).map((frame) => frame.lit));
-        let since = performance.now();
-        while (performance.now() - since < 300) {
-            if (window.readScreen().lit < open * 0.9) since = performance.now();
+    // From the first lit frame, with no wait for the test to get here: clicks on Cligner or not, then watches
+    window.watchStart = async (click, ms) => {
+        while (!document.querySelector('canvas.screen') || window.readScreen().lit === 0)
             // oxlint-disable-next-line no-await-in-loop -- one frame after the other
             await new Promise(requestAnimationFrame);
-        }
-        button.click();
+        if (click) [...document.querySelectorAll('button')].find((b) => b.textContent === 'Cligner').click();
         return window.watch(ms);
     };
 }
+
+// The engine takes its seed from Date.now(). Every start has a first blink at 1.5 s (next_blink in engine/src/eyes.c);
+// with this seed none comes earlier, while others hide the first saccade behind a blink, as soon as the first frames.
+const QUIET_SEED = 1;
 
 const frames = (page) => page.evaluate(() => window.drawn);
 const sent = (page) => page.evaluate(() => window.board.sent);
@@ -237,7 +237,21 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
     await expect(page.getByLabel('Gland')).toBeChecked();
 });
 
-test('the live eyes wear the chosen look, show the mood, and answer a blink and a pet', async ({ page }) => {
+test('Cligner shuts the eyes, which stay open at first without it', async ({ page }) => {
+    await page.addInitScript(watchScreen);
+    await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
+    const litAtStart = async (click) => {
+        await page.goto(APP);
+        return (await page.evaluate((press) => window.watchStart(press, 450), click)).map((frame) => frame.lit);
+    };
+
+    const alone = await litAtStart(false);
+    expect(Math.min(...alone), 'no blink of their own').toBeGreaterThan(Math.max(...alone) * 0.8);
+    const clicked = await litAtStart(true);
+    expect(Math.min(...clicked), 'the eyes shut').toBeLessThan(Math.max(...clicked) / 2);
+});
+
+test('the live eyes wear the chosen look, show the mood, and answer a pet', async ({ page }) => {
     await page.addInitScript(watchScreen);
     await page.goto(APP);
     await expect.poll(() => wears(page, [0xae, 0x00, 0x02])).toBe(true);
@@ -245,11 +259,6 @@ test('the live eyes wear the chosen look, show the mood, and answer a blink and 
     await expect.poll(() => wears(page, [0xb8, 0x65, 0xa8])).toBe(true);
 
     const open = (await openEyes(page)).lit;
-    const seen = await page
-        .getByRole('button', { name: 'Cligner' })
-        .evaluate((button) => window.clickWithOpenEyes(button, 450));
-    expect(Math.min(...seen.map((frame) => frame.lit)), 'the eyes shut').toBeLessThan(open / 2);
-
     const lit = async () => (await openEyes(page)).lit;
     await page.getByRole('button', { name: 'Endormi' }).click();
     await expect.poll(lit).toBeLessThan(open * 0.6);
