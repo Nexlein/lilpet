@@ -19,13 +19,15 @@
 #define MAX_SECONDS   3600.0f /* longest temporary emotion */
 #define QUEUE_SLOTS   8       /* the drawing loop empties them every frame */
 #define QUEUE_WAIT_MS 100     /* several frames: only a stuck drawing loop makes a command wait that long */
+#define RX_BUFFER     1024    /* bytes of commands waiting on the USB port */
 
 typedef struct {
     lp_look current;
     bool motion;
 } commands_state;
 
-static QueueHandle_t queue; /* to the drawing loop: a command is never dropped, it waits for a slot or gets an error */
+/* To the drawing loop: a command that reached RX_BUFFER is never dropped, it waits for a slot or gets an error */
+static QueueHandle_t queue;
 
 static bool push(const command *c)
 {
@@ -209,6 +211,9 @@ void commands_start(const lp_look *current, bool motion)
 {
     /* Blocking reads on the USB serial port: needs its driver, not just the default console output */
     usb_serial_jtag_driver_config_t config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+    /* The driver drops what does not fit in its buffer: this one holds a burst of about 80 commands while the queue
+     * drains, where the default 256 bytes held 20. */
+    config.rx_buffer_size = RX_BUFFER;
     usb_serial_jtag_driver_install(&config);
     usb_serial_jtag_vfs_use_driver();
     setvbuf(stdin, NULL, _IONBF, 0);
