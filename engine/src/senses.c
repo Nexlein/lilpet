@@ -30,6 +30,7 @@ static void update_motion(lp_senses *s, lp_eyes *eyes, const float *accel, float
     }
     s->motion_age += dt;
     if (s->motion_age >= MOTION_LOST) {
+        s->shake = (lp_shake){0};
         lp_eyes_set_shaking(eyes, false);
         lp_eyes_set_gravity(eyes, false, 0.0f, 0.0f);
     }
