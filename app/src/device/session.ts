@@ -20,7 +20,7 @@ interface DeviceSnapshot {
 const LOG_LINES = 200;
 
 const NOT_LILPET =
-    'Cet appareil ne répond pas comme lilpet. Flashe-le avec « mise run firmware:flash », puis réessaie.';
+    'Cet appareil ne répond pas comme lilpet. Flashe-le avec « BOARD=<carte> mise run firmware:deploy », puis réessaie.';
 const NO_REPLY = 'lilpet ne répond pas. Débranche-le, rebranche-le, puis réessaie.';
 
 export class DeviceSession {
