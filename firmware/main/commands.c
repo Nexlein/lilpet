@@ -16,18 +16,11 @@
 #define QUEUE_WAIT_MS 100  /* several frames: only a stuck drawing loop makes a command wait that long */
 #define RX_BUFFER     1024 /* bytes of commands waiting on the USB port */
 
-/* Shared by every link. `current` is written by the task of a link: a second one that takes looks needs a lock around
- * it. The queue, the flash and the motion sensor are safe from any task. */
-typedef struct {
+/* Set before the task starts, then written by the task alone */
+static struct {
     lp_look current;
     bool motion;
-} commands_state;
-
-/* Where a task reads commands and sends the replies: a new link (the camera, over UART) is one more task */
-typedef struct {
-    FILE *in, *out;
-    commands_state *state;
-} commands_link;
+} state;
 
 /* To the drawing loop: a command that reached RX_BUFFER is never dropped, it waits for a slot or gets an error */
 static QueueHandle_t queue;
@@ -37,79 +30,78 @@ static bool push(const lp_command *c)
     return xQueueSend(queue, c, pdMS_TO_TICKS(QUEUE_WAIT_MS)) == pdTRUE;
 }
 
-static void handle_eyes_command(FILE *out, const lp_command *c)
+static void handle_eyes_command(const lp_command *c)
 {
     if (BOARD_BENCH)
-        fprintf(out, "< err benchmark animation running\n");
+        printf("< err benchmark animation running\n");
     else if (!push(c))
-        fprintf(out, "< err busy\n");
+        printf("< err busy\n");
     else
-        fprintf(out, "< ok\n");
+        printf("< ok\n");
 }
 
-static void handle_look(const commands_link *link, const lp_command *c)
+static void handle_look(const lp_command *c)
 {
     /* The benchmark animation keeps its own look */
     if (!BOARD_BENCH && !push(c)) {
-        fprintf(link->out, "< err busy\n");
+        printf("< err busy\n");
         return;
     }
     /* Shown even when it cannot be kept: the app still sees it */
-    link->state->current = c->look;
-    fprintf(link->out, look_store_save(&c->look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
+    state.current = c->look;
+    printf(look_store_save(&c->look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
 }
 
-static void reply_look(FILE *out, const lp_look *look)
+static void reply_look(const lp_look *look)
 {
     char text[LP_LOOK_TEXT_SIZE];
     lp_look_format(look, text);
-    fprintf(out, "< look %s\n", text);
+    printf("< look %s\n", text);
 }
 
-static void reply_imu(FILE *out)
+static void reply_imu(void)
 {
     float g[3];
     if (imu_gravity(g))
-        fprintf(out, "< imu %.3f %.3f %.3f\n", (double)g[0], (double)g[1], (double)g[2]);
+        printf("< imu %.3f %.3f %.3f\n", (double)g[0], (double)g[1], (double)g[2]);
     else
-        fprintf(out, "< err no motion sensor\n");
+        printf("< err no motion sensor\n");
 }
 
-static void handle(const commands_link *link, const lp_command_line *line)
+static void handle(const lp_command_line *line)
 {
-    FILE *out = link->out;
     lp_command c;
     const char *error = lp_command_parse(line, &c);
     if (!error && c.type == LP_COMMAND_NONE)
         return;
     /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
-    fputc('\n', out);
+    putchar('\n');
 
     if (error) {
-        fprintf(out, "< err %s\n", error);
+        printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
-        fprintf(out, "< lilpet fw=%s engine=%s board=%s camera=%d motion=%d\n", esp_app_get_description()->version,
-                lp_version(), BOARD_NAME, BOARD_CAMERA, link->state->motion);
+        printf("< lilpet fw=%s engine=%s board=%s camera=%d motion=%d\n", esp_app_get_description()->version,
+               lp_version(), BOARD_NAME, BOARD_CAMERA, state.motion);
     } else if (c.type == LP_COMMAND_LOOK_QUERY) {
-        reply_look(out, &link->state->current);
+        reply_look(&state.current);
     } else if (c.type == LP_COMMAND_LOOK) {
-        handle_look(link, &c);
+        handle_look(&c);
     } else if (c.type == LP_COMMAND_IMU_QUERY) {
-        reply_imu(out);
+        reply_imu();
     } else {
-        handle_eyes_command(out, &c);
+        handle_eyes_command(&c);
     }
-    fflush(out);
+    fflush(stdout);
 }
 
 /* Waits for a line and reads it, whatever it holds */
-static void read_line(FILE *in, lp_command_line *line)
+static void read_line(lp_command_line *line)
 {
     *line = (lp_command_line){0};
     for (;;) {
-        const int byte = fgetc(in);
+        const int byte = fgetc(stdin);
         if (byte == EOF) {
-            clearerr(in);
+            clearerr(stdin);
             vTaskDelay(pdMS_TO_TICKS(20));
         } else if (lp_command_line_add(line, (char)byte)) {
             return;
@@ -119,11 +111,11 @@ static void read_line(FILE *in, lp_command_line *line)
 
 static void commands_task(void *arg)
 {
-    const commands_link *link = arg;
+    (void)arg;
     lp_command_line line;
     for (;;) {
-        read_line(link->in, &line);
-        handle(link, &line);
+        read_line(&line);
+        handle(&line);
     }
 }
 
@@ -139,13 +131,9 @@ void commands_start(const lp_look *current, bool motion)
     setvbuf(stdin, NULL, _IONBF, 0);
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
-    static commands_state state;
     state.current = *current;
     state.motion = motion;
-    static commands_link usb = {.state = &state};
-    usb.in = stdin;
-    usb.out = stdout;
-    xTaskCreate(commands_task, "commands", 4096, &usb, 5, NULL);
+    xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }
 
 bool commands_next(lp_command *out)
