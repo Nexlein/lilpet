@@ -434,6 +434,14 @@ test('with less motion asked, the eyes are a still frame that follows the choice
     await expect.poll(() => frames(page)).toBeGreaterThan(10);
 });
 
+test('on a short window, the send note is in reach', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 560 });
+    await page.goto(APP);
+    const bottom = await note(page).evaluate((el) => el.getBoundingClientRect().bottom);
+    await page.evaluate((y) => window.scrollTo(0, y - window.innerHeight), bottom);
+    await expect(note(page)).toBeInViewport();
+});
+
 test('the animation pauses while the screen is out of sight', async ({ page }) => {
     await page.addInitScript(countFrames);
     await page.setViewportSize({ width: 375, height: 700 });
