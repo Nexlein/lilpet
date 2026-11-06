@@ -6,6 +6,24 @@ export interface KeyValueStore {
     setItem(key: string, value: string): void;
 }
 
+// The browser's localStorage, which throws when it is blocked or full: the app then goes on, and forgets on reload
+export const browserStore: KeyValueStore = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch {
+            return null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (err) {
+            console.warn('Cannot save the choice in the browser', err);
+        }
+    }
+};
+
 export interface LookChoice {
     swatch: Swatch;
     pupil: PupilType;
@@ -18,9 +36,9 @@ const CURRENT = 'lilpet.look';
 export const lookKey = (swatchId: string, pupil: PupilType): string => `${swatchId}/${pupil}`;
 
 export function parseLookKey(key: string): LookChoice | null {
-    const [id = '', pupil = ''] = key.split('/');
+    const [id = '', pupil = '', ...extra] = key.split('/');
     const swatch = findSwatch(id);
-    return swatch && isPupilType(pupil) ? { swatch, pupil } : null;
+    return swatch && isPupilType(pupil) && extra.length === 0 ? { swatch, pupil } : null;
 }
 
 function readJson(store: KeyValueStore, key: string): unknown {
@@ -35,7 +53,7 @@ function readJson(store: KeyValueStore, key: string): unknown {
 export function loadFavorites(store: KeyValueStore): string[] {
     const value = readJson(store, FAVORITES);
     if (!Array.isArray(value)) return [];
-    return value.filter((k): k is string => typeof k === 'string' && parseLookKey(k) !== null);
+    return [...new Set(value.filter((k): k is string => typeof k === 'string' && parseLookKey(k) !== null))];
 }
 
 export function saveFavorites(store: KeyValueStore, keys: readonly string[]): void {

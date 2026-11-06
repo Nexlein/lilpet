@@ -1,14 +1,15 @@
 // Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard. They drive the prototype
 // (JS), the C engine (WebAssembly, built by `mise run engine:wasm`) or both side by side, as the "Rendu" switch picks.
-import { EMOTIONS, PUPIL_TYPES, Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
+import { PUPIL_TYPES, drawEyes, setupCanvas } from './draw.js';
+import { EMOTIONS, Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { compare } from './parity.js';
+import { ENGINE_URL, compareFrame, fetchJson } from './parity.js';
 
-const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
 // Side by side, both renderers advance in fixed steps of 1/64 s, exact in float and double, with the same seed and
 // inputs: their logic stays in step (as in the parity tests) until a rounding difference flips an event.
 const STEP = 1 / 64;
 
+document.getElementById('serveHint').hidden = true; // the page runs: it is served
 const screens = document.getElementById('screens');
 const jsView = document.getElementById('jsView');
 const cView = document.getElementById('cView');
@@ -16,28 +17,30 @@ const jsCanvas = document.getElementById('screen');
 const cCanvas = document.getElementById('engine');
 const jsCtx = setupCanvas(jsCanvas);
 const cCtx = cCanvas.getContext('2d');
-const flatCtx = setupCanvas(document.createElement('canvas'), 1); // the prototype at screen resolution, to compare
 const info = document.getElementById('engineInfo');
 const resyncButton = document.getElementById('resync');
 
 let eyes = null; // prototype renderer
 let engine = null; // C engine, loaded the first time it is shown
-let engineMissing = false;
+let engineLoad = null; // its loading, started once
 let mode = 'js'; // 'js' | 'c' | 'side'
+let modeRequest = 0; // counts the clicks: the last one wins over one still waiting for the engine
 let time = 0; // seconds of animation, shared by both renderers
 let look = null;
 let emotion = 'neutral'; // last emotion picked: the mood that reactions come back to
 let shownEmotion = null;
 let paused = false;
 let renderMs = 0;
+const problems = []; // what could not load: stays on screen in every mode
 
+const showInfo = (line = '') => (info.textContent = [...problems, line].join(' '));
 const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 
 // --- Renderers ---------------------------------------------------------------------------------------------------
 // A new prototype renderer keeps the settings of the previous one
 function createEyes(seed) {
     const prev = eyes;
-    eyes = new Eyes(jsCtx, { seed });
+    eyes = new Eyes(seed);
     window.eyes = eyes; // drive the renderer from the browser console when debugging
     eyes.onEmotion = highlightEmotion;
     if (prev) {
@@ -53,8 +56,7 @@ function createEyes(seed) {
 }
 
 // Restarts both renderers from the same seed and the current settings
-function resync() {
-    const seed = randomSeed();
+function resync(seed = randomSeed()) {
     time = 0;
     createEyes(seed);
     if (!engine) return;
@@ -69,30 +71,31 @@ function resync() {
     engine.setEmotion(emotion);
 }
 
-async function loadEngineOnce() {
-    if (!engine && !engineMissing) {
-        try {
-            engine = await loadEngine(ENGINE_URL);
-        } catch (err) {
-            engineMissing = true;
+// Resolves to the C engine, or null when it is not built
+function loadEngineOnce() {
+    engineLoad ??= loadEngine(ENGINE_URL).then(
+        (loaded) => (engine = loaded),
+        (err) => {
+            problems.push('Moteur C absent : lancer « mise run engine:wasm ».');
+            showInfo();
             console.warn('C engine not built, run: mise run engine:wasm', err);
+            return null;
         }
-    }
-    return engine;
+    );
+    return engineLoad;
 }
 
 async function setMode(next) {
-    if (next !== 'js' && !(await loadEngineOnce())) {
-        info.textContent = 'Moteur C absent : lancer « mise run engine:wasm ».';
-        next = 'js';
-    }
+    const request = ++modeRequest;
+    if (next !== 'js' && !(await loadEngineOnce())) next = 'js';
+    if (request !== modeRequest) return;
     mode = next;
     jsView.hidden = mode === 'c';
     cView.hidden = mode === 'js';
     screens.classList.toggle('side', mode === 'side');
     resyncButton.hidden = mode !== 'side';
     for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.mode === mode);
-    if (mode === 'js') info.textContent = '';
+    if (mode === 'js') showInfo();
     else resync();
 }
 
@@ -126,7 +129,7 @@ function react(event) {
 const pet = () => react('tap');
 
 function setPointer(point) {
-    eyes.mouse = point;
+    eyes.setPointer(point);
     engine?.setPointer(point);
 }
 
@@ -138,7 +141,7 @@ function setShaking(shaking) {
 
 // Accelerometer stand-in: gravity in the screen plane, or null
 function setGravity(g) {
-    eyes.gravity = g;
+    eyes.setGravity(g);
     engine?.setGravity(g);
 }
 
@@ -150,10 +153,12 @@ const pupilSelect = document.getElementById('pupilSelect');
 
 async function loadLooks() {
     try {
-        const res = await fetch('../eyes/looks.json');
-        swatches = (await res.json()).swatches;
+        swatches = (await fetchJson('../eyes/looks.json')).swatches;
+        if (!swatches?.length) throw new Error('looks.json: no swatches');
     } catch (err) {
         console.error('Cannot load looks.json, serve the repo root over HTTP', err);
+        problems.push('Couleurs absentes : eyes/looks.json ne se charge pas, une seule couleur disponible.');
+        showInfo();
         swatches = [{ id: 'terrarium', sclera: '#6FF5D0', pupilColor: ['#106E54', '#106E54'] }];
     }
     swatchSelect.innerHTML = swatches.map((s, i) => `<option value="${i}">${s.id}</option>`).join('');
@@ -169,10 +174,14 @@ function applyLook() {
     setLook(makeLook(swatches[swatchSelect.value], pupilSelect.value));
 }
 
-function randomLook() {
-    swatchSelect.value = String(Math.floor(Math.random() * swatches.length));
-    pupilSelect.value = PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)];
+function pickLook(swatchIndex, pupil) {
+    swatchSelect.value = String(swatchIndex);
+    pupilSelect.value = pupil;
     applyLook();
+}
+
+function randomLook() {
+    pickLook(Math.floor(Math.random() * swatches.length), PUPIL_TYPES[Math.floor(Math.random() * PUPIL_TYPES.length)]);
 }
 
 // --- Emotions ----------------------------------------------------------------------------------------------------
@@ -180,7 +189,12 @@ const emotionsEl = document.getElementById('emotions');
 Object.entries(EMOTIONS).forEach(([name, e], i) => {
     const b = document.createElement('button');
     b.dataset.e = name;
-    b.innerHTML = i < 9 ? `${e.label} <kbd>${i + 1}</kbd>` : e.label; // digit keys 1 to 9
+    b.textContent = e.label;
+    if (i < 9) {
+        const key = document.createElement('kbd'); // digit keys 1 to 9
+        key.textContent = i + 1;
+        b.append(' ', key);
+    }
     b.addEventListener('click', () => setEmotion(name));
     emotionsEl.append(b);
 });
@@ -248,7 +262,7 @@ function bindControls() {
 
     for (const b of document.querySelectorAll('#modes button'))
         b.addEventListener('click', () => setMode(b.dataset.mode));
-    resyncButton.addEventListener('click', resync);
+    resyncButton.addEventListener('click', () => resync());
     document.getElementById('randomLook').addEventListener('click', randomLook);
     document.getElementById('blinkBtn').addEventListener('click', blink);
     const shakeBtn = document.getElementById('shakeBtn');
@@ -273,23 +287,18 @@ function bindControls() {
 // --- Loop --------------------------------------------------------------------------------------------------------
 function step(dt) {
     time += dt;
-    if (mode !== 'c') eyes.update(dt, time);
+    if (mode !== 'c') eyes.update(dt);
     if (mode !== 'js') engine.update(dt);
 }
 
-// Prototype against C engine at screen resolution, for the side-by-side view
-function diff() {
-    eyes.ctx = flatCtx;
-    eyes.render(time);
-    eyes.ctx = jsCtx;
-    return compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, engine.render());
-}
+// Prototype against C engine, for the side-by-side view
+const diff = () => compareFrame(eyes, time, engine.render());
 
 let frames = 0;
 let lastDiff = null;
 
 function draw() {
-    if (mode !== 'c') eyes.render(time);
+    if (mode !== 'c') drawEyes(jsCtx, eyes, time);
     if (mode === 'js') return;
     const t0 = performance.now();
     const pixels = engine.render();
@@ -299,7 +308,7 @@ function draw() {
     if (mode === 'side' && frames++ % 30 === 0) lastDiff = diff();
     const gap = mode === 'side' && lastDiff ? ` · écart moyen ${lastDiff.mean.toFixed(2)}` : '';
     const drift = mode === 'side' && lastDiff && !lastDiff.pass ? ' : décalés, resynchroniser' : '';
-    info.textContent = `Moteur C ${engine.version} · rendu ${renderMs.toFixed(2)} ms${gap}${drift}`;
+    showInfo(`Moteur C ${engine.version} · rendu ${renderMs.toFixed(2)} ms${gap}${drift}`);
 }
 
 let last = performance.now();
@@ -329,8 +338,12 @@ requestAnimationFrame(frame);
 window.live = {
     setMode,
     resync,
+    pickLook: (id, pupil) =>
+        pickLook(
+            swatches.findIndex((s) => s.id === id),
+            pupil
+        ),
     setEmotion,
-    pet,
     setPointer,
     setGravity,
     setShaking,

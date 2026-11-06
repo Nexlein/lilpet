@@ -1,56 +1,52 @@
 // Left column: the device with the eyes, the chosen look and what can be done with it
-import { useState } from 'react';
-import { PUPIL_TYPES, makeLook, type PupilType, type Swatch } from '../data/looks';
-import type { EngineState, DeviceState } from './hooks';
-import type { Look } from '../data/looks';
+import { useMemo, useState } from 'react';
+import { PUPILS } from '../../../engine/wasm/engine.mjs';
+import type { LookChoice } from '../data/favorites';
+import { makeLook, type Look, type PupilType } from '../data/looks';
+import type { LookSent } from '../device/device';
+import type { DeviceState } from '../device/session';
+import { useLessMotion, type EngineState } from './hooks';
 import { EyeGlyph } from './EyeGlyph';
 import { Screen } from './Screen';
+import { SendPanel } from './SendPanel';
 import { EMOTION_LABELS, PUPIL_LABELS } from './labels';
 
 interface Props {
     engine: EngineState;
-    swatch: Swatch;
-    pupil: PupilType;
+    choice: LookChoice;
     favorite: boolean;
     device: DeviceState;
     onPupil(pupil: PupilType): void;
     onFavorite(): void;
-    onSend(look: Look): Promise<void>;
+    onSend(look: Look): Promise<LookSent>;
+    onEmotion(name: string): void;
+    onPet(): void;
 }
 
-type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'error'; message: string };
-const IDLE: SendState = { status: 'idle' };
-
-export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavorite, onSend }: Props) {
-    const look = makeLook(swatch, pupil);
+export function Stage({ engine, choice, favorite, device, onPupil, onFavorite, onSend, onEmotion, onPet }: Props) {
+    const { swatch, pupil } = choice;
+    const look = useMemo(() => makeLook(swatch, pupil), [swatch, pupil]);
     const [emotion, setEmotion] = useState('neutral');
-    // The last send result only shows for the look and connection it was about
-    const sendKey = `${swatch.id}/${pupil}/${device.status}`;
-    const [lastSend, setLastSend] = useState<{ key: string; state: SendState }>({ key: '', state: IDLE });
-    const sending = lastSend.key === sendKey ? lastSend.state : IDLE;
-    const setSending = (state: SendState) => setLastSend({ key: sendKey, state });
+    const lessMotion = useLessMotion();
 
     const ready = engine.status === 'ready' ? engine.engine : null;
     const chooseEmotion = (name: string) => {
         setEmotion(name);
         ready?.setEmotion(name);
+        onEmotion(name);
     };
 
-    const send = async () => {
-        setSending({ status: 'sending' });
-        try {
-            await onSend(look);
-            setSending({ status: 'sent' });
-        } catch (err) {
-            setSending({ status: 'error', message: err instanceof Error ? err.message : String(err) });
-        }
+    // Happy for a moment, then back to the emotion picked below
+    const pet = () => {
+        ready?.react('tap');
+        onPet();
     };
 
     return (
         <section className="stage" aria-label="Look choisi">
             <div className="case">
                 <div className="glass">
-                    {ready && <Screen engine={ready} look={look} />}
+                    {ready && <Screen engine={ready} look={look} emotion={emotion} onPet={pet} />}
                     {engine.status === 'loading' && <p className="screen-note">Réveil des yeux…</p>}
                     {engine.status === 'error' && (
                         <p className="screen-note">
@@ -78,7 +74,7 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
 
             <fieldset className="pupils">
                 <legend>Pupille</legend>
-                {PUPIL_TYPES.map((type) => (
+                {PUPILS.map((type) => (
                     <label key={type} className="pupil">
                         <input
                             type="radio"
@@ -87,14 +83,14 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
                             checked={type === pupil}
                             onChange={() => onPupil(type)}
                         />
-                        <EyeGlyph swatch={swatch} pupil={type} />
+                        <EyeGlyph colors={swatch} pupil={type} />
                         <span>{PUPIL_LABELS[type]}</span>
                     </label>
                 ))}
             </fieldset>
 
             {ready && (
-                <div className="moods" role="group" aria-label="Humeur de l'aperçu">
+                <div className="moods" role="group" aria-label="Humeur de lilpet">
                     {ready.emotions.map((name) => (
                         <button
                             key={name}
@@ -102,36 +98,24 @@ export function Stage({ engine, swatch, pupil, favorite, device, onPupil, onFavo
                             aria-pressed={name === emotion}
                             onClick={() => chooseEmotion(name)}
                         >
-                            {EMOTION_LABELS[name] ?? name}
+                            {EMOTION_LABELS[name]}
                         </button>
                     ))}
-                    <button type="button" className="blink" onClick={() => ready.blink()}>
-                        Cligner
-                    </button>
+                    <div className="gestures">
+                        {/* A still frame does not blink */}
+                        {!lessMotion && (
+                            <button type="button" onClick={() => ready.blink()}>
+                                Cligner
+                            </button>
+                        )}
+                        <button type="button" onClick={pet}>
+                            Caresser
+                        </button>
+                    </div>
                 </div>
             )}
 
-            <div className="send">
-                <button
-                    type="button"
-                    className="primary"
-                    disabled={device.status !== 'connected' || sending.status === 'sending'}
-                    onClick={send}
-                >
-                    {sending.status === 'sending' ? 'Envoi…' : 'Envoyer à lilpet'}
-                </button>
-                <p className="send-note" role="status">
-                    {sendNote(device, sending, swatch.id)}
-                </p>
-            </div>
+            <SendPanel choice={choice} device={device} onSend={onSend} />
         </section>
     );
-}
-
-function sendNote(device: DeviceState, sending: SendState, name: string): string {
-    if (sending.status === 'sent') return `${name} est sur lilpet, et y reste même éteint.`;
-    if (sending.status === 'error') return `Pas envoyé : ${sending.message}`;
-    if (device.status === 'unsupported') return 'Pour envoyer un look, ouvre l’app dans Chrome ou Edge.';
-    if (device.status !== 'connected') return 'Branche lilpet en USB pour lui envoyer ce look.';
-    return '';
 }

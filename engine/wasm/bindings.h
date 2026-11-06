@@ -10,6 +10,8 @@
 int lpw_screen_size(void);
 int lpw_emotion_count(void);
 const char *lpw_emotion_name(int emotion);
+int lpw_event_count(void);
+const char *lpw_event_name(int event);
 
 void lpw_init(uint32_t seed);
 void lpw_set_look(uint32_t sclera, int pupil, uint32_t left, uint32_t right);
@@ -21,7 +23,7 @@ void lpw_set_shaking(int shaking);
 void lpw_set_follow(int follow);
 void lpw_set_shape(float rx, float ry, float gap, float tilt);
 void lpw_set_head_amount(float amount);
-/* event: 0 tap, 1 shake, 2 upside down (lp_event) */
+/* event: lp_event, listed by lpw_event_name */
 void lpw_react(int event);
 /* Current emotion, which changes on its own when a timed one ends */
 int lpw_emotion(void);

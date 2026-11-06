@@ -3,26 +3,8 @@
     <head>
         <meta charset="utf-8" />
         <title>lilpet · scènes de référence</title>
+        <link rel="stylesheet" href="style.css" />
         <style>
-            :root {
-                --bg: #111214;
-                --panel: #1b1c20;
-                --line: #2c2e34;
-                --text: #e8e8ea;
-                --muted: #8b8d94;
-            }
-            * {
-                box-sizing: border-box;
-            }
-            body {
-                margin: 0;
-                padding: 24px;
-                background: var(--bg);
-                color: var(--text);
-                font:
-                    14px/1.4 system-ui,
-                    sans-serif;
-            }
             header {
                 display: flex;
                 align-items: baseline;
@@ -112,6 +94,11 @@
             </p>
             <a href="./">Prototype</a>
         </header>
+        <p id="serveHint">
+            Page vide ? Elle a besoin d'un serveur : lancer <code>npm run serve</code>, puis ouvrir
+            http://127.0.0.1:8466/prototype/reference.html. S'il tourne déjà, un fichier ne se charge pas : voir la
+            console.
+        </p>
         <p id="error" hidden></p>
         <p id="summary"></p>
         <main id="grid"></main>

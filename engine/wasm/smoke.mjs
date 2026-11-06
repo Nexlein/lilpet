@@ -21,4 +21,24 @@ for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 200) lit++;
 const share = lit / (engine.size * engine.size);
 if (share < 0.05 || share > 0.5) fail(`rendered frame looks wrong: ${(share * 100).toFixed(1)}% red pixels`);
 
+// Unknown names never reach the module: nothing changes
+engine.init(1);
+engine.setLook(look);
+engine.setEmotion('love');
+for (const name of ['furious', undefined]) {
+    engine.setEmotion(name);
+    engine.react(name);
+}
+if (engine.emotion() !== 'love') fail(`an unknown name changed the emotion to ${engine.emotion()}`);
+const before = engine.render();
+engine.setLook({ ...look, pupil: 'slit' });
+engine.setLook({ ...look, pupil: undefined });
+if (!engine.render().every((v, i) => v === before[i])) fail('an unknown pupil changed the look');
+
+// Eyes past the edge of the screen, and a shape with holes in it, render without a memory error
+engine.setShape({ rx: 93, ry: 109, gap: 400, tilt: 0.37 });
+engine.render();
+engine.setShape({ gap: 400 });
+engine.render();
+
 console.log(`WebAssembly engine ${engine.version} OK (${(share * 100).toFixed(1)}% of the frame is eye)`);

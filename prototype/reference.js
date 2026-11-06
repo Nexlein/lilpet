@@ -1,11 +1,11 @@
 // Renders every scene of scenes.json with the prototype (JS) and with the C engine (WebAssembly), side by side, and
 // scores the difference. The parity test reads window.parity once window.parityDone is true.
-import { Eyes, SIZE, makeLook, setupCanvas } from './eyes.js';
+import { drawEyes, setupCanvas } from './draw.js';
+import { Eyes, SIZE, makeLook } from './eyes.js';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { PARITY, compare } from './parity.js';
+import { ENGINE_URL, PARITY, compareFrame, fetchJson } from './parity.js';
 
-const ENGINE_URL = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url).href;
-
+document.getElementById('serveHint').hidden = true; // the page runs: it is served
 const grid = document.getElementById('grid');
 const summary = document.getElementById('summary');
 
@@ -26,12 +26,6 @@ function labelled(label, canvas) {
     span.textContent = label;
     box.append(span, canvas);
     return box;
-}
-
-async function fetchJson(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-    return res.json();
 }
 
 try {
@@ -57,8 +51,10 @@ try {
         figure.append(pair, caption);
         grid.append(figure);
 
+        const eyes = new Eyes(1);
+        eyes.setScene(scene, look);
         const jsCanvas = document.createElement('canvas');
-        new Eyes(setupCanvas(jsCanvas), { seed: 1 }).renderScene(scene, look);
+        drawEyes(setupCanvas(jsCanvas), eyes, 0);
         pair.append(labelled('Prototype (JS)', jsCanvas));
         if (!engine) continue;
 
@@ -68,15 +64,11 @@ try {
         cCanvas.getContext('2d').putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
         pair.append(labelled(`Moteur C ${engine.version}`, cCanvas));
 
-        // Compare at screen resolution (the visible JS canvas follows the device pixel ratio)
-        const flat = document.createElement('canvas');
-        const flatCtx = setupCanvas(flat, 1);
-        new Eyes(flatCtx, { seed: 1 }).renderScene(scene, look);
-        const { mean, bigShare, pass } = compare(flatCtx.getImageData(0, 0, SIZE, SIZE).data, pixels);
-        results.push({ id: scene.id, mean, bigShare, pass });
+        const { mean, core, big, pass } = compareFrame(eyes, 0, pixels);
+        results.push({ id: scene.id, mean, core, big, pass });
         const score = document.createElement('p');
         score.className = `score ${pass ? 'pass' : 'fail'}`;
-        score.textContent = `écart moyen ${mean.toFixed(2)} · ${(bigShare * 100).toFixed(3)} % de pixels > ${PARITY.big}`;
+        score.textContent = `écart moyen ${mean.toFixed(2)} · ${big} pixels > ${PARITY.big}, dont ${core} de cœur`;
         figure.insertBefore(score, caption);
     }
 

@@ -2,10 +2,12 @@
  * Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd
  * panel IO. Pins, init sequence, 180-degree rotation and 6-column offset come from Waveshare's ESP-IDF demo
  * (07_LVGL_V9_Test, components/lvgl_port_bsp); to check on the board: orientation, offset, colors and tearing.
- * Also the driver of boards without a display: no TE signal answers, and the bands go out on unconnected pins.
+ * Also the driver of boards without a display: no TE pin in their board_config.h, so display_paced.c paces the frames,
+ * and the bands go out on unconnected pins. The pins and the offset come from the board
+ * (boards/<board>/board_config.h).
  */
-#include "display_driver.h"
-#include "lilpet/lilpet.h"
+#include "board_config.h"
+#include "display.h"
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
@@ -17,18 +19,8 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
-#define PIN_CS    GPIO_NUM_10
-#define PIN_CLK   GPIO_NUM_11
-#define PIN_D0    GPIO_NUM_12
-#define PIN_D1    GPIO_NUM_13
-#define PIN_D2    GPIO_NUM_14
-#define PIN_D3    GPIO_NUM_15
-#define PIN_RESET GPIO_NUM_8
-#define PIN_TE    GPIO_NUM_9
-#define PIN_POWER GPIO_NUM_18 /* keeps the board on when running on battery, once the power button is released */
-
 #define QSPI_HZ       (40 * 1000 * 1000) /* Waveshare's value; the controller may take 80 MHz, to try on the board */
-#define COLUMN_OFFSET 6                  /* first visible column of the panel */
+#define TE_TIMEOUT_MS 50                 /* a frame still starts if the signal is missed */
 
 /* QSPI framing: an opcode in the top byte, then the controller command in the middle byte */
 #define OPCODE_WRITE_CMD    0x02u
@@ -67,12 +59,14 @@ static const init_cmd INIT[] = {
 };
 
 static esp_lcd_panel_io_handle_t io;
-static SemaphoreHandle_t refresh;
 
 static void send(uint32_t cmd, const uint8_t *params, size_t len)
 {
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(io, (int)(OPCODE_WRITE_CMD << 24 | cmd << 8), params, len));
 }
+
+#ifdef BOARD_LCD_TE
+static SemaphoreHandle_t refresh;
 
 static void IRAM_ATTR on_refresh(void *arg)
 {
@@ -83,25 +77,34 @@ static void IRAM_ATTR on_refresh(void *arg)
         portYIELD_FROM_ISR();
 }
 
-static bool co5300_wait_refresh(int timeout_ms);
-
-static display_info co5300_init(size_t max_band_bytes)
+static bool wait_refresh(int timeout_ms)
 {
-    const gpio_config_t outputs = {.pin_bit_mask = 1ULL << PIN_POWER | 1ULL << PIN_RESET, .mode = GPIO_MODE_OUTPUT};
+    xSemaphoreTake(refresh, 0); /* forget an older edge: wait for the next refresh */
+    return xSemaphoreTake(refresh, pdMS_TO_TICKS(timeout_ms)) == pdTRUE;
+}
+
+void display_wait_frame(void)
+{
+    wait_refresh(TE_TIMEOUT_MS);
+}
+#endif
+
+const char *display_init(size_t max_band_bytes)
+{
+    const gpio_config_t outputs = {.pin_bit_mask = 1ULL << BOARD_LCD_RESET, .mode = GPIO_MODE_OUTPUT};
     ESP_ERROR_CHECK(gpio_config(&outputs));
-    gpio_set_level(PIN_POWER, 1);
 
     const spi_bus_config_t bus = {
-        .sclk_io_num = PIN_CLK,
-        .data0_io_num = PIN_D0,
-        .data1_io_num = PIN_D1,
-        .data2_io_num = PIN_D2,
-        .data3_io_num = PIN_D3,
+        .sclk_io_num = BOARD_LCD_CLK,
+        .data0_io_num = BOARD_LCD_D0,
+        .data1_io_num = BOARD_LCD_D1,
+        .data2_io_num = BOARD_LCD_D2,
+        .data3_io_num = BOARD_LCD_D3,
         .max_transfer_sz = (int)max_band_bytes,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &bus, SPI_DMA_CH_AUTO));
     const esp_lcd_panel_io_spi_config_t io_config = {
-        .cs_gpio_num = PIN_CS,
+        .cs_gpio_num = BOARD_LCD_CS,
         .dc_gpio_num = GPIO_NUM_NC,
         .spi_mode = 0,
         .pclk_hz = QSPI_HZ,
@@ -112,19 +115,22 @@ static display_info co5300_init(size_t max_band_bytes)
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io));
 
+#ifdef BOARD_LCD_TE
     /* TE: rising edge at the start of each refresh */
     refresh = xSemaphoreCreateBinary();
-    const gpio_config_t te = {.pin_bit_mask = 1ULL << PIN_TE, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_POSEDGE};
+    const gpio_config_t te = {
+        .pin_bit_mask = 1ULL << BOARD_LCD_TE, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_POSEDGE};
     ESP_ERROR_CHECK(gpio_config(&te));
     const esp_err_t isr = gpio_install_isr_service(0); /* another module (touch, IMU) may have installed it */
     if (isr != ESP_ERR_INVALID_STATE)
         ESP_ERROR_CHECK(isr);
-    ESP_ERROR_CHECK(gpio_isr_handler_add(PIN_TE, on_refresh, NULL));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(BOARD_LCD_TE, on_refresh, NULL));
+#endif
 
     /* Hardware reset, timings of Espressif's driver for this controller family (esp_lcd_sh8601) */
-    gpio_set_level(PIN_RESET, 0);
+    gpio_set_level(BOARD_LCD_RESET, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(PIN_RESET, 1);
+    gpio_set_level(BOARD_LCD_RESET, 1);
     vTaskDelay(pdMS_TO_TICKS(150));
 
     for (size_t i = 0; i < sizeof INIT / sizeof INIT[0]; i++) {
@@ -132,25 +138,18 @@ static display_info co5300_init(size_t max_band_bytes)
         if (INIT[i].delay_ms)
             vTaskDelay(pdMS_TO_TICKS(INIT[i].delay_ms));
     }
-    const bool synced = co5300_wait_refresh(100);
-    return (display_info){.name = synced ? "Waveshare AMOLED 1.32 (CO5300, TE signal)" : "none (no TE signal)",
-                          .size = LP_SCREEN_SIZE,
-                          .present = synced, /* the CO5300 is only seen through its TE signal */
-                          .synced = synced};
+#ifdef BOARD_LCD_TE
+    return wait_refresh(100) ? "CO5300 AMOLED (TE signal)" : "CO5300 AMOLED (no TE signal: is the panel there?)";
+#else
+    return "CO5300 pins (no TE pin, frames paced)";
+#endif
 }
 
-static bool co5300_wait_refresh(int timeout_ms)
-{
-    xSemaphoreTake(refresh, 0); /* forget an older edge: wait for the next refresh */
-    return xSemaphoreTake(refresh, pdMS_TO_TICKS(timeout_ms)) == pdTRUE;
-}
-
-static void co5300_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
+void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-
-    const int c0 = x0 + COLUMN_OFFSET;
-    const int c1 = x1 - 1 + COLUMN_OFFSET;
+    const int c0 = x0 + BOARD_LCD_COLUMN_OFFSET;
+    const int c1 = x1 - 1 + BOARD_LCD_COLUMN_OFFSET;
     const uint8_t columns[4] = {(uint8_t)(c0 >> 8), (uint8_t)c0, (uint8_t)(c1 >> 8), (uint8_t)c1};
     const uint8_t rows[4] = {(uint8_t)(y0 >> 8), (uint8_t)y0, (uint8_t)((y1 - 1) >> 8), (uint8_t)(y1 - 1)};
     send(CMD_COLUMNS, columns, sizeof columns); /* waits until the previous band is sent */
@@ -159,14 +158,7 @@ static void co5300_draw(int x0, int y0, int x1, int y1, uint16_t *pixels)
                                               count * sizeof pixels[0]));
 }
 
-static void co5300_flush(void)
+void display_flush(void)
 {
     send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
 }
-
-const display_driver DISPLAY_CO5300 = {
-    .init = co5300_init,
-    .wait_refresh = co5300_wait_refresh,
-    .draw = co5300_draw,
-    .flush = co5300_flush,
-};

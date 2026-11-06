@@ -1,4 +1,5 @@
 /* The C engine against values computed by the JS prototype (js_vectors.h, from scripts/gen-engine-vectors.mjs) */
+#include "../src/internal.h"
 #include "js_vectors.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
@@ -23,37 +24,25 @@ void test_rng_matches_prototype(void)
     }
 }
 
+/* The tables come from eyes/emotions.json (emotions_table.h): what is left to check is the enums, written by hand */
 void test_emotions_match_prototype(void)
 {
-    CHECK(COUNT(LPV_REACTIONS) == LP_EVENT_COUNT);
-    for (int i = 0; i < COUNT(LPV_REACTIONS); i++) {
-        const lp_reaction *got = lp_reaction_get(LPV_REACTIONS[i].event);
-        CHECK(LPV_REACTIONS[i].event == (lp_event)i); /* same order as in the prototype */
-        if (!got) {
-            LP_FAIL("no reaction for event %d", i);
-            continue;
-        }
-        CHECK(got->emotion == LPV_REACTIONS[i].reaction.emotion);
-        CHECK_NEAR(got->duration, LPV_REACTIONS[i].reaction.duration, TOL_EXACT);
-        CHECK(got->sparkles == LPV_REACTIONS[i].reaction.sparkles);
+    CHECK(COUNT(LPV_EMOTION_NAMES) == LP_EMOTION_COUNT);
+    for (int i = 0; i < COUNT(LPV_EMOTION_NAMES); i++) {
+        CHECK_STR_EQ(lp_emotion_get((lp_emotion)i)->name, LPV_EMOTION_NAMES[i]);
+        CHECK(lp_emotion_from_name(LPV_EMOTION_NAMES[i]) == (lp_emotion)i);
     }
-    CHECK(COUNT(LPV_EMOTIONS) == LP_EMOTION_COUNT);
-    for (int i = 0; i < LP_EMOTION_COUNT; i++) {
-        const lp_emotion_def *got = lp_emotion_get((lp_emotion)i);
-        const lp_emotion_def *want = &LPV_EMOTIONS[i];
-        CHECK_STR_EQ(got->name, want->name);
-        CHECK(lp_emotion_from_name(want->name) == (lp_emotion)i);
-        CHECK(got->emit == want->emit);
-        CHECK_NEAR(got->emit_rate, want->emit_rate, TOL_EXACT);
-        /* lp_expression is 11 floats: compare them as an array */
-        float g[11];
-        float w[11];
-        _Static_assert(sizeof g == sizeof(lp_expression), "lp_expression must be 11 floats");
-        memcpy(g, &got->expr, sizeof g);
-        memcpy(w, &want->expr, sizeof w);
-        for (int k = 0; k < 11; k++)
-            CHECK_NEAR(g[k], w[k], TOL_EXACT);
+    CHECK(COUNT(LPV_EVENT_NAMES) == LP_EVENT_COUNT);
+    for (int i = 0; i < COUNT(LPV_EVENT_NAMES); i++) {
+        CHECK_STR_EQ(lp_reaction_get((lp_event)i)->name, LPV_EVENT_NAMES[i]);
+        CHECK(lp_event_from_name(LPV_EVENT_NAMES[i]) == (lp_event)i);
     }
+}
+
+void test_clamp_matches_prototype(void)
+{
+    for (int i = 0; i < COUNT(LPV_CLAMPS); i++)
+        CHECK(lp_clampf(LPV_CLAMPS[i].v, LPV_CLAMPS[i].lim) == LPV_CLAMPS[i].clamped);
 }
 
 void test_blink_poses_match_prototype(void)
@@ -91,19 +80,18 @@ void test_eye_poses_match_prototype(void)
     }
 }
 
-static float sum_x(const lp_eyes *e)
+static lp_particle sum_particles(const lp_eyes *e)
 {
-    float s = 0.0f;
-    for (int i = 0; i < e->particle_count; i++)
-        s += e->particles[i].x;
-    return s;
-}
-
-static float sum_y(const lp_eyes *e)
-{
-    float s = 0.0f;
-    for (int i = 0; i < e->particle_count; i++)
-        s += e->particles[i].y;
+    lp_particle s = {0};
+    for (int i = 0; i < e->particle_count; i++) {
+        const lp_particle *p = &e->particles[i];
+        s.x += p->x;
+        s.y += p->y;
+        s.size += p->size;
+        s.spin += p->spin;
+        s.age += p->age;
+        s.life += p->life;
+    }
     return s;
 }
 
@@ -120,14 +108,28 @@ static void check_state(const lp_eyes *e, const lpv_state *want, const char *wha
     CHECK_NEAR(e->head.yaw, want->yaw, TOL_STATE);
     CHECK_NEAR(e->head.pitch, want->pitch, TOL_STATE);
     CHECK_NEAR(e->head.roll, want->roll, TOL_STATE);
-    CHECK_NEAR(e->cur.tl, want->tl, TOL_STATE);
-    CHECK_NEAR(e->cur.bl, want->bl, TOL_STATE);
-    CHECK_NEAR(e->cur.gy, want->gy, TOL_STATE);
-    CHECK_NEAR(e->cur.ps, want->ps, TOL_STATE);
+    CHECK_NEAR(e->cur.tl, want->cur.tl, TOL_STATE);
+    CHECK_NEAR(e->cur.ts, want->cur.ts, TOL_STATE);
+    CHECK_NEAR(e->cur.bl, want->cur.bl, TOL_STATE);
+    CHECK_NEAR(e->cur.sq, want->cur.sq, TOL_STATE);
+    CHECK_NEAR(e->cur.cr, want->cur.cr, TOL_STATE);
+    CHECK_NEAR(e->cur.rot, want->cur.rot, TOL_STATE);
+    CHECK_NEAR(e->cur.hl, want->cur.hl, TOL_STATE);
+    CHECK_NEAR(e->cur.ps, want->cur.ps, TOL_STATE);
+    CHECK_NEAR(e->cur.es, want->cur.es, TOL_STATE);
+    CHECK_NEAR(e->cur.gy, want->cur.gy, TOL_STATE);
+    CHECK_NEAR(e->cur.spin, want->cur.spin, TOL_STATE);
     CHECK(e->blink.phase == want->blink);
+    CHECK_NEAR(e->blink.hold, want->blink_hold, TOL_STATE);
+    CHECK_NEAR(e->blink.open, want->blink_open, TOL_STATE);
     CHECK(e->particle_count == want->particles);
-    CHECK_NEAR(sum_x(e), want->particles_x, TOL_POSITION);
-    CHECK_NEAR(sum_y(e), want->particles_y, TOL_POSITION);
+    const lp_particle sums = sum_particles(e);
+    CHECK_NEAR(sums.x, want->particles_x, TOL_POSITION);
+    CHECK_NEAR(sums.y, want->particles_y, TOL_POSITION);
+    CHECK_NEAR(sums.size, want->particles_size, TOL_STATE);
+    CHECK_NEAR(sums.spin, want->particles_spin, TOL_STATE);
+    CHECK_NEAR(sums.age, want->particles_age, TOL_STATE);
+    CHECK_NEAR(sums.life, want->particles_life, TOL_STATE);
     CHECK(e->emotion == want->emotion);
     if (lp_test_failures != before)
         fprintf(stderr, "  in %s\n", what);
@@ -143,6 +145,8 @@ void test_simulations_match_prototype(void)
             lp_eyes_set_emotion(&eyes, sc->emotion, 0.0f);
         if (sc->react >= 0)
             lp_eyes_react(&eyes, (lp_event)sc->react);
+        for (int i = 0; i < sc->sparkles; i++)
+            lp_eyes_spawn(&eyes, LP_PARTICLE_SPARKLE);
         lp_eyes_set_pointer(&eyes, sc->pointer, sc->pointer_x, sc->pointer_y);
         lp_eyes_set_gravity(&eyes, sc->gravity, sc->gravity_x, sc->gravity_y);
         lp_eyes_set_shaking(&eyes, sc->shaking);
@@ -152,6 +156,10 @@ void test_simulations_match_prototype(void)
             if (sc->spin != 0.0f) {
                 const float a = sc->spin * (eyes.time + LPV_DT);
                 lp_eyes_set_gravity(&eyes, true, sinf(a), cosf(a));
+            }
+            if (sc->react_every && step % sc->react_every == 0) {
+                const bool other = sc->react_other >= 0 && (step / sc->react_every) % 2 == 1;
+                lp_eyes_react(&eyes, (lp_event)(other ? sc->react_other : sc->react));
             }
             lp_eyes_update(&eyes, LPV_DT);
             if (step % sc->every == 0) {
@@ -170,8 +178,10 @@ void test_scenes_match_prototype(void)
 {
     for (int i = 0; i < COUNT(LPV_SCENES); i++) {
         lp_eyes eyes;
-        lp_eyes_init(&eyes, 1);
         lp_eyes_set_scene(&eyes, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
         check_state(&eyes, &LPV_SCENES[i].expected, LPV_SCENES[i].id);
+        for (int step = 0; step < LPV_SCENE_PLAY; step++)
+            lp_eyes_update(&eyes, LPV_DT);
+        check_state(&eyes, &LPV_SCENES[i].played, LPV_SCENES[i].id);
     }
 }

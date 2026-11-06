@@ -1,8 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
-import { LineSplitter, MAX_LINE, classify, lookCommand, parseHello, replyError } from './protocol';
-import { Connection } from './connection';
-import { hello, sendLook } from './device';
+import {
+    LineSplitter,
+    MAX_LINE,
+    classify,
+    emotionCommand,
+    lookCommand,
+    parseHello,
+    parseReply,
+    reactCommand
+} from './protocol';
+import { Connection, ConnectionClosed, portPicker } from './connection';
+import { command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
 
 describe('protocol', () => {
@@ -12,6 +21,13 @@ describe('protocol', () => {
         expect(lookCommand(socks)).toBe('> look B865A8 76D8EB 8F1716 acorn');
     });
 
+    it('writes the commands that move the eyes', () => {
+        expect(emotionCommand('happy')).toBe('> emotion happy');
+        expect(reactCommand('tap')).toBe('> react tap');
+        // @ts-expect-error -- tsc -p app fails here if the type stops coming from the reactions of eyes/emotions.json
+        expect(reactCommand('purr')).toBe('> react purr');
+    });
+
     it('tells replies from log lines', () => {
         expect(classify('< ok')).toEqual({ kind: 'reply', text: 'ok' });
         expect(classify('frames/s 60.0')).toEqual({ kind: 'log', text: 'frames/s 60.0' });
@@ -19,14 +35,22 @@ describe('protocol', () => {
 
     it('reads the device info', () => {
         expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toEqual({ firmware: '2e62a96', engine: '0.6.0' });
+        expect(parseHello('lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1')).toEqual({
+            firmware: '0.5.0',
+            engine: '0.13.0',
+            board: 'atoms3r'
+        });
         expect(parseHello('something else')).toBeNull();
         expect(parseHello('lilpet fw=1')).toBeNull();
     });
 
-    it('reads errors', () => {
-        expect(replyError('ok')).toBeNull();
-        expect(replyError('err bad color')).toBe('bad color');
-        expect(replyError('what')).toBe('unexpected reply: what');
+    it('reads replies', () => {
+        expect(parseReply('ok')).toEqual({ kind: 'ok' });
+        expect(parseReply('err shown, but cannot save the look in flash')).toEqual({ kind: 'shown' });
+        expect(parseReply('err busy')).toEqual({ kind: 'busy' });
+        expect(parseReply('err bad color')).toEqual({ kind: 'refused', reason: 'bad color' });
+        expect(parseReply('err')).toEqual({ kind: 'refused', reason: 'unknown error' });
+        expect(parseReply('what')).toEqual({ kind: 'refused', reason: 'unexpected reply: what' });
     });
 
     it('cuts chunks into lines, whatever the line ending', () => {
@@ -52,7 +76,7 @@ describe('connection', () => {
         // RTS released before DTR: the other order reboots an ESP32-S3; then a newline ends any half line
         expect(device.signals).toEqual([{ requestToSend: false }, { dataTerminalReady: false }]);
         expect(device.options()?.bufferSize).toBeGreaterThanOrEqual(4096);
-        expect(await hello(connection)).toEqual({ firmware: 'abc1234', engine: '0.6.0' });
+        expect(await hello(connection)).toMatchObject({ firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' });
         expect(device.writes[0]).toBe('\n');
         const look = makeLook(findSwatch('kite')!, 'cat');
         // Sent together: the second waits for the first reply
@@ -66,10 +90,52 @@ describe('connection', () => {
     it('asks hello again when the board misses the first one while it boots', async () => {
         let hellos = 0;
         const answer = firmware();
-        const device = fakePort((command) => (command === '> hello' && ++hellos === 1 ? null : answer(command)));
+        const device = fakePort((line) => (line === '> hello' && ++hellos === 1 ? null : answer(line)));
         const connection = await Connection.open(device.port);
         expect((await hello(connection)).firmware).toBe('abc1234');
         expect(hellos).toBe(2);
+        await connection.close();
+    });
+
+    it('stops asking hello once the board is gone', async () => {
+        const device = fakePort(() => null);
+        const connection = await Connection.open(device.port);
+        const request = vi.spyOn(connection, 'request');
+        const asking = hello(connection);
+        await vi.waitFor(() => expect(device.sent).toHaveLength(1));
+        device.readError({ fatal: true });
+        await expect(asking).rejects.toThrow(ConnectionClosed);
+        expect(device.sent).toHaveLength(1);
+        expect(request).toHaveBeenCalledOnce(); // writing fails by now: only the count tells a retry
+    });
+
+    it('refuses commands once closed, without writing', async () => {
+        const device = fakePort(firmware());
+        const connection = await Connection.open(device.port);
+        await connection.close();
+        await expect(connection.request('> hello')).rejects.toThrow(ConnectionClosed);
+        expect(device.sent).toEqual([]);
+    });
+
+    it('fails a command at once when writing to the port fails', async () => {
+        const device = fakePort(firmware());
+        const connection = await Connection.open(device.port);
+        device.failWrites();
+        await expect(connection.request('> hello', 5000)).rejects.toThrow(ConnectionClosed);
+        await connection.close();
+    });
+
+    it('tells a look kept from a look the flash refused, and from a refused look', async () => {
+        let reply = 'ok';
+        const device = fakePort(() => reply);
+        const connection = await Connection.open(device.port);
+        const look = makeLook(findSwatch('kite')!, 'cat');
+        expect(await sendLook(connection, look)).toBe('kept');
+        reply = 'err shown, but cannot save the look in flash';
+        expect(await sendLook(connection, look)).toBe('shown');
+        reply = 'err malformed look';
+        await expect(sendLook(connection, look)).rejects.toThrow('malformed look');
+        await expect(command(connection, '> emotion furious')).rejects.toThrow('malformed look');
         await connection.close();
     });
 
@@ -101,6 +167,16 @@ describe('connection', () => {
         await connection.close();
         expect(device.closed()).toBe(true);
         expect(closes).toBe(1);
+    });
+
+    it('offers Espressif boards only in the port picker, and no picker without Web Serial', async () => {
+        const requestPort = vi.fn(async () => fakePort(firmware()).port);
+        vi.stubGlobal('navigator', { serial: { requestPort } });
+        await portPicker()?.();
+        expect(requestPort).toHaveBeenCalledWith({ filters: [{ usbVendorId: 0x303a }] });
+        vi.stubGlobal('navigator', {});
+        expect(portPicker()).toBeNull();
+        vi.unstubAllGlobals();
     });
 
     it('closes the port when it cannot set its signals', async () => {

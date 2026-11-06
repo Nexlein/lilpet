@@ -11,9 +11,11 @@
 
 /* Every test function, one per line */
 #define LP_TESTS(X)                                                                                                    \
+    X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
     X(test_rng_matches_prototype)                                                                                      \
     X(test_emotions_match_prototype)                                                                                   \
+    X(test_clamp_matches_prototype)                                                                                    \
     X(test_blink_poses_match_prototype)                                                                                \
     X(test_eye_poses_match_prototype)                                                                                  \
     X(test_simulations_match_prototype)                                                                                \
@@ -22,13 +24,34 @@
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
     X(test_timed_emotion_returns_to_neutral)                                                                           \
+    X(test_senses_smooth_gravity)                                                                                      \
+    X(test_senses_forget_a_sensor_that_stopped)                                                                        \
+    X(test_senses_stop_a_shake_when_the_sensor_stops)                                                                  \
+    X(test_senses_skip_a_bad_sample)                                                                                   \
+    X(test_senses_skip_a_bad_step)                                                                                     \
+    X(test_senses_debounce_the_button)                                                                                 \
+    X(test_senses_react_to_a_press_not_a_release)                                                                      \
+    X(test_senses_let_go_of_a_face)                                                                                    \
+    X(test_senses_greet_only_a_new_face)                                                                               \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
+    X(test_lying_flat_does_not_slide_the_eyes)                                                                         \
     X(test_clock_keeps_running_for_days)                                                                               \
     X(test_bad_input_is_ignored)                                                                                       \
+    X(test_scene_starts_over)                                                                                          \
+    X(test_pointer_stays_inside_its_range)                                                                             \
+    X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
+    X(test_repeated_reaction_goes_on_without_a_new_burst)                                                              \
+    X(test_another_emotion_reacts_at_once_without_a_new_burst)                                                         \
+    X(test_reaction_without_sparkles_leaves_the_wait_alone)                                                            \
+    X(test_chatty_events_never_fill_the_screen)                                                                        \
+    X(test_scene_forgets_the_last_burst)                                                                               \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
+    X(test_holding_keeps_a_longer_emotion)                                                                             \
     X(test_shake_is_told_from_tilt_and_knocks)                                                                         \
+    X(test_shake_limits)                                                                                               \
+    X(test_shake_skips_bad_samples)                                                                                    \
     X(test_shaking_makes_it_dizzy_until_a_bit_after)                                                                   \
     X(test_shake_makes_it_dizzy_then_calm)                                                                             \
     X(test_blink_does_not_restart_while_running)                                                                       \
@@ -36,19 +59,35 @@
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
     X(test_look_text_round_trips)                                                                                      \
+    X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
+    X(test_command_line_ends_on_lf_or_cr)                                                                              \
+    X(test_command_line_limit)                                                                                         \
+    X(test_command_line_drops_what_does_not_fit)                                                                       \
+    X(test_command_reads_every_command)                                                                                \
+    X(test_command_refuses_bad_input)                                                                                  \
+    X(test_command_ignores_other_lines)                                                                                \
     X(test_rgb565_conversion)                                                                                          \
     X(test_render_first_frame_is_full_screen)                                                                          \
     X(test_render_puts_colors_where_they_belong)                                                                       \
+    X(test_pixels_differing_in_one_channel_stay_apart)                                                                 \
     X(test_render_glint_is_white)                                                                                      \
     X(test_closed_eye_shows_only_the_stroke)                                                                           \
+    X(test_box_hugs_the_shape)                                                                                         \
+    X(test_lid_level_with_the_rows)                                                                                    \
     X(test_render_is_deterministic)                                                                                    \
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
     X(test_band_rendering_matches_whole_frame)                                                                         \
+    X(test_big_endian_swaps_the_bytes_of_every_pixel)                                                                  \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
+    X(test_unknown_pupil_renders_as_a_circle)                                                                          \
+    X(test_cutting_spans)                                                                                              \
+    X(test_line_too_far_misses_an_ellipse)                                                                             \
+    X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
+    X(test_new_size_redraws_everything)                                                                                \
     X(test_small_output_regions_stay_inside)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
@@ -82,7 +121,7 @@ extern int lp_test_failures;
     do {                                                                                                               \
         float a_ = (actual);                                                                                           \
         float e_ = (expected);                                                                                         \
-        if (fabsf(a_ - e_) > (tolerance))                                                                              \
+        if (!(fabsf(a_ - e_) <= (tolerance)))                                                                          \
             LP_FAIL("%s is %g, expected %g", #actual, (double)a_, (double)e_);                                         \
     } while (0)
 

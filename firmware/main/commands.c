@@ -1,84 +1,142 @@
 #include "commands.h"
 
+#include "board_config.h"
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_app_desc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "imu.h"
 #include "look_store.h"
 
 #include <stdio.h>
-#include <string.h>
 
-#define LINE_SIZE 96
+#define QUEUE_SLOTS   8    /* the drawing loop empties them every frame */
+#define QUEUE_WAIT_MS 100  /* several frames: only a stuck drawing loop makes a command wait that long */
+#define RX_BUFFER     1024 /* bytes of commands waiting on the USB port */
 
-typedef struct {
-    QueueHandle_t looks;
+/* Set before the task starts, then written by the task alone */
+static struct {
     lp_look current;
-} commands_state;
+    bool motion;
+} state;
+
+/* To the drawing loop: a command that reached RX_BUFFER is never dropped, it waits for a slot or gets an error */
+static QueueHandle_t queue;
+
+static bool push(const lp_command *c)
+{
+    return xQueueSend(queue, c, pdMS_TO_TICKS(QUEUE_WAIT_MS)) == pdTRUE;
+}
+
+static void handle_eyes_command(const lp_command *c)
+{
+    if (BOARD_BENCH)
+        printf("< err benchmark animation running\n");
+    else if (!push(c))
+        printf("< err busy\n");
+    else
+        printf("< ok\n");
+}
+
+static void handle_look(const lp_command *c)
+{
+    /* The benchmark animation keeps its own look */
+    if (!BOARD_BENCH && !push(c)) {
+        printf("< err busy\n");
+        return;
+    }
+    /* Shown even when it cannot be kept: the app still sees it */
+    state.current = c->look;
+    printf(look_store_save(&c->look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
+}
 
 static void reply_look(const lp_look *look)
 {
     char text[LP_LOOK_TEXT_SIZE];
-    lp_look_format(look, text, sizeof text);
+    lp_look_format(look, text);
     printf("< look %s\n", text);
 }
 
-static void handle(commands_state *state, const char *line)
+static void reply_imu(void)
 {
+    float g[3];
+    if (imu_gravity(g))
+        printf("< imu %.3f %.3f %.3f\n", (double)g[0], (double)g[1], (double)g[2]);
+    else
+        printf("< err no motion sensor\n");
+}
+
+static void handle(const lp_command_line *line)
+{
+    lp_command c;
+    const char *error = lp_command_parse(line, &c);
+    if (!error && c.type == LP_COMMAND_NONE)
+        return;
     /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
-    if (strncmp(line, "> ", 2) == 0)
-        putchar('\n');
-    if (strcmp(line, "> hello") == 0) {
-        printf("< lilpet fw=%s engine=%s\n", esp_app_get_description()->version, lp_version());
-    } else if (strcmp(line, "> look?") == 0) {
-        reply_look(&state->current);
-    } else if (strncmp(line, "> look ", 7) == 0) {
-        lp_look look;
-        if (!lp_look_parse(line + 7, &look)) {
-            printf("< err malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle\n");
-        } else {
-            /* Shown even when it cannot be kept: the app still sees it */
-            state->current = look;
-            xQueueOverwrite(state->looks, &look);
-            printf(look_store_save(&look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
-        }
-    } else if (strcmp(line, "> imu?") == 0) {
-        float g[3];
-        if (imu_gravity(g))
-            printf("< imu %.3f %.3f %.3f\n", (double)g[0], (double)g[1], (double)g[2]);
-        else
-            printf("< err no motion sensor\n");
-    } else if (strncmp(line, "> ", 2) == 0) {
-        printf("< err unknown command\n");
+    putchar('\n');
+
+    if (error) {
+        printf("< err %s\n", error);
+    } else if (c.type == LP_COMMAND_HELLO) {
+        printf("< lilpet fw=%s engine=%s board=%s camera=%d motion=%d\n", esp_app_get_description()->version,
+               lp_version(), BOARD_NAME, BOARD_CAMERA, state.motion);
+    } else if (c.type == LP_COMMAND_LOOK_QUERY) {
+        reply_look(&state.current);
+    } else if (c.type == LP_COMMAND_LOOK) {
+        handle_look(&c);
+    } else if (c.type == LP_COMMAND_IMU_QUERY) {
+        reply_imu();
+    } else {
+        handle_eyes_command(&c);
     }
     fflush(stdout);
 }
 
-static void commands_task(void *arg)
+/* Waits for a line and reads it, whatever it holds */
+static void read_line(lp_command_line *line)
 {
-    commands_state *state = arg;
-    char line[LINE_SIZE];
+    *line = (lp_command_line){0};
     for (;;) {
-        if (!fgets(line, sizeof line, stdin)) {
+        const int byte = fgetc(stdin);
+        if (byte == EOF) {
+            clearerr(stdin);
             vTaskDelay(pdMS_TO_TICKS(20));
-            continue;
+        } else if (lp_command_line_add(line, (char)byte)) {
+            return;
         }
-        line[strcspn(line, "\r\n")] = '\0';
-        handle(state, line);
     }
 }
 
-void commands_start(QueueHandle_t looks, const lp_look *current)
+static void commands_task(void *arg)
+{
+    (void)arg;
+    lp_command_line line;
+    for (;;) {
+        read_line(&line);
+        handle(&line);
+    }
+}
+
+void commands_start(const lp_look *current, bool motion)
 {
     /* Blocking reads on the USB serial port: needs its driver, not just the default console output */
     usb_serial_jtag_driver_config_t config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+    /* The driver drops what does not fit in its buffer: this one holds a burst of about 80 commands while the queue
+     * drains, where the default 256 bytes held 20. */
+    config.rx_buffer_size = RX_BUFFER;
     usb_serial_jtag_driver_install(&config);
     usb_serial_jtag_vfs_use_driver();
     setvbuf(stdin, NULL, _IONBF, 0);
 
-    static commands_state state;
-    state.looks = looks;
+    queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
-    xTaskCreate(commands_task, "commands", 4096, &state, 5, NULL);
+    state.motion = motion;
+    xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
+}
+
+bool commands_next(lp_command *out)
+{
+    return xQueueReceive(queue, out, 0) == pdTRUE;
 }

@@ -38,7 +38,7 @@ void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look)
 
 void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 {
-    if ((unsigned)emotion >= LP_EMOTION_COUNT)
+    if ((unsigned)emotion >= LP_EMOTION_COUNT || !isfinite(duration))
         return;
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
@@ -50,16 +50,24 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y)
 {
     eyes->pointer.active = active && isfinite(x) && isfinite(y);
-    eyes->pointer.x = x;
-    eyes->pointer.y = y;
+    eyes->pointer.x = lp_clampf(x, 1.0f);
+    eyes->pointer.y = lp_clampf(y, 1.0f);
 }
+
+#define BURST_GAP 0.5f /* seconds: a burst of sparkles fills the screen if repeated any faster */
 
 void lp_eyes_react(lp_eyes *eyes, lp_event event)
 {
     const lp_reaction *r = lp_reaction_get(event);
     if (!r)
         return;
-    lp_eyes_set_emotion(eyes, r->emotion, r->duration);
+    if (eyes->emotion == r->emotion)
+        eyes->emotion_timer = lp_maxf(eyes->emotion_timer, r->duration);
+    else
+        lp_eyes_set_emotion(eyes, r->emotion, r->duration);
+    if (r->sparkles == 0 || eyes->burst_wait > 0.0f)
+        return;
+    eyes->burst_wait = BURST_GAP;
     for (int i = 0; i < r->sparkles; i++)
         lp_eyes_spawn(eyes, LP_PARTICLE_SPARKLE);
 }
@@ -83,12 +91,14 @@ void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
 
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
 {
-    eyes->shape = *shape;
+    if (isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt))
+        eyes->shape = *shape;
 }
 
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
 {
-    eyes->head_amount = amount;
+    if (isfinite(amount))
+        eyes->head_amount = amount;
 }
 
 void lp_eyes_blink(lp_eyes *eyes)
@@ -235,13 +245,14 @@ static float dizziness(const lp_eyes *e)
 #define UPSIDE_DOWN_DELAY   0.6f
 
 /* A reaction that goes on as long as its cause (held upside down, shaken), and its duration after. A mood that is
- * already that emotion stays as it is (no timer). */
+ * already that emotion stays as it is: its timer only leads back to it. This runs every frame, so lp_eyes_react only
+ * starts it: sparkles in the table burst once, not every BURST_GAP for as long as the cause lasts. */
 static void hold_reaction(lp_eyes *e, lp_event event)
 {
     const lp_reaction *r = lp_reaction_get(event);
     if (e->emotion != r->emotion)
         lp_eyes_react(e, event);
-    else if (e->emotion_timer > 0.0f)
+    else
         e->emotion_timer = lp_maxf(e->emotion_timer, r->duration);
 }
 
@@ -356,6 +367,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
 {
     if (!(dt > 0.0f) || !isfinite(dt)) /* nothing to advance, and speeds would divide by zero */
         return;
+    dt = lp_minf(dt, 1.0f); /* a long pause is not a long animation: particles are spawned one by one */
     lp_eyes *e = eyes;
     e->time += dt;
     wrap_clock(e);
@@ -367,6 +379,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
         if (e->emotion_timer <= 0.0f)
             lp_eyes_set_emotion(e, e->mood, 0.0f);
     }
+    e->burst_wait = lp_maxf(e->burst_wait - dt, 0.0f);
     update_held_reactions(e, dt);
 
     const gaze_aim aim = update_gaze(e, dt, t, update_tilt(e, dt));
@@ -393,37 +406,37 @@ void lp_eyes_update(lp_eyes *eyes, float dt)
     e->head.roll = wrap_angle(lp_approach(e->head.roll, nearest_turn(roll, e->head.roll), 3.0f, dt));
 }
 
+#define SCENE_MAX_TIME 60.0f /* seconds of particles to replay: a larger time would block for as long */
+
+static bool scene_is_valid(const lp_scene *s)
+{
+    return (unsigned)s->emotion < LP_EMOTION_COUNT && (unsigned)s->blink_phase <= LP_BLINK_OPEN &&
+           isfinite(s->blink_t) && isfinite(s->yaw) && isfinite(s->pitch) && isfinite(s->roll) && isfinite(s->gaze_x) &&
+           isfinite(s->gaze_y) && s->particle_time >= 0.0f && s->particle_time <= SCENE_MAX_TIME;
+}
+
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look)
 {
-    if ((unsigned)scene->emotion >= LP_EMOTION_COUNT || (unsigned)scene->blink_phase > LP_BLINK_OPEN)
+    if (!scene_is_valid(scene))
         return;
+    const lp_look worn = *look; /* it may be the look of `eyes` */
+    lp_eyes_init(eyes, scene->particle_seed);
     lp_eyes *e = eyes;
-    e->look = *look;
+    e->look = worn;
     e->emotion = scene->emotion;
     e->mood = scene->emotion;
-    e->emotion_timer = 0.0f;
-    e->upside_down = 0.0f;
-    e->shaking = false;
-    e->spin_phase = 0.0f;
     e->cur = lp_emotion_get(scene->emotion)->expr;
-    e->shape = lp_default_shape();
     e->head.yaw = scene->yaw;
     e->head.pitch = scene->pitch;
     e->head.roll = scene->roll;
-    e->head.level = 0.0f;
     e->gaze.x = e->gaze.tx = scene->gaze_x;
     e->gaze.ty = scene->gaze_y;
     e->gaze.y = scene->gaze_y + e->cur.gy;
-    e->gaze.vx = e->gaze.vy = 0.0f;
     e->blink.phase = scene->blink_phase;
     e->blink.t = scene->blink_t;
     e->blink.hold = 0.2f;
     e->blink.open = 0.2f;
-    e->blink.twice = false;
-    e->particle_count = 0;
-    e->emit_debt = 0.0f;
     if (scene->has_particles) {
-        lp_rng_seed(&e->rng, scene->particle_seed);
         const int steps = (int)lroundf(scene->particle_time * 60.0f);
         for (int i = 0; i < steps; i++)
             update_particles(e, 1.0f / 60.0f);

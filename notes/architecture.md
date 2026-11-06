@@ -65,14 +65,15 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 ## Organisation cible du dépôt
 
-| Dossier      | Rôle                                                                           | État             |
-| ------------ | ------------------------------------------------------------------------------ | ---------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait             |
-| `eyes/`      | Données des looks (puis des animations)                                        | Fait             |
-| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2)   |
-| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1        |
-| `firmware/`  | ESP-IDF : pilote d'écran, caméra, capteurs, appelle le moteur                  | Écran (à tester) |
-| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait             |
+| Dossier      | Rôle                                                                           | État           |
+| ------------ | ------------------------------------------------------------------------------ | -------------- |
+| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait           |
+| `eyes/`      | Données des looks (puis des animations)                                        | Fait           |
+| `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2) |
+| `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1      |
+| `firmware/`  | ESP-IDF, carte écran : pilotes, capteurs, appelle le moteur                    | AtomS3R        |
+| `vision/`    | ESP-IDF, carte caméra (XIAO), sans le moteur : modèle, événements par UART     | Créé à l'achat |
+| `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait           |
 
 ## Règle de parité
 
@@ -83,10 +84,11 @@ dessin ligne par ligne lissent différemment), donc la comparaison tolère un pe
 le moteur devient la source de vérité pour elle.
 
 Pour l'image, `prototype/reference.html` rend chaque scène avec le prototype et avec le moteur compilé en WebAssembly,
-côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, et au plus 0,2 % de pixels qui
-diffèrent de plus de 32. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si une scène sort de la
-tolérance. Elle a été resserrée en novembre 2026 : l'ancienne (2 et 0,5 %) laissait passer des pupilles `dot`
-absentes ou décalées de 14 px ; l'écart réel le plus haut mesuré est de 0,9 et 0,1 %.
+côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, au plus 760 gros pixels, dont un canal
+s'écarte de plus de 32, et au plus 3 pixels de cœur, c'est-à-dire gros comme leurs 4 voisins. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si
+une scène sort de la tolérance. La règle a changé en novembre 2026 : compter tous les pixels à plus de 32 laissait
+passer des étincelles absentes, et faisait échouer des looks blancs sur leurs seuls bords lissés. L'écart de cœur
+mesuré vaut 0 sur les scènes et sur 12 600 combinaisons, 1 au plus sur 450 scènes de particules.
 
 L'animation est vérifiée aussi : sur la page interactive, en côte à côte, les deux rendus reçoivent les mêmes commandes
 et avancent par pas fixes de 1/64 s. Le test `tests/live.spec.mjs` les fait avancer à la main (repos, suivi de la
@@ -94,7 +96,8 @@ souris, cœurs, caresse, endormi) et échoue s'ils sortent de la même toléranc
 et `double` qui ferait basculer un événement les décalerait : la page affiche l'écart et propose de les resynchroniser.
 
 Pour la logique (hasard, émotions, clignement, regard, tête, particules), la comparaison est **exacte** : le script
-`scripts/gen-engine-vectors.mjs` fait tourner le prototype et écrit les valeurs attendues dans
+`scripts/gen-engine-vectors.mjs` (lancé par `npm run vectors`, avec `gen-emotions-table.mjs` pour les tables C) fait
+tourner le prototype et écrit les valeurs attendues dans
 `engine/tests/js_vectors.h`, que les tests C vérifient. Le hasard donne les mêmes nombres dans les deux langages (24
 bits, exacts dans un `float`), et les simulations avancent par pas de 1/64 s pour que le temps soit exact en `float`
 comme en `double`.
@@ -110,28 +113,46 @@ comme en `double`.
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache. La
   version est épinglée dans `engine/wasm/Dockerfile` (6.0.13 début novembre 2026) : avec `latest`, une nouvelle
   version pouvait casser la CI sans changement de notre côté. Dependabot propose chaque nouvelle version.
-- **ESP-IDF dans Docker**, avec la même commande en local et en CI (`mise run firmware:build`). La version est
+- **ESP-IDF dans Docker**, avec la même commande en local et en CI (`BOARD=<carte> mise run firmware:build`). La version est
   épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
   `latest` de l'image officielle suit la branche de développement (`master`), trop instable pour flasher une vraie
   carte ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
   Dependabot ouvre une pull request à chaque nouvelle version, que la CI vérifie avant qu'on l'accepte. La CI garde le
-  binaire prêt à flasher. Flash et lecture du port USB par `uvx` (esptool, pyserial), sans installer ESP-IDF. La
+  binaire prêt à flasher de chaque carte. Flash et lecture du port USB par esptool (installé par mise) et pyserial
+  (`scripts/requirements.txt`, par uv), sans installer ESP-IDF. La
   compilation passe par ccache, gardé dans `firmware/.ccache` (et entre deux runs en CI) : une recompilation complète
   passe d'environ 1 min à 26 s en local.
-- **Vérification sur carte** (`mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
+- **Vérification sur carte** (`BOARD=<carte> mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
   matériel. Elle parle à la carte comme l'app et vérifie qu'elle garde un look après un redémarrage.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
 - Toutes les versions sont figées (novembre 2026 : avec `latest`, la CI tournait déjà sous Node 26 et le poste sous
   Node 24, et un nouveau clang-format aurait pu la faire échouer sur du code inchangé). Chaque nouvelle version arrive
   en pull request, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils de `mise.toml`, que Dependabot
-  ne sait pas lire, Dependabot pour npm, les images Docker et les actions (`jdx/mise-action`, épinglée par son
-  commit).
+  ne sait pas lire, Dependabot pour npm, les images Docker et les actions, toutes épinglées par
+  commit.
+
+## Vision
+
+Le but : un modèle d'IA dans l'objet traite ce que voit la caméra, les gestes, le visage et les expressions de la
+personne, et choisit les réactions. La carte caméra a son propre projet, `vision/`, créé à l'achat de la XIAO : elle n'a
+pas besoin du moteur, et ses broches de caméra sont celles de l'écran sur l'autre carte.
+
+Le modèle décide, le moteur exécute. Il peut choisir une réaction par son nom (`> react gesture_like`), dont
+`eyes/emotions.json` donne les valeurs par défaut, ou une émotion et sa durée (`> emotion happy 2`), et il dit où regarder
+(`> face 0.2 -0.1`). Protocole dans [app.md](app.md). L'aperçu web, l'AtomS3R et l'objet final jouent ainsi les mêmes
+réactions, et changer de modèle ne touche pas au moteur. Un modèle qui répète un événement ne noie pas l'écran : les
+étincelles partent au plus toutes les 0,5 s, quelle que soit l'émotion.
+
+La liaison UART lira les mêmes lignes que l'USB : `lp_command_parse` ignore tout ce qui ne commence pas par `> `, donc le
+journal de démarrage de l'autre puce. À l'arrivée de la XIAO, il faudra une seconde tâche, qui donne ses lignes au même
+analyseur et réponde sur son propre flux. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
+sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux figés.
 
 ## Performance (mise en place en 2e)
 
 - `mise run engine:bench` compile le moteur en mode optimisé et mesure le temps de rendu :
     - pour chaque scène de référence, l'écran entier (première image) puis les yeux seuls (image suivante) ;
-    - sur une animation de 12 s à 60 images/s : chaque émotion pendant une seconde, avec saccades, clignements et
+    - sur une animation de 13 s à 60 images/s : chaque émotion pendant une seconde, avec saccades, clignements et
       particules, puis le regard qui suit un visage. Chaque image ne redessine que sa zone modifiée, comme sur
       l'objet.
 - En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d'un commit à l'autre. Il n'y a pas de
@@ -144,16 +165,26 @@ comme en `double`.
 
 ### Sur la puce
 
-- `mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, qui
+- `BOARD=atoms3r mise run firmware:build`, `firmware:flash` puis `firmware:monitor` : le firmware affiche les yeux en direct, qui
   vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi dans l'app PC (gardé en mémoire
-  flash, `cherry` tant qu'aucun n'a été envoyé). Toutes les 10 secondes, il écrit sur le port USB
+  flash, `cherry` tant qu'aucun n'a été envoyé). À chaque tour de 780 images, il écrit sur le port USB
   le nombre d'images par seconde, le temps de dessin et le temps de dessin plus envoi, et la part de l'écran
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
-- **Un seul binaire pour toutes les cartes** : `firmware/main/board.c` reconnaît la carte au boîtier de sa puce,
-  comme la bibliothèque de M5Stack : un ESP32-S3-PICO, c'est l'AtomS3R ; sinon, l'écran rond de Waveshare, ou rien.
-  `display.c` en déduit le pilote d'écran. Les broches d'une carte ne sont jamais pilotées sur une autre.
+- **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
+  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran, le boîtier de sa
+  puce et son capteur de mouvement, un `sdkconfig.defaults` facultatif ses options ESP-IDF. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
+  composant un fichier `.c`, sans table de fonctions : tout est choisi à la compilation. Un seul binaire reconnaissant sa
+  carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le même boîtier (ESP32-S3-PICO), et sonder un bus ou lire
+  l'identifiant d'un écran obligerait à piloter des broches sur une carte inconnue. Ajouter un écran : un `.c` de 4
+  fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
+  aux composants connus : son dossier, rien d'autre.
+- **Mauvaise image** : deux gardes. `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et refuse si
+  une autre carte répond, puis donne ce port à esptool. `FORCE=1` passe outre sans rien demander. Une carte vierge, ou qui
+  redémarre en boucle, ne répond pas et passe. Au démarrage, `board_init` compare le boîtier
+  de la puce et s'arrête avant de toucher une broche. Limite : une image `stamp_s3a` sur la XIAO n'est pas arrêtée, les
+  deux sont en boîtier QFN56 ; le futur firmware de la XIAO devra répondre à `> hello` pour que le flash la protège.
 - Le pilote de l'écran rond (`firmware/main/display_co5300.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
@@ -163,16 +194,18 @@ comme en `double`.
   ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp), `board_M5AtomS3R`) : SPI à 40 MHz,
   identifiant lu pour distinguer les deux puces d'écran (ST7735S ou GC9107), séquence d'initialisation complète de
   chaque puce, décalages, orientation (bit BGR compris) et inversion des couleurs, rétroéclairage par une puce sur le
-  bus I2C. Pas de signal TE : il cadence à 60 images/s. Testé le 1er novembre 2026 sur un AtomS3R à GC9107 : image
+  bus I2C. Pas de signal TE : il cadence à 62,5 images/s (`display_paced.c`, des ticks de 1 ms ne font pas 60). Testé le 1er novembre 2026 sur un AtomS3R à GC9107 : image
   propre, couleurs justes. Sans la séquence du fabricant ni le bit BGR, l'écran montrait une bande de bruit en haut et
   des couleurs inversées. La variante ST7735S n'a pas encore tourné.
 - Temps de dessin sur l'AtomS3R, yeux au repos en 128 px : 8,2 ms par image, puis 4,9 ms (novembre 2026) une fois
   le mélange des couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne
-  (la puce n'a pas de division rapide). Dessin plus envoi : 7,5 ms, pour 16,7 ms disponibles à 60 images/s.
+  (la puce n'a pas de division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les
+  pixels répétés réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s.
 - **Inclinaison** : sur l'AtomS3R, `firmware/main/imu_bmi270.c` lit l'accéléromètre du BMI270 à chaque image
   (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
-  passe au moteur (`lp_eyes_set_gravity`). Les autres cartes n'ont pas de capteur pour l'instant ; l'écran rond de
-  Waveshare a un QMI8658, à brancher derrière la même interface (`imu.h`).
+  passe au moteur par `lp_senses` (lissage, secousse, anti-rebond du bouton, capteur muet : `engine/src/senses.c`, testé
+  sur PC). Le Waveshare 1,32" n'a aucun capteur de mouvement (`imu_none.c`) : sans module ajouté, pas d'inclinaison ni
+  de vertige sur l'objet final, et le toucher demandera un pilote pour le CST820.
 - **Réactions** : le moteur reçoit des événements (`lp_eyes_react` : toucher, secousse) et repère seul la position à
   l'envers dans la gravité ; chaque événement mène à une réaction décrite comme une donnée (émotion, durée,
   étincelles), pour que l'app puisse un jour les changer. Le firmware ne fait que traduire le matériel : appui sur
@@ -180,8 +213,8 @@ comme en `double`.
   Mesuré sur la carte : une secousse à la main monte jusqu'à 11 g et s'écarte de 3 à 6 g de 1 g en moyenne, vers
   6 Hz, contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule leur durée change. Elle
   compte après environ 0,4 s (un choc ou un coup de poignet bref ne comptent pas) ; le moteur la reçoit comme un état (`lp_eyes_set_shaking`), comme la position à l'envers.
-- Sans écran ni PSRAM, par exemple sur la M5Stamp S3A déjà en ma possession, le même binaire tourne : faute de signal
-  TE, il cadence à 60 images/s et les bandes partent sur des broches non branchées, donc les temps restent réalistes.
+- Sans écran ni PSRAM, sur la M5Stamp S3A déjà en ma possession, l'image `stamp_s3a` cadence à 62,5 images/s et ses
+  bandes de 466 px partent sur des broches non branchées, donc les temps restent réalistes.
   Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), avec le
   même look (cherry), la même graine et le même pas fixe de 1/60 s, pour que ses temps se comparent à ceux de
   `mise run engine:bench`. Avec un écran, les temps affichés suivent l'animation

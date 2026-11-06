@@ -1,6 +1,12 @@
 // Types of engine.mjs, for the TypeScript PC app (app/).
+import type emotions from '../../eyes/emotions.json';
 
-export type PupilType = 'dot' | 'cat' | 'acorn' | 'circle';
+export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
+
+export type PupilType = (typeof PUPILS)[number];
+
+// Names of lp_event: the reactions of eyes/emotions.json, so the two cannot drift apart
+export type EyeEvent = keyof (typeof emotions)['reactions'];
 
 // Same look object as the prototype (makeLook in prototype/eyes.js)
 export interface Look {
@@ -32,6 +38,7 @@ export interface Engine {
     emotions: string[];
     renderScene(scene: Scene, look: Look): Uint8ClampedArray<ArrayBuffer>;
     init(seed: number): void;
+    // Unknown pupil, emotion and event names are ignored
     setLook(look: Look): void;
     setEmotion(name: string, duration?: number): void;
     blink(): void;
@@ -41,11 +48,13 @@ export interface Engine {
     setFollow(follow: boolean): void;
     setShape(shape: Shape): void;
     setHeadAmount(amount: number): void;
-    react(event: 'tap' | 'shake' | 'upsideDown'): void;
+    react(event: EyeEvent): void;
     emotion(): string;
     update(dt: number): void;
     // RGBA pixels of the whole screen (size × size × 4)
     render(): Uint8ClampedArray<ArrayBuffer>;
+    // The same without a copy, in the engine's memory: valid until the next render
+    renderView(): Uint8ClampedArray<ArrayBuffer>;
 }
 
 export function loadEngine(moduleUrl: string): Promise<Engine>;

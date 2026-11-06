@@ -7,13 +7,15 @@ gitleaks = "8.30.1"
 # C engine: build (CMake + Ninja), formatting and static analysis
 cmake = "4.4.5"
 ninja = "1.13.2"
-"pypi:clang-format" = "23.1.3"
+"pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
+# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt
+uv = "0.13.7"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
 [env]
-LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch]"
+LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -28,15 +30,6 @@ run = [
     "docker build -t lilpet-emsdk - < engine/wasm/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine lilpet-emsdk cmake --workflow --preset wasm',
     "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
-]
-
-[tasks."engine:scenes"]
-description = "Render the reference scenes with the engine into engine/build/scenes (PPM) and a contact sheet (PNG)"
-depends = ["engine:test"]
-run = [
-    "mkdir -p engine/build/scenes",
-    "engine/build/host-debug/lilpet_render_scenes engine/build/scenes",
-    "ffmpeg -v error -y -pattern_type glob -i 'engine/build/scenes/*.ppm' -vf 'scale=233:-1,tile=6x6' -frames:v 1 engine/build/scenes.png",
 ]
 
 [tasks."engine:bench"]
@@ -59,7 +52,7 @@ description = "Fail if a C source is not formatted"
 run = "clang-format --dry-run --Werror $LILPET_C_SOURCES"
 
 [tasks."engine:tidy"]
-description = "Static analysis of the engine (needs engine:test first for compile_commands.json)"
+description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
 depends = ["engine:test"]
 run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c engine/tools/*.c"
 
@@ -68,32 +61,53 @@ description = "Everything CI checks on the engine"
 depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
+# One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong
+# image drives the wrong pins. The version of esptool goes in the task's `tools`: Renovate reads it there, not in a
+# command line.
+[tasks."firmware:board"]
+description = "Fail unless BOARD names a folder of firmware/boards"
+hide = true
+run = 'case "$BOARD" in */*) false ;; esac && test -f "firmware/boards/$BOARD/board.cmake" || { echo "Set BOARD to one of:" $(ls firmware/boards) >&2; exit 1; }'
+
 [tasks."firmware:build"]
-description = "Build the firmware into firmware/build/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
+description = "Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
+depends = ["firmware:board"]
 # Docker instead of a local ESP-IDF install, like the WebAssembly build; CI runs this same task. The image is pulled
 # on first use. The Dockerfile comes from stdin: no build context to send. ESP-IDF compiles through ccache (in the
 # image); its cache lives in firmware/.ccache, kept between builds here and between runs by CI. COMPILERCHECK=content:
 # the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
-    # ESP-IDF only reads sdkconfig.defaults when it creates firmware/sdkconfig: start over when they changed, or a
-    # local build would keep old settings that CI (always fresh) does not have
-    "if [ firmware/sdkconfig.defaults -nt firmware/sdkconfig ]; then rm -f firmware/sdkconfig; fi",
+    # ESP-IDF only reads the defaults when it creates the board's sdkconfig: start over when they changed, or a local
+    # build would keep old settings that CI (always fresh) does not have. The board's folder changes date when its
+    # defaults are added or removed.
+    'for file in firmware/sdkconfig.defaults "firmware/boards/$BOARD" "firmware/boards/$BOARD/sdkconfig.defaults"; do if [ "$file" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
     "docker build -t lilpet-idf - < firmware/Dockerfile",
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py build merge-bin',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" build merge-bin',
 ]
 
 [tasks."firmware:flash"]
-description = "Flash the firmware to the board plugged in over USB (esptool through uvx finds the port)"
-# Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
-dir = "firmware/build"
-run = "uvx esptool --chip esp32s3 write-flash @flash_args"
+description = "Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1"
+depends = ["firmware:board"]
+tools = { "pypi:esptool" = "5.6.0" }
+# esptool flashes the port the guard asked. Bootloader, partition table and app only, as listed by the build: the NVS
+# partition, and the look kept there, stay.
+run = 'port=$(uv run --with-requirements scripts/requirements.txt scripts/flash-guard.py) && cd "firmware/build/$BOARD" && esptool --chip esp32s3 ${port:+--port "$port"} write-flash @flash_args'
 
 [tasks."firmware:check-device"]
-description = "Check the flashed board over USB: hello, keeping a look across a reboot (PORT, /dev/ttyACM0 by default)"
+description = "Check the flashed board over USB: hello, looks, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)"
+depends = ["firmware:board"]
 # The only part CI cannot test (no hardware). Puts the board's own look back at the end.
-run = "uvx --from pyserial python scripts/device-check.py"
+run = "uv run --with-requirements scripts/requirements.txt scripts/device-check.py"
+
+[tasks."firmware:deploy"]
+description = "Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)"
+run = [
+    { task = "firmware:build" },
+    { task = "firmware:flash" },
+    { task = "firmware:check-device" }, # waits for the board, which reboots at the end of the flash
+]
 
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
 # RTS and DTR stay low so opening the port does not reset the chip into download mode
-run = 'uvx --from pyserial pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
+run = 'uv run --with-requirements scripts/requirements.txt pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'

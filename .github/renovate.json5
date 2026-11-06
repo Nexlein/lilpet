@@ -1,12 +1,16 @@
-// Renovate keeps the tool versions of mise.toml up to date, one pull request per new release. Dependabot cannot read
-// mise.toml; it still covers npm, the Docker images and the GitHub Actions (dependabot.yml).
+// Renovate keeps the tool versions of mise.toml and the dependency of scripts/requirements.txt up to date, one pull
+// request per new release. Dependabot cannot read them; it still covers npm, the Docker images and the GitHub Actions
+// (dependabot.yml).
 {
     $schema: 'https://docs.renovatebot.com/renovate-schema.json',
     extends: ['config:recommended'],
-    enabledManagers: ['mise'],
+    enabledManagers: ['mise', 'pip_requirements'],
+    pip_requirements: { managerFilePatterns: ['/^scripts/requirements\\.txt$/'] }, // pyserial
     dependencyDashboard: false,
     timezone: 'Europe/Paris',
     schedule: ['* 0-5 * * 1'], // Monday morning, like Dependabot
     semanticCommits: 'enabled',
-    packageRules: [{ matchManagers: ['mise'], semanticCommitType: 'build', semanticCommitScope: 'deps' }]
+    packageRules: [
+        { matchManagers: ['mise', 'pip_requirements'], semanticCommitType: 'build', semanticCommitScope: 'deps' }
+    ]
 }

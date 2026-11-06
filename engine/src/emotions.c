@@ -1,60 +1,7 @@
+#include "emotions_table.h"
 #include "lilpet/lilpet.h"
 
 #include <string.h>
-
-/* Same table as EMOTIONS in prototype/eyes.js (tests/test_parity.c checks it against generated values) */
-/* clang-format off: one emotion per line keeps the table readable */
-static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
-    /* name, expression {tl, ts, bl, sq, cr, rot, hl, ps, es, gy, spin} (see lp_expression), particles, rate/s */
-    [LP_EMOTION_NEUTRAL] = {"neutral",
-                            {0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f},
-                            LP_PARTICLE_NONE,
-                            0.0f},
-    [LP_EMOTION_HAPPY] = {"happy",
-                          {0.00f, 0.00f, 0.42f, 0.00f, 0.00f, 0.00f, 0.00f, 1.08f, 1.02f, 0.00f, 0.00f},
-                          LP_PARTICLE_SPARKLE,
-                          1.2f},
-    [LP_EMOTION_LOVE] = {"love",
-                         {0.00f, 0.00f, 0.45f, 0.00f, 0.00f, 0.00f, 1.00f, 1.10f, 1.04f, -0.45f, 0.00f},
-                         LP_PARTICLE_HEART,
-                         3.0f},
-    [LP_EMOTION_ANGRY] = {"angry",
-                          {0.25f, 0.70f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.60f, 0.96f, 0.15f, 0.00f},
-                          LP_PARTICLE_NONE,
-                          0.0f},
-    [LP_EMOTION_SQUINT] = {"squint",
-                           {0.12f, 0.00f, 0.00f, 0.68f, 0.00f, 0.37f, 0.00f, 0.80f, 1.04f, 0.00f, 0.00f},
-                           LP_PARTICLE_NONE,
-                           0.0f},
-    [LP_EMOTION_FROWN] = {"frown",
-                          {0.00f, 0.00f, 0.00f, 0.00f, 0.72f, 0.65f, 0.00f, 0.80f, 1.04f, 0.00f, 0.00f},
-                          LP_PARTICLE_NONE,
-                          0.0f},
-    [LP_EMOTION_SAD] = {"sad",
-                        {0.20f, -0.50f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 1.15f, 0.98f, 0.45f, 0.00f},
-                        LP_PARTICLE_NONE,
-                        0.0f},
-    [LP_EMOTION_SURPRISED] = {"surprised",
-                              {0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.60f, 1.12f, 0.00f, 0.00f},
-                              LP_PARTICLE_NONE,
-                              0.0f},
-    [LP_EMOTION_SLEEPY] = {"sleepy",
-                           {0.55f, -0.10f, 0.05f, 0.00f, 0.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.35f, 0.00f},
-                           LP_PARTICLE_SPARKLE,
-                           0.4f},
-    [LP_EMOTION_DIZZY] = {"dizzy",
-                          {0.30f, -0.20f, 0.12f, 0.00f, 0.00f, 0.00f, 0.00f, 0.75f, 1.00f, 0.00f, 9.00f},
-                          LP_PARTICLE_NONE,
-                          0.0f},
-};
-/* clang-format on */
-
-/* Same table as REACTIONS in prototype/eyes.js (checked like the emotions) */
-static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {
-    [LP_EVENT_TAP] = {LP_EMOTION_HAPPY, 1.8f, 4},         /* pressed, or petted */
-    [LP_EVENT_SHAKE] = {LP_EMOTION_DIZZY, 1.5f, 0},       /* shaken (lp_shake_update) */
-    [LP_EVENT_UPSIDE_DOWN] = {LP_EMOTION_ANGRY, 0.5f, 0}, /* renewed while the object stays upside down */
-};
 
 const lp_reaction *lp_reaction_get(lp_event event)
 {
@@ -76,4 +23,12 @@ lp_emotion lp_emotion_from_name(const char *name)
         if (strcmp(EMOTIONS[i].name, name) == 0)
             return (lp_emotion)i;
     return LP_EMOTION_COUNT;
+}
+
+lp_event lp_event_from_name(const char *name)
+{
+    for (int i = 0; i < LP_EVENT_COUNT; i++)
+        if (strcmp(REACTIONS[i].name, name) == 0)
+            return (lp_event)i;
+    return LP_EVENT_COUNT;
 }

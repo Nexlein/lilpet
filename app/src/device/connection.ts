@@ -5,7 +5,7 @@ import { classify, LineSplitter } from './protocol';
 export interface PortLike {
     open(options: { baudRate: number; bufferSize?: number }): Promise<void>;
     close(): Promise<void>;
-    setSignals?(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
+    setSignals(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
 }
@@ -18,18 +18,27 @@ interface SerialApi {
 // Without it, Linux also lists its built-in ttyS ports, which are never lilpet.
 const ESPRESSIF_USB = 0x303a;
 
-const serialApi = (): SerialApi | undefined => (navigator as Navigator & { serial?: SerialApi }).serial;
-
-export const serialSupported = (): boolean => serialApi() !== undefined;
-
-// Opens the browser's port picker (needs a user click), listing Espressif boards only
-export async function requestPort(): Promise<PortLike> {
-    const serial = serialApi();
-    if (!serial) throw new Error('Web Serial unavailable: use Chrome or Edge on a computer');
-    return serial.requestPort({ filters: [{ usbVendorId: ESPRESSIF_USB }] });
+// The browser's port picker (needs a user click), listing Espressif boards only; null without Web Serial
+export function portPicker(): (() => Promise<PortLike>) | null {
+    const { serial } = navigator as Navigator & { serial?: SerialApi };
+    return serial ? () => serial.requestPort({ filters: [{ usbVendorId: ESPRESSIF_USB }] }) : null;
 }
 
-export interface ConnectionEvents {
+// The port is gone, or going: no command can get through any more
+export class ConnectionClosed extends Error {
+    constructor() {
+        super('connection closed');
+    }
+}
+
+// The port is there, but the board kept quiet for too long
+export class NoReply extends Error {
+    constructor(command: string) {
+        super(`no reply to "${command}"`);
+    }
+}
+
+interface ConnectionEvents {
     onLog?(line: string): void;
     onClose?(): void;
 }
@@ -55,8 +64,8 @@ export class Connection {
         try {
             // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS
             // first, then DTR (checked on an AtomS3R: the other order reboots it).
-            await port.setSignals?.({ requestToSend: false });
-            await port.setSignals?.({ dataTerminalReady: false });
+            await port.setSignals({ requestToSend: false });
+            await port.setSignals({ dataTerminalReady: false });
             return new Connection(port, events);
         } catch (err) {
             await port.close().catch(() => undefined);
@@ -98,7 +107,7 @@ export class Connection {
             stream = next === stream ? null : next;
         }
         this.#reader = null;
-        this.#pending?.reject(new Error('connection closed'));
+        this.#pending?.reject(new ConnectionClosed());
         this.#writer.releaseLock();
         await this.#port.close().catch(() => undefined);
         this.#events.onClose?.();
@@ -110,7 +119,9 @@ export class Connection {
         else if (line) this.#events.onLog?.(line);
     }
 
-    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies never mix up.
+    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies keep their order.
+    // shortcut: replies carry no id, so one that comes after its timeout answers the next request. Telling them apart
+    // takes a protocol change on both sides; a board that slow is already reported as not answering.
     request(command: string, timeoutMs = 2000): Promise<string> {
         const run = () =>
             new Promise<string>((resolve, reject) => {
@@ -120,7 +131,7 @@ export class Connection {
                 };
                 const timer = setTimeout(() => {
                     done();
-                    reject(new Error(`no reply to "${command}"`));
+                    reject(new NoReply(command));
                 }, timeoutMs);
                 this.#pending = {
                     resolve: (reply) => {
@@ -132,11 +143,12 @@ export class Connection {
                         reject(error);
                     }
                 };
-                this.#writer.write(new TextEncoder().encode(`${command}\n`)).catch((err: unknown) => {
-                    this.#pending?.reject(err instanceof Error ? err : new Error(String(err)));
+                // Once closed or broken, the stream refuses every write
+                this.#writer.write(new TextEncoder().encode(`${command}\n`)).catch(() => {
+                    this.#pending?.reject(new ConnectionClosed());
                 });
             });
-        const result = this.#queue.then(run, run);
+        const result = this.#queue.then(run);
         this.#queue = result.catch(() => undefined);
         return result;
     }

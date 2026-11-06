@@ -11,6 +11,6 @@ export default defineConfig({
     webServer: {
         command: 'python3 -m http.server 8468 --bind 127.0.0.1',
         url: 'http://127.0.0.1:8468/prototype/reference.html',
-        reuseExistingServer: !process.env.CI
+        reuseExistingServer: false
     }
 });

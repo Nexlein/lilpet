@@ -27,6 +27,17 @@ EMSCRIPTEN_KEEPALIVE const char *lpw_emotion_name(int emotion)
     return def ? def->name : "";
 }
 
+EMSCRIPTEN_KEEPALIVE int lpw_event_count(void)
+{
+    return LP_EVENT_COUNT;
+}
+
+EMSCRIPTEN_KEEPALIVE const char *lpw_event_name(int event)
+{
+    const lp_reaction *reaction = lp_reaction_get((lp_event)event);
+    return reaction ? reaction->name : "";
+}
+
 EMSCRIPTEN_KEEPALIVE void lpw_init(uint32_t seed)
 {
     lp_eyes_init(&eyes, seed);
@@ -112,8 +123,8 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_scene(int emotion, int blink_phase, float blin
         .particle_seed = particle_seed,
         .particle_time = particle_time,
     };
-    const lp_look look = eyes.look;
-    lp_eyes_set_scene(&eyes, &scene, &look);
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look);
+    lp_renderer_init(&renderer); /* the next frame is a whole new picture */
 }
 
 EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
