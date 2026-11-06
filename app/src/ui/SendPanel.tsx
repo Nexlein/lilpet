@@ -59,6 +59,6 @@ function sendNote(device: DeviceState, last: LastSend | null, key: string): stri
             ? `${last.name} est sur lilpet, et y reste même éteint.`
             : `${last.name} est sur lilpet, mais ne sera pas gardé.`;
     if (device.status === 'unsupported') return 'Pour envoyer un look, ouvre l’app dans Chrome ou Edge sur ordinateur.';
-    if (device.status !== 'connected') return 'Branche lilpet en USB pour lui envoyer ce look.';
+    if (device.status === 'idle') return 'Branche lilpet en USB pour lui envoyer ce look.';
     return '';
 }
