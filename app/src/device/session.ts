@@ -2,8 +2,8 @@
 // lilpet, send looks, notice when it goes away. The UI subscribes to its snapshot (ui/hooks.ts).
 import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
-import { Connection, ConnectionClosed, type PortLike } from './connection';
-import { BoardBusy, command, hello, sendLook, type LookSent } from './device';
+import { Connection, ConnectionClosed, NoReply, type PortLike } from './connection';
+import { BoardBusy, NotLilpet, command, hello, sendLook, type LookSent } from './device';
 import { emotionCommand, reactCommand, type DeviceInfo } from './protocol';
 
 export type DeviceState =
@@ -112,11 +112,10 @@ export class DeviceSession {
 
 // In the words of the interface. silent: what no reply means, which depends on what was asked
 function describe(err: unknown, silent = NO_REPLY): string {
-    const message = err instanceof Error ? err.message : String(err);
     if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
-    if (message.startsWith('not a lilpet device') || message.startsWith('no reply')) return silent;
+    if (err instanceof NotLilpet || err instanceof NoReply) return silent;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
-    return `Erreur de lilpet : ${message}`;
+    return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;
 }
