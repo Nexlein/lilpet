@@ -292,6 +292,7 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await page.locator('.device button').focus();
     await page.keyboard.press('Enter');
     await expect(status).toHaveText('Connexion à lilpet…');
+    await expect(note(page), 'no need to ask for what is under way').toBeEmpty();
     await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Triste' }).click();
     await expect(status).toHaveText('Connexion à lilpet…');
