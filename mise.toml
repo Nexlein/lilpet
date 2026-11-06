@@ -89,11 +89,9 @@ run = [
 description = "Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1"
 depends = ["firmware:board"]
 tools = { "pypi:esptool" = "5.6.0" }
-run = [
-    "uv run --with-requirements scripts/requirements.txt scripts/flash-guard.py",
-    # Bootloader, partition table and app only, as listed by the build: the NVS partition, and the look kept there, stay
-    'cd "firmware/build/$BOARD" && esptool --chip esp32s3 ${PORT:+--port "$PORT"} write-flash @flash_args',
-]
+# esptool flashes the port the guard asked. Bootloader, partition table and app only, as listed by the build: the NVS
+# partition, and the look kept there, stay.
+run = 'port=$(uv run --with-requirements scripts/requirements.txt scripts/flash-guard.py) && cd "firmware/build/$BOARD" && esptool --chip esp32s3 ${port:+--port "$port"} write-flash @flash_args'
 
 [tasks."firmware:check-device"]
 description = "Check the flashed board over USB: hello, looks, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)"
