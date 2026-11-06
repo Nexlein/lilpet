@@ -163,6 +163,20 @@ describe('connection', () => {
         await connection.close();
     });
 
+    it('stops the clock of an answered command, which would cut off the next one', async () => {
+        vi.useFakeTimers();
+        let wait = 0;
+        const device = fakePort(firmware(), { delay: () => wait });
+        const connection = await Connection.open(device.port);
+        await connection.request('> hello', 100);
+        wait = 200;
+        const answered = expect(connection.request('> hello', 1000)).resolves.toContain('lilpet');
+        await vi.advanceTimersByTimeAsync(1000);
+        vi.useRealTimers();
+        await answered;
+        await connection.close();
+    });
+
     it('keeps reading after a passing read error', async () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
