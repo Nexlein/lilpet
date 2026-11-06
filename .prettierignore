@@ -3,4 +3,4 @@ references/
 package-lock.json
 
 # Worktrees of Claude sessions: other checkouts of this repo
-.claude/
+.claude/worktrees/
