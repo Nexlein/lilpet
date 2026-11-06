@@ -46,7 +46,9 @@ export function fakePort(
                 // A log line first, then the reply on a line of its own, split in two chunks as a real serial port may
                 device.enqueue(encoder.encode('draw 1.2 ms\r\n'));
                 if (reply === null) return;
+                const from = readable;
                 const send = () => {
+                    if (readable !== from) return; // a late reply goes with its stream: unplugged, or lost in an error
                     device.enqueue(encoder.encode('\n< '));
                     device.enqueue(encoder.encode(`${reply}\r\n`));
                 };

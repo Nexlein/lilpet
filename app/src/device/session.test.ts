@@ -91,6 +91,27 @@ describe('device session', () => {
         expect(device.closed()).toBe(true);
     });
 
+    it('hears nothing from a reply cut off by an unplug, even plugged in again', async () => {
+        let wait = 0;
+        const device = fakePort(firmware(), { delay: () => wait });
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        vi.useFakeTimers();
+        wait = 5;
+        const sending = expect(session.send(kite)).rejects.toThrow('plus branché');
+        await vi.advanceTimersByTimeAsync(1); // the look is written, and its reply on its way
+        device.readError({ fatal: true });
+        await sending;
+        await vi.advanceTimersByTimeAsync(1);
+        wait = 0;
+        await session.connect();
+        await vi.advanceTimersByTimeAsync(5);
+        vi.useRealTimers();
+        expect(session.snapshot().state.status).toBe('connected');
+        expect(session.snapshot().log.join()).not.toContain('< ok');
+        await session.disconnect();
+    });
+
     it('explains an unplug during hello, once, without writing again', async () => {
         const device = fakePort(() => null);
         const session = new DeviceSession(async () => device.port);
