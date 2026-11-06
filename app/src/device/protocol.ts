@@ -42,10 +42,20 @@ export function parseHello(reply: string): DeviceInfo | null {
     return { firmware, engine, board: fields.get('board') };
 }
 
+// A reply to a command, read once here: the rest of the app never looks at its text
+export type Reply =
+    | { kind: 'ok' }
+    | { kind: 'shown' } // the look is on screen, but the flash refused it
+    | { kind: 'busy' }
+    | { kind: 'refused'; reason: string };
+
 // "ok", or "err <reason>"
-export function replyError(reply: string): string | null {
-    if (reply === 'ok') return null;
-    return reply.startsWith('err') ? reply.slice(3).trim() || 'unknown error' : `unexpected reply: ${reply}`;
+export function parseReply(reply: string): Reply {
+    if (reply === 'ok') return { kind: 'ok' };
+    if (!reply.startsWith('err')) return { kind: 'refused', reason: `unexpected reply: ${reply}` };
+    const reason = reply.slice(3).trim() || 'unknown error';
+    if (reason === 'busy') return { kind: 'busy' };
+    return reason.startsWith('shown') ? { kind: 'shown' } : { kind: 'refused', reason };
 }
 
 // Cuts a stream of text chunks into lines, whatever the line ending (\n or \r\n)

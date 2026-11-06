@@ -7,8 +7,8 @@ import {
     emotionCommand,
     lookCommand,
     parseHello,
-    reactCommand,
-    replyError
+    parseReply,
+    reactCommand
 } from './protocol';
 import { Connection, ConnectionClosed, portPicker } from './connection';
 import { command, hello, sendLook } from './device';
@@ -42,10 +42,13 @@ describe('protocol', () => {
         expect(parseHello('lilpet fw=1')).toBeNull();
     });
 
-    it('reads errors', () => {
-        expect(replyError('ok')).toBeNull();
-        expect(replyError('err bad color')).toBe('bad color');
-        expect(replyError('what')).toBe('unexpected reply: what');
+    it('reads replies', () => {
+        expect(parseReply('ok')).toEqual({ kind: 'ok' });
+        expect(parseReply('err shown, but cannot save the look in flash')).toEqual({ kind: 'shown' });
+        expect(parseReply('err busy')).toEqual({ kind: 'busy' });
+        expect(parseReply('err bad color')).toEqual({ kind: 'refused', reason: 'bad color' });
+        expect(parseReply('err')).toEqual({ kind: 'refused', reason: 'unknown error' });
+        expect(parseReply('what')).toEqual({ kind: 'refused', reason: 'unexpected reply: what' });
     });
 
     it('cuts chunks into lines, whatever the line ending', () => {

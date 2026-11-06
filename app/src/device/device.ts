@@ -1,11 +1,18 @@
 // What the app asks the device, on top of a connection
 import type { Look } from '../data/looks';
 import { ConnectionClosed, type Connection } from './connection';
-import { HELLO, lookCommand, parseHello, replyError, type DeviceInfo } from './protocol';
+import { HELLO, lookCommand, parseHello, parseReply, type DeviceInfo } from './protocol';
 
 const HELLO_ATTEMPTS = 3;
 // A command told in passing waits less than a look: a silent board would hold back the look queued behind ten moods
 const COMMAND_TIMEOUT_MS = 500;
+
+// The board is there, but its drawing loop cannot take a command now
+export class BoardBusy extends Error {
+    constructor() {
+        super('busy');
+    }
+}
 
 // Asked a few times: a board that reboots as the port opens misses the first one. A board that is gone is not asked again
 export async function hello(connection: Connection): Promise<DeviceInfo> {
@@ -22,18 +29,22 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
     return info;
 }
 
+// Sends a line and fails unless the board took it
+async function ask(connection: Connection, line: string, timeoutMs?: number): Promise<'ok' | 'shown'> {
+    const reply = parseReply(await connection.request(line, timeoutMs));
+    if (reply.kind === 'busy') throw new BoardBusy();
+    if (reply.kind === 'refused') throw new Error(reply.reason);
+    return reply.kind;
+}
+
 // A command that answers "ok" or "err <reason>"
 export async function command(connection: Connection, line: string): Promise<void> {
-    const error = replyError(await connection.request(line, COMMAND_TIMEOUT_MS));
-    if (error) throw new Error(error);
+    await ask(connection, line, COMMAND_TIMEOUT_MS);
 }
 
 export type LookSent = 'kept' | 'shown';
 
 // The device shows the look at once and keeps it in flash; 'shown': the flash refused it, the look is only on screen
 export async function sendLook(connection: Connection, look: Look): Promise<LookSent> {
-    const error = replyError(await connection.request(lookCommand(look)));
-    if (error?.startsWith('shown')) return 'shown';
-    if (error) throw new Error(error);
-    return 'kept';
+    return (await ask(connection, lookCommand(look))) === 'shown' ? 'shown' : 'kept';
 }
