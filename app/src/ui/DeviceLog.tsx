@@ -20,7 +20,7 @@ export function DeviceLog({ lines }: { lines: readonly string[] }) {
         <section aria-label="Journal de lilpet">
             <details className="log">
                 <summary>Journal de lilpet</summary>
-                <pre ref={pre} aria-live="off" onScroll={noteEnd}>
+                <pre ref={pre} onScroll={noteEnd}>
                     {lines.length ? lines.join('\n') : 'Rien pour l’instant.'}
                 </pre>
             </details>
