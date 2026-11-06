@@ -18,8 +18,8 @@
 /* Polygon resolution */
 #define STROKE_STEPS  24 /* along the closed-eye stroke */
 #define CAP_STEPS     7  /* inner points of each round tip */
-#define HEART_STEPS   24 /* per Bezier half of a heart */
-#define SPARKLE_STEPS 12 /* per quarter of a sparkle */
+#define HEART_STEPS   12 /* per Bezier half of a heart */
+#define SPARKLE_STEPS 6  /* per quarter of a sparkle */
 /* Points past LP_POLY_MAX are dropped: every shape must fit */
 _Static_assert(2 * (STROKE_STEPS + 1) + 2 * CAP_STEPS <= LP_POLY_MAX, "closed-eye stroke too long");
 _Static_assert(2 * HEART_STEPS <= LP_POLY_MAX, "heart too long");
