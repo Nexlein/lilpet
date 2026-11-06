@@ -1,24 +1,12 @@
 // Types of engine.mjs, for the TypeScript PC app (app/).
+import type emotions from '../../eyes/emotions.json';
 
 export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
 
 export type PupilType = (typeof PUPILS)[number];
 
-// Names of lp_event (reactions in eyes/emotions.json)
-export type EyeEvent =
-    | 'tap'
-    | 'shake'
-    | 'upside_down'
-    | 'face_seen'
-    | 'gesture_like'
-    | 'gesture_dislike'
-    | 'gesture_ok'
-    | 'gesture_five'
-    | 'gesture_call'
-    | 'expression_happy'
-    | 'expression_sad'
-    | 'expression_angry'
-    | 'expression_surprised';
+// Names of lp_event: the reactions of eyes/emotions.json, so the two cannot drift apart
+export type EyeEvent = keyof (typeof emotions)['reactions'];
 
 // Same look object as the prototype (makeLook in prototype/eyes.js)
 export interface Look {
