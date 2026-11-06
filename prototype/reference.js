@@ -64,11 +64,11 @@ try {
         cCanvas.getContext('2d').putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
         pair.append(labelled(`Moteur C ${engine.version}`, cCanvas));
 
-        const { mean, core, pass } = compareFrame(eyes, 0, pixels);
-        results.push({ id: scene.id, mean, core, pass });
+        const { mean, core, big, pass } = compareFrame(eyes, 0, pixels);
+        results.push({ id: scene.id, mean, core, big, pass });
         const score = document.createElement('p');
         score.className = `score ${pass ? 'pass' : 'fail'}`;
-        score.textContent = `écart moyen ${mean.toFixed(2)} · ${core} pixels de cœur > ${PARITY.big}`;
+        score.textContent = `écart moyen ${mean.toFixed(2)} · ${big} pixels > ${PARITY.big}, dont ${core} de cœur`;
         figure.insertBefore(score, caption);
     }
 
