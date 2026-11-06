@@ -143,9 +143,9 @@ Le modèle décide, le moteur exécute. Il peut choisir une réaction par son no
 réactions, et changer de modèle ne touche pas au moteur. Un modèle qui répète un événement ne noie pas l'écran : le
 moteur prolonge la réaction sans relancer ses étincelles.
 
-La liaison UART lira les mêmes lignes que l'USB : `commands.c` ignore déjà tout ce qui ne commence pas par `> `, donc le
-journal de démarrage de l'autre puce. Il faudra lui passer le flux de réponse et lancer une seconde tâche à l'arrivée
-de la XIAO. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
+La liaison UART lira les mêmes lignes que l'USB : `lp_command_parse` ignore tout ce qui ne commence pas par `> `, donc le
+journal de démarrage de l'autre puce, et les fonctions de `commands.c` reçoivent leurs flux : il suffira d'une seconde
+tâche à l'arrivée de la XIAO. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
 sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux figés.
 
 ## Performance (mise en place en 2e)
@@ -172,13 +172,18 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
-- **Une image par carte**, choisie à la compilation (`BOARD`, `firmware/boards/<carte>/`) : broches, montage et taille
-  d'écran sont dans `board_config.h`, et `firmware/main/CMakeLists.txt` lie les composants de la carte. Chaque en-tête
-  (`display.h`, `imu.h`) est l'interface, chaque composant un fichier `.c`, sans table de fonctions : tout est choisi à
-  la compilation. Un seul binaire reconnaissant sa carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le
-  même boîtier (ESP32-S3-PICO), et sonder un bus ou lire l'identifiant d'un écran obligerait à piloter des broches sur
-  une carte inconnue. Ajouter un écran : un `.c` de 4 fonctions et une ligne CMake. Ajouter un capteur : un `.c` de 2
-  fonctions et une ligne CMake. Ajouter une carte : son dossier, une entrée Kconfig, une branche CMake, une entrée CI.
+- **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
+  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
+  puce. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
+  composant un fichier `.c`, sans table de fonctions : tout est choisi à la compilation. Un seul binaire reconnaissant sa
+  carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le même boîtier (ESP32-S3-PICO), et sonder un bus ou lire
+  l'identifiant d'un écran obligerait à piloter des broches sur une carte inconnue. Ajouter un écran : un `.c` de 4
+  fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
+  aux composants connus : son dossier, rien d'autre.
+- **Mauvaise image** : deux gardes. `firmware:flash` demande `> hello` à la carte et refuse si une autre carte répond
+  (`FORCE=1` pour passer outre, une carte vierge ne répond pas et passe). Au démarrage, `board_init` compare le boîtier
+  de la puce et s'arrête avant de toucher une broche. Limite : une image `stamp_s3a` sur la XIAO n'est pas arrêtée, les
+  deux sont en boîtier QFN56 ; le futur firmware de la XIAO devra répondre à `> hello` pour que le flash la protège.
 - Le pilote de l'écran rond (`firmware/main/display_co5300.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).

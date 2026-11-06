@@ -71,9 +71,11 @@ reference until the engine takes over each feature.
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
   the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright, with a fake `navigator.serial`.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one image per board (`atoms3r`, `waveshare_132`, `stamp_s3a`), chosen at
-  build time: `BOARD` picks `boards/<board>/` (`sdkconfig.board`, and `board_config.h`: pins, mounting, display size),
-  and `main/CMakeLists.txt` links that board's parts. The chip package cannot tell boards apart: the AtomS3R and the
-  Waveshare 1.32" are both ESP32-S3-PICO. Never flash an image on another board: it drives that board's pins.
+  build time. A board is one folder, nothing else to touch: `boards/<board>/board.cmake` lists its parts and
+  `board_config.h` its pins, mounting, display size and chip package; CMake, CI and `device-check` read the folders. The
+  chip package cannot tell boards apart (the AtomS3R and the Waveshare 1.32" are both ESP32-S3-PICO), but `board_init`
+  stops on the wrong package before touching a pin, and `firmware:flash` refuses a board that answers `hello` with
+  another name. An image flashed on another board drives that board's pins.
   `components/lilpet` wraps the engine. Each header is an interface and each part a `.c` file, with no function tables:
   `display.h` is `display_co5300.c` for the Waveshare 1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values
   from Waveshare's demo, not yet run on the board, also used without a display) or `display_atoms3r.c` for the AtomS3R
@@ -88,7 +90,8 @@ reference until the engine takes over each feature.
   (`engine/tools/bench_script.h`) at 62.5 frames/s instead, with the host's look, seed and fixed step, so that image
   measures the engine on the chip, comparable with `mise run engine:bench`.
   `main/commands.c` reads the commands on the same USB port and queues them for the drawing loop (the engine is not
-  thread-safe); the camera board will send the same lines over UART. `main/look_store.c` keeps the look in NVS.
+  thread-safe); `src/command.c` in the engine parses them (`lp_command_parse`, tested on the host). The camera board
+  will send the same lines over UART: the handlers take their `FILE *`, so it only adds a task. `main/look_store.c` keeps the look in NVS.
   Gravity (`lp_eyes_set_gravity`) turns the face to stay level and slides the eyes toward the low side (prototype:
   `gravity` in `eyes.js`, "Objet tourné" slider). Reactions (`eyes/emotions.json`): held upside down it gets angry,
   shaken dizzy while it lasts (the gaze circles, the head wobbles), pressed (the AtomS3R's screen is a button) or petted
@@ -123,16 +126,16 @@ reference until the engine takes over each feature.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
   a loop.
-- `BOARD=<board> mise run firmware:build` — firmware into `firmware/build/<board>/` (`flash_args` and its three images,
-  plus `merged-binary.bin` for a blank board, which also erases the stored look), in the ESP-IDF image pinned in
-  `firmware/Dockerfile` (latest release; Dependabot proposes new ones). CI builds the three boards and keeps one artifact
-  each. `BOARD=<board> mise run firmware:flash` writes the bootloader, partition table and app only, so the look kept in
-  NVS survives. `firmware:monitor` reads the port. esptool and pyserial come from mise (`tools` of each task): no local
-  ESP-IDF install. The build keeps its ccache in `firmware/.ccache` (CI caches it too).
-- `mise run firmware:check-device` — checks the flashed board over USB (`scripts/device-check.py`, through `uv`: no
-  reboot on opening, hello and its board, a look kept across a reboot, emotion, react, gaze, bad commands and lines too
-  long rejected, about 1 g from a motion sensor; puts the board's look back). The one check CI cannot run.
-
+- `BOARD=<board> mise run firmware:deploy` — takes care of one object: builds, flashes, checks. Alone:
+  `firmware:build` into `firmware/build/<board>/` (`flash_args` and its three images, plus `merged-binary.bin` for a
+  blank board, which also erases the stored look), in the ESP-IDF image pinned in `firmware/Dockerfile` (latest release;
+  Dependabot proposes new ones); `firmware:flash` writes the bootloader, partition table and app only, so the look kept
+  in NVS survives; `firmware:check-device` (`scripts/device-check.py`, through `uv`: no reboot on opening, hello and its
+  board, a look kept across a reboot, emotion, react, gaze, bad commands and lines too long rejected, about 1 g from a
+  motion sensor; puts the board's look back, the one check CI cannot run). `PORT` picks the board, otherwise the only
+  one plugged in; `FORCE=1` flashes over another board's image. `firmware:monitor` reads the port. esptool, pyserial and
+  uv come from mise: no local ESP-IDF install. CI builds every folder of `firmware/boards` and keeps one artifact each.
+  The build keeps its ccache in `firmware/.ccache` (CI caches it too).
 - A new git worktree needs `mise trust` and `npm ci`: Git silently skips every hook without `.husky/_`, which only
   `npm ci` creates.
 
