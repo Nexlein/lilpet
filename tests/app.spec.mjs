@@ -100,6 +100,7 @@ function countFrames() {
 
 const frames = (page) => page.evaluate(() => window.drawn);
 const sent = (page) => page.evaluate(() => window.board.sent);
+const looks = async (page) => (await sent(page)).filter((line) => line.startsWith('> look'));
 const note = (page) => page.locator('.send-note');
 const chip = (page, name) => page.locator('.grid .chip', { hasText: name });
 const place = (locator) => locator.evaluate((el) => ({ x: el.offsetLeft, y: el.offsetTop }));
@@ -233,6 +234,29 @@ test('sends one look at a time and keeps a failure until the next send', async (
     await page.evaluate(() => (window.board.replies.look = 'ok'));
     await send.click();
     await expect(note(page)).toHaveText('kite est sur lilpet, et y reste même éteint.');
+});
+
+test('the send button keeps the keyboard focus and only sends once connected, one at a time', async ({ page }) => {
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const send = page.locator('.primary');
+    await send.focus();
+    await page.keyboard.press('Enter');
+    await expect(note(page)).toHaveText('Branche lilpet en USB pour lui envoyer ce look.');
+
+    await plugIn(page);
+    await page.evaluate(() => (window.board.delay = 300));
+    await send.focus();
+    await page.keyboard.press('Enter');
+    await expect(send).toHaveText('Envoi…');
+    await expect(send).toBeFocused();
+    await page.keyboard.press('Enter'); // ignored: one send is under way
+    await expect(note(page)).toHaveText('cherry est sur lilpet, et y reste même éteint.');
+    await expect(send).toBeFocused();
+    expect(await looks(page)).toHaveLength(1);
+
+    await page.keyboard.press('Enter');
+    await expect.poll(() => looks(page)).toHaveLength(2);
 });
 
 test('a send that an unplug cuts short keeps its failure', async ({ page }) => {

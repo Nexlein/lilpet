@@ -349,7 +349,7 @@ button {
     font-weight: 700;
 }
 
-.primary:disabled {
+.primary[aria-disabled='true'] {
     background: var(--shell-2);
     color: var(--haze);
     cursor: default;

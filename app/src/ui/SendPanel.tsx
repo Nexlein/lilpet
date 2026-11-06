@@ -21,9 +21,11 @@ export function SendPanel({ swatch, pupil, device, onSend }: Props) {
     const [sending, setSending] = useState(false);
     const [last, setLast] = useState<LastSend | null>(null);
     const key = lookKey(swatch.id, pupil);
+    const blocked = device.status !== 'connected' || sending;
 
     // One at a time, even if another look is chosen meanwhile: the result keeps the look it is about
     const send = async () => {
+        if (blocked) return;
         const sent = { name: swatch.id, key, device };
         setSending(true);
         setLast(null);
@@ -37,12 +39,8 @@ export function SendPanel({ swatch, pupil, device, onSend }: Props) {
 
     return (
         <div className="send">
-            <button
-                type="button"
-                className="primary"
-                disabled={device.status !== 'connected' || sending}
-                onClick={send}
-            >
+            {/* Not disabled, as in DeviceBar: the keyboard focus would go away with it. A blocked click does nothing */}
+            <button type="button" className="primary" aria-disabled={blocked} onClick={send}>
                 {sending ? 'Envoi…' : 'Envoyer à lilpet'}
             </button>
             <p className="send-note" role="status">
