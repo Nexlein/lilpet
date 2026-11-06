@@ -414,6 +414,18 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
     await expect(stop).toContainText('socks');
 });
 
+test('says when no color matches, in a status that is there before it speaks', async ({ page }) => {
+    await page.goto(APP);
+    const empty = page.locator('.empty[role=status]');
+    await expect(empty).toBeEmpty();
+    await page.getByLabel('Chercher une couleur par son nom').fill('no such color');
+    await expect(empty).toHaveText('Aucune couleur ne correspond. Retire un filtre ou change ta recherche.');
+    await expect(page.locator('.grid')).toHaveCount(0);
+    await page.getByLabel('Chercher une couleur par son nom').fill('');
+    await expect(empty).toBeEmpty();
+    await expect(page.locator('.grid .chip')).toHaveCount(100);
+});
+
 test('with less motion asked, the eyes are a still frame that follows the choices', async ({ page }) => {
     await page.addInitScript(countFrames);
     await page.emulateMedia({ reducedMotion: 'reduce' });
