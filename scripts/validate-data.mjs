@@ -111,7 +111,7 @@ eachRow(
     EMOTIONS,
     emotions,
     'emotions',
-    ['neutral'],
+    ['neutral', 'sleepy'],
     ['label', 'emit', 'note', ...Object.keys(EXPRESSION)],
     (emotion, fail) => {
         if (typeof emotion.label !== 'string' || !emotion.label) fail('"label" must be a non-empty string');
@@ -127,7 +127,7 @@ eachRow(
     EMOTIONS,
     emotionData?.reactions,
     'reactions',
-    HELD,
+    [...HELD, 'tap', 'face_seen'],
     ['emotion', 'duration', 'sparkles', 'note'],
     (reaction, fail, id) => {
         if (!Object.hasOwn(emotions, reaction.emotion))
