@@ -30,10 +30,6 @@ export const emotionCommand = (name: string, seconds?: number): string =>
 // "> react tap": the device picks the emotion from its reaction table
 export const reactCommand = (event: EyeEvent): string => `> react ${event}`;
 
-// "> gaze 0.500 -0.250": -1..1 from the center of the screen; null hands the gaze back to the device: "> gaze off"
-export const gazeCommand = (point: { x: number; y: number } | null): string =>
-    point ? `> gaze ${point.x.toFixed(3)} ${point.y.toFixed(3)}` : '> gaze off';
-
 export function classify(line: string): Line {
     return line.startsWith('< ') ? { kind: 'reply', text: line.slice(2) } : { kind: 'log', text: line };
 }

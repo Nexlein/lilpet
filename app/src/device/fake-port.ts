@@ -5,7 +5,7 @@ import type { PortLike } from './connection';
 export function firmware(): (command: string) => string | null {
     return (command) => {
         if (command === '> hello') return 'lilpet fw=abc1234 engine=0.6.0 board=atoms3r camera=0 motion=1';
-        if (/^> (look|emotion|react|gaze) /.test(command)) return 'ok';
+        if (/^> (look|emotion|react) /.test(command)) return 'ok';
         return null; // no reply: the request must time out
     };
 }
