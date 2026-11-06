@@ -51,12 +51,15 @@ function eachItem(path, list, name, check) {
     }
 }
 
-// Same for an object of named rows, and each row's keys: a misspelled one would be ignored
-function eachRow(path, rows, name, keys, check) {
+// Same for an object of named rows, the ones the code asks for by name, and each row's keys: a misspelled one would be
+// ignored
+function eachRow(path, rows, name, required, keys, check) {
     if (!isObject(rows) || Object.keys(rows).length === 0) {
         errors.push(`${path}: "${name}" must be a non-empty object`);
         return;
     }
+    for (const id of required)
+        if (!Object.hasOwn(rows, id)) errors.push(`${path}: "${name}.${id}" is missing, the eyes need it`);
     for (const [id, row] of Object.entries(rows)) {
         const fail = (msg) => errors.push(`${path} ${name}.${id}: ${msg}`);
         if (!NAME.test(id)) fail(`the name must match ${NAME}`);
@@ -66,7 +69,8 @@ function eachRow(path, rows, name, keys, check) {
         }
         for (const k of Object.keys(row))
             if (!keys.includes(k)) fail(`unknown key "${k}", expected ${keys.join(', ')}`);
-        if (row.note !== undefined && typeof row.note !== 'string') fail('"note" must be a string');
+        if (row.note !== undefined && (typeof row.note !== 'string' || /\/\*|\*\//.test(row.note)))
+            fail('"note" must be a string without /* or */: it becomes a C comment');
         check(row, fail);
     }
 }
@@ -90,7 +94,7 @@ const EXPRESSION = {
     tl: [0, 1],
     ts: [-1, 1],
     bl: [0, 1],
-    sq: [0, 1],
+    sq: [0, 0.95], // 1 squashes the eye flat: lp_affine_inverse would divide by zero
     cr: [0, 1],
     rot: [-1.5, 1.5],
     hl: [0, 1],
@@ -101,18 +105,27 @@ const EXPRESSION = {
 };
 const EMIT_TYPES = ['heart', 'sparkle'];
 const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
-eachRow(EMOTIONS, emotions, 'emotions', ['label', 'emit', 'note', ...Object.keys(EXPRESSION)], (emotion, fail) => {
-    if (typeof emotion.label !== 'string' || !emotion.label) fail('"label" must be a non-empty string');
-    for (const [k, [min, max]] of Object.entries(EXPRESSION))
-        if (emotion[k] !== undefined && !isNum(emotion[k], min, max)) fail(`"${k}" must be between ${min} and ${max}`);
-    if (emotion.emit === undefined) return;
-    if (!EMIT_TYPES.includes(emotion.emit?.type)) fail(`"emit.type" must be one of ${EMIT_TYPES.join(', ')}`);
-    if (!isNum(emotion.emit?.rate, 0.01, 30)) fail('"emit.rate" must be between 0.01 and 30 particles per second');
-});
+eachRow(
+    EMOTIONS,
+    emotions,
+    'emotions',
+    ['neutral'],
+    ['label', 'emit', 'note', ...Object.keys(EXPRESSION)],
+    (emotion, fail) => {
+        if (typeof emotion.label !== 'string' || !emotion.label) fail('"label" must be a non-empty string');
+        for (const [k, [min, max]] of Object.entries(EXPRESSION))
+            if (emotion[k] !== undefined && !isNum(emotion[k], min, max))
+                fail(`"${k}" must be between ${min} and ${max}`);
+        if (emotion.emit === undefined) return;
+        if (!EMIT_TYPES.includes(emotion.emit?.type)) fail(`"emit.type" must be one of ${EMIT_TYPES.join(', ')}`);
+        if (!isNum(emotion.emit?.rate, 0.01, 30)) fail('"emit.rate" must be between 0.01 and 30 particles per second');
+    }
+);
 eachRow(
     EMOTIONS,
     emotionData?.reactions,
     'reactions',
+    ['shake', 'upside_down'],
     ['emotion', 'duration', 'sparkles', 'note'],
     (reaction, fail) => {
         if (!Object.hasOwn(emotions, reaction.emotion))
@@ -159,9 +172,10 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     if (isObject(scene.particles)) {
         if (!Number.isInteger(scene.particles.seed) || scene.particles.seed < 0)
             fail('"particles.seed" must be a non-negative integer');
-        if (!isNum(scene.particles.time, 0.01, 10)) fail('"particles.time" must be between 0.01 and 10 seconds');
+        const timeOk = isNum(scene.particles.time, 0.01, 10);
+        if (!timeOk) fail('"particles.time" must be between 0.01 and 10 seconds');
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
-        else if (known) {
+        else if (known && timeOk) {
             const eyes = new Eyes(1);
             eyes.setScene(scene, null);
             if (eyes.particles.length === 0) fail('no particle is alive at "particles.time"');
