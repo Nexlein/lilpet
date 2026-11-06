@@ -127,18 +127,20 @@ comme en `double`.
 - Toutes les versions sont figées (novembre 2026 : avec `latest`, la CI tournait déjà sous Node 26 et le poste sous
   Node 24, et un nouveau clang-format aurait pu la faire échouer sur du code inchangé). Chaque nouvelle version arrive
   en pull request, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils de `mise.toml`, que Dependabot
-  ne sait pas lire, Dependabot pour npm, les images Docker et les actions (`jdx/mise-action`, épinglée par son
-  commit).
+  ne sait pas lire, Dependabot pour npm, les images Docker et les actions, toutes épinglées par
+  commit.
 
 ## Vision
 
-Le but : le visage réagit à ce que voit la caméra, les gestes, le visage et les expressions de la personne. La carte
-caméra a son propre projet, `vision/`, créé à l'achat de la XIAO : elle n'a pas besoin du moteur, et ses broches de
-caméra sont celles de l'écran sur l'autre carte.
+Le but : un modèle d'IA dans l'objet traite ce que voit la caméra, les gestes, le visage et les expressions de la
+personne, et choisit les réactions. La carte caméra a son propre projet, `vision/`, créé à l'achat de la XIAO : elle n'a
+pas besoin du moteur, et ses broches de caméra sont celles de l'écran sur l'autre carte.
 
-Le modèle ne choisit pas d'émotion : il envoie ce qu'il voit (`> react gesture_like`, `> react expression_happy`,
-`> gaze 0.2 -0.1`, protocole dans [app.md](app.md)), et le moteur choisit la réaction dans `eyes/emotions.json`. L'aperçu
-web, l'AtomS3R et l'objet final réagissent ainsi de la même façon, et changer de modèle ne touche pas au moteur.
+Le modèle décide, le moteur exécute. Il peut choisir une réaction par son nom (`> react gesture_like`), dont
+`eyes/emotions.json` donne les valeurs par défaut, ou une émotion et sa durée (`> emotion happy 2`), et il dit où regarder
+(`> gaze 0.2 -0.1`). Protocole dans [app.md](app.md). L'aperçu web, l'AtomS3R et l'objet final jouent ainsi les mêmes
+réactions, et changer de modèle ne touche pas au moteur. Un modèle qui répète un événement ne noie pas l'écran : le
+moteur prolonge la réaction sans relancer ses étincelles.
 
 La liaison UART lira les mêmes lignes que l'USB : `commands.c` ignore déjà tout ce qui ne commence pas par `> `, donc le
 journal de démarrage de l'autre puce. Il faudra lui passer le flux de réponse et lancer une seconde tâche à l'arrivée
