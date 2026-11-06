@@ -1,4 +1,4 @@
-// Types of engine.mjs, for the TypeScript PC app (app/).
+// Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
 import type emotions from '../../eyes/emotions.json';
 
 export const PUPILS: readonly ['dot', 'cat', 'acorn', 'circle'];
@@ -16,24 +16,12 @@ export interface Look {
     pupilColor: readonly [string, string];
 }
 
-export interface Shape {
-    rx: number;
-    ry: number;
-    gap: number;
-    tilt: number;
-}
-
-// One reference scene (prototype/scenes.json)
+// A frozen frame: the part of a reference scene (prototype/scenes.json) the app sets
 export interface Scene {
     emotion?: string;
-    blink?: { phase: 'anticip' | 'close' | 'closed' | 'open'; t: number };
-    head?: { yaw?: number; pitch?: number; roll?: number };
-    gaze?: { x?: number; y?: number };
-    particles?: { seed: number; time: number };
 }
 
 export interface Engine {
-    version: string;
     size: number;
     emotions: string[];
     renderScene(scene: Scene, look: Look): Uint8ClampedArray<ArrayBuffer>;
@@ -43,17 +31,10 @@ export interface Engine {
     setEmotion(name: string, duration?: number): void;
     blink(): void;
     setPointer(point: { x: number; y: number } | null): void;
-    setGravity(gravity: { x: number; y: number } | null): void;
-    setShaking(shaking: boolean): void;
-    setFollow(follow: boolean): void;
-    setShape(shape: Shape): void;
-    setHeadAmount(amount: number): void;
     react(event: EyeEvent): void;
-    emotion(): string;
     update(dt: number): void;
-    // RGBA pixels of the whole screen (size × size × 4)
-    render(): Uint8ClampedArray<ArrayBuffer>;
-    // The same without a copy, in the engine's memory: valid until the next render
+    // RGBA pixels of the whole screen (size × size × 4), without a copy, in the engine's memory: valid until the next
+    // render
     renderView(): Uint8ClampedArray<ArrayBuffer>;
 }
 
