@@ -11,7 +11,11 @@ export function firmware(): (command: string) => string | null {
 }
 
 // Stands alone, using nothing from around it: tests/app.spec.mjs sends its text to the page, for the browser tests
-export function fakePort(answer: (command: string) => string | null, { failSignals = false, delay = () => 0 } = {}) {
+// atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
+export function fakePort(
+    answer: (command: string) => string | null,
+    { failSignals = false, delay = () => 0, atOpen = '' } = {}
+) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
     // As in Chrome, a cancelled stream makes way for a new one: only closing the port ends reading
@@ -60,6 +64,7 @@ export function fakePort(answer: (command: string) => string | null, { failSigna
             closed = false;
             readable = stream();
             writable = output();
+            if (atOpen) setTimeout(() => device.enqueue(encoder.encode(atOpen)));
         },
         // As in Chrome, a port does not close while a stream is locked
         close: async () => {

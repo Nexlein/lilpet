@@ -11,7 +11,7 @@ import {
     reactCommand
 } from './protocol';
 import { Connection, ConnectionClosed, portPicker } from './connection';
-import { command, hello, sendLook } from './device';
+import { NotLilpet, command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
 
 describe('protocol', () => {
@@ -94,6 +94,22 @@ describe('connection', () => {
         const connection = await Connection.open(device.port);
         expect((await hello(connection)).firmware).toBe('abc1234');
         expect(hellos).toBe(2);
+        await connection.close();
+    });
+
+    it('asks hello again when a reply left from before a reload answers the first one', async () => {
+        const device = fakePort(firmware(), { atOpen: '< ok\n', delay: () => 5 });
+        const connection = await Connection.open(device.port);
+        expect((await hello(connection)).firmware).toBe('abc1234');
+        expect(device.sent).toEqual(['> hello', '> hello']);
+        await connection.close();
+    });
+
+    it('gives up on a device that never answers like lilpet, after the last attempt', async () => {
+        const device = fakePort(() => 'something else');
+        const connection = await Connection.open(device.port);
+        await expect(hello(connection)).rejects.toThrow(NotLilpet);
+        expect(device.sent).toHaveLength(3);
         await connection.close();
     });
 
