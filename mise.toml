@@ -61,12 +61,12 @@ description = "Everything CI checks on the engine"
 depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
-# One image per board: BOARD names a folder of firmware/boards, with no default, since the wrong image drives the wrong
-# pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in a command line.
+# One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong image
+# drives the wrong pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in a command line.
 [tasks."firmware:board"]
 description = "Fail unless BOARD names a folder of firmware/boards"
 hide = true
-run = 'test -f "firmware/boards/$BOARD/sdkconfig.board" || { echo "Set BOARD to one of:" $(ls firmware/boards) >&2; exit 1; }'
+run = 'case "$BOARD" in */*) false ;; esac && test -f "firmware/boards/$BOARD/board.cmake" || { echo "Set BOARD to one of:" $(ls firmware/boards) >&2; exit 1; }'
 
 [tasks."firmware:build"]
 description = "Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile"
@@ -78,9 +78,9 @@ depends = ["firmware:board"]
 run = [
     # ESP-IDF only reads the defaults when it creates the board's sdkconfig: start over when they changed, or a local
     # build would keep old settings that CI (always fresh) does not have
-    'for defaults in firmware/sdkconfig.defaults "firmware/boards/$BOARD/sdkconfig.board"; do if [ "$defaults" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
+    'if [ firmware/sdkconfig.defaults -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi',
     "docker build -t lilpet-idf - < firmware/Dockerfile",
-    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/$BOARD/sdkconfig.board" build merge-bin',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" -D SDKCONFIG_DEFAULTS=sdkconfig.defaults build merge-bin',
 ]
 
 [tasks."firmware:flash"]
