@@ -272,6 +272,54 @@ void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bo
  * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
 void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
 
+/* --- Commands: the text protocol of the USB port and the camera link (notes/app.md) ---------------- */
+
+#define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
+
+/* A line as it arrives; starts zeroed */
+typedef struct {
+    char text[LP_COMMAND_LINE_MAX + 1];
+    size_t length;
+    bool too_long; /* `text` holds its start only */
+} lp_command_line;
+
+/*
+ * Adds a byte. True when it ends the line (\n or \r): `text` is then ready. What does not fit is thrown away up to
+ * that end, so that it cannot pass for a command. A NUL cuts `text` short, and never ends the line.
+ */
+bool lp_command_line_add(lp_command_line *line, char byte);
+
+typedef enum {
+    LP_COMMAND_NONE, /* other lines are ignored: the timing reports share the port */
+    LP_COMMAND_HELLO,
+    LP_COMMAND_LOOK_QUERY,
+    LP_COMMAND_IMU_QUERY,
+    LP_COMMAND_LOOK,
+    LP_COMMAND_EMOTION,
+    LP_COMMAND_REACT,
+    LP_COMMAND_GAZE
+} lp_command_type;
+
+/* What a line asks */
+typedef struct {
+    lp_command_type type;
+    union {
+        lp_look look;
+        struct {
+            lp_emotion name;
+            float seconds; /* 0: the new mood */
+        } emotion;
+        lp_event event;
+        struct {
+            bool seen; /* false: the face is gone */
+            float x, y;
+        } gaze;
+    };
+} lp_command;
+
+/* Reads a whole line into `out`. Returns NULL, or what is wrong with it: the reason given after "< err ". */
+const char *lp_command_parse(const lp_command_line *line, lp_command *out);
+
 /* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
 
 typedef struct {
