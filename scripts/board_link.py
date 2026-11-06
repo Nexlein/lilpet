@@ -75,6 +75,7 @@ def open_port(name):
     port.port = name
     port.baudrate = 115200
     port.timeout = 0.2
+    port.exclusive = True  # the lock esptool and pyserial-miniterm take: a monitor cannot open during a check
     # Opening asserts both lines: keep DTR while releasing RTS, then release DTR, never RTS alone (same as the app)
     port.dtr = True
     port.rts = False

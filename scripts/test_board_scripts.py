@@ -63,13 +63,14 @@ class Board:
         report_after=12.5,  # seconds after booting
         open_error=None,
         dtr_error=None,
+        monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
-        self.open_error, self.dtr_error, self.stop_at = open_error, dtr_error, stop_at
+        self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
         self.look = "AE0002 FF5252 FF5252 dot"
         self.mood = "neutral"
         self.in_reset = False
@@ -143,7 +144,7 @@ class Serial:
     """The part of pyserial the scripts use: the chip resets while RTS is asserted without DTR"""
 
     def __init__(self):
-        self.port, self.baudrate, self.timeout = None, None, None
+        self.port, self.baudrate, self.timeout, self.exclusive = None, None, None, None
         self.board = None  # once open
         self._dtr = self._rts = True
 
@@ -151,6 +152,8 @@ class Serial:
         board = plugged[self.port]
         if board.open_error:
             raise board.open_error
+        if board.monitor_open and self.exclusive:
+            raise OSError(f"Could not exclusively lock port {self.port}")
         board.opened += 1
         self.board = board
         self.lines_changed()
@@ -298,8 +301,9 @@ class FlashGuard(unittest.TestCase):
             Board("waveshare_132", open_error=OSError("no such port")),
             Board("waveshare_132", open_error=termios.error(5, "Input/output error")),
             Board("waveshare_132", dtr_error=OSError("broken pipe")),
+            Board("waveshare_132", monitor_open=True),  # esptool stops on the same lock
         ):
-            with self.subTest(open_error=board.open_error, dtr_error=board.dtr_error):
+            with self.subTest(open_error=board.open_error, dtr_error=board.dtr_error, monitor=board.monitor_open):
                 self.assertEqual(guard(board)[:2], (0, f"{PORT}\n"))
 
     def test_force_asks_nothing(self):
@@ -393,6 +397,10 @@ class DeviceCheck(unittest.TestCase):
         self.assertIn("FAIL runs to the end (interrupted)", out)
         self.assertIn("ok   gets its own look back", out)
         self.assertEqual((board.look, board.mood), (look, "neutral"))
+
+    def test_keeps_a_monitor_off_the_port(self):
+        status, _, _ = check_device(Board("atoms3r", monitor_open=True))
+        self.assertIn("close the serial monitor", status)
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):
         status, out, _ = check_device(Board("atoms3r", motion=False))
