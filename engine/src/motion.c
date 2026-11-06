@@ -13,9 +13,9 @@
 
 bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt)
 {
-    if (!(dt > 0.0f) || !isfinite(ax) || !isfinite(ay) || !isfinite(az))
-        return shake->active;
     const float off = fabsf(sqrtf(ax * ax + ay * ay + az * az) - 1.0f);
+    if (!(dt > 0.0f) || !isfinite(dt) || !isfinite(off)) /* a sample so large it overflows would stick in the energy */
+        return shake->active;
     shake->energy = lp_approach(shake->energy, off, SHAKE_RATE, dt);
     if (shake->active) {
         shake->active = shake->energy > SHAKE_END;

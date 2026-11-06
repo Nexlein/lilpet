@@ -1,13 +1,16 @@
 // Text protocol with the device over USB (notes/app.md): commands start with "> ", replies with "< ", any other line
 // is the device's log. Pure functions, tested without hardware.
+import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
 
 export interface DeviceInfo {
     firmware: string;
     engine: string;
+    // Not given by older firmware
+    board?: string;
 }
 
-export type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
+type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
 
 export const HELLO = '> hello';
 
@@ -18,24 +21,41 @@ export function lookCommand(look: Look): string {
     return `> look ${hex(look.sclera)} ${hex(look.pupilColor[0])} ${hex(look.pupilColor[1])} ${look.pupil}`;
 }
 
+// "> emotion happy": the new mood, for good
+export const emotionCommand = (name: string): string => `> emotion ${name}`;
+
+// "> react tap": the device picks the emotion from its reaction table
+export const reactCommand = (event: EyeEvent): string => `> react ${event}`;
+
 export function classify(line: string): Line {
     return line.startsWith('< ') ? { kind: 'reply', text: line.slice(2) } : { kind: 'log', text: line };
 }
 
-// "lilpet fw=2e62a96 engine=0.6.0"
+// "lilpet fw=2e62a96 engine=0.6.0 board=atoms3r camera=0 motion=1"; older firmware stops after the engine
 export function parseHello(reply: string): DeviceInfo | null {
     const words = reply.trim().split(/\s+/);
     if (words[0] !== 'lilpet') return null;
     const fields = new Map(words.slice(1).map((w) => w.split('=') as [string, string]));
     const firmware = fields.get('fw');
     const engine = fields.get('engine');
-    return firmware && engine ? { firmware, engine } : null;
+    if (!firmware || !engine) return null;
+    return { firmware, engine, board: fields.get('board') };
 }
 
+// A reply to a command, read once here: the rest of the app never looks at its text
+export type Reply =
+    | { kind: 'ok' }
+    | { kind: 'shown' } // the look is on screen, but the flash refused it
+    | { kind: 'busy' }
+    | { kind: 'refused'; reason: string };
+
 // "ok", or "err <reason>"
-export function replyError(reply: string): string | null {
-    if (reply === 'ok') return null;
-    return reply.startsWith('err') ? reply.slice(3).trim() || 'unknown error' : `unexpected reply: ${reply}`;
+export function parseReply(reply: string): Reply {
+    if (reply === 'ok') return { kind: 'ok' };
+    if (!reply.startsWith('err')) return { kind: 'refused', reason: `unexpected reply: ${reply}` };
+    const reason = reply.slice(3).trim() || 'unknown error';
+    if (reason === 'busy') return { kind: 'busy' };
+    return reason.startsWith('shown') ? { kind: 'shown' } : { kind: 'refused', reason };
 }
 
 // Cuts a stream of text chunks into lines, whatever the line ending (\n or \r\n)

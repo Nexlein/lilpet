@@ -32,13 +32,9 @@ target_link_libraries(lilpet PRIVATE lilpet_warnings)
 
 enable_testing()
 add_executable(lilpet_tests tests/test_main.c tests/test_version.c tests/test_parity.c tests/test_eyes.c
-    tests/test_look.c tests/test_render.c)
+    tests/test_look.c tests/test_command.c tests/test_render.c tests/test_senses.c)
 target_link_libraries(lilpet_tests PRIVATE lilpet lilpet_warnings m)
 add_test(NAME lilpet_tests COMMAND lilpet_tests)
-
-# Writes every reference scene as an image, to compare with prototype/reference.html (mise run engine:scenes)
-add_executable(lilpet_render_scenes tools/render_scenes.c)
-target_link_libraries(lilpet_render_scenes PRIVATE lilpet lilpet_warnings m)
 
 # Renderer timings per reference scene and over an animation, in the host-release build (mise run engine:bench)
 add_executable(lilpet_bench tools/bench.c)

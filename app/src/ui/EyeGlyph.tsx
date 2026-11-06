@@ -1,7 +1,7 @@
 // A small drawing of a pair of eyes, for the gallery and the pupil picker. Same proportions as the engine: eyes tilted
 // outward, pupils upright, set toward the nose and leaning a little (notes/yeux.md).
 import { useId } from 'react';
-import type { PupilType, Swatch } from '../data/looks';
+import type { LookColors, PupilType } from '../data/looks';
 
 const RX = 17;
 const RY = 20;
@@ -17,16 +17,15 @@ const PUPILS: Record<PupilType, { rx: number; ry: number; x: number; y: number }
 };
 
 interface Props {
-    swatch: Swatch;
+    colors: LookColors;
     pupil: PupilType;
-    className?: string;
 }
 
-export function EyeGlyph({ swatch, pupil, className }: Props) {
+export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
     const p = PUPILS[pupil];
     return (
-        <svg className={className} viewBox="0 0 100 60" aria-hidden="true">
+        <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
                 const cx = 50 + side * 19;
                 const inner = -side;
@@ -43,7 +42,7 @@ export function EyeGlyph({ swatch, pupil, className }: Props) {
                             cy={30}
                             rx={RX}
                             ry={RY}
-                            fill={swatch.sclera}
+                            fill={colors.sclera}
                             transform={`rotate(${side * TILT} ${cx} 30)`}
                         />
                         <ellipse
@@ -51,7 +50,7 @@ export function EyeGlyph({ swatch, pupil, className }: Props) {
                             cy={py}
                             rx={p.rx * RX}
                             ry={p.ry * RY}
-                            fill={swatch.pupilColor[side < 0 ? 0 : 1]}
+                            fill={colors.pupilColor[side < 0 ? 0 : 1]}
                             transform={`rotate(${inner * LEAN} ${px} ${py})`}
                             clipPath={`url(#${clip})`}
                         />

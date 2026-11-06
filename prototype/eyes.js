@@ -1,15 +1,14 @@
-// Eye renderer of the design prototype: state, animation and drawing, no DOM access.
+// Eyes of the design prototype: state and animation, no DOM access, so that Node can import them (draw.js draws them).
 // It is the visual reference for the C engine (see notes/architecture.md).
 // Units are logical pixels of the 466×466 round screen.
+import emotionData from '../eyes/emotions.json' with { type: 'json' };
 
 export const SIZE = 466;
-export const C = SIZE / 2;
+const C = SIZE / 2;
 
 // Eye shape measured on the official gallery (see notes/yeux.md)
-export const DEFAULT_SHAPE = { rx: 93, ry: 109, gap: 101, tilt: 0.37 };
+const DEFAULT_SHAPE = { rx: 93, ry: 109, gap: 101, tilt: 0.37 };
 
-// Official pupil names (notes/yeux.md), in the order of the C engine's lp_pupil
-export const PUPIL_TYPES = ['dot', 'cat', 'acorn', 'circle'];
 export const BLINK_PHASES = ['anticip', 'close', 'closed', 'open'];
 
 // A look is a swatch from eyes/looks.json worn with one of the pupil types: the object setLook and setScene take
@@ -25,50 +24,29 @@ export function makeLook(swatch, pupil) {
 // ps: pupil scale, es: eye scale, gy: gaze bias down, spin: dizzy gaze circling (rad/s, DIZZY)
 // emit: particles spawned while the emotion is on ({ type, rate per second })
 export const BASE = { tl: 0, ts: 0, bl: 0, sq: 0, cr: 0, rot: 0, hl: 0, ps: 1, es: 1, gy: 0, spin: 0 };
-export const EMOTIONS = {
-    neutral: { label: 'Neutre' },
-    happy: { label: 'Content', bl: 0.42, ps: 1.08, es: 1.02, emit: { type: 'sparkle', rate: 1.2 } },
-    love: { label: 'Amoureux', bl: 0.45, ps: 1.1, es: 1.04, gy: -0.45, hl: 1, emit: { type: 'heart', rate: 3 } },
-    angry: { label: 'Fâché', tl: 0.25, ts: 0.7, ps: 0.6, es: 0.96, gy: 0.15 },
-    squint: { label: 'Plissé', tl: 0.12, sq: 0.68, rot: 0.37, ps: 0.8, es: 1.04 },
-    frown: { label: 'Renfrogné', cr: 0.72, rot: 0.65, ps: 0.8, es: 1.04 },
-    sad: { label: 'Triste', tl: 0.2, ts: -0.5, ps: 1.15, es: 0.98, gy: 0.45 },
-    surprised: { label: 'Surpris', ps: 0.6, es: 1.12 },
-    sleepy: { label: 'Endormi', tl: 0.55, ts: -0.1, bl: 0.05, gy: 0.35, emit: { type: 'sparkle', rate: 0.4 } },
-    dizzy: { label: 'Étourdi', tl: 0.3, ts: -0.2, bl: 0.12, ps: 0.75, spin: 9 } // my own, after a shake
-};
+export const EMOTIONS = Object.fromEntries(
+    Object.entries(emotionData.emotions).map(([name, emotion]) => [name, { ...BASE, ...emotion }])
+);
 // Dizzy: the gaze circles (radius, in gaze units) and the head wobbles (rad), in proportion to spin / max; the spin
 // wears off slower than it comes, so the eyes calm down after the emotion is over
 const DIZZY = { max: 9, radius: 0.55, wobble: 0.12, wearOff: 1.5 };
-for (const e of Object.values(EMOTIONS)) for (const k in BASE) e[k] ??= BASE[k];
 
 // How the eyes react to what happens to the object: an emotion for a while, and a burst of sparkles. Data, not code,
-// so that the PC app can change them later. Same table as lp_reaction_get in the C engine (emotions.c).
-export const REACTIONS = {
-    tap: { emotion: 'happy', duration: 1.8, sparkles: 4 }, // pressed, or petted
-    shake: { emotion: 'dizzy', duration: 1.5, sparkles: 0 }, // renewed while shaken (told by the device: lp_shake_update)
-    upsideDown: { emotion: 'angry', duration: 0.5, sparkles: 0 } // renewed while the object stays upside down
-};
+// so that the PC app can change them later. The table of the C engine comes from the same file (emotions_table.h).
+export const REACTIONS = emotionData.reactions;
+const BURST_GAP = 0.5; // seconds: a burst of sparkles fills the screen if repeated any faster (same as the engine)
 // Upside down: gravity toward the top of the screen (in g, -1 fully upside down), held this many seconds
 const UPSIDE_DOWN = { gravity: -0.6, delay: 0.6 };
-
-// Resting pupil position, as a fraction of the eye radius: x toward the inner corner, y down.
-// Measured on the official catalogue (notes/yeux.md): pupils converge, a slightly cross-eyed look.
-const PUPIL_REST = { dot: [0.57, 0.12], cat: [0.35, 0.11], circle: [0.36, 0], acorn: [0.18, 0.25] };
-// Pupils lean a little, top toward the nose (rad), against the eye tilt
-const PUPIL_LEAN = 0.09;
 
 // Blink, from the official footage (~37 ms per frame): slight squash, fast close with a straight
 // top lid, thin arc while closed, slower reopening. See notes/yeux.md.
 const BLINK = { anticip: 0.06, close: 0.1 };
 
-// Closed eye, measured on 7 frames of the official footage: the lower half of a flat, level ellipse (flat
-// bottom, tips turning up), drawn as a stroke of even thickness with round tips. Fractions of the eye
-// radii: half width of RX, lowest point and depth of RY (outer edge); thickness in pixels.
-const CLOSED = { halfWidth: 0.76, bottom: 0.7, depth: 0.245, thickness: 4.5 };
-
 // Virtual 3D face: eye depth, camera distance, eyes facing slightly outward
 const FACE = { depth: 130, camera: 600, outward: 0.35 };
+
+// Particles alive at once, as many as the engine holds (LP_MAX_PARTICLES)
+const MAX_PARTICLES = 32;
 
 // The emitter debt often reaches exactly 1 (rate × dt sums), where float (C) and double (JS) rounding disagree:
 // the margin makes both spawn on the same frame.
@@ -86,69 +64,58 @@ export function createRng(seed) {
     };
 }
 
-// Sizes the canvas backing store to the device pixel ratio and returns a context drawn in screen units.
-export function setupCanvas(canvas, dpr = globalThis.devicePixelRatio || 1) {
-    canvas.width = SIZE * dpr;
-    canvas.height = SIZE * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    return ctx;
-}
-
 // Spring-like smoothing, frame-rate independent.
 const approach = (v, target, k, dt) => v + (target - v) * (1 - Math.exp(-k * dt));
 const easeIn = (p) => p * p;
 const easeOut = (p) => 1 - (1 - p) ** 3;
-const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+export const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
 
 const TAU = Math.PI * 2;
 const TILT_SLIDE = 0.5; // gaze shift toward the low side, at full tilt
-
-// For a gravity vector in the screen plane (x right, y down, in g): the roll that keeps the face level with the floor,
-// how far to trust it (0 lying flat, where little gravity is left in the plane, 1 standing up) and the eye slide
-// toward the low side.
-function tiltPose(g) {
-    const w = Math.min(Math.max((Math.hypot(g.x, g.y) - 0.3) / 0.4, 0), 1);
-    const a = Math.atan2(g.x, g.y); // 0 upright, > 0 turned clockwise
-    return { level: -a, trust: w, slide: Math.sin(a) * w };
-}
+const MAX_STEP = 1; // seconds, the longest update: after that the state has settled anyway (same as the engine)
 
 // The angle equal to `target` modulo a turn that is nearest to `from`, so that easing toward it never spins around
 const nearestTurn = (target, from) => target + TAU * Math.floor((from - target) / TAU + 0.5);
 const wrapAngle = (a) => (Math.abs(a) > Math.PI ? a - TAU * Math.sign(a) : a);
+// A NaN would spread through the easing to the whole state, for good: points that are not finite are dropped
+const finitePoint = (p) => (p && Number.isFinite(p.x) && Number.isFinite(p.y) ? p : null);
 const settled = (emotion) => Object.fromEntries(Object.keys(BASE).map((k) => [k, EMOTIONS[emotion][k]]));
 
-function drawHeart(ctx, s) {
-    ctx.beginPath();
-    ctx.moveTo(0, s * 0.9);
-    ctx.bezierCurveTo(-s * 1.4, 0, -s * 0.9, -s * 1.1, 0, -s * 0.35);
-    ctx.bezierCurveTo(s * 0.9, -s * 1.1, s * 1.4, 0, 0, s * 0.9);
-    ctx.fill();
-}
+const SCENE_MAX_TIME = 60; // seconds of particles to replay: a larger time would block for as long (same as the engine)
 
-function drawSparkle(ctx, s) {
-    ctx.beginPath();
-    ctx.moveTo(0, -s);
-    ctx.quadraticCurveTo(0, 0, s, 0);
-    ctx.quadraticCurveTo(0, 0, 0, s);
-    ctx.quadraticCurveTo(0, 0, -s, 0);
-    ctx.quadraticCurveTo(0, 0, 0, -s);
-    ctx.fill();
+// A scene with an unknown emotion or blink phase, a value that is not finite or a time out of range (same as the engine)
+function sceneIsValid({ emotion, blink, head, gaze, particles }) {
+    const phase = blink?.phase ?? null;
+    const time = particles?.time ?? 0;
+    const values = [blink?.t, head?.yaw, head?.pitch, head?.roll, gaze?.x, gaze?.y];
+    return (
+        Object.hasOwn(EMOTIONS, emotion ?? 'neutral') &&
+        (phase === null || BLINK_PHASES.includes(phase)) &&
+        values.every((v) => Number.isFinite(v ?? 0)) &&
+        time >= 0 &&
+        time <= SCENE_MAX_TIME
+    );
 }
 
 export class Eyes {
-    constructor(ctx, { seed = Date.now() } = {}) {
-        this.ctx = ctx;
+    constructor(seed) {
+        this.onEmotion = null; // called with the new emotion, also when a temporary one ends
+        this.#start(seed);
+    }
+
+    // A fresh start, for the constructor and setScene: lp_eyes_init in the engine
+    #start(seed) {
         this.rand = createRng(seed);
+        this.time = 0; // seconds of animation: the steps of update(), after their limit
 
         this.look = null;
         this.emotion = 'neutral';
         this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
-        this.emotionTimer = 0; // > 0: temporary emotion, back to the mood when it hits 0
+        this.emotionTimer = 0; // > 0: seconds before going back to the mood, which may be this very emotion
+        this.burstWait = 0; // > 0: sparkles just burst, no reaction brings more yet
         this.upsideDown = 0; // seconds held upside down
         this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values
-        this.onEmotion = null; // called with the new emotion, also when a temporary one ends
 
         this.shape = { ...DEFAULT_SHAPE };
         this.gaze = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 };
@@ -177,26 +144,36 @@ export class Eyes {
         this.look = look;
     }
 
-    // duration > 0: back to the mood after that many seconds; 0: the new mood
+    // duration > 0: back to the mood after that many seconds; otherwise the new mood. Unknown emotions and durations
+    // that are not finite are ignored.
     setEmotion(name, duration = 0) {
+        if (!Object.hasOwn(EMOTIONS, name) || !Number.isFinite(duration)) return;
         this.emotion = name;
         this.emotionTimer = duration;
-        if (!duration) this.mood = name;
+        if (!(duration > 0)) this.mood = name;
         this.onEmotion?.(name);
     }
 
-    react(event) {
-        const r = REACTIONS[event];
-        this.setEmotion(r.emotion, r.duration);
-        for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
+    setPointer(point) {
+        const p = finitePoint(point);
+        this.mouse = p && { x: clamp(p.x, 1), y: clamp(p.y, 1) };
     }
 
-    // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
-    // as it is (no timer).
-    #holdReaction(event) {
+    setGravity(gravity) {
+        this.gravity = finitePoint(gravity);
+    }
+
+    // Unknown events are ignored. The emotion changes at once; one already on lasts at least as long as the event asks.
+    // Sparkles burst half a second apart at most, whatever the emotion, and a reaction with none leaves that wait alone:
+    // a camera can repeat itself as often as it likes.
+    react(event) {
+        if (!Object.hasOwn(REACTIONS, event)) return;
         const r = REACTIONS[event];
-        if (this.emotion !== r.emotion) this.react(event);
-        else if (this.emotionTimer > 0) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+        if (this.emotion === r.emotion) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+        else this.setEmotion(r.emotion, r.duration);
+        if (r.sparkles === 0 || this.burstWait > 0) return;
+        this.burstWait = BURST_GAP;
+        for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
     }
 
     startBlink() {
@@ -212,8 +189,9 @@ export class Eyes {
 
     spawn(type) {
         const r = this.rand;
+        let particle;
         if (type === 'heart') {
-            this.particles.push({
+            particle = {
                 type,
                 x: C + (r() - 0.5) * 300,
                 y: SIZE - 40 + r() * 30,
@@ -222,12 +200,12 @@ export class Eyes {
                 size: 12 + r() * 7,
                 age: 0,
                 life: 2.6 + r() * 1.4
-            });
+            };
         } else {
             // Sparkles pop around the eyes, never on top of them
             const a = r() * Math.PI * 2,
                 dist = 150 + r() * 60;
-            this.particles.push({
+            particle = {
                 type,
                 x: C + Math.cos(a) * dist,
                 y: C + Math.sin(a) * dist * 0.8,
@@ -235,151 +213,30 @@ export class Eyes {
                 spin: (r() - 0.5) * 2,
                 age: 0,
                 life: 0.6 + r() * 0.5
-            });
+            };
         }
+        // After the random draws, so that a full screen leaves the random sequence as it is (same as the engine)
+        if (this.particles.length < MAX_PARTICLES) this.particles.push(particle);
     }
 
-    update(dt, t) {
-        if (!(dt > 0)) return; // nothing to advance, and speeds would divide by zero (same as the engine)
-        const { cur, gaze, head, blinkState } = this;
-
-        // Emotion values ease toward their target
-        const target = EMOTIONS[this.emotion];
-        for (const key in BASE) {
-            const wearOff = key === 'spin' && target.spin < cur.spin;
-            cur[key] = approach(cur[key], target[key], wearOff ? DIZZY.wearOff : 9, dt);
-        }
-        if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
-
-        // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
-        this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
-        if (this.shaking) this.#holdReaction('shake');
-        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upsideDown');
-
-        // Gaze target: pointer (face tracking stand-in) or idle saccades
-        const tracking = this.follow && this.mouse;
-        if (tracking) {
-            gaze.tx = this.mouse.x;
-            gaze.ty = this.mouse.y;
-        } else if (t > this.nextSaccade) {
-            const r = this.rand() < 0.3 ? 0 : 0.3 + this.rand() * 0.6; // often return to center
-            const a = this.rand() * Math.PI * 2;
-            const tx = Math.cos(a) * r,
-                ty = Math.sin(a) * r * 0.7;
-            // Big gaze jumps are often hidden behind a blink, like in the original
-            if (Math.hypot(tx - gaze.tx, ty - gaze.ty) > 0.5 && !blinkState.phase && this.rand() < 0.5) {
-                this.pendingGaze = { x: tx, y: ty };
-                this.startBlink();
-            } else {
-                gaze.tx = tx;
-                gaze.ty = ty;
+    #updateParticles(dt) {
+        const emit = EMOTIONS[this.emotion].emit;
+        if (emit) {
+            this.emitDebt += emit.rate * dt;
+            for (; this.emitDebt >= 1 - EMIT_EPSILON; this.emitDebt--) this.spawn(emit.type);
+        } else this.emitDebt = 0;
+        const ps = this.particles;
+        for (let i = ps.length - 1; i >= 0; i--) {
+            const p = ps[i];
+            p.age += dt;
+            if (p.age > p.life) {
+                ps.splice(i, 1);
+                continue;
             }
-            this.nextSaccade = t + 0.6 + this.rand() * 2.4;
-        }
-        // Dizzy: the gaze circles instead, as fast as the spin
-        let tx = gaze.tx,
-            ty = gaze.ty;
-        const dizzy = Math.min(cur.spin / DIZZY.max, 1);
-        if (dizzy > 0) {
-            this.spinPhase += cur.spin * dt;
-            if (this.spinPhase > TAU) this.spinPhase -= TAU;
-            tx += (Math.cos(this.spinPhase) * DIZZY.radius - tx) * dizzy;
-            ty += (Math.sin(this.spinPhase) * DIZZY.radius * 0.7 - ty) * dizzy;
-        }
-
-        // Tilting the object turns the face to stay level and slides the eyes toward the low side. The level roll
-        // eases in as fast as it can be trusted: it holds lying flat, where the angle is mostly noise, so the face
-        // never flips back and forth; without accelerometer it goes back to upright.
-        const tilt = this.gravity && tiltPose(this.gravity);
-        const level = tilt ? nearestTurn(tilt.level, head.level) : 0;
-        head.level = wrapAngle(approach(head.level, level, tilt ? 10 * tilt.trust : 3, dt));
-        const aimX = clamp(tx + (tilt ? tilt.slide : 0) * TILT_SLIDE, 1);
-        const px = gaze.x,
-            py = gaze.y;
-        const k = tracking ? 14 : 22;
-        gaze.x = approach(gaze.x, aimX, k, dt);
-        gaze.y = approach(gaze.y, ty + cur.gy, k, dt);
-        gaze.vx = (gaze.x - px) / dt;
-        gaze.vy = (gaze.y - py) / dt;
-
-        // Blinks at irregular intervals, sometimes double
-        if (t > this.nextBlink && !blinkState.phase) {
-            this.startBlink();
-            blinkState.double = this.rand() < 0.2;
-            this.nextBlink = t + (this.emotion === 'sleepy' ? 1.5 : 2) + this.rand() * 4;
-        }
-        this.#updateBlink(dt, t);
-        this.#updateParticles(dt);
-
-        // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
-        const hk = blinkState.phase ? 12 : 4;
-        head.yaw = approach(head.yaw, aimX * 0.55 * this.headAmount, hk, dt);
-        head.pitch = approach(head.pitch, (ty + cur.gy) * 0.4 * this.headAmount, hk, dt);
-        if (t > this.nextRoll) {
-            head.rollT = (this.rand() - 0.5) * 0.4;
-            this.nextRoll = t + 2 + this.rand() * 4;
-        }
-        const wobble = Math.sin(this.spinPhase) * DIZZY.wobble * dizzy;
-        const roll = head.rollT * this.headAmount - head.yaw * 0.4 + head.level + wobble;
-        head.roll = wrapAngle(approach(head.roll, nearestTurn(roll, head.roll), 3, dt));
-    }
-
-    render(t) {
-        const ctx = this.ctx;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, SIZE, SIZE);
-        if (!this.look) return;
-
-        const bp = this.blinkPose();
-        // Squash & stretch along the gaze movement, plus a slow "breathing"
-        const { vx, vy } = this.gaze;
-        const speed = Math.hypot(vx, vy);
-        const st = Math.min(speed * 0.025, 0.12);
-        const ax = speed ? Math.abs(vx) / speed : 0,
-            ay = speed ? Math.abs(vy) / speed : 0;
-        const breath = 1 + 0.012 * Math.sin(t * 2.1);
-        const squash = { x: 1 + st * ax - st * ay * 0.5, y: (1 + st * ay - st * ax * 0.5) * breath };
-
-        this.#drawEye(-1, bp, squash);
-        this.#drawEye(1, bp, squash);
-        this.#drawParticles();
-    }
-
-    // Renders one reference scene, fully determined by its fields (format: prototype/scenes.json).
-    renderScene(scene, look) {
-        this.setScene(scene, look);
-        this.render(0);
-    }
-
-    // Puts the renderer in the state of a scene: emotion values settled, gaze still, particles replayed
-    // from a fixed seed. Same as lp_eyes_set_scene in the C engine.
-    setScene(scene, look) {
-        const emotion = scene.emotion ?? 'neutral';
-        this.look = look;
-        this.emotion = emotion;
-        this.mood = emotion;
-        this.emotionTimer = 0;
-        this.upsideDown = 0;
-        this.shaking = false;
-        this.spinPhase = 0;
-        Object.assign(this.cur, settled(emotion));
-        this.shape = { ...DEFAULT_SHAPE };
-        Object.assign(this.head, { yaw: 0, pitch: 0, roll: 0, level: 0, ...scene.head });
-        const g = { x: 0, y: 0, ...scene.gaze };
-        Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y, vx: 0, vy: 0 });
-        Object.assign(this.blinkState, {
-            phase: scene.blink?.phase ?? null,
-            t: scene.blink?.t ?? 0,
-            hold: 0.2,
-            open: 0.2,
-            double: false
-        });
-        this.particles.length = 0;
-        this.emitDebt = 0;
-        if (scene.particles) {
-            this.rand = createRng(scene.particles.seed);
-            const steps = Math.round(scene.particles.time * 60);
-            for (let i = 0; i < steps; i++) this.#updateParticles(1 / 60);
+            if (p.type === 'heart') {
+                p.y += p.vy * dt;
+                p.x += Math.sin(p.age * 3 + p.sway) * 18 * dt;
+            }
         }
     }
 
@@ -412,24 +269,150 @@ export class Eyes {
         }
     }
 
-    #updateParticles(dt) {
-        const emit = EMOTIONS[this.emotion].emit;
-        if (emit) {
-            this.emitDebt += emit.rate * dt;
-            for (; this.emitDebt >= 1 - EMIT_EPSILON; this.emitDebt--) this.spawn(emit.type);
-        } else this.emitDebt = 0;
-        const ps = this.particles;
-        for (let i = ps.length - 1; i >= 0; i--) {
-            const p = ps[i];
-            p.age += dt;
-            if (p.age > p.life) {
-                ps.splice(i, 1);
-                continue;
+    #easeExpression(dt) {
+        const { cur } = this;
+        const target = EMOTIONS[this.emotion];
+        for (const key in BASE) {
+            const wearOff = key === 'spin' && target.spin < cur.spin;
+            cur[key] = approach(cur[key], target[key], wearOff ? DIZZY.wearOff : 9, dt);
+        }
+    }
+
+    #dizziness() {
+        return Math.min(this.cur.spin / DIZZY.max, 1);
+    }
+
+    // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
+    // as it is: the timer only brings it back to itself. This runs every frame, so react() only starts it: sparkles in
+    // the table burst once, not every BURST_GAP for as long as the cause lasts.
+    #holdReaction(event) {
+        const r = REACTIONS[event];
+        if (this.emotion !== r.emotion) this.react(event);
+        else this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+    }
+
+    // Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time)
+    #updateHeldReactions(dt) {
+        this.upsideDown = this.gravity?.y < UPSIDE_DOWN.gravity ? this.upsideDown + dt : 0;
+        if (this.shaking) this.#holdReaction('shake');
+        else if (this.upsideDown >= UPSIDE_DOWN.delay) this.#holdReaction('upside_down');
+    }
+
+    // Tilting the object turns the face to stay level and slides the eyes toward the low side; returns the slide. The
+    // level roll eases in as fast as it can be trusted: it holds lying flat, where the angle is mostly noise, so the
+    // face never flips back and forth; without accelerometer it goes back to upright.
+    #updateTilt(dt) {
+        const { gravity: g, head } = this;
+        if (!g) {
+            head.level = wrapAngle(approach(head.level, 0, 3, dt));
+            return 0;
+        }
+        // Trust: 0 lying flat, where little gravity is left in the screen plane, 1 standing up
+        const w = Math.min(Math.max((Math.hypot(g.x, g.y) - 0.3) / 0.4, 0), 1);
+        const a = Math.atan2(g.x, g.y); // 0 upright, > 0 turned clockwise
+        head.level = wrapAngle(approach(head.level, nearestTurn(-a, head.level), 10 * w, dt));
+        return Math.sin(a) * w;
+    }
+
+    // Gaze target: pointer (face tracking stand-in) or idle saccades. Dizzy, the gaze circles instead. Returns where the
+    // gaze aims, shifted sideways by the tilt slide.
+    #updateGaze(dt, t, slide) {
+        const { cur, gaze, blinkState } = this;
+        const tracking = this.follow && this.mouse;
+        if (tracking) {
+            gaze.tx = this.mouse.x;
+            gaze.ty = this.mouse.y;
+        } else if (t > this.nextSaccade) {
+            const r = this.rand() < 0.3 ? 0 : 0.3 + this.rand() * 0.6; // often return to center
+            const a = this.rand() * Math.PI * 2;
+            const tx = Math.cos(a) * r,
+                ty = Math.sin(a) * r * 0.7;
+            // Big gaze jumps are often hidden behind a blink, like in the original
+            if (Math.hypot(tx - gaze.tx, ty - gaze.ty) > 0.5 && !blinkState.phase && this.rand() < 0.5) {
+                this.pendingGaze = { x: tx, y: ty };
+                this.startBlink();
+            } else {
+                gaze.tx = tx;
+                gaze.ty = ty;
             }
-            if (p.type === 'heart') {
-                p.y += p.vy * dt;
-                p.x += Math.sin(p.age * 3 + p.sway) * 18 * dt;
-            }
+            this.nextSaccade = t + 0.6 + this.rand() * 2.4;
+        }
+        // Dizzy: the gaze circles instead, as fast as the spin
+        let tx = gaze.tx,
+            ty = gaze.ty;
+        const dizzy = this.#dizziness();
+        if (dizzy > 0) {
+            this.spinPhase += cur.spin * dt;
+            if (this.spinPhase > TAU) this.spinPhase -= TAU;
+            tx += (Math.cos(this.spinPhase) * DIZZY.radius - tx) * dizzy;
+            ty += (Math.sin(this.spinPhase) * DIZZY.radius * 0.7 - ty) * dizzy;
+        }
+        const aimX = clamp(tx + slide * TILT_SLIDE, 1);
+        const px = gaze.x,
+            py = gaze.y;
+        const k = tracking ? 14 : 22;
+        gaze.x = approach(gaze.x, aimX, k, dt);
+        gaze.y = approach(gaze.y, ty + cur.gy, k, dt);
+        gaze.vx = (gaze.x - px) / dt;
+        gaze.vy = (gaze.y - py) / dt;
+        return { x: aimX, y: ty };
+    }
+
+    update(dt) {
+        if (!(dt > 0) || !Number.isFinite(dt)) return; // nothing to advance, and speeds would divide by zero
+        dt = Math.min(dt, MAX_STEP);
+        this.time += dt;
+        const t = this.time;
+        const { cur, head, blinkState } = this;
+
+        this.#easeExpression(dt);
+        if (this.emotionTimer > 0 && (this.emotionTimer -= dt) <= 0) this.setEmotion(this.mood);
+        this.burstWait = Math.max(this.burstWait - dt, 0);
+        this.#updateHeldReactions(dt);
+
+        const aim = this.#updateGaze(dt, t, this.#updateTilt(dt));
+
+        // Blinks at irregular intervals, sometimes double
+        if (t > this.nextBlink && !blinkState.phase) {
+            this.startBlink();
+            blinkState.double = this.rand() < 0.2;
+            this.nextBlink = t + (this.emotion === 'sleepy' ? 1.5 : 2) + this.rand() * 4;
+        }
+        this.#updateBlink(dt, t);
+        this.#updateParticles(dt);
+
+        // Head follows the gaze target, faster while the eyes are shut (hidden pose change)
+        const hk = blinkState.phase ? 12 : 4;
+        head.yaw = approach(head.yaw, aim.x * 0.55 * this.headAmount, hk, dt);
+        head.pitch = approach(head.pitch, (aim.y + cur.gy) * 0.4 * this.headAmount, hk, dt);
+        if (t > this.nextRoll) {
+            head.rollT = (this.rand() - 0.5) * 0.4;
+            this.nextRoll = t + 2 + this.rand() * 4;
+        }
+        const wobble = Math.sin(this.spinPhase) * DIZZY.wobble * this.#dizziness();
+        const roll = head.rollT * this.headAmount - head.yaw * 0.4 + head.level + wobble;
+        head.roll = wrapAngle(approach(head.roll, nearestTurn(roll, head.roll), 3, dt));
+    }
+
+    // Starts over, as new Eyes(seed) does with the seed of its particles, in the state of a scene (format:
+    // prototype/scenes.json): emotion settled, gaze still, particles replayed from their seed. A scene that is not valid
+    // is ignored. Same as lp_eyes_set_scene in the C engine.
+    setScene(scene, look) {
+        if (!sceneIsValid(scene)) return;
+        const { blink, particles } = scene;
+        const emotion = scene.emotion ?? 'neutral';
+        this.#start(particles?.seed ?? 0);
+        this.look = look;
+        this.emotion = emotion;
+        this.mood = emotion;
+        this.cur = settled(emotion);
+        Object.assign(this.head, scene.head);
+        const g = { x: 0, y: 0, ...scene.gaze };
+        Object.assign(this.gaze, { x: g.x, y: g.y + this.cur.gy, tx: g.x, ty: g.y });
+        Object.assign(this.blinkState, { phase: blink?.phase ?? null, t: blink?.t ?? 0, hold: 0.2, open: 0.2 });
+        if (particles) {
+            const steps = Math.round(particles.time * 60);
+            for (let i = 0; i < steps; i++) this.#updateParticles(1 / 60);
         }
     }
 
@@ -482,159 +465,5 @@ export class Eyes {
         const px = x * persp,
             py = y * persp;
         return { x: C + px * cr - py * sr, y: C + px * sr + py * cr, persp, fx, fy };
-    }
-
-    #drawEye(side, bp, squash) {
-        // side: -1 = left eye, +1 = right eye. "Inner" corner is toward the screen center.
-        const { ctx, cur, look } = this;
-        const { rx: RX, ry: RY, tilt } = this.shape;
-        const inner = -side;
-        const pose = this.eyePose(side);
-        ctx.save();
-        ctx.translate(pose.x, pose.y);
-        ctx.rotate(this.head.roll);
-        ctx.scale(pose.persp * pose.fx, pose.persp * pose.fy);
-        ctx.rotate(inner * (cur.rot - tilt));
-        ctx.scale(cur.es * squash.x * bp.sx * (1 + cur.sq * 0.1), cur.es * squash.y * bp.sy * (1 - cur.sq));
-
-        if (bp.closed) {
-            this.#drawClosedEye(RX, RY, inner * (cur.rot - tilt));
-            ctx.restore();
-            return;
-        }
-
-        // Eyelids are clip regions, not black covers: covering an anti-aliased edge leaves a faint outline.
-        const W = RX + 10,
-            FAR = RX + RY + 40;
-        const keepBelow = (edge) => {
-            ctx.beginPath();
-            ctx.moveTo(-W, edge(-W));
-            ctx.lineTo(W, edge(W));
-            ctx.lineTo(W, FAR);
-            ctx.lineTo(-W, FAR);
-            ctx.closePath();
-            ctx.clip();
-        };
-
-        ctx.beginPath();
-        ctx.ellipse(0, 0, RX, RY, 0, 0, Math.PI * 2);
-        ctx.clip();
-
-        // Emotion top lid
-        const y0 = -RY + cur.tl * 2 * RY;
-        keepBelow((x) => y0 + cur.ts * RY * ((x * inner) / RX));
-
-        // Crescent: a copy of the eye shifted down cuts it, leaving only the top arc
-        if (cur.cr > 0.002) {
-            ctx.beginPath();
-            ctx.rect(-FAR, -FAR, 2 * FAR, 2 * FAR);
-            ctx.ellipse(0, 2 * RY * (1 - cur.cr), RX * 1.05, RY, 0, 0, Math.PI * 2);
-            ctx.clip('evenodd');
-        }
-
-        if (cur.bl > 0.002) {
-            // Big ellipse rising from below gives the curved "^^" happy shape
-            const R = RY * 1.1;
-            ctx.beginPath();
-            ctx.rect(-FAR, -FAR, 2 * FAR, 2 * FAR);
-            ctx.ellipse(0, RY + R - cur.bl * 2 * RY, RX * 1.6, R, 0, 0, Math.PI * 2);
-            ctx.clip('evenodd');
-        }
-
-        // Blink lid: straight edge coming down from the top, pupils stay put and get covered.
-        // The edge stays level with the face, so it cancels the eye tilt.
-        if (bp.lid > 0) {
-            const m = Math.tan(inner * (tilt - cur.rot)),
-                slack = Math.abs(m) * W;
-            keepBelow((x) => -RY - slack + bp.lid * (2 * RY + 2 * slack) + m * x);
-        }
-
-        ctx.fillStyle = look.sclera;
-        ctx.fillRect(-FAR, -FAR, 2 * FAR, 2 * FAR);
-        this.#drawPupil(look.pupilColor[side < 0 ? 0 : 1], RX, RY, inner, inner * (cur.rot - tilt));
-        ctx.restore();
-    }
-
-    #drawPupil(color, RX, RY, inner, uprightAngle) {
-        const { ctx, gaze, look } = this;
-        const ps = this.cur.ps;
-        const type = look.pupil;
-        let prx, pry;
-        switch (type) {
-            case 'dot':
-                prx = RX * 0.105 * ps;
-                pry = RY * 0.125 * ps;
-                break;
-            case 'cat':
-                prx = RX * 0.21 * ps;
-                pry = RY * 0.72;
-                break;
-            case 'acorn':
-                // A tall ellipse set low: the bottom of the eye cuts it into its acorn shape
-                prx = RX * 0.5 * ps;
-                pry = RY * 0.98 * Math.min(ps, 1.05);
-                break;
-            case 'circle':
-                prx = pry = RX * 0.52 * ps;
-                break;
-        }
-        // Pupil travel is limited by how much room is left inside the eye. Big acorn pupils may
-        // run past the edge and get clipped, small ones stay fully visible.
-        const [rx0, ry0] = PUPIL_REST[type];
-        const limX = type === 'acorn' ? RX : RX - prx - 3,
-            limY = type === 'acorn' ? RY : RY - pry - 3;
-        const x = clamp(inner * rx0 * RX + gaze.x * Math.max(RX - prx, RX * 0.15) * 0.85, limX);
-        const y = clamp(ry0 * RY + gaze.y * Math.max(RY - pry, RY * 0.12) * 0.85, limY);
-        // The eye is tilted but pupils stay nearly upright on the original: cancel the eye rotation, then lean
-        ctx.rotate(-uprightAngle);
-        ctx.translate(x, y);
-        ctx.rotate(inner * PUPIL_LEAN);
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, prx, pry, 0, 0, Math.PI * 2);
-        ctx.fill();
-        if (this.cur.hl > 0.5) {
-            const r = Math.max(Math.min(prx, pry) * 0.28, 4);
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(-prx * 0.35, -pry * 0.38, r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    // Closed eye: lower half of a flat ellipse, level with the face, stroked with round tips
-    #drawClosedEye(RX, RY, uprightAngle) {
-        const ctx = this.ctx;
-        const th = CLOSED.thickness,
-            a = CLOSED.halfWidth * RX,
-            b = CLOSED.depth * RY,
-            yc = (CLOSED.bottom - CLOSED.depth) * RY;
-        ctx.rotate(-uprightAngle);
-        ctx.beginPath();
-        ctx.ellipse(0, yc, a, b - th / 2, 0, 0, Math.PI); // centerline: the outer edge sits at depth b
-        ctx.lineWidth = th;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = this.look.sclera;
-        ctx.stroke();
-    }
-
-    #drawParticles() {
-        const ctx = this.ctx;
-        for (const p of this.particles) {
-            const k = p.age / p.life;
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            if (p.type === 'heart') {
-                ctx.globalAlpha = Math.min(k * 6, 1, (1 - k) * 4); // quick fade in, fade out at the end
-                ctx.fillStyle = '#FF2A3A';
-                drawHeart(ctx, p.size);
-            } else {
-                const twinkle = Math.sin(k * Math.PI); // grow then shrink
-                ctx.rotate(p.spin * p.age);
-                ctx.fillStyle = '#FFFFFF';
-                drawSparkle(ctx, p.size * twinkle);
-            }
-            ctx.restore();
-        }
     }
 }

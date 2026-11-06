@@ -1,26 +1,21 @@
-// Generates engine/tests/js_vectors.h: values computed by the JS prototype (prototype/eyes.js) that the C engine
-// must reproduce (engine/tests/test_parity.c). Run it after changing eyes.js, scenes.json or looks.json.
+// Generates engine/tests/js_vectors.h: values computed by the JS prototype (prototype/eyes.js) that the C engine must
+// reproduce (engine/tests/test_parity.c). The C tables of the emotions come from gen-emotions-table.mjs.
+// Run it after changing eyes.js, scenes.json, looks.json or emotions.json (npm run vectors runs both).
 // Usage: node scripts/gen-engine-vectors.mjs [--check]   (--check: fail if the committed file is out of date)
-import { readFileSync, writeFileSync } from 'node:fs';
-import { BASE, EMOTIONS, Eyes, REACTIONS, createRng, makeLook } from '../prototype/eyes.js';
+import { readFileSync } from 'node:fs';
+import { EMOTIONS, Eyes, REACTIONS, clamp, createRng, makeLook } from '../prototype/eyes.js';
+import { EXPR, emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
-const OUT = 'engine/tests/js_vectors.h';
+const VECTORS = 'engine/tests/js_vectors.h';
 // Time step of the simulations: a power of two, so time sums are exact in both float (C) and double (JS)
 const DT = 1 / 64;
 
-const EMOTION_NAMES = Object.keys(EMOTIONS);
-const emotionEnum = (name) => `LP_EMOTION_${name.toUpperCase()}`;
-const particleEnum = (type) => `LP_PARTICLE_${(type ?? 'none').toUpperCase()}`;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
-const num = (v) => {
-    if (!Number.isFinite(v)) throw new Error(`not a finite number: ${v}`);
-    const s = Object.is(v, -0) ? '0' : String(+v.toPrecision(9));
-    return /[.e]/.test(s) ? `${s}f` : `${s}.0f`;
-};
 
 // State snapshot shared by simulations and scenes (struct lpv_state in the header)
-function snapshot(eyes, time) {
-    const { gaze, head, cur, blinkState, particles } = eyes;
+function snapshot(eyes) {
+    const { time, gaze, head, cur, blinkState, particles } = eyes;
+    const sum = (key) => num(particles.reduce((s, p) => s + (p[key] ?? 0), 0)); // hearts have no spin
     return [
         num(time),
         num(gaze.x),
@@ -32,14 +27,17 @@ function snapshot(eyes, time) {
         num(head.yaw),
         num(head.pitch),
         num(head.roll),
-        num(cur.tl),
-        num(cur.bl),
-        num(cur.gy),
-        num(cur.ps),
+        `{${EXPR.map((k) => num(cur[k])).join(', ')}}`,
         phaseEnum(blinkState.phase),
+        num(blinkState.hold),
+        num(blinkState.open),
         String(particles.length),
-        num(particles.reduce((s, p) => s + p.x, 0)),
-        num(particles.reduce((s, p) => s + p.y, 0)),
+        sum('x'),
+        sum('y'),
+        sum('size'),
+        sum('spin'),
+        sum('age'),
+        sum('life'),
         emotionEnum(eyes.emotion)
     ];
 }
@@ -71,24 +69,28 @@ for (const seed of RNG_SEEDS) {
 }
 out('};', '');
 
-// --- Emotion table -------------------------------------------------------------------------------
-const EXPR = Object.keys(BASE); // in the order of lp_expression: a new field breaks the C build until ported
-out(`static const lp_emotion_def LPV_EMOTIONS[${EMOTION_NAMES.length}] = {`);
-for (const name of EMOTION_NAMES) {
-    const e = EMOTIONS[name];
-    out(
-        `    {"${name}", {${EXPR.map((k) => num(e[k])).join(', ')}}, ${particleEnum(e.emit?.type)}, ${num(e.emit?.rate ?? 0)}},`
-    );
-}
-out('};', '');
-
-// --- Reactions, in the order of lp_event --------------------------------------------------------
-const eventEnum = (name) => `LP_EVENT_${name.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`;
+// --- Names, in the order of lp_emotion and lp_event, the enums written by hand -------------------------
+const cNames = (names) => names.map((name) => `"${name}"`).join(', ');
 out(
-    `static const struct { lp_event event; lp_reaction reaction; } LPV_REACTIONS[${Object.keys(REACTIONS).length}] = {`
+    `static const char *const LPV_EMOTION_NAMES[${Object.keys(EMOTIONS).length}] = {${cNames(Object.keys(EMOTIONS))}};`
 );
-for (const [name, r] of Object.entries(REACTIONS))
-    out(`    {${eventEnum(name)}, {${emotionEnum(r.emotion)}, ${num(r.duration)}, ${r.sparkles}}},`);
+out(
+    `static const char *const LPV_EVENT_NAMES[${Object.keys(REACTIONS).length}] = {${cNames(Object.keys(REACTIONS))}};`
+);
+out('');
+
+// --- clamp: a pupil bigger than its eye makes the limit negative ---------------------------------------
+const CLAMPS = [
+    [0.25, 1],
+    [2, 1],
+    [-2, 1],
+    [33.5, -6.75],
+    [-33.5, -6.75],
+    [0, -6.75]
+];
+out('typedef struct { float v, lim, clamped; } lpv_clamp;');
+out(`static const lpv_clamp LPV_CLAMPS[${CLAMPS.length}] = {`);
+for (const [v, lim] of CLAMPS) out(`    {${num(v)}, ${num(lim)}, ${num(clamp(v, lim))}},`);
 out('};', '');
 
 // --- Blink poses ---------------------------------------------------------------------------------
@@ -102,7 +104,7 @@ const BLINKS = [
     ['open', 0.2],
     [null, 0]
 ];
-const poser = new Eyes(null, { seed: 1 });
+const poser = new Eyes(1);
 out('typedef struct { lp_blink_phase phase; float t, open; lp_blink_pose pose; } lpv_blink;');
 out(`static const lpv_blink LPV_BLINKS[${BLINKS.length}] = {`);
 for (const [phase, t] of BLINKS) {
@@ -135,10 +137,12 @@ out('};', '');
 // --- Simulations: from a seed, run update() and take snapshots ----------------------------------------
 out(
     'typedef struct {',
-    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, gaze_vx, gaze_vy, yaw, pitch, roll, tl, bl, gy, ps;',
+    '    float time, gaze_x, gaze_y, gaze_tx, gaze_ty, gaze_vx, gaze_vy, yaw, pitch, roll;',
+    '    lp_expression cur;',
     '    lp_blink_phase blink;',
+    '    float blink_hold, blink_open;',
     '    int particles;',
-    '    float particles_x, particles_y; /* sums of the particle positions */',
+    '    float particles_x, particles_y, particles_size, particles_spin, particles_age, particles_life; /* sums */',
     '    lp_emotion emotion;',
     '} lpv_state;',
     ''
@@ -149,33 +153,60 @@ const SCENARIOS = [
     { name: 'petting', seed: 3, react: 'tap', steps: 256, every: 16 },
     { name: 'dizzy', seed: 23, react: 'shake', steps: 384, every: 16 },
     { name: 'shaken', seed: 29, shaking: true, steps: 256, every: 32 },
-    { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 32 },
+    // Every few steps: the gaze settles in about 30 of them, and its speed only shows on the way
+    { name: 'tracking', seed: 5, pointer: [0.5, -0.3], steps: 256, every: 4 },
     // Gravity in the screen plane: object turned about 70 degrees, then about 150 (back toward upright)
     { name: 'turned', seed: 13, gravity: [0.9375, 0.34375], steps: 256, every: 32 },
     { name: 'upside-down', seed: 17, gravity: [0.5, -0.875], steps: 256, every: 32 },
+    // Lying nearly flat: little gravity left in the screen plane, so the tilt is only half trusted
+    { name: 'nearly-flat', seed: 31, gravity: [0.25, 0.375], steps: 256, every: 16 },
     // Object turning clockwise at 2 radians per second, standing up: 2.5 turns, the face stays level
     { name: 'turning', seed: 19, spin: 2, steps: 512, every: 32 },
-    { name: 'sleepy', seed: 9, emotion: 'sleepy', steps: 640, every: 64 }
+    { name: 'sleepy', seed: 9, emotion: 'sleepy', steps: 640, every: 64 },
+    { name: 'squint', seed: 37, emotion: 'squint', steps: 256, every: 16 },
+    { name: 'frown', seed: 41, emotion: 'frown', steps: 256, every: 16 },
+    // Two gaze jumps behind a blink, with the gaze bias of the emotion
+    { name: 'sad', seed: 14, emotion: 'sad', steps: 256, every: 4 },
+    { name: 'surprised', seed: 47, emotion: 'surprised', steps: 256, every: 16 },
+    // More sparkles than the engine holds: the limit, and the random sequence going on as if they all fit
+    { name: 'crowded', seed: 53, sparkles: 48, steps: 128, every: 16 },
+    // A camera that says the same thing about 10 times a second: one burst of sparkles every half second at most
+    { name: 'chatty', seed: 59, react: 'gesture_like', reactEvery: 6, steps: 256, every: 16 },
+    // The same camera going back and forth: the emotion follows each time, the bursts stay half a second apart. At this
+    // pace the reaction without sparkles comes first after each wait
+    {
+        name: 'chatty-two',
+        seed: 61,
+        react: 'gesture_like',
+        reactOther: 'expression_sad',
+        reactEvery: 7,
+        steps: 256,
+        every: 16
+    }
 ];
 const states = [];
 const scenarioRows = [];
 for (const s of SCENARIOS) {
-    const eyes = new Eyes(null, { seed: s.seed });
+    const eyes = new Eyes(s.seed);
     if (s.emotion) eyes.setEmotion(s.emotion);
     if (s.react) eyes.react(s.react);
+    for (let i = 0; i < (s.sparkles ?? 0); i++) eyes.spawn('sparkle');
     eyes.shaking = Boolean(s.shaking);
-    if (s.pointer) eyes.mouse = { x: s.pointer[0], y: s.pointer[1] };
-    if (s.gravity) eyes.gravity = { x: s.gravity[0], y: s.gravity[1] };
+    if (s.pointer) eyes.setPointer({ x: s.pointer[0], y: s.pointer[1] });
+    if (s.gravity) eyes.setGravity({ x: s.gravity[0], y: s.gravity[1] });
     const first = states.length;
-    let t = 0;
     for (let i = 1; i <= s.steps; i++) {
-        t += DT;
-        if (s.spin) eyes.gravity = { x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) };
-        eyes.update(DT, t);
-        if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
+        const t = eyes.time + DT;
+        if (s.spin) eyes.setGravity({ x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) });
+        if (s.reactEvery && i % s.reactEvery === 0)
+            eyes.react(s.reactOther && (i / s.reactEvery) % 2 === 1 ? s.reactOther : s.react);
+        eyes.update(DT);
+        if (i % s.every === 0) states.push(row(snapshot(eyes)));
     }
     scenarioRows.push(
-        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ${s.react ? eventEnum(s.react) : -1}, ` +
+        `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ` +
+            `${s.react ? eventEnum(s.react) : -1}, ${s.reactOther ? eventEnum(s.reactOther) : -1}, ` +
+            `${s.reactEvery ?? 0}, ${s.sparkles ?? 0}, ` +
             `${num(s.pointer?.[0] ?? 0)}, ${num(s.pointer?.[1] ?? 0)}, ` +
             `${num(s.gravity?.[0] ?? 0)}, ${num(s.gravity?.[1] ?? 0)}, ${num(s.spin ?? 0)}, ` +
             `${s.steps}, ${s.every}, ${first}, ${states.length - first}, ${Boolean(s.pointer)}, ${Boolean(s.gravity)}, ` +
@@ -188,7 +219,9 @@ out(
     '    const char *name;',
     '    uint32_t seed;',
     '    lp_emotion emotion;',
-    '    int react; /* lp_event at the start, or -1 */',
+    '    int react, react_other; /* lp_event at the start, or -1; the one taking turns with it after, or -1 */',
+    '    int react_every; /* steps between reactions, or 0 */',
+    '    int sparkles; /* spawned one by one at the start */',
     '    float pointer_x, pointer_y;',
     '    float gravity_x, gravity_y;',
     '    float spin; /* radians per second: gravity turning in the screen plane, from upright */',
@@ -216,10 +249,13 @@ for (const key of lookKeys) {
     );
 }
 out('};', '');
-out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected; } lpv_scene;');
+// Played on for a while too: the seed and the deadlines a scene leaves are the same on both sides
+const SCENE_PLAY = 128;
+out(`#define LPV_SCENE_PLAY ${SCENE_PLAY}`);
+out('typedef struct { const char *id; int look; lp_scene scene; lpv_state expected, played; } lpv_scene;');
 out(`static const lpv_scene LPV_SCENES[${scenes.length}] = {`);
 for (const scene of scenes) {
-    const eyes = new Eyes(null, { seed: 1 });
+    const eyes = new Eyes(1);
     eyes.setScene(scene, lookOf(scene));
     const sc = [
         emotionEnum(scene.emotion ?? 'neutral'),
@@ -235,24 +271,11 @@ for (const scene of scenes) {
         num(scene.particles?.time ?? 0)
     ];
     const lookIndex = lookKeys.indexOf(`${scene.swatch} ${scene.pupil}`);
-    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes, 0).join(', ')}}},`);
+    const expected = snapshot(eyes);
+    for (let i = 0; i < SCENE_PLAY; i++) eyes.update(DT);
+    const played = snapshot(eyes);
+    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${expected.join(', ')}}, {${played.join(', ')}}},`);
 }
 out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');
 
-const text = lines.join('\n');
-if (process.argv.includes('--check')) {
-    let current = '';
-    try {
-        current = readFileSync(OUT, 'utf8');
-    } catch {
-        // missing file: reported below
-    }
-    if (current !== text) {
-        console.error(`${OUT} is out of date: run node scripts/gen-engine-vectors.mjs`);
-        process.exit(1);
-    }
-    console.log(`${OUT} is up to date`);
-} else {
-    writeFileSync(OUT, text);
-    console.log(`${OUT}: ${states.length} simulation states, ${scenes.length} scenes`);
-}
+writeGenerated(VECTORS, lines.join('\n'), `${states.length} simulation states, ${scenes.length} scenes`);

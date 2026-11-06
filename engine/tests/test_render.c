@@ -1,4 +1,6 @@
 /* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses */
+#include "lilpet/render_state.h" /* first: it compiles on its own */
+
 #include "../src/raster.h"
 #include "js_vectors.h"
 #include "lilpet/lilpet.h"
@@ -29,7 +31,6 @@ static int find_scene(const char *id)
 static void set_scene(lp_eyes *e, const char *id)
 {
     const int i = find_scene(id);
-    lp_eyes_init(e, 1);
     lp_eyes_set_scene(e, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
 }
 
@@ -42,9 +43,9 @@ static void render_scene(const char *id, uint16_t *out)
 }
 
 /* Screen pixel of a point given in a frame whose screen->frame transform is `inv` */
-static void to_screen(const float inv[6], float u, float v, int *x, int *y)
+static void to_screen(lp_affine inv, float u, float v, int *x, int *y)
 {
-    const lp_affine m = lp_affine_inverse((lp_affine){inv[0], inv[1], inv[2], inv[3], inv[4], inv[5]});
+    const lp_affine m = lp_affine_inverse(inv);
     float sx;
     float sy;
     lp_affine_apply(m, u, v, &sx, &sy);
@@ -107,12 +108,31 @@ void test_render_puts_colors_where_they_belong(void)
         const lp_eye_geometry *g = &other.eyes[side];
         int x;
         int y;
-        to_screen(g->inv_pupil, g->px, g->py, &x, &y); /* pupil center */
+        to_screen(g->inv_pupil, g->shapes.pupil.cu, g->shapes.pupil.cv, &x, &y); /* pupil center */
         CHECK_COLOR(frame[y * SIZE + x], look->pupil_color[side]);
-        to_screen(g->inv_eye, side == 0 ? -0.5f * g->rx : 0.5f * g->rx, 0.0f, &x, &y); /* outer half of the eye */
+        const float rx = eyes.shape.rx;
+        const float ry = eyes.shape.ry;
+        to_screen(g->inv_eye, side == 0 ? -0.5f * rx : 0.5f * rx, 0.0f, &x, &y); /* outer half of the eye */
         CHECK_COLOR(frame[y * SIZE + x], look->sclera);
-        to_screen(g->inv_eye, 0.0f, -1.3f * g->ry, &x, &y); /* above the eye */
+        to_screen(g->inv_eye, 0.0f, -1.3f * ry, &x, &y); /* above the eye */
         CHECK_COLOR(frame[y * SIZE + x], 0x000000);
+    }
+}
+
+void test_pixels_differing_in_one_channel_stay_apart(void)
+{
+    /* Over black, each of these eyes changes a single channel: the pixel must not pass for the one before it */
+    const uint32_t colors[] = {0xFF0000u, 0x00FF00u, 0x0000FFu};
+    for (int i = 0; i < 3; i++) {
+        const lp_look look = {colors[i], LP_PUPIL_DOT, {colors[i], colors[i]}};
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_look(&eyes, &look);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, frame);
+        int x;
+        int y;
+        to_screen(renderer.eyes[0].inv_eye, 0.0f, 0.0f, &x, &y);
+        CHECK_COLOR(frame[y * SIZE + x], colors[i]);
     }
 }
 
@@ -123,7 +143,7 @@ void test_render_glint_is_white(void)
     CHECK(g->glint);
     int x;
     int y;
-    to_screen(g->inv_pupil, g->gx, g->gy, &x, &y);
+    to_screen(g->inv_pupil, g->shapes.glint.cu, g->shapes.glint.cv, &x, &y);
     CHECK_COLOR(frame[y * SIZE + x], 0xFFFFFF);
 }
 
@@ -138,9 +158,56 @@ void test_closed_eye_shows_only_the_stroke(void)
         int y;
         to_screen(g->inv_pupil, 0.0f, 0.0f, &x, &y); /* eye center: nothing drawn */
         CHECK_COLOR(frame[y * SIZE + x], 0x000000);
-        to_screen(g->inv_pupil, 0.0f, 0.7f * g->ry - 2.25f, &x, &y); /* middle of the stroke */
+        to_screen(g->inv_pupil, 0.0f, 0.7f * eyes.shape.ry - 2.25f, &x, &y); /* middle of the stroke */
         CHECK_COLOR(frame[y * SIZE + x], look->sclera);
     }
+}
+
+void test_box_hugs_the_shape(void)
+{
+    /* Coverage is exact: a pixel more on each side would only redraw black */
+    render_scene("blink-closed", frame);
+    for (int side = 0; side < 2; side++) {
+        const lp_polygon *p = &other.eyes[side].shape;
+        float x0 = (float)SIZE;
+        float y0 = (float)SIZE;
+        float x1 = 0.0f;
+        float y1 = 0.0f;
+        for (int i = 0; i < p->count; i++) {
+            x0 = fminf(x0, p->pts[2 * i]);
+            y0 = fminf(y0, p->pts[2 * i + 1]);
+            x1 = fmaxf(x1, p->pts[2 * i]);
+            y1 = fmaxf(y1, p->pts[2 * i + 1]);
+        }
+        CHECK(p->box.x0 == (int)floorf(x0) && p->box.y0 == (int)floorf(y0));
+        CHECK(p->box.x1 == (int)ceilf(x1) && p->box.y1 == (int)ceilf(y1));
+    }
+}
+
+/* Pixels of a fresh render that are not black */
+static int lit_pixels(void)
+{
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    int lit = 0;
+    for (int i = 0; i < PIXELS; i++)
+        lit += frame[i] != 0;
+    return lit;
+}
+
+void test_lid_level_with_the_rows(void)
+{
+    /* Upright eyes, no tilt: the top lid never crosses a row, each row is whole above or below it */
+    lp_shape level = lp_default_shape();
+    level.tilt = 0.0f;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_shape(&eyes, &level);
+    const float both_eyes = 2.0f * 3.14159265f * level.rx * level.ry;
+    const float edge = 0.02f * both_eyes; /* partly covered pixels count as lit */
+    CHECK_NEAR((float)lit_pixels(), both_eyes, edge);
+
+    eyes.cur.tl = 0.5f; /* lid down to the middle of the eye */
+    CHECK_NEAR((float)lit_pixels(), both_eyes / 2.0f, edge);
 }
 
 void test_render_is_deterministic(void)
@@ -223,6 +290,21 @@ static lp_rect check_bands(int size)
         if (memcmp(frame, reference, (size_t)(size * size) * sizeof frame[0]) != 0)
             LP_FAIL("bands differ from the whole frame at %d px, frame %d", size, f);
     }
+
+    /* A band across each edge of the region: rows outside are left as they were, rows inside land at their place */
+    const int width = dirty.x1 - dirty.x0;
+    const int edges[2] = {dirty.y0, dirty.y1};
+    for (int e = 0; e < 2; e++) {
+        const int y0 = edges[e] - BAND_ROWS / 2;
+        for (int i = 0; i < SIZE * BAND_ROWS; i++)
+            band[i] = 0xABCD;
+        lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
+        for (int y = y0; y < y0 + BAND_ROWS; y++) {
+            const bool inside = y >= dirty.y0 && y < dirty.y1;
+            for (int x = 0; x < width; x++)
+                CHECK(band[(y - y0) * width + x] == (inside ? reference[y * size + dirty.x0 + x] : 0xABCD));
+        }
+    }
     return dirty;
 }
 
@@ -238,6 +320,52 @@ void test_band_rendering_matches_whole_frame(void)
     lp_render_rows(&other, dirty.y0 - BAND_ROWS, dirty.y0, band);
     for (int i = 0; i < SIZE * BAND_ROWS; i++)
         CHECK(band[i] == 0xABCD);
+}
+
+static uint16_t swapped(uint16_t px)
+{
+    return (uint16_t)((unsigned)px << 8u | (unsigned)px >> 8u);
+}
+
+void test_big_endian_swaps_the_bytes_of_every_pixel(void)
+{
+    /* The same animation in both orders, whole frames and bands, at both sizes */
+    const int sizes[] = {SIZE, 128};
+    for (int i = 0; i < 2; i++) {
+        const int size = sizes[i];
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+        lp_renderer_init(&renderer);
+        lp_renderer_init(&other);
+        lp_renderer_set_size(&renderer, size);
+        lp_renderer_set_size(&other, size);
+        lp_renderer_set_big_endian(&other, true);
+        memset(reference, 0, sizeof reference);
+        memset(frame, 0, sizeof frame);
+        for (int f = 0; f < 60; f++) {
+            lp_eyes_update(&eyes, 1.0f / 64.0f);
+            lp_render(&renderer, &eyes, reference);
+            if (f % 2) {
+                lp_render(&other, &eyes, frame);
+            } else {
+                const lp_rect d = lp_render_begin(&other, &eyes);
+                for (int y = d.y0; y < d.y1; y++) {
+                    lp_render_rows(&other, y, y + 1, band);
+                    memcpy(&frame[y * size + d.x0], band, (size_t)(d.x1 - d.x0) * sizeof band[0]);
+                }
+            }
+        }
+        int wrong = 0;
+        for (int p = 0; p < size * size; p++)
+            wrong += frame[p] != swapped(reference[p]);
+        CHECK(wrong == 0);
+    }
+
+    /* Back to the CPU's order: the region drawn so far is stale, so the whole frame comes again */
+    lp_renderer_set_big_endian(&other, false);
+    const lp_rect d = lp_render(&other, &eyes, frame);
+    CHECK(d.x0 == 0 && d.y0 == 0 && d.x1 == 128 && d.y1 == 128);
+    CHECK(memcmp(frame, reference, 128u * 128u * sizeof frame[0]) == 0);
 }
 
 void test_dirty_region_has_even_coordinates(void)
@@ -274,13 +402,108 @@ void test_extreme_poses_render_inside_the_frame(void)
                               .particle_time = 3.0f};
             if (!lp_emotion_get((lp_emotion)e)->emit)
                 scene.has_particles = false;
-            lp_eyes_init(&eyes, 1);
             lp_eyes_set_scene(&eyes, &scene, &LPV_LOOKS[p]);
             lp_renderer_init(&renderer);
             lp_render(&renderer, &eyes, frame);
         }
     }
     CHECK(1);
+}
+
+void test_unknown_pupil_renders_as_a_circle(void)
+{
+    lp_look look = LPV_LOOKS[0];
+    look.pupil = LP_PUPIL_CIRCLE;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &look);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, reference);
+    look.pupil = LP_PUPIL_COUNT;
+    lp_eyes_set_look(&eyes, &look);
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    CHECK(memcmp(frame, reference, sizeof frame) == 0);
+}
+
+void test_eyes_off_the_screen_render_nothing(void)
+{
+    /* Half past the edge, all the way past it, too far for an int, wider than the screen; open and closed. The
+     * sanitizers catch any write outside the buffers. */
+    const lp_shape deflt = lp_default_shape();
+    const lp_shape shapes[] = {
+        {deflt.rx, deflt.ry, 300.0f, deflt.tilt},
+        {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
+        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},
+        {600.0f, 600.0f, deflt.gap, deflt.tilt},
+    };
+    const char *scenes[] = {"look-cherry", "blink-closed"};
+    const int sizes[] = {SIZE, 128};
+    for (int s = 0; s < 2; s++) {
+        for (int k = 0; k < 4; k++) {
+            for (int i = 0; i < 2; i++) {
+                set_scene(&eyes, scenes[s]);
+                lp_eyes_set_shape(&eyes, &shapes[k]);
+                lp_renderer_init(&renderer);
+                lp_renderer_set_size(&renderer, sizes[i]);
+                lp_render(&renderer, &eyes, frame);
+                const lp_rect d = lp_render(&renderer, &eyes, frame);
+                CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= sizes[i] && d.y1 <= sizes[i]);
+                int lit = 0;
+                for (int p = 0; p < sizes[i] * sizes[i]; p++)
+                    lit += frame[p] != 0;
+                if (k == 1 || k == 2) /* the eyes start past the edge, whatever their state */
+                    CHECK(lit == 0);
+            }
+        }
+    }
+}
+
+/* Cuts [40, 60) out of the spans given as pairs of ends, and checks the pairs left */
+static void check_cut(const float (*in)[2], int count, const float (*want)[2], int want_count)
+{
+    const lp_line line = {.u0 = 0.0f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_ellipse hole = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
+    lp_spans s = {.n = count};
+    for (int i = 0; i < count; i++) {
+        s.a[i] = in[i][0];
+        s.b[i] = in[i][1];
+    }
+    lp_spans_cut_ellipse(&s, &line, &hole);
+    CHECK(s.n == want_count);
+    for (int i = 0; i < want_count && i < s.n; i++) {
+        CHECK_NEAR(s.a[i], want[i][0], 0.001f);
+        CHECK_NEAR(s.b[i], want[i][1], 0.001f);
+    }
+}
+
+void test_cutting_spans(void)
+{
+    const float whole[][2] = {{0.0f, 100.0f}};
+    const float split[][2] = {{0.0f, 40.0f}, {60.0f, 100.0f}};
+    check_cut(whole, 1, split, 2);
+
+    const float around[][2] = {{0.0f, 10.0f}, {20.0f, 100.0f}, {110.0f, 120.0f}};
+    const float around_cut[][2] = {{0.0f, 10.0f}, {20.0f, 40.0f}, {60.0f, 100.0f}, {110.0f, 120.0f}};
+    check_cut(around, 3, around_cut, 4);
+
+    const float ends[][2] = {{0.0f, 45.0f}, {55.0f, 100.0f}};
+    check_cut(ends, 2, split, 2);
+
+    const float inside[][2] = {{0.0f, 20.0f}, {45.0f, 55.0f}, {70.0f, 90.0f}};
+    const float inside_cut[][2] = {{0.0f, 20.0f}, {70.0f, 90.0f}};
+    check_cut(inside, 3, inside_cut, 2);
+
+    check_cut(inside_cut, 2, inside_cut, 2); /* nothing inside the hole */
+}
+
+void test_line_too_far_misses_an_ellipse(void)
+{
+    /* So far that the distance overflows into a NaN: no span, and not the whole row */
+    const lp_line line = {.u0 = 1e30f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_ellipse e = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
+    lp_spans s;
+    lp_spans_ellipse(&s, &line, &e, 0.0f, 100.0f);
+    CHECK(s.n == 0);
 }
 
 /* --- Smaller output (lp_renderer_set_size) ------------------------------------------------------------------- */
@@ -353,6 +576,16 @@ void test_small_output_is_the_frame_scaled_down(void)
     }
 }
 
+void test_new_size_redraws_everything(void)
+{
+    set_scene(&eyes, "look-cherry");
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    lp_renderer_set_size(&renderer, SMALL);
+    const lp_rect dirty = lp_render(&renderer, &eyes, frame);
+    CHECK(dirty.x0 == 0 && dirty.y0 == 0 && dirty.x1 == SMALL && dirty.y1 == SMALL);
+}
+
 void test_small_output_regions_stay_inside(void)
 {
     static uint16_t small[SMALL * SMALL];
@@ -363,6 +596,7 @@ void test_small_output_regions_stay_inside(void)
     CHECK(renderer.size == 6);
 
     set_scene(&eyes, "head-turn-right");
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts start below the bottom edge of the small screen */
     lp_renderer_set_size(&renderer, SMALL);
     lp_render(&renderer, &eyes, small);
     for (int f = 0; f < 200; f++) {

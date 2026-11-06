@@ -35,7 +35,7 @@ bool look_store_load(lp_look *look)
 bool look_store_save(const lp_look *look)
 {
     char text[LP_LOOK_TEXT_SIZE];
-    if (lp_look_format(look, text, sizeof text) < 0)
+    if (lp_look_format(look, text) < 0)
         return false;
     nvs_handle_t nvs;
     if (nvs_open(NAMESPACE, NVS_READWRITE, &nvs) != ESP_OK)

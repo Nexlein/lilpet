@@ -1,4 +1,4 @@
-/* lilpet app. Night indigo base; the accent is the color of the chosen eyes (--eye, --pupil, --on-eye, set by App). */
+/* lilpet app. Night indigo base; the accent is the color of the chosen eyes (--eye, --on-eye, set by App). */
 
 :root {
     --night: #19132b;
@@ -7,11 +7,10 @@
     --seam: #43386b;
     --ink: #f5f1ff;
     --haze: #ada3cf;
-    --eye: #ae0002;
-    --pupil: #ff5252;
-    --on-eye: #ffffff;
+    --line: 1.5px solid var(--seam);
     --radius-s: 10px;
     --radius-m: 18px;
+    --pill: 999px;
     color-scheme: dark;
     font-family: 'Bricolage Grotesque Variable', system-ui, sans-serif;
     font-size: 15px;
@@ -41,8 +40,9 @@ button {
     cursor: pointer;
 }
 
-:focus-visible {
-    outline: 2px solid var(--eye);
+:focus-visible,
+.pupil:has(input:focus-visible) {
+    outline: 2px solid var(--ink);
     outline-offset: 3px;
 }
 
@@ -56,10 +56,6 @@ button {
 }
 
 /* --- Page ------------------------------------------------------------------------------------------------------ */
-
-.app {
-    min-height: 100vh;
-}
 
 .top {
     display: flex;
@@ -75,7 +71,6 @@ button {
     margin: 0;
     font-size: 40px;
     font-weight: 800;
-    font-stretch: 85%;
     letter-spacing: -0.04em;
     line-height: 1;
 }
@@ -106,8 +101,8 @@ button {
 
 .device button {
     padding: 9px 18px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: var(--shell);
     font-weight: 600;
 }
@@ -116,24 +111,28 @@ button {
     border-color: var(--haze);
 }
 
+.device button[aria-disabled='true'] {
+    border-color: var(--seam);
+    color: var(--haze);
+    cursor: default;
+}
+
 .device.connected p {
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 8px;
-    align-items: center;
     color: var(--ink);
     font-weight: 600;
 }
 
 .device.connected small {
-    grid-column: 2;
+    display: block;
     color: var(--haze);
     font-weight: 400;
 }
 
 .led {
+    display: inline-block;
     width: 9px;
     height: 9px;
+    margin-right: 8px;
     border-radius: 50%;
     background: #6be39a;
     box-shadow: 0 0 10px #6be39a;
@@ -160,7 +159,7 @@ button {
     display: grid;
     place-items: center;
     justify-self: center;
-    width: min(100%, max(240px, 100dvh - 530px));
+    width: min(100%, max(160px, 100dvh - 540px));
     aspect-ratio: 1;
     border-radius: 34%;
     background: linear-gradient(150deg, #3b3060 0%, #262042 55%, #1e1834 100%);
@@ -242,7 +241,7 @@ button {
     place-items: center;
     width: 46px;
     height: 46px;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
     border-radius: 50%;
     background: none;
 }
@@ -279,7 +278,7 @@ button {
     justify-items: center;
     gap: 6px;
     padding: 10px 6px 8px;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
     border-radius: var(--radius-m);
     background: var(--shell);
     cursor: pointer;
@@ -301,11 +300,6 @@ button {
     background: var(--shell-2);
 }
 
-.pupil:has(input:focus-visible) {
-    outline: 2px solid var(--eye);
-    outline-offset: 3px;
-}
-
 .moods {
     display: flex;
     flex-wrap: wrap;
@@ -315,7 +309,7 @@ button {
 .moods button {
     padding: 6px 12px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: var(--shell);
     color: var(--haze);
 }
@@ -329,10 +323,15 @@ button {
     color: var(--on-eye);
 }
 
-.moods .blink {
+.gestures {
+    display: flex;
+    gap: 6px;
     margin-left: auto;
+}
+
+.moods .gestures button {
     background: none;
-    border: 1.5px solid var(--seam);
+    border: var(--line);
 }
 
 .send {
@@ -343,18 +342,14 @@ button {
 .primary {
     padding: 16px 24px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: var(--eye);
     color: var(--on-eye);
     font-size: 18px;
     font-weight: 700;
 }
 
-.primary:focus-visible {
-    outline-color: var(--ink);
-}
-
-.primary:disabled {
+.primary[aria-disabled='true'] {
     background: var(--shell-2);
     color: var(--haze);
     cursor: default;
@@ -407,8 +402,8 @@ button {
     justify-self: end;
     width: min(100%, 280px);
     padding: 9px 16px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: var(--shell);
 }
 
@@ -430,8 +425,8 @@ button {
     min-width: 34px;
     height: 34px;
     padding: 0 12px;
-    border: 1.5px solid var(--seam);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: var(--pill);
     background: none;
     color: var(--haze);
 }
@@ -465,7 +460,7 @@ button {
 .chip svg {
     width: 100%;
     padding: 6px 4px;
-    border-radius: 999px;
+    border-radius: var(--pill);
     background: #000;
     box-shadow: 0 0 0 2px transparent;
     transition: box-shadow 0.15s;
@@ -491,6 +486,11 @@ button {
 
 .empty {
     color: var(--haze);
+}
+
+/* Takes no row of the gallery while it has nothing to say, but stays rendered */
+.empty:empty {
+    position: absolute;
 }
 
 /* --- Device log --------------------------------------------------------------------------------------------------- */
@@ -540,6 +540,13 @@ button {
 
     .top {
         flex-wrap: wrap;
+    }
+}
+
+/* Taller than the window, a sticky stage keeps its send note out of reach */
+@media (max-height: 640px) {
+    .stage {
+        position: static;
     }
 }
 

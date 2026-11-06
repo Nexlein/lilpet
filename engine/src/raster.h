@@ -6,7 +6,7 @@
 #ifndef LILPET_RASTER_H
 #define LILPET_RASTER_H
 
-#include <stdbool.h>
+#include "lilpet/lilpet.h"
 
 #define LP_SUBROWS   8 /* vertical samples per pixel row */
 #define LP_MAX_SPANS 8
@@ -18,29 +18,10 @@ typedef struct {
     float b[LP_MAX_SPANS];
 } lp_spans;
 
-/* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) */
-typedef struct {
-    float a, b, c, d, tx, ty;
-} lp_affine;
-
 /* A screen sub-row seen in some local frame: the local point for screen column x is (u0 + x du, v0 + x dv) */
 typedef struct {
     float u0, du, v0, dv;
 } lp_line;
-
-/*
- * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
- * share one step (du, dv): the divisions are done once, not per sub-row (the ESP32-S3 has no fast division).
- */
-typedef struct {
-    float cu, cv, inv_ra, inv_rb;
-    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
-} lp_ellipse;
-
-/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
-typedef struct {
-    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
-} lp_half_plane;
 
 lp_affine lp_affine_mul(lp_affine m, lp_affine n); /* m after n */
 lp_affine lp_affine_inverse(lp_affine m);
@@ -48,18 +29,16 @@ lp_affine lp_affine_rotate(float angle);
 lp_affine lp_affine_scale(float sx, float sy);
 void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy);
 /* The screen sub-row at height y, in the local frame whose local->screen transform has inverse `inv` */
-lp_line lp_line_at(lp_affine inv, float y);
+static inline lp_line lp_line_at(lp_affine inv, float y)
+{
+    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
+}
 
-void lp_spans_set(lp_spans *s, float a, float b);
 void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */
-void lp_spans_cut(lp_spans *s, float lo, float hi);  /* remove [lo, hi) */
-void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t);
 
 /* Prepares an ellipse for the sub-rows of a frame (lines of step du, dv) */
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb);
 lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c);
-/* Screen x interval where the line is inside the ellipse. False when it misses. */
-bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1);
 /* Spans of an ellipse on the line, limited to [lo, hi) */
 void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, float lo, float hi);
 /* Keeps the part of the spans inside the half plane */

@@ -7,6 +7,9 @@
 #ifndef LILPET_LILPET_H
 #define LILPET_LILPET_H
 
+#include "lilpet/render_state.h"
+#include "lilpet/screen.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -17,14 +20,11 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 12
+#define LP_VERSION_MINOR 13
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
 const char *lp_version(void);
-
-#define LP_SCREEN_SIZE   466
-#define LP_MAX_PARTICLES 32
 
 /* --- Random numbers: mulberry32, same sequence as createRng in prototype/eyes.js ---------------- */
 
@@ -33,14 +33,13 @@ typedef struct {
 } lp_rng;
 
 void lp_rng_seed(lp_rng *rng, uint32_t seed);
-uint32_t lp_rng_next_u32(lp_rng *rng);
 /* Uniform in [0, 1), 24-bit resolution: the exact same values as the prototype */
 float lp_rng_next(lp_rng *rng);
 
 /* --- Looks -------------------------------------------------------------------------------------- */
 
 /* Official pupil names (notes/yeux.md) */
-typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE } lp_pupil;
+typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE, LP_PUPIL_COUNT } lp_pupil;
 
 typedef struct {
     uint32_t sclera;         /* eye color, 0xRRGGBB */
@@ -50,11 +49,11 @@ typedef struct {
 
 /* Looks as text, as the PC app sends them over USB (notes/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
-#define LP_LOOK_TEXT_SIZE 32 /* longest text with its NUL */
+#define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
-/* Writes the text, cut to fit `size` with its NUL; returns its full length without the NUL (as snprintf), or -1 for
- * an unknown pupil type */
-int lp_look_format(const lp_look *look, char *out, size_t size);
+/* Writes the text into `out`, LP_LOOK_TEXT_SIZE bytes; returns its length without the NUL, or -1 for an unknown pupil
+ * type */
+int lp_look_format(const lp_look *look, char *out);
 
 /* --- Emotions ----------------------------------------------------------------------------------- */
 
@@ -96,11 +95,27 @@ const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
 /* Emotion from its name; LP_EMOTION_COUNT when unknown */
 lp_emotion lp_emotion_from_name(const char *name);
 
-/* What happens to the object */
-typedef enum { LP_EVENT_TAP, LP_EVENT_SHAKE, LP_EVENT_UPSIDE_DOWN, LP_EVENT_COUNT } lp_event;
+/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (notes/materiel.md) */
+typedef enum {
+    LP_EVENT_TAP,
+    LP_EVENT_SHAKE,
+    LP_EVENT_UPSIDE_DOWN,
+    LP_EVENT_FACE_SEEN,
+    LP_EVENT_GESTURE_LIKE,
+    LP_EVENT_GESTURE_DISLIKE,
+    LP_EVENT_GESTURE_OK,
+    LP_EVENT_GESTURE_FIVE,
+    LP_EVENT_GESTURE_CALL,
+    LP_EVENT_EXPRESSION_HAPPY,
+    LP_EVENT_EXPRESSION_SAD,
+    LP_EVENT_EXPRESSION_ANGRY,
+    LP_EVENT_EXPRESSION_SURPRISED,
+    LP_EVENT_COUNT
+} lp_event;
 
-/* How the eyes react to an event: an emotion for a while, and a burst of sparkles (REACTIONS in prototype/eyes.js) */
+/* How the eyes react to an event: an emotion for a while, and a burst of sparkles (eyes/emotions.json) */
 typedef struct {
+    const char *name; /* same names as the prototype ("tap", "gesture_like"...) */
     lp_emotion emotion;
     float duration; /* seconds */
     int sparkles;
@@ -108,6 +123,8 @@ typedef struct {
 
 /* Reaction to an event; NULL when the event is unknown */
 const lp_reaction *lp_reaction_get(lp_event event);
+/* Event from its name; LP_EVENT_COUNT when unknown */
+lp_event lp_event_from_name(const char *name);
 
 /* --- Eyes state --------------------------------------------------------------------------------- */
 
@@ -139,7 +156,8 @@ typedef struct {
     lp_look look;
     lp_emotion emotion;
     lp_emotion mood;     /* the emotion picked for good: temporary ones come back to it */
-    float emotion_timer; /* > 0: temporary emotion, back to the mood when it reaches 0 */
+    float emotion_timer; /* > 0: seconds before going back to the mood, which may be this very emotion */
+    float burst_wait;    /* > 0: sparkles just burst, no reaction brings more yet (lp_eyes_react) */
     float upside_down;   /* seconds held upside down (gravity) */
     bool shaking;        /* being shaken (lp_eyes_set_shaking) */
     lp_expression cur;   /* current shape, easing toward the emotion's target */
@@ -195,7 +213,9 @@ void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
 void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look);
 /* duration > 0: back to the mood after that many seconds; 0: the new mood */
 void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration);
-/* Reacts to an event (lp_reaction_get); unknown events are ignored */
+/* Reacts to an event (lp_reaction_get); unknown events are ignored. The emotion changes at once; one already on lasts
+ * at least as long as the event asks. Sparkles burst half a second apart at most, whatever the emotion, and a reaction
+ * with none leaves that wait alone: a camera can repeat itself as often as it likes. */
 void lp_eyes_react(lp_eyes *eyes, lp_event event);
 /* Starts a blink, unless one is running */
 void lp_eyes_blink(lp_eyes *eyes);
@@ -228,6 +248,79 @@ typedef struct {
 /* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
 bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
+/* --- What the object senses ----------------------------------------------------------------------- */
+
+/*
+ * Turns what the hardware reports into the state of the eyes, the same way on every board (senses.c): gravity and
+ * shakes from an accelerometer, presses of a button, the position of a face seen by a camera. A sensor that stops
+ * reporting never leaves the eyes stuck in what it last said.
+ */
+typedef struct {
+    lp_shake shake;
+    float gravity[2]; /* smoothed, in the screen plane */
+    float motion_age; /* seconds since the last accelerometer sample */
+    bool pressed;
+    float button_age; /* seconds since the button last changed */
+    bool face;        /* the eyes are following a face */
+    float face_age;   /* seconds since the last position of a face */
+} lp_senses;
+
+void lp_senses_init(lp_senses *senses);
+/* Once per frame, before lp_eyes_update. accel: x, y, z in g, on the screen axes (x right, y down, z through the
+ * screen), raw; NULL without a sample. A step that is negative or not finite is ignored. */
+void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bool pressed, float dt);
+/* A face at x, y in -1..1, whenever the camera reports one; seen = false when it says the face is gone. A face that
+ * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
+void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
+
+/* --- Commands: the text protocol of the USB port and the camera link (notes/app.md) ---------------- */
+
+#define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
+
+/* A line as it arrives; starts zeroed */
+typedef struct {
+    char text[LP_COMMAND_LINE_MAX + 1];
+    size_t length;
+    bool too_long; /* `text` holds its start only */
+} lp_command_line;
+
+/*
+ * Adds a byte. True when it ends the line (\n or \r): `text` is then ready. What does not fit is thrown away up to
+ * that end, so that it cannot pass for a command. A NUL cuts `text` short, and never ends the line.
+ */
+bool lp_command_line_add(lp_command_line *line, char byte);
+
+typedef enum {
+    LP_COMMAND_NONE, /* other lines are ignored: the timing reports share the port */
+    LP_COMMAND_HELLO,
+    LP_COMMAND_LOOK_QUERY,
+    LP_COMMAND_IMU_QUERY,
+    LP_COMMAND_LOOK,
+    LP_COMMAND_EMOTION,
+    LP_COMMAND_REACT,
+    LP_COMMAND_FACE
+} lp_command_type;
+
+/* What a line asks */
+typedef struct {
+    lp_command_type type;
+    union {
+        lp_look look;
+        struct {
+            lp_emotion name;
+            float seconds; /* 0: the new mood */
+        } emotion;
+        lp_event event;
+        struct {
+            bool seen; /* false: the face is gone */
+            float x, y;
+        } face;
+    };
+} lp_command;
+
+/* Reads a whole line into `out`. Returns NULL, or what is wrong with it: the reason given after "< err ". */
+const char *lp_command_parse(const lp_command_line *line, lp_command *out);
+
 /* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
 
 typedef struct {
@@ -241,7 +334,9 @@ typedef struct {
     float particle_time;
 } lp_scene;
 
-/* Puts the eyes in the state of a scene: emotion settled, gaze still, particles replayed from their seed */
+/* Starts the eyes over, as lp_eyes_init does with particle_seed, in the state of a scene: emotion settled, gaze still,
+ * particles replayed from their seed. A scene with an unknown emotion or blink phase, a value that is not finite, or
+ * a particle_time outside 0 to 60 seconds, is ignored. */
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look);
 
 /* --- Derived geometry, used by the renderer ----------------------------------------------------- */
@@ -264,61 +359,17 @@ lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
 
 /* --- Rendering into an RGB565 frame ------------------------------------------------------------- */
 
-/* Pixel rectangle, x1 and y1 excluded; empty when x0 >= x1 or y0 >= y1 */
-typedef struct {
-    int x0, y0, x1, y1;
-} lp_rect;
-
-#define LP_POLY_MAX 64 /* points per polygon */
-
-/* A filled shape in screen coordinates (internal to the renderer) */
-typedef struct {
-    int count;
-    float pts[2 * LP_POLY_MAX]; /* x0 y0 x1 y1 ... */
-    lp_rect box;
-} lp_polygon;
-
-/* Geometry of one eye for the frame being drawn (internal to the renderer) */
-typedef struct {
-    bool closed;
-    lp_rect box;
-    float inv_eye[6];   /* screen -> eye frame (affine a b c d tx ty) */
-    float inv_pupil[6]; /* screen -> pupil frame: upright, then leaned around the pupil center */
-    float rx, ry;
-    float lid_m, lid_c; /* emotion top lid: keep v >= lid_m u + lid_c */
-    bool blink_lid;
-    float blink_m, blink_c;
-    bool crescent, happy; /* cut by an ellipse (center 0, cv; radii ra, rb) */
-    float crescent_cv, crescent_ra, crescent_rb;
-    float happy_cv, happy_ra, happy_rb;
-    float px, py, prx, pry;
-    bool glint;
-    float gx, gy, gr;
-    uint32_t sclera, pupil_color;
-    lp_polygon shape; /* closed-eye stroke */
-} lp_eye_geometry;
-
-/* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque in practice. */
-typedef struct {
-    lp_rect prev;  /* region covered by the previous frame */
-    lp_rect dirty; /* region of the frame being drawn, set by lp_render_begin */
-    bool drawn;    /* a frame was drawn before (otherwise the whole screen is redrawn) */
-    int size;      /* output width and height in pixels (lp_renderer_set_size) */
-    float scale;   /* size / LP_SCREEN_SIZE */
-    lp_eye_geometry eyes[2];
-    lp_polygon particles[LP_MAX_PARTICLES];
-    uint32_t particle_color[LP_MAX_PARTICLES];
-    float particle_alpha[LP_MAX_PARTICLES];
-    int particle_count;
-    float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
-    float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
-} lp_renderer;
+/* lp_renderer: scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Do not read
+ * its fields. */
 
 /* Prepares a renderer for the full LP_SCREEN_SIZE screen */
 void lp_renderer_init(lp_renderer *renderer);
 /* Draws at another square size, from 2 to LP_SCREEN_SIZE pixels (rounded down to even), e.g. 128 for a small screen:
  * the same picture, scaled. Frames passed to lp_render are then size x size; the next frame redraws everything. */
 void lp_renderer_set_size(lp_renderer *renderer, int size);
+/* Writes each pixel high byte first in memory, the order display controllers read over SPI, instead of the CPU's (low
+ * byte first on the ESP32-S3 and in WebAssembly). The next frame redraws everything. */
+void lp_renderer_set_big_endian(lp_renderer *renderer, bool big_endian);
 /*
  * Draws the eyes into `frame` (size x size RGB565 pixels, row-major; size is LP_SCREEN_SIZE unless changed by
  * lp_renderer_set_size) and returns the region that changed since the previous call, the only part to send to the

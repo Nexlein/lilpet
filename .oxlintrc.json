@@ -25,6 +25,22 @@
             "rules": {
                 "no-underscore-dangle": "off"
             }
+        },
+        {
+            "files": ["app/src/data/**", "app/src/device/**", "app/src/engine/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["react", "react/*", "react-dom", "react-dom/*"],
+                                "message": "Only app/src/ui and main.tsx use React."
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     ]
 }

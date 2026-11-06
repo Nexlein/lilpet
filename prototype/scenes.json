@@ -3,7 +3,7 @@
         "id": "unique scene name",
         "swatch": "swatch id from eyes/looks.json",
         "pupil": "pupil type: dot | circle | cat | acorn",
-        "emotion": "optional, emotion name from prototype/eyes.js (default neutral), values are settled",
+        "emotion": "optional, emotion name from eyes/emotions.json (default neutral), values are settled",
         "blink": "optional { phase: anticip | close | closed | open, t: seconds into the phase }",
         "head": "optional { yaw, pitch, roll } in radians",
         "gaze": "optional { x, y } in -1..1, still (no squash)",
@@ -52,7 +52,7 @@
             "swatch": "denim",
             "pupil": "acorn",
             "emotion": "sleepy",
-            "particles": { "seed": 3, "time": 4 }
+            "particles": { "seed": 3, "time": 3 }
         },
 
         { "id": "blink-anticip", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "anticip", "t": 0.06 } },
@@ -61,6 +61,27 @@
         { "id": "blink-closed", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "closed", "t": 0.05 } },
         { "id": "blink-open-40", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "open", "t": 0.04 } },
         { "id": "blink-open-100", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "open", "t": 0.1 } },
+        {
+            "id": "blink-squint-close",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "squint",
+            "blink": { "phase": "close", "t": 0.08 }
+        },
+        {
+            "id": "blink-frown-close",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "frown",
+            "blink": { "phase": "close", "t": 0.08 }
+        },
+        {
+            "id": "blink-squint-closed",
+            "swatch": "denim",
+            "pupil": "acorn",
+            "emotion": "squint",
+            "blink": { "phase": "closed", "t": 0.05 }
+        },
 
         {
             "id": "head-turn-right",

@@ -46,18 +46,6 @@ void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy)
     *oy = m.c * x + m.d * y + m.ty;
 }
 
-lp_line lp_line_at(lp_affine inv, float y)
-{
-    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
-}
-
-void lp_spans_set(lp_spans *s, float a, float b)
-{
-    s->n = a < b ? 1 : 0;
-    s->a[0] = a;
-    s->b[0] = b;
-}
-
 void lp_spans_clip(lp_spans *s, float lo, float hi)
 {
     int n = 0;
@@ -73,46 +61,38 @@ void lp_spans_clip(lp_spans *s, float lo, float hi)
     s->n = n;
 }
 
-void lp_spans_cut(lp_spans *s, float lo, float hi)
+/* Removes [lo, hi), in place */
+static void spans_cut(lp_spans *s, float lo, float hi)
 {
-    lp_spans out = {0};
-    for (int i = 0; i < s->n && out.n < LP_MAX_SPANS; i++) {
+    const int count = s->n;
+    int n = 0;
+    for (int i = 0; i < count; i++) {
         const float a = s->a[i];
         const float b = s->b[i];
+        if (a < lo && hi < b &&
+            count < LP_MAX_SPANS) { /* a hole in this span: it splits, the others stay as they are */
+            for (int k = count; k > i; k--) {
+                s->a[k] = s->a[k - 1];
+                s->b[k] = s->b[k - 1];
+            }
+            s->b[i] = lo;
+            s->a[i + 1] = hi;
+            s->n = count + 1;
+            return;
+        }
         const float left_end = b < lo ? b : lo;
-        if (a < left_end) {
-            out.a[out.n] = a;
-            out.b[out.n] = left_end;
-            out.n++;
-        }
         const float right_start = a > hi ? a : hi;
-        if (right_start < b && out.n < LP_MAX_SPANS) {
-            out.a[out.n] = right_start;
-            out.b[out.n] = b;
-            out.n++;
+        if (a < left_end) {
+            s->a[n] = a;
+            s->b[n] = left_end;
+            n++;
+        } else if (right_start < b) {
+            s->a[n] = right_start;
+            s->b[n] = b;
+            n++;
         }
     }
-    *s = out;
-}
-
-void lp_spans_intersect(lp_spans *out, const lp_spans *s, const lp_spans *t)
-{
-    int i = 0;
-    int j = 0;
-    out->n = 0;
-    while (i < s->n && j < t->n && out->n < LP_MAX_SPANS) {
-        const float a = s->a[i] > t->a[j] ? s->a[i] : t->a[j];
-        const float b = s->b[i] < t->b[j] ? s->b[i] : t->b[j];
-        if (a < b) {
-            out->a[out->n] = a;
-            out->b[out->n] = b;
-            out->n++;
-        }
-        if (s->b[i] < t->b[j])
-            i++;
-        else
-            j++;
-    }
+    s->n = n;
 }
 
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb)
@@ -131,7 +111,8 @@ lp_half_plane lp_half_plane_prepare(float du, float dv, float m, float c)
     return (lp_half_plane){.m = m, .c = c, .g1 = g1, .inv_g1 = fabsf(g1) < 1e-12f ? 0.0f : 1.0f / g1};
 }
 
-bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1)
+/* Screen x interval where the line is inside the ellipse. False when it misses. */
+static bool line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1)
 {
     /* The line in unit-circle space: p + x q; solve |p + x q| = 1 */
     const float pu = (l->u0 - e->cu) * e->inv_ra;
@@ -139,7 +120,7 @@ bool lp_line_ellipse(const lp_line *l, const lp_ellipse *e, float *x0, float *x1
     const float b = 2.0f * (pu * e->qu + pv * e->qv);
     const float c = pu * pu + pv * pv - 1.0f;
     const float disc = b * b - 4.0f * e->a * c;
-    if (e->a <= 0.0f || disc <= 0.0f)
+    if (e->a <= 0.0f || !(disc > 0.0f)) /* a line so far away overflows into a NaN: it misses too */
         return false;
     const float root = sqrtf(disc);
     *x0 = (-b - root) * e->half_inv_a;
@@ -151,11 +132,13 @@ void lp_spans_ellipse(lp_spans *out, const lp_line *l, const lp_ellipse *e, floa
 {
     float x0;
     float x1;
-    if (!lp_line_ellipse(l, e, &x0, &x1)) {
+    if (!line_ellipse(l, e, &x0, &x1)) {
         out->n = 0;
         return;
     }
-    lp_spans_set(out, x0 > lo ? x0 : lo, x1 < hi ? x1 : hi);
+    out->a[0] = x0 > lo ? x0 : lo;
+    out->b[0] = x1 < hi ? x1 : hi;
+    out->n = out->a[0] < out->b[0] ? 1 : 0;
 }
 
 void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h)
@@ -178,8 +161,8 @@ void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e)
 {
     float x0;
     float x1;
-    if (lp_line_ellipse(l, e, &x0, &x1))
-        lp_spans_cut(s, x0, x1);
+    if (line_ellipse(l, e, &x0, &x1))
+        spans_cut(s, x0, x1);
 }
 
 void lp_spans_polygon(lp_spans *out, const float *pts, int count, float y, float lo, float hi)
