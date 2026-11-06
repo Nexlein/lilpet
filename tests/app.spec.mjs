@@ -574,6 +574,18 @@ test('on a short window, the send note is in reach', async ({ page }) => {
     await expect(note(page)).toBeInViewport();
 });
 
+test('a send note on two lines fits the window with the rest of the stage', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    await plugIn(page);
+    await page.evaluate(() => (window.board.replies.look = 'err cannot read this look: the third color is too long'));
+    await page.locator('.primary').click();
+    await expect(note(page)).toContainText('n’est pas envoyé');
+    expect((await note(page).boundingBox()).height, 'two lines').toBeGreaterThan(30);
+    await expect(note(page)).toBeInViewport({ ratio: 1 });
+});
+
 test('the animation pauses while the screen is out of sight', async ({ page }) => {
     await page.addInitScript(countFrames);
     await page.setViewportSize({ width: 375, height: 700 });
