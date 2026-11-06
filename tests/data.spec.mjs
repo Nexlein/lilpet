@@ -87,6 +87,7 @@ const CASES = [
     [EMOTIONS, 'a misspelled field', (d) => (d.emotions.sad.tll = 0.2), 'unknown key "tll"'],
     [EMOTIONS, 'a field out of range', (d) => (d.emotions.sad.tl = 1.5), '"tl" must be between'],
     [EMOTIONS, 'an eye squashed flat', (d) => (d.emotions.sad.sq = 1), '"sq" must be between'],
+    [EMOTIONS, 'an eye turned past a quarter turn', (d) => (d.emotions.sad.rot = -1.25), '"rot" must be between'],
     [EMOTIONS, 'a note that ends its C comment', (d) => (d.emotions.sad.note = 'a */ b'), '"note" must be'],
     [EMOTIONS, 'a note that starts a C comment', (d) => (d.reactions.tap.note = 'a /* b'), '"note" must be'],
     [EMOTIONS, 'a field that is not a number', (d) => (d.emotions.sad.ps = '1'), '"ps" must be between'],
