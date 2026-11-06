@@ -83,6 +83,7 @@ const settled = (emotion) => Object.fromEntries(Object.keys(BASE).map((k) => [k,
 export class Eyes {
     constructor(seed) {
         this.rand = createRng(seed);
+        this.time = 0; // seconds of animation: the steps of update(), after their limit
 
         this.look = null;
         this.emotion = 'neutral';
@@ -328,9 +329,11 @@ export class Eyes {
         return { x: aimX, y: ty };
     }
 
-    update(dt, t) {
+    update(dt) {
         if (!(dt > 0) || !Number.isFinite(dt)) return; // nothing to advance, and speeds would divide by zero
         dt = Math.min(dt, MAX_STEP);
+        this.time += dt;
+        const t = this.time;
         const { cur, head, blinkState } = this;
 
         this.#easeExpression(dt);
