@@ -22,7 +22,8 @@
 void commands_start(const lp_look *current, bool motion);
 
 /* Takes the next command for the eyes; false when none is waiting. The engine is not thread-safe: the drawing loop
- * carries them out, every frame. */
+ * carries them out, every frame. It lists every lp_command_type, so a new command does not build until it is handled
+ * there, instead of answering "< ok" and being dropped. */
 bool commands_next(lp_command *out);
 
 #endif
