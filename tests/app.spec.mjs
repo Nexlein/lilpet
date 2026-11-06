@@ -353,6 +353,9 @@ test('the send button keeps the keyboard focus and only sends once connected, on
     await send.focus();
     await page.keyboard.press('Enter');
     await expect(note(page)).toHaveText('Branche lilpet en USB pour lui envoyer ce look.');
+    await expect(send, 'says why it does nothing').toHaveAccessibleDescription(
+        'Branche lilpet en USB pour lui envoyer ce look.'
+    );
 
     await plugIn(page);
     await page.evaluate(() => (window.board.delay = 300));
