@@ -71,7 +71,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait           |
 | `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2) |
 | `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1      |
-| `firmware/`  | ESP-IDF, carte écran : pilotes, capteurs, appelle le moteur                    | AtomS3R        |
+| `firmware/`  | ESP-IDF, carte écran : pilotes, capteurs, appelle le moteur                    | 3 cartes       |
 | `vision/`    | ESP-IDF, carte caméra (XIAO), sans le moteur : modèle, événements par UART     | Créé à l'achat |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait           |
 

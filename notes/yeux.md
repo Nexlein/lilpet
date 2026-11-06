@@ -101,8 +101,8 @@ Planches : [cœurs](../references/tiktok-love-hearts.png), [inclinaison](../refe
   Repris dans le prototype et le moteur (`gravity` dans `eyes.js`, `lp_eyes_set_gravity`) : le visage tourne pour
   rester à l'horizontale, sur un tour complet, et les yeux glissent vers le côté le plus bas ; posé à plat, rien ne
   change. Ma recréation, réglée à l'œil sur l'AtomS3R, pas une mesure des originaux.
-- **Réactions** (novembre 2026, ma recréation, à affiner) : une table de données, `REACTIONS` dans `eyes.js`, la même
-  dans le moteur. Tenu à l'envers plus de 0,6 s, il se fâche tant que ça dure (la colère « tenu à l'envers » ci-dessus) ;
+- **Réactions** (novembre 2026, ma recréation, à affiner) : une table de données dans `eyes/emotions.json`, lue par le
+  prototype et générée pour le moteur. Tenu à l'envers plus de 0,6 s, il se fâche tant que ça dure (la colère « tenu à l'envers » ci-dessus) ;
   secoué plus d'environ 0,4 s, il est étourdi pendant la secousse et 1,5 s après : paupières lourdes,
   petites pupilles qui tournent en rond, tête qui vacille, puis les pupilles ralentissent et il se calme ; un choc ou
   un coup de poignet bref ne compte pas. « Étourdi » est une émotion à moi, absente des originaux (la surprise seule se voyait
