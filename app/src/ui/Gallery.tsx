@@ -27,9 +27,10 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
     const [query, setQuery] = useState('');
     const [families, setFamilies] = useState<ReadonlySet<Family>>(new Set());
     const [twoColors, setTwoColors] = useState(false);
+    const [walked, setWalked] = useState<Swatch | null>(null); // the last color of the grid to have the focus
 
     const shown = useMemo(() => filterSwatches({ query, families, twoColors }), [query, families, twoColors]);
-    const tabStop = shown.includes(swatch) ? swatch : shown[0];
+    const tabStop = [walked, swatch].find((s) => s && shown.includes(s)) ?? shown[0];
 
     const toggleFamily = (f: Family) => {
         const next = new Set(families);
@@ -51,7 +52,10 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                     type="button"
                                     className="chip"
                                     aria-current={c.swatch === swatch && c.pupil === pupil}
-                                    onClick={() => onPick(c.swatch, c.pupil)}
+                                    onClick={() => {
+                                        setWalked(null); // the grid's stop goes back to the color chosen here
+                                        onPick(c.swatch, c.pupil);
+                                    }}
                                 >
                                     <EyeGlyph colors={c.swatch} pupil={c.pupil} />
                                     <span>
@@ -103,6 +107,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                 className="chip"
                                 aria-current={s === swatch}
                                 tabIndex={s === tabStop ? 0 : -1}
+                                onFocus={() => setWalked(s)}
                                 onClick={() => onPick(s)}
                             >
                                 <EyeGlyph colors={s} pupil={pupil} />
