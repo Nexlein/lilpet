@@ -244,26 +244,16 @@ static float dizziness(const lp_eyes *e)
 #define UPSIDE_DOWN_GRAVITY (-0.6f)
 #define UPSIDE_DOWN_DELAY   0.6f
 
-/* A reaction that goes on as long as its cause (held upside down, shaken), and its duration after. A mood that is
- * already that emotion stays as it is: its timer only leads back to it. This runs every frame, so lp_eyes_react only
- * starts it: sparkles in the table burst once, not every BURST_GAP for as long as the cause lasts. */
-static void hold_reaction(lp_eyes *e, lp_event event)
-{
-    const lp_reaction *r = lp_reaction_get(event);
-    if (e->emotion != r->emotion)
-        lp_eyes_react(e, event);
-    else
-        e->emotion_timer = lp_maxf(e->emotion_timer, r->duration);
-}
-
-/* Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time) */
+/* Held upside down: angry as long as it lasts; shaken: dizzy, even upside down (one reaction at a time). Reacting every
+ * frame, each goes on as long as its cause, and its duration after. The table gives them no sparkles, which would burst
+ * every BURST_GAP as long as the cause lasts. */
 static void update_held_reactions(lp_eyes *e, float dt)
 {
     e->upside_down = e->gravity.active && e->gravity.y < UPSIDE_DOWN_GRAVITY ? e->upside_down + dt : 0.0f;
     if (e->shaking)
-        hold_reaction(e, LP_EVENT_SHAKE);
+        lp_eyes_react(e, LP_EVENT_SHAKE);
     else if (e->upside_down >= UPSIDE_DOWN_DELAY)
-        hold_reaction(e, LP_EVENT_UPSIDE_DOWN);
+        lp_eyes_react(e, LP_EVENT_UPSIDE_DOWN);
 }
 
 /* The angle equal to target modulo a turn that is nearest to from, so that easing toward it never spins around */
