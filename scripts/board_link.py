@@ -2,6 +2,7 @@
 # notes/app.md). uv installs pyserial, from scripts/requirements.txt.
 import os
 import sys
+import termios
 import time
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from serial.tools import list_ports
 ROOT = Path(__file__).resolve().parent.parent
 BOARDS = ROOT / "firmware" / "boards"
 ESPRESSIF_USB = 0x303A  # the chip's own USB port: firmware or blank, the board shows up with this vendor
+# What a failing port raises: SerialException, which is an OSError, plain OSError (DTR, RTS) or termios.error (opening)
+SERIAL_ERRORS = (OSError, termios.error)
 
 
 def board_from_env():
@@ -49,6 +52,7 @@ def find_port():
 
 
 def open_port(name):
+    """Opens the port without rebooting the board; raises one of SERIAL_ERRORS"""
     port = serial.Serial()
     port.port = name
     port.baudrate = 115200
@@ -56,12 +60,13 @@ def open_port(name):
     # Opening asserts both lines: keep DTR while releasing RTS, then release DTR, never RTS alone (same as the app)
     port.dtr = True
     port.rts = False
+    port.open()
     try:
-        port.open()
-    except serial.SerialException as err:
-        sys.exit(f"cannot open {name}: {err}. Plug the board in, or close the serial monitor.")
-    port.dtr = False
-    port.write(b"\n")  # ends any half line a previous connection left in the board's input
+        port.dtr = False
+        port.write(b"\n")  # ends any half line a previous connection left in the board's input
+    except SERIAL_ERRORS:
+        port.close()
+        raise
     return port
 
 

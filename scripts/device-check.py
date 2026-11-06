@@ -10,9 +10,7 @@ import sys
 import time
 from dataclasses import dataclass
 
-import serial
-
-from board_link import BOARDS, ROOT, ask, board_from_env, find_port, hello_fields, open_port, read_reply
+from board_link import BOARDS, ROOT, SERIAL_ERRORS, ask, board_from_env, find_port, hello_fields, open_port, read_reply
 
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
@@ -150,7 +148,7 @@ def put_back(port, before):
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
-    except serial.SerialException:
+    except SERIAL_ERRORS:
         check(False, "gets its own look back", f"port lost, send it again: > {before}")
 
 
@@ -161,7 +159,10 @@ def check_board(board_name):
     config = BOARDS / board_name / "board_config.h"
     board = Board(board_name, define(config, "BOARD_BENCH") == 1, define(config, "BOARD_MOTION") == 1)
 
-    port = open_port(name)
+    try:
+        port = open_port(name)
+    except SERIAL_ERRORS as err:
+        sys.exit(f"cannot open {name}: {err}. Plug the board in, or close the serial monitor.")
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
 
     hello = ask(port, "> hello")
@@ -186,7 +187,7 @@ def check_board(board_name):
         run_checks(port, board, test_look, other_look)
     except KeyboardInterrupt:
         check(False, "runs to the end", "interrupted")
-    except serial.SerialException as err:
+    except SERIAL_ERRORS as err:
         check(False, "runs to the end", f"port lost: {err}")
     finally:
         put_back(port, before)
