@@ -23,7 +23,6 @@ describe('protocol', () => {
 
     it('writes the commands that move the eyes', () => {
         expect(emotionCommand('happy')).toBe('> emotion happy');
-        expect(emotionCommand('sad', 2.5)).toBe('> emotion sad 2.5');
         expect(reactCommand('tap')).toBe('> react tap');
     });
 

@@ -23,9 +23,8 @@ export function lookCommand(look: Look): string {
     return `> look ${hex(look.sclera)} ${hex(look.pupilColor[0])} ${hex(look.pupilColor[1])} ${look.pupil}`;
 }
 
-// "> emotion happy" for good, "> emotion happy 2.5" for that many seconds
-export const emotionCommand = (name: string, seconds?: number): string =>
-    seconds === undefined ? `> emotion ${name}` : `> emotion ${name} ${seconds}`;
+// "> emotion happy": the new mood, for good
+export const emotionCommand = (name: string): string => `> emotion ${name}`;
 
 // "> react tap": the device picks the emotion from its reaction table
 export const reactCommand = (event: EyeEvent): string => `> react ${event}`;

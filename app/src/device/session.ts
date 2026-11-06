@@ -81,7 +81,7 @@ export class DeviceSession {
         }
     };
 
-    emotion = (name: string, seconds?: number): void => this.#tell(emotionCommand(name, seconds));
+    emotion = (name: string): void => this.#tell(emotionCommand(name));
 
     react = (event: EyeEvent): void => this.#tell(reactCommand(event));
 
