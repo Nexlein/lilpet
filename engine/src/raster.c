@@ -176,7 +176,7 @@ int lp_polygon_edges(lp_edge *out, const float *pts, int count, float y0, float 
         const bool above = yi <= y0 && yj <= y0;
         const bool below = yi > y1 && yj > y1;
         if (!above && !below)
-            out[n++] = (lp_edge){.x = xi, .y0 = yi, .y1 = yj, .dx = xj - xi, .dy = yj - yi};
+            out[n++] = (lp_edge){.x = xi, .y0 = yi, .y1 = yj, .slope = yi != yj ? (xj - xi) / (yj - yi) : 0.0f};
     }
     return n;
 }
@@ -188,7 +188,7 @@ void lp_spans_polygon(lp_spans *out, const lp_edge *edges, int count, float y, f
     for (int i = 0; i < count && n < 2 * LP_MAX_SPANS; i++) {
         const lp_edge *e = &edges[i];
         if ((e->y0 > y) != (e->y1 > y)) {
-            const float x = e->x + (y - e->y0) * e->dx / e->dy;
+            const float x = e->x + (y - e->y0) * e->slope;
             int k = n++;
             while (k > 0 && xs[k - 1] > x) { /* insertion sort, few crossings */
                 xs[k] = xs[k - 1];
