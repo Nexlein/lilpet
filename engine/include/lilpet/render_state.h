@@ -42,7 +42,7 @@ typedef struct {
     lp_rect box;
 } lp_polygon;
 
-/* An edge of a polygon on its way to the sub-rows: from (x, y0) to the height y1, dx and dy further */
+/* An edge of a polygon: it starts at (x, y0), ends at the height y1, and dx and dy go from one end to the other */
 typedef struct {
     float x, y0, y1, dx, dy;
 } lp_edge;
