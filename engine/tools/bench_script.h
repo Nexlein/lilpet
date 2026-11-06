@@ -1,7 +1,7 @@
 /*
  * Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so
- * their timings compare: one second per emotion, with idle saccades, blinks and particles, then the gaze follows a
- * face moving in a circle.
+ * their timings compare: one second per emotion, with idle saccades, blinks and particles, then love held long enough
+ * for its hearts to pile up, as they live up to 4 s, then the gaze follows a face moving in a circle.
  */
 #ifndef LILPET_BENCH_SCRIPT_H
 #define LILPET_BENCH_SCRIPT_H
@@ -11,16 +11,23 @@
 #include <math.h>
 #include <stdbool.h>
 
-enum { LP_BENCH_FPS = 60, LP_BENCH_FRAMES = (LP_EMOTION_COUNT + 3) * LP_BENCH_FPS };
+enum {
+    LP_BENCH_FPS = 60,
+    LP_BENCH_LOVE = LP_EMOTION_COUNT * LP_BENCH_FPS,  /* first frame of love held */
+    LP_BENCH_FACE = LP_BENCH_LOVE + 5 * LP_BENCH_FPS, /* first frame of the face */
+    LP_BENCH_FRAMES = LP_BENCH_FACE + 3 * LP_BENCH_FPS,
+};
 
 /* Call before lp_eyes_update(eyes, 1.0f / LP_BENCH_FPS) for frame f, from 0 to LP_BENCH_FRAMES - 1 */
 static inline void lp_bench_script(lp_eyes *eyes, int f)
 {
     if (f == 0) /* played in a loop on the chip: the face of the previous round leaves */
         lp_eyes_set_pointer(eyes, false, 0.0f, 0.0f);
-    if (f % LP_BENCH_FPS == 0 && f / LP_BENCH_FPS < LP_EMOTION_COUNT)
+    if (f % LP_BENCH_FPS == 0 && f < LP_BENCH_LOVE)
         lp_eyes_set_emotion(eyes, (lp_emotion)(f / LP_BENCH_FPS), 0.0f);
-    if (f >= LP_EMOTION_COUNT * LP_BENCH_FPS) {
+    if (f == LP_BENCH_LOVE)
+        lp_eyes_set_emotion(eyes, LP_EMOTION_LOVE, 0.0f);
+    if (f >= LP_BENCH_FACE) {
         const float a = (float)f * 0.05f;
         lp_eyes_set_pointer(eyes, true, 0.8f * cosf(a), 0.6f * sinf(a));
     }
