@@ -2,25 +2,31 @@
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 
-const SCRIPT = resolve('scripts/validate-data.mjs');
+const SCRIPT = 'scripts/validate-data.mjs';
 const LOOKS = 'eyes/looks.json';
 const EMOTIONS = 'eyes/emotions.json';
 const SCENES = 'prototype/scenes.json';
 
-// Runs the validator on a copy of the data, after `change(data)`; returns its exit code and error output
+// Runs the validator on a copy of the data, after `change(data)`; returns its exit code and error output. The script
+// and the prototype are copied too: eyes.js imports the emotions.json next to it, not the one of the working directory.
 function validate(file, change) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
-        for (const path of [LOOKS, EMOTIONS, SCENES]) cpSync(path, join(dir, path));
+        for (const path of ['package.json', SCRIPT, 'eyes', 'prototype'])
+            cpSync(path, join(dir, path), { recursive: true });
         if (file) {
             const data = JSON.parse(readFileSync(file, 'utf8'));
             change(data);
             writeFileSync(join(dir, file), JSON.stringify(data));
         }
-        const { status, stderr } = spawnSync(process.execPath, [SCRIPT], { cwd: dir, encoding: 'utf8' });
+        const { status, stderr } = spawnSync(process.execPath, [SCRIPT], {
+            cwd: dir,
+            encoding: 'utf8',
+            timeout: 10_000 // Playwright cannot stop a synchronous call
+        });
         return { status, stderr };
     } finally {
         rmSync(dir, { recursive: true });
@@ -52,6 +58,7 @@ const CASES = [
     [SCENES, 'particles that are null', (d) => (d.scenes[0].particles = null), '"particles" must be an object'],
     [SCENES, 'particles all gone', (d) => (sleepy(d).particles.time = 4), 'no particle is alive'],
     [EMOTIONS, 'no emotions', (d) => delete d.emotions, '"emotions" must be a non-empty object'],
+    [EMOTIONS, 'an emission too slow for a scene', (d) => (d.emotions.sleepy.emit.rate = 0.01), 'no particle is alive'],
     [EMOTIONS, 'an emotion that is null', (d) => (d.emotions.sad = null), 'emotions.sad: must be an object'],
     [EMOTIONS, 'no label', (d) => delete d.emotions.sad.label, '"label" must be'],
     [EMOTIONS, 'a misspelled field', (d) => (d.emotions.sad.tll = 0.2), 'unknown key "tll"'],
