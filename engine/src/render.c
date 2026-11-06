@@ -393,9 +393,10 @@ static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb 
     const int width = p->box.x1 - x0;
     float *cov = r->cov[0];
     memset(cov, 0, (size_t)(width + 1) * sizeof *cov);
+    const int edges = lp_polygon_edges(r->edges, p->pts, p->count, sub_row_y(y, 0), sub_row_y(y, LP_SUBROWS - 1));
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         lp_spans s;
-        lp_spans_polygon(&s, p->pts, p->count, sub_row_y(y, sub), (float)x0, (float)p->box.x1);
+        lp_spans_polygon(&s, r->edges, edges, sub_row_y(y, sub), (float)x0, (float)p->box.x1);
         lp_coverage_add(cov, x0, width, &s, alpha / (float)LP_SUBROWS);
     }
     blend_row(r->line, x0, cov, width, color);
