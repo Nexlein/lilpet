@@ -112,7 +112,7 @@ export class Eyes {
         this.emotion = 'neutral';
         this.mood = 'neutral'; // the emotion picked for good: temporary ones come back to it
         this.emotionTimer = 0; // > 0: seconds before going back to the mood, which may be this very emotion
-        this.burstWait = 0; // > 0: a reaction just burst, the same emotion again only goes on
+        this.burstWait = 0; // > 0: sparkles just burst, no reaction brings more yet
         this.upsideDown = 0; // seconds held upside down
         this.shaking = false; // being shaken (the device tells it: lp_shake_update)
         this.cur = settled('neutral'); // animated emotion values
@@ -163,16 +163,15 @@ export class Eyes {
         this.gravity = finitePoint(gravity);
     }
 
-    // Unknown events are ignored. The same emotion again within half a second of a burst goes on for as long as the event
-    // asks, without a new burst: a camera can repeat itself as often as it likes.
+    // Unknown events are ignored. The emotion changes at once; one already on lasts at least as long as the event asks.
+    // Sparkles burst half a second apart at most, whatever the emotion, and a reaction with none leaves that wait alone:
+    // a camera can repeat itself as often as it likes.
     react(event) {
         if (!Object.hasOwn(REACTIONS, event)) return;
         const r = REACTIONS[event];
-        if (this.burstWait > 0 && this.emotion === r.emotion) {
-            this.emotionTimer = Math.max(this.emotionTimer, r.duration);
-            return;
-        }
-        this.setEmotion(r.emotion, r.duration);
+        if (this.emotion === r.emotion) this.emotionTimer = Math.max(this.emotionTimer, r.duration);
+        else this.setEmotion(r.emotion, r.duration);
+        if (r.sparkles === 0 || this.burstWait > 0) return;
         this.burstWait = BURST_GAP;
         for (let i = 0; i < r.sparkles; i++) this.spawn('sparkle');
     }
@@ -284,7 +283,8 @@ export class Eyes {
     }
 
     // A reaction that goes on as long as its cause, and its duration after. A mood that is already that emotion stays
-    // as it is: the timer only brings it back to itself.
+    // as it is: the timer only brings it back to itself. This runs every frame, so react() only starts it: sparkles in
+    // the table burst once, not every BURST_GAP for as long as the cause lasts.
     #holdReaction(event) {
         const r = REACTIONS[event];
         if (this.emotion !== r.emotion) this.react(event);

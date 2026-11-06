@@ -157,8 +157,10 @@ void test_simulations_match_prototype(void)
                 const float a = sc->spin * (eyes.time + LPV_DT);
                 lp_eyes_set_gravity(&eyes, true, sinf(a), cosf(a));
             }
-            if (sc->react_every && step % sc->react_every == 0)
-                lp_eyes_react(&eyes, (lp_event)sc->react);
+            if (sc->react_every && step % sc->react_every == 0) {
+                const bool other = sc->react_other >= 0 && (step / sc->react_every) % 2 == 1;
+                lp_eyes_react(&eyes, (lp_event)(other ? sc->react_other : sc->react));
+            }
             lp_eyes_update(&eyes, LPV_DT);
             if (step % sc->every == 0) {
                 char what[64];

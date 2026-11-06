@@ -61,11 +61,12 @@ void lp_eyes_react(lp_eyes *eyes, lp_event event)
     const lp_reaction *r = lp_reaction_get(event);
     if (!r)
         return;
-    if (eyes->burst_wait > 0.0f && eyes->emotion == r->emotion) {
+    if (eyes->emotion == r->emotion)
         eyes->emotion_timer = lp_maxf(eyes->emotion_timer, r->duration);
+    else
+        lp_eyes_set_emotion(eyes, r->emotion, r->duration);
+    if (r->sparkles == 0 || eyes->burst_wait > 0.0f)
         return;
-    }
-    lp_eyes_set_emotion(eyes, r->emotion, r->duration);
     eyes->burst_wait = BURST_GAP;
     for (int i = 0; i < r->sparkles; i++)
         lp_eyes_spawn(eyes, LP_PARTICLE_SPARKLE);
@@ -244,7 +245,8 @@ static float dizziness(const lp_eyes *e)
 #define UPSIDE_DOWN_DELAY   0.6f
 
 /* A reaction that goes on as long as its cause (held upside down, shaken), and its duration after. A mood that is
- * already that emotion stays as it is: its timer only leads back to it. */
+ * already that emotion stays as it is: its timer only leads back to it. This runs every frame, so lp_eyes_react only
+ * starts it: sparkles in the table burst once, not every BURST_GAP for as long as the cause lasts. */
 static void hold_reaction(lp_eyes *e, lp_event event)
 {
     const lp_reaction *r = lp_reaction_get(event);

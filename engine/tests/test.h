@@ -43,7 +43,8 @@
     X(test_long_step_counts_as_one_second)                                                                             \
     X(test_tap_makes_it_happy_for_a_moment)                                                                            \
     X(test_repeated_reaction_goes_on_without_a_new_burst)                                                              \
-    X(test_another_emotion_reacts_at_once)                                                                             \
+    X(test_another_emotion_reacts_at_once_without_a_new_burst)                                                         \
+    X(test_reaction_without_sparkles_leaves_the_wait_alone)                                                            \
     X(test_chatty_events_never_fill_the_screen)                                                                        \
     X(test_scene_forgets_the_last_burst)                                                                               \
     X(test_upside_down_makes_it_angry_until_righted)                                                                   \
