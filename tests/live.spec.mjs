@@ -124,6 +124,22 @@ for (const [what, set] of SETTINGS)
 
 const modeOn = (page) => page.locator('#modes button.on');
 
+test('the prototype keeps up while only the C engine shows', async ({ page }) => {
+    await page.goto('/prototype/index.html');
+    await page.waitForFunction(() => window.live !== undefined);
+    await page.evaluate(async () => {
+        window.live.pause();
+        await window.live.setMode('c');
+        window.live.react('tap');
+    });
+    const highlighted = page.locator('#emotions button.on');
+    await expect(highlighted).toHaveAttribute('data-e', 'happy');
+
+    await page.evaluate(() => window.live.step(128)); // 2 s, longer than the reaction
+    await expect(highlighted).toHaveAttribute('data-e', 'neutral');
+    expect(await page.evaluate(() => window.eyes.emotion)).toBe('neutral');
+});
+
 test('the C engine missing is said, and stays said', async ({ page }) => {
     await page.route('**/lilpet.mjs', (route) => route.abort());
     await page.goto('/prototype/index.html');
