@@ -2,7 +2,6 @@
 #ifndef LILPET_BOARD_CONFIG_H
 #define LILPET_BOARD_CONFIG_H
 
-#define BOARD_NAME         "atoms3r"
 #define BOARD_DISPLAY_SIZE 128
 #define BOARD_BENCH        0 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CAMERA       0
