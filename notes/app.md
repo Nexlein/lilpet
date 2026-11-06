@@ -3,7 +3,7 @@
 Choix faits le 2026-11-01. Complète la section « App PC » de [architecture.md](architecture.md).
 
 État : version 1 écrite le 2026-11-01 (galerie, aperçu, envoi), testée dans le navigateur, en CI et sur l'AtomS3R. Les
-commandes `emotion`, `react` et `face` (novembre 2026) n'ont pas encore été essayées sur une vraie carte.
+commandes `emotion`, `react` et `face` répondent sur l'AtomS3R depuis le 6 novembre 2026 (`BOARD=atoms3r mise run firmware:check-device`).
 
 ## Choix
 
