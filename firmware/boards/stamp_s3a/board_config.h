@@ -5,7 +5,6 @@
 #ifndef LILPET_BOARD_CONFIG_H
 #define LILPET_BOARD_CONFIG_H
 
-#define BOARD_NAME         "stamp_s3a"
 #define BOARD_DISPLAY_SIZE 466
 #define BOARD_BENCH        1 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CAMERA       0
