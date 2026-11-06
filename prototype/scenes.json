@@ -7,7 +7,7 @@
         "blink": "optional { phase: anticip | close | closed | open, t: seconds into the phase }",
         "head": "optional { yaw, pitch, roll } in radians",
         "gaze": "optional { x, y } in -1..1, still (no squash)",
-        "particles": "optional { seed, time }: replays the emotion's emitter for `time` seconds from `seed`"
+        "particles": "optional { seed, time }: replays the emotion's emitter for `time` seconds, a multiple of 0.25, from `seed`"
     },
     "scenes": [
         { "id": "look-cherry", "swatch": "cherry", "pupil": "dot" },

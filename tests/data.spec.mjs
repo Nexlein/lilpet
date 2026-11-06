@@ -77,6 +77,7 @@ const CASES = [
     [SCENES, 'particles that are null', (d) => (d.scenes[0].particles = null), '"particles" must be an object'],
     [SCENES, 'particles all gone', (d) => (sleepy(d).particles.time = 4), 'no particle is alive'],
     [SCENES, 'a time too long to simulate', (d) => (sleepy(d).particles.time = 1e9), '"particles.time" must be'],
+    [SCENES, 'a time JS and C round apart', (d) => (sleepy(d).particles.time = 0.525), '"particles.time" must be'],
     [EMOTIONS, 'no emotions', (d) => delete d.emotions, '"emotions" must be a non-empty object'],
     [EMOTIONS, 'no neutral emotion', (d) => delete d.emotions.neutral, '"emotions.neutral" is missing'],
     [EMOTIONS, 'no shake reaction', (d) => delete d.reactions.shake, '"reactions.shake" is missing'],
