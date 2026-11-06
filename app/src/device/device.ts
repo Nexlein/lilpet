@@ -1,20 +1,22 @@
 // What the app asks the device, on top of a connection
 import type { Look } from '../data/looks';
-import type { Connection } from './connection';
+import { ConnectionClosed, type Connection } from './connection';
 import { HELLO, lookCommand, parseHello, replyError, type DeviceInfo } from './protocol';
 
 const HELLO_ATTEMPTS = 3;
 // A command told in passing waits less than a look: a silent board would hold back the look queued behind ten moods
 const COMMAND_TIMEOUT_MS = 500;
 
-// Asked a few times: a board that reboots as the port opens misses the first one
+// Asked a few times: a board that reboots as the port opens misses the first one. A board that is gone is not asked again
 export async function hello(connection: Connection): Promise<DeviceInfo> {
     let reply: string | null = null;
     for (let i = 0; i < HELLO_ATTEMPTS && reply === null; i++)
         // oxlint-disable-next-line no-await-in-loop -- each attempt waits for the previous one to time out
         reply = await connection
             .request(HELLO, 1000)
-            .catch((err: unknown) => (i === HELLO_ATTEMPTS - 1 ? Promise.reject(err) : null));
+            .catch((err: unknown) =>
+                err instanceof ConnectionClosed || i === HELLO_ATTEMPTS - 1 ? Promise.reject(err) : null
+            );
     const info = parseHello(reply ?? '');
     if (!info) throw new Error(`not a lilpet device (reply: ${reply})`);
     return info;
