@@ -10,7 +10,8 @@
 
 #include <stdbool.h>
 
-/* Sets the pins of the board itself: power hold, button. First thing at startup. */
+/* Sets the pins of the board itself: power hold, button. First thing at startup. On a chip package that is not the
+ * board's, it prints why and never returns, with no pin touched. */
 void board_init(void);
 
 /* The user button is held down (the AtomS3R's screen is one); false on boards without one */
