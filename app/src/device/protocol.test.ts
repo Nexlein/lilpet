@@ -10,7 +10,7 @@ import {
     reactCommand,
     replyError
 } from './protocol';
-import { Connection, ConnectionClosed } from './connection';
+import { Connection, ConnectionClosed, portPicker } from './connection';
 import { command, hello, sendLook } from './device';
 import { fakePort, firmware } from './fake-port';
 
@@ -160,6 +160,16 @@ describe('connection', () => {
         await connection.close();
         expect(device.closed()).toBe(true);
         expect(closes).toBe(1);
+    });
+
+    it('offers Espressif boards only in the port picker, and no picker without Web Serial', async () => {
+        const requestPort = vi.fn(async () => fakePort(firmware()).port);
+        vi.stubGlobal('navigator', { serial: { requestPort } });
+        await portPicker()?.();
+        expect(requestPort).toHaveBeenCalledWith({ filters: [{ usbVendorId: 0x303a }] });
+        vi.stubGlobal('navigator', {});
+        expect(portPicker()).toBeNull();
+        vi.unstubAllGlobals();
     });
 
     it('closes the port when it cannot set its signals', async () => {

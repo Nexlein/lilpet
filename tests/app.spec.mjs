@@ -334,11 +334,15 @@ test('sends one look at a time and keeps a failure until the next send', async (
     await page.addInitScript(fakeSerial);
     await page.goto(APP);
     await plugIn(page);
-    await page.evaluate(() => (window.board.replies.look = null));
 
     const send = page.locator('.primary');
     await send.click();
+    await expect(note(page)).toContainText('cherry est sur lilpet');
+
+    await page.evaluate(() => (window.board.replies.look = null));
+    await send.click();
     await expect(send).toHaveText('Envoi…');
+    await expect(note(page), 'the last result is over').toBeEmpty();
     await chip(page, 'socks').click(); // another look, while the board keeps quiet
     await expect(send).toBeDisabled();
     await expect(send).toHaveText('Envoi…');
@@ -508,6 +512,27 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
     // With the chosen color filtered out, the first one left takes the stop
     await page.getByLabel('Chercher une couleur par son nom').fill('socks');
     await expect(stop).toContainText('socks');
+});
+
+test('the arrow keys do not scroll the page as well', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 700 });
+    await page.goto(APP);
+    await page.locator('.grid .chip').first().focus();
+    const scrolled = await page.evaluate(() => window.scrollY);
+    expect(scrolled).toBeGreaterThan(0);
+    await page.keyboard.press('ArrowUp'); // no color above the first one
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+});
+
+test('the interface takes the color of the eyes, in an ink that reads on it', async ({ page }) => {
+    await page.goto(APP);
+    const mood = page.locator('.moods button[aria-pressed=true]');
+    await expect(mood).toHaveCSS('background-color', 'rgb(174, 0, 2)');
+    await expect(mood).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await chip(page, 'kite').click();
+    await expect(mood).toHaveCSS('background-color', 'rgb(125, 181, 244)');
+    await expect(mood).toHaveCSS('color', 'rgb(0, 0, 0)');
 });
 
 test('says when no color matches, in a status that is there before it speaks', async ({ page }) => {
