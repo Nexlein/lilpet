@@ -98,7 +98,9 @@ const CASES = [
     [EMOTIONS, 'a reaction that lasts no time', (d) => (d.reactions.tap.duration = 0), '"duration" must be'],
     [EMOTIONS, 'half a sparkle', (d) => (d.reactions.tap.sparkles = 1.5), '"sparkles" must be'],
     [EMOTIONS, 'too many sparkles', (d) => (d.reactions.tap.sparkles = 33), '"sparkles" must be'],
-    [EMOTIONS, 'a misspelled reaction field', (d) => (d.reactions.tap.sparkle = 1), 'unknown key "sparkle"']
+    [EMOTIONS, 'a misspelled reaction field', (d) => (d.reactions.tap.sparkle = 1), 'unknown key "sparkle"'],
+    [EMOTIONS, 'sparkles on a shake', (d) => (d.reactions.shake.sparkles = 1), '"sparkles" must be 0'],
+    [EMOTIONS, 'sparkles upside down', (d) => (d.reactions.upside_down.sparkles = 1), '"sparkles" must be 0']
 ];
 for (const [file, what, change, message] of CASES)
     test(`${file}: ${what} is refused`, () => {
