@@ -6,6 +6,7 @@
 # reboot, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
 # put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
+# With --before-flash it checks nothing of that: it only stops a flash on a board that says it is another one.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
 # uv installs pyserial, from the header above.
 import os
@@ -68,7 +69,7 @@ def reboot(port):
 
 
 def find_port():
-    """PORT, or the only board plugged in, or None. Stops when several could be meant: the wrong one would be flashed."""
+    """PORT, or the only board plugged in, or None. Stops when several could be meant: it may be the wrong one."""
     if "PORT" in os.environ:
         return os.environ["PORT"]
     ports = [port.device for port in list_ports.comports() if port.vid == ESPRESSIF_USB]
@@ -96,6 +97,27 @@ def open_port(name):
 
 def hello_fields(hello):
     return dict(word.split("=", 1) for word in (hello or "").split() if "=" in word)
+
+
+def before_flash(board):
+    """Stops if the board on the port runs a lilpet firmware and says it is another one. A blank board says nothing,
+    and neither does an image stopped by its chip check or a firmware older than board=: those go on."""
+    name = find_port()
+    if name is None:
+        return  # esptool tells that no board answers
+    port = open_port(name)
+    hello = ask(port, "> hello", 1.5) or ask(port, "> hello", 1.5)  # twice: a board still booting misses the first
+    port.close()
+    running = hello_fields(hello).get("board")
+    if running in (None, board):
+        return
+    if os.environ.get("FORCE") == "1":
+        print(f"{name} runs the image of {running}: flashing {board} over it (FORCE=1)")
+        return
+    sys.exit(
+        f"{name} runs the image of {running}, not {board}: the image of another board drives the wrong pins.\n"
+        f"Flash BOARD={running}, choose another board with PORT=<port>, or replace it for good with FORCE=1."
+    )
 
 
 def finish(port):
@@ -158,7 +180,8 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     burst = 30  # more than the queue to the drawing loop holds, which must lose none
     port.write(b"> react tap\n" * burst)
     replies = [read_reply(port) for _ in range(burst)]
-    check(replies == [accepted] * burst, f"answers a burst of {burst} commands", f"{replies.count(accepted)} as expected")
+    expected = f"{replies.count(accepted)} as expected"
+    check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
     if not bench:
         check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
@@ -192,7 +215,8 @@ def check_board(board):
         sys.exit("No board plugged in: plug it in, or name its port with PORT=<port>.")
     # They play the benchmark animation, and refuse what would change it
     bench = re.search(r"#define\s+BOARD_BENCH\s+1\b", (BOARDS / board / "board_config.h").read_text()) is not None
-    motion = "imu_none.c" not in (BOARDS / board / "board.cmake").read_text()  # a sensor that does not answer is a fault
+    # A sensor that does not answer is a fault
+    motion = "imu_none.c" not in (BOARDS / board / "board.cmake").read_text()
 
     port = open_port(name)
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
@@ -228,4 +252,7 @@ known = sorted(path.parent.name for path in BOARDS.glob("*/board.cmake"))
 BOARD = os.environ.get("BOARD")
 if BOARD not in known:
     sys.exit(f"Set BOARD to one of: {' '.join(known)}")
-check_board(BOARD)
+if "--before-flash" in sys.argv:
+    before_flash(BOARD)
+else:
+    check_board(BOARD)
