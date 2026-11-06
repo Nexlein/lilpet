@@ -62,6 +62,8 @@ const sleepy = (d) => d.scenes.find((s) => s.id === 'emotion-sleepy');
 const CASES = [
     [LOOKS, 'a color that is not a string', (d) => (d.swatches[0].sclera = ['#AE0002']), '"sclera" must be'],
     [LOOKS, 'a pupil color that is not a string', (d) => (d.swatches[0].pupilColor[1] = ['#AE0002']), '"pupilColor"'],
+    [LOOKS, 'one pupil color', (d) => d.swatches[0].pupilColor.pop(), '"pupilColor"'],
+    [LOOKS, 'no swatches', (d) => delete d.swatches, '"swatches" must be a non-empty array'],
     [LOOKS, 'a swatch less than the catalogue', (d) => d.swatches.pop(), '99 swatches'],
     [
         LOOKS,
@@ -70,18 +72,39 @@ const CASES = [
         '101 swatches'
     ],
     [LOOKS, 'HTML in an id', (d) => (d.swatches[0].id = '<img src=x>'), '"id" must match'],
+    [LOOKS, 'an id used twice', (d) => (d.swatches[1].id = d.swatches[0].id), 'duplicate id'],
     [LOOKS, 'a swatch that is null', (d) => (d.swatches[0] = null), 'must be an object'],
+    [SCENES, 'no scenes', (d) => (d.scenes = []), '"scenes" must be a non-empty array'],
     [SCENES, 'a scene that is null', (d) => (d.scenes[0] = null), 'must be an object'],
+    [SCENES, 'a misspelled key', (d) => (d.scenes[0].emotions = 'sad'), 'unknown key "emotions"'],
+    [SCENES, 'an unknown swatch', (d) => (d.scenes[0].swatch = 'plaid'), '"swatch" must be'],
+    [SCENES, 'an unknown pupil', (d) => (d.scenes[0].pupil = 'star'), '"pupil" must be'],
     [SCENES, 'an emotion inherited from Object', (d) => (d.scenes[0].emotion = 'toString'), '"emotion" must be'],
     [SCENES, 'a blink that is null', (d) => (d.scenes[0].blink = null), '"blink" must be an object'],
+    [SCENES, 'an unknown blink phase', (d) => (d.scenes[0].blink = { phase: 'wink', t: 0 }), '"blink.phase" must be'],
+    [SCENES, 'a blink too long', (d) => (d.scenes[0].blink = { phase: 'open', t: 2 }), '"blink.t" must be'],
+    [SCENES, 'a head that is not an object', (d) => (d.scenes[0].head = 1), '"head" must be an object'],
+    [SCENES, 'an unknown head angle', (d) => (d.scenes[0].head = { tilt: 0 }), '"head.tilt" must be'],
+    [SCENES, 'a yaw out of range', (d) => (d.scenes[0].head = { yaw: 1.5 }), '"head.yaw" must be'],
+    [SCENES, 'a roll past a half turn', (d) => (d.scenes[0].head = { roll: 3.5 }), '"head.roll" must be'],
+    [SCENES, 'a gaze that is not an object', (d) => (d.scenes[0].gaze = 1), '"gaze" must be an object'],
+    [SCENES, 'an unknown gaze axis', (d) => (d.scenes[0].gaze = { z: 0 }), '"gaze.z" must be'],
+    [SCENES, 'a gaze out of range', (d) => (d.scenes[0].gaze = { x: 1.5 }), '"gaze.x" must be'],
     [SCENES, 'particles that are null', (d) => (d.scenes[0].particles = null), '"particles" must be an object'],
     [SCENES, 'a seed past 32 bits', (d) => (sleepy(d).particles.seed = 2 ** 32), '"particles.seed" must be'],
     [SCENES, 'a negative seed', (d) => (sleepy(d).particles.seed = -1), '"particles.seed" must be'],
     [SCENES, 'half a seed', (d) => (sleepy(d).particles.seed = 1.5), '"particles.seed" must be'],
+    [
+        SCENES,
+        'particles without an emitter',
+        (d) => (d.scenes[0].particles = { seed: 1, time: 1 }),
+        'emits no particles'
+    ],
     [SCENES, 'particles all gone', (d) => (sleepy(d).particles.time = 4), 'no particle is alive'],
     [SCENES, 'a time too long to simulate', (d) => (sleepy(d).particles.time = 1e9), '"particles.time" must be'],
     [SCENES, 'a time JS and C round apart', (d) => (sleepy(d).particles.time = 0.525), '"particles.time" must be'],
     [EMOTIONS, 'no emotions', (d) => delete d.emotions, '"emotions" must be a non-empty object'],
+    [EMOTIONS, 'no reactions', (d) => delete d.reactions, '"reactions" must be a non-empty object'],
     [EMOTIONS, 'no neutral emotion', (d) => delete d.emotions.neutral, '"emotions.neutral" is missing'],
     [EMOTIONS, 'no sleepy emotion', (d) => delete d.emotions.sleepy, '"emotions.sleepy" is missing'],
     [EMOTIONS, 'no shake reaction', (d) => delete d.reactions.shake, '"reactions.shake" is missing'],
@@ -97,9 +120,11 @@ const CASES = [
     [EMOTIONS, 'an eye turned past a quarter turn', (d) => (d.emotions.sad.rot = -1.25), '"rot" must be between'],
     [EMOTIONS, 'a note that ends its C comment', (d) => (d.emotions.sad.note = 'a */ b'), '"note" must be'],
     [EMOTIONS, 'a note that starts a C comment', (d) => (d.reactions.tap.note = 'a /* b'), '"note" must be'],
+    [EMOTIONS, 'a note that is not a string', (d) => (d.emotions.sad.note = 1), '"note" must be'],
     [EMOTIONS, 'a field that is not a number', (d) => (d.emotions.sad.ps = '1'), '"ps" must be between'],
     [EMOTIONS, 'an unknown particle', (d) => (d.emotions.love.emit.type = 'star'), '"emit.type" must be'],
     [EMOTIONS, 'no particle rate', (d) => delete d.emotions.love.emit.rate, '"emit.rate" must be'],
+    [EMOTIONS, 'a particle rate too high', (d) => (d.emotions.love.emit.rate = 31), '"emit.rate" must be'],
     [EMOTIONS, 'a name that cannot be a C enumerator', (d) => (d.emotions['so-sad'] = d.emotions.sad), 'must match'],
     [EMOTIONS, 'a reaction to an unknown emotion', (d) => (d.reactions.tap.emotion = 'bored'), '"emotion" must be'],
     [EMOTIONS, 'a reaction to toString', (d) => (d.reactions.tap.emotion = 'toString'), '"emotion" must be'],
@@ -115,6 +140,17 @@ for (const [file, what, change, message] of CASES)
         const { status, stderr } = validate(file, change);
         expect(stderr).toContain(message);
         expect(stderr).not.toContain('    at '); // an error message, not a stack trace
+        expect(status).toBe(1);
+    });
+
+for (const file of [LOOKS, EMOTIONS, SCENES])
+    test(`${file}: a file that is not JSON is refused`, () => {
+        const { status, stderr } = withCopy((dir) => {
+            writeFileSync(join(dir, file), 'not JSON');
+            return run(dir, SCRIPT);
+        });
+        expect(stderr).toContain(`${file}: Unexpected token`);
+        expect(stderr).not.toContain('    at ');
         expect(status).toBe(1);
     });
 
