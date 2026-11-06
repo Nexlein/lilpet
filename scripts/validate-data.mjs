@@ -1,6 +1,7 @@
 // Checks the data files the renderers read:
 // - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
-// - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion
+// - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
+//   and those the code asks for by name exist
 // - prototype/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
 //   fields
 // Usage: node scripts/validate-data.mjs
