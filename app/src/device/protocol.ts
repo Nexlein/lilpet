@@ -8,8 +8,6 @@ export interface DeviceInfo {
     engine: string;
     // Not given by older firmware
     board?: string;
-    camera?: boolean;
-    motion?: boolean;
 }
 
 type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
@@ -33,8 +31,6 @@ export function classify(line: string): Line {
     return line.startsWith('< ') ? { kind: 'reply', text: line.slice(2) } : { kind: 'log', text: line };
 }
 
-const flag = (value: string | undefined): boolean | undefined => (value === undefined ? undefined : value === '1');
-
 // "lilpet fw=2e62a96 engine=0.6.0 board=atoms3r camera=0 motion=1"; older firmware stops after the engine
 export function parseHello(reply: string): DeviceInfo | null {
     const words = reply.trim().split(/\s+/);
@@ -43,13 +39,7 @@ export function parseHello(reply: string): DeviceInfo | null {
     const firmware = fields.get('fw');
     const engine = fields.get('engine');
     if (!firmware || !engine) return null;
-    return {
-        firmware,
-        engine,
-        board: fields.get('board'),
-        camera: flag(fields.get('camera')),
-        motion: flag(fields.get('motion'))
-    };
+    return { firmware, engine, board: fields.get('board') };
 }
 
 // "ok", or "err <reason>"

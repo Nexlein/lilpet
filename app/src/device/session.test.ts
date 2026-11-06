@@ -16,7 +16,7 @@ describe('device session', () => {
         await session.connect();
         expect(session.snapshot().state).toEqual({
             status: 'connected',
-            info: { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r', camera: false, motion: true }
+            info: { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' }
         });
         expect(seen).toContain('connecting');
         expect(await session.send(kite)).toBe('kept');

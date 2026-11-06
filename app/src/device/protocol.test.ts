@@ -36,9 +36,7 @@ describe('protocol', () => {
         expect(parseHello('lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1')).toEqual({
             firmware: '0.5.0',
             engine: '0.13.0',
-            board: 'atoms3r',
-            camera: false,
-            motion: true
+            board: 'atoms3r'
         });
         expect(parseHello('something else')).toBeNull();
         expect(parseHello('lilpet fw=1')).toBeNull();
