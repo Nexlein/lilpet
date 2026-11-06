@@ -113,7 +113,7 @@ comme en `double`.
   ajoute son propre clang et son propre node au PATH : ils masquaient ceux du système et faisaient boucler ccache. La
   version est épinglée dans `engine/wasm/Dockerfile` (6.0.13 début novembre 2026) : avec `latest`, une nouvelle
   version pouvait casser la CI sans changement de notre côté. Dependabot propose chaque nouvelle version.
-- **ESP-IDF dans Docker**, avec la même commande en local et en CI (`mise run firmware:build`). La version est
+- **ESP-IDF dans Docker**, avec la même commande en local et en CI (`BOARD=<carte> mise run firmware:build`). La version est
   épinglée à un seul endroit, `firmware/Dockerfile` : la dernière version publiée (v6.1 fin octobre 2026). Le tag
   `latest` de l'image officielle suit la branche de développement (`master`), trop instable pour flasher une vraie
   carte ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
@@ -122,7 +122,7 @@ comme en `double`.
   installer ESP-IDF. La
   compilation passe par ccache, gardé dans `firmware/.ccache` (et entre deux runs en CI) : une recompilation complète
   passe d'environ 1 min à 26 s en local.
-- **Vérification sur carte** (`mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
+- **Vérification sur carte** (`BOARD=<carte> mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
   matériel. Elle parle à la carte comme l'app et vérifie qu'elle garde un look après un redémarrage.
 - **Tâches mise** (`mise run engine:check`, etc.), lancées telles quelles par la CI.
 - Toutes les versions sont figées (novembre 2026 : avec `latest`, la CI tournait déjà sous Node 26 et le poste sous
