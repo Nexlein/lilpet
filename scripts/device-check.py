@@ -2,8 +2,9 @@
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
 # reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
 # and lines too long, which change nothing.
-# With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look is
-# put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and firmware/boards/<board>.
+# With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look and
+# usual mood are put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and
+# firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
 # uv installs pyserial, from scripts/requirements.txt.
 import re
@@ -186,9 +187,6 @@ def run_checks(port, board, test_look, other_look):
     expected = f"{replies.count(accepted)} as expected"
     check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
-    if not board.bench:
-        check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
-
     imu = ask(port, "> imu?")
     if imu == "err no motion sensor" and not board.motion:
         print("-    no motion sensor on this board")
@@ -200,12 +198,14 @@ def run_checks(port, board, test_look, other_look):
         check_reply(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu)
 
 
-def put_back(port, before):
-    """Gives the board its own look back, whatever stopped the checks"""
+def put_back(port, board, before):
+    """Gives the board its own look and usual mood back, whatever stopped the checks"""
     try:
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
+        if not board.bench:
+            check(ask(port, "> emotion neutral") == "ok", "gets back to its usual mood")
     except SERIAL_ERRORS:
         check(False, "gets its own look back", f"port lost, send it again: > {before}")
 
@@ -242,7 +242,7 @@ def check_board(board_name):
     except SERIAL_ERRORS as err:
         check(False, "runs to the end", f"port lost: {err}")
     finally:
-        put_back(port, before)
+        put_back(port, board, before)
     finish(port)
 
 
