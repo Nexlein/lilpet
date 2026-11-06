@@ -211,10 +211,6 @@ void lp_coverage_add(float *diff, int origin, int width, const lp_spans *s, floa
             continue;
         const int ia = (int)a;
         const int ib = (int)b;
-        if (ia == ib) {
-            add_cell(diff, ia, weight * (b - a));
-            continue;
-        }
         add_cell(diff, ia, weight * ((float)(ia + 1) - a));
         diff[ia + 1] += weight; /* full pixels ia + 1 .. ib - 1 */
         diff[ib] -= weight;
