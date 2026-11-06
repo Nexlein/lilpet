@@ -421,6 +421,7 @@ test('with less motion asked, the eyes are a still frame that follows the choice
     await expect.poll(() => frames(page)).toBe(1);
     await page.waitForTimeout(200);
     expect(await frames(page)).toBe(1);
+    await expect(page.getByRole('button', { name: 'Cligner' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Triste' }).click();
     await expect.poll(() => frames(page)).toBe(2);
@@ -432,6 +433,7 @@ test('with less motion asked, the eyes are a still frame that follows the choice
 
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect.poll(() => frames(page)).toBeGreaterThan(10);
+    await expect(page.getByRole('button', { name: 'Cligner' })).toBeVisible();
 });
 
 test('on a short window, the send note is in reach', async ({ page }) => {

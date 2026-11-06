@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { PUPIL_TYPES, makeLook, type Look, type PupilType, type Swatch } from '../data/looks';
 import type { LookSent } from '../device/device';
 import type { DeviceState } from '../device/session';
-import type { EngineState } from './hooks';
+import { useLessMotion, type EngineState } from './hooks';
 import { EyeGlyph } from './EyeGlyph';
 import { Screen } from './Screen';
 import { SendPanel } from './SendPanel';
@@ -36,6 +36,7 @@ export function Stage({
 }: Props) {
     const look = useMemo(() => makeLook(swatch, pupil), [swatch, pupil]);
     const [emotion, setEmotion] = useState('neutral');
+    const lessMotion = useLessMotion();
 
     const ready = engine.status === 'ready' ? engine.engine : null;
     const chooseEmotion = (name: string) => {
@@ -110,9 +111,12 @@ export function Stage({
                         </button>
                     ))}
                     <div className="gestures">
-                        <button type="button" onClick={() => ready.blink()}>
-                            Cligner
-                        </button>
+                        {/* A still frame does not blink */}
+                        {!lessMotion && (
+                            <button type="button" onClick={() => ready.blink()}>
+                                Cligner
+                            </button>
+                        )}
                         <button type="button" onClick={pet}>
                             Caresser
                         </button>
