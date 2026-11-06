@@ -6,31 +6,48 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const SCRIPT = 'scripts/validate-data.mjs';
+const TABLES_SCRIPT = 'scripts/gen-emotions-table.mjs';
+const VECTORS_SCRIPT = 'scripts/gen-engine-vectors.mjs';
+const TABLES = 'engine/src/emotions_table.h';
 const LOOKS = 'eyes/looks.json';
 const EMOTIONS = 'eyes/emotions.json';
 const SCENES = 'prototype/scenes.json';
 
-// Runs the validator on a copy of the data, after `change(data)`; returns its exit code and error output. The script
-// and the prototype are copied too: eyes.js imports the emotions.json next to it, not the one of the working directory.
-function validate(file, change) {
+// Calls `use` with a copy of the data. The scripts and the prototype are copied too: eyes.js imports the emotions.json
+// next to it, not the one of the working directory.
+function withCopy(use) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
-        for (const path of ['package.json', SCRIPT, 'eyes', 'prototype'])
+        for (const path of ['package.json', 'scripts', 'eyes', 'prototype', TABLES])
             cpSync(path, join(dir, path), { recursive: true });
-        if (file) {
-            const data = JSON.parse(readFileSync(file, 'utf8'));
-            change(data);
-            writeFileSync(join(dir, file), JSON.stringify(data));
-        }
-        const { status, stderr } = spawnSync(process.execPath, [SCRIPT], {
-            cwd: dir,
-            encoding: 'utf8',
-            timeout: 10_000 // Playwright cannot stop a synchronous call
-        });
-        return { status, stderr };
+        return use(dir);
     } finally {
         rmSync(dir, { recursive: true });
     }
+}
+
+// Runs a script in a copy; returns its exit code and error output
+function run(dir, ...command) {
+    const { status, stderr } = spawnSync(process.execPath, command, {
+        cwd: dir,
+        encoding: 'utf8',
+        timeout: 10_000 // Playwright cannot stop a synchronous call
+    });
+    return { status, stderr };
+}
+
+function changeFile(dir, file, edit) {
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+    edit(data);
+    writeFileSync(join(dir, file), JSON.stringify(data));
+}
+
+// Runs the validator on a copy of the data, after `edit(data)`
+function validate(file, edit) {
+    return withCopy((dir) => {
+        if (file) changeFile(dir, file, edit);
+        return run(dir, SCRIPT);
+    });
 }
 
 test('the data files are valid', () => {
@@ -88,3 +105,23 @@ for (const [file, what, change, message] of CASES)
         expect(stderr).not.toContain('    at '); // an error message, not a stack trace
         expect(status).toBe(1);
     });
+
+test('a fault in scenes.json stops the vectors, not the emotion tables', () => {
+    withCopy((dir) => {
+        writeFileSync(join(dir, SCENES), 'not JSON');
+        expect(run(dir, VECTORS_SCRIPT, '--check').status).not.toBe(0);
+        expect(run(dir, TABLES_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
+    });
+});
+
+test('a changed emotion makes the tables out of date, until generated again', () => {
+    withCopy((dir) => {
+        changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5));
+        const stale = run(dir, TABLES_SCRIPT, '--check');
+        expect(stale.status).toBe(1);
+        expect(stale.stderr).toContain(`${TABLES}: out of date, run npm run vectors`);
+
+        run(dir, TABLES_SCRIPT);
+        expect(run(dir, TABLES_SCRIPT, '--check').status).toBe(0);
+    });
+});
