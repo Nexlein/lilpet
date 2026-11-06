@@ -18,9 +18,9 @@ typedef struct {
     float b[LP_MAX_SPANS];
 } lp_spans;
 
-/* A screen sub-row seen in some local frame: the local point for screen column x is (u0 + x du, v0 + x dv) */
+/* A screen sub-row seen in some local frame: the local point at column 0; shapes keep the step per column (du, dv) */
 typedef struct {
-    float u0, du, v0, dv;
+    float u0, v0;
 } lp_line;
 
 lp_affine lp_affine_mul(lp_affine m, lp_affine n); /* m after n */
@@ -31,7 +31,7 @@ void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy);
 /* The screen sub-row at height y, in the local frame whose local->screen transform has inverse `inv` */
 static inline lp_line lp_line_at(lp_affine inv, float y)
 {
-    return (lp_line){.u0 = inv.b * y + inv.tx, .du = inv.a, .v0 = inv.d * y + inv.ty, .dv = inv.c};
+    return (lp_line){.u0 = inv.b * y + inv.tx, .v0 = inv.d * y + inv.ty};
 }
 
 void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */

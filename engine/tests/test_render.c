@@ -461,7 +461,7 @@ void test_eyes_off_the_screen_render_nothing(void)
 /* Cuts [40, 60) out of the spans given as pairs of ends, and checks the pairs left */
 static void check_cut(const float (*in)[2], int count, const float (*want)[2], int want_count)
 {
-    const lp_line line = {.u0 = 0.0f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_line line = {.u0 = 0.0f, .v0 = 0.0f};
     const lp_ellipse hole = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
     lp_spans s = {.n = count};
     for (int i = 0; i < count; i++) {
@@ -499,7 +499,7 @@ void test_cutting_spans(void)
 void test_line_too_far_misses_an_ellipse(void)
 {
     /* So far that the distance overflows into a NaN: no span, and not the whole row */
-    const lp_line line = {.u0 = 1e30f, .du = 1.0f, .v0 = 0.0f, .dv = 0.0f};
+    const lp_line line = {.u0 = 1e30f, .v0 = 0.0f};
     const lp_ellipse e = lp_ellipse_prepare(1.0f, 0.0f, 50.0f, 0.0f, 10.0f, 1.0f);
     lp_spans s;
     lp_spans_ellipse(&s, &line, &e, 0.0f, 100.0f);
