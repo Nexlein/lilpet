@@ -376,6 +376,16 @@ static void eye_spans(const lp_eye_geometry *g, float y, lp_spans *out)
         lp_spans_keep_below(out, &line, &g->shapes.blink);
 }
 
+/* Blends a coverage row, stored as differences, over the row being composed */
+static void blend_row(float *line, int x0, const float *cov, int width, lp_rgb color)
+{
+    float acc = 0.0f;
+    for (int i = 0; i < width; i++) {
+        acc += cov[i];
+        composite(line, x0 + i, color, acc);
+    }
+}
+
 static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb color, float alpha)
 {
     if (y < p->box.y0 || y >= p->box.y1)
@@ -389,21 +399,24 @@ static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb 
         lp_spans_polygon(&s, p->pts, p->count, sub_row_y(y, sub), (float)x0, (float)p->box.x1);
         lp_coverage_add(cov, x0, width, &s, alpha / (float)LP_SUBROWS);
     }
-    float acc = 0.0f;
-    for (int i = 0; i < width; i++) {
-        acc += cov[i];
-        composite(r->line, x0 + i, color, acc);
-    }
+    blend_row(r->line, x0, cov, width, color);
 }
 
-/* Adds to a coverage row the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row) */
-static void add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, const lp_spans *shape, float w)
+/* Adds to a coverage row the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row);
+ * returns whether there was one */
+static bool add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, const lp_spans *shape, float w)
 {
     if (shape->n == 0)
-        return;
-    lp_spans clipped = *eye;
+        return false;
+    lp_spans clipped;
+    clipped.n = eye->n;
+    for (int i = 0; i < eye->n; i++) { /* the spans in use only: the whole structure is 68 bytes, per sub-row */
+        clipped.a[i] = eye->a[i];
+        clipped.b[i] = eye->b[i];
+    }
     lp_spans_clip(&clipped, shape->a[0], shape->b[0]);
     lp_coverage_add(cov, x0, width, &clipped, w);
+    return clipped.n > 0;
 }
 
 static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
@@ -422,37 +435,36 @@ static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
     for (int k = 0; k < 3; k++)
         memset(r->cov[k], 0, (size_t)(width + 1) * sizeof r->cov[k][0]);
 
+    bool sclera = false;
+    bool pupil = false;
+    bool glint = false;
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
         lp_spans eye;
         eye_spans(g, ys, &eye);
         if (eye.n == 0)
             continue;
+        sclera = true;
         lp_coverage_add(r->cov[0], x0, width, &eye, w);
 
         const lp_line pl = lp_line_at(g->inv_pupil, ys);
         lp_spans shape;
         lp_spans_ellipse(&shape, &pl, &g->shapes.pupil, lo, hi);
-        add_inside_eye(r->cov[1], x0, width, &eye, &shape, w);
+        pupil |= add_inside_eye(r->cov[1], x0, width, &eye, &shape, w);
 
         if (g->glint) {
             lp_spans_ellipse(&shape, &pl, &g->shapes.glint, lo, hi);
-            add_inside_eye(r->cov[2], x0, width, &eye, &shape, w);
+            glint |= add_inside_eye(r->cov[2], x0, width, &eye, &shape, w);
         }
     }
 
-    const lp_rgb glint_color = to_rgb(GLINT_COLOR);
-    float sclera = 0.0f;
-    float pupil = 0.0f;
-    float glint = 0.0f;
-    for (int i = 0; i < width; i++) {
-        sclera += r->cov[0][i];
-        pupil += r->cov[1][i];
-        glint += r->cov[2][i];
-        composite(r->line, x0 + i, g->sclera, sclera);
-        composite(r->line, x0 + i, g->pupil_color, pupil);
-        composite(r->line, x0 + i, glint_color, glint);
-    }
+    /* Layer after layer: most rows of an eye have no pupil or glint, and a pixel only sees its own layers in order */
+    if (sclera)
+        blend_row(r->line, x0, r->cov[0], width, g->sclera);
+    if (pupil)
+        blend_row(r->line, x0, r->cov[1], width, g->pupil_color);
+    if (glint)
+        blend_row(r->line, x0, r->cov[2], width, to_rgb(GLINT_COLOR));
 }
 
 /* --- Public API ------------------------------------------------------------------------------------- */
