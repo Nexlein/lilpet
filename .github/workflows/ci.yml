@@ -148,15 +148,12 @@ jobs:
       - name: Build the engine for the browser
         run: mise run engine:wasm
 
-      # The PC app ships the engine it was built with; tests/app.spec.mjs opens this build
-      - name: Build the PC app
-        run: npm run app:build
-
       # Headless shell only, without --with-deps: the runner image already has its libraries, and the apt fonts that
       # option adds took about 11 minutes to download
       - name: Install Chromium
         run: npx playwright install --only-shell chromium
 
+      # Builds the PC app first: it ships the engine it was built with, and tests/app.spec.mjs opens this build
       - name: Compare every reference scene, open the PC app
         run: npm run test:parity
 
