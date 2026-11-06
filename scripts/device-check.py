@@ -15,6 +15,7 @@ from board_link import (
     ROOT,
     SERIAL_ERRORS,
     ask,
+    ask_hello,
     board_from_env,
     find_port,
     has_motion_sensor,
@@ -88,7 +89,7 @@ def open_booted_board():
         if name is not None:
             try:
                 with open_port(name) as port:
-                    answered = ask(port, "> hello", 2)  # not sooner: a board not reading yet only takes a few bytes
+                    answered = ask_hello(port, 2)  # not sooner: a board not reading yet only takes a few bytes
                 if answered or time.time() >= end:
                     return open_port(name)
             except SERIAL_ERRORS as err:
@@ -192,7 +193,7 @@ def check_board(board_name):
     port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
 
-    hello = ask(port, "> hello")
+    hello = ask_hello(port)
     check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello)
     fields = hello_fields(hello)
     check(fields.get("board") == board.name, f"runs the image of {board.name}", fields.get("board", "no board"))
