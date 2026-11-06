@@ -145,6 +145,19 @@ test('colors that cannot load are said', async ({ page }) => {
     await expect(page.locator('#swatchSelect option')).toHaveCount(1);
 });
 
+test('an emotion label is text, not HTML', async ({ page }) => {
+    await page.route('**/eyes/emotions.json', async (route) => {
+        const json = await (await route.fetch()).json();
+        json.emotions.sad.label = '<b>triste</b>';
+        await route.fulfill({ json });
+    });
+    await page.goto('/prototype/index.html');
+
+    const button = page.locator('#emotions button[data-e="sad"]');
+    await expect(button).toContainText('<b>triste</b>');
+    await expect(button.locator('kbd')).toHaveText('7');
+});
+
 for (const file of ['index.html', 'reference.html'])
     test(`${file} opened as a file says it needs a server`, async ({ page }) => {
         await page.goto(pathToFileURL(resolve('prototype', file)).href);
