@@ -20,12 +20,12 @@ bool lp_command_line_add(lp_command_line *line, char byte)
     return false;
 }
 
-/* A number from min to max; false on anything else, which covers nan and inf */
+/* A number from min to max; false on anything else, which covers nan and inf. A word is never empty (split) */
 static bool parse_number(const char *word, float min, float max, float *out)
 {
     char *end;
     const float value = strtof(word, &end);
-    if (end == word || *end != '\0' || !(value >= min && value <= max))
+    if (*end != '\0' || !(value >= min && value <= max))
         return false;
     *out = value;
     return true;

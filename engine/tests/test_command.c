@@ -154,6 +154,7 @@ void test_command_refuses_bad_input(void)
         {"> emotion happy nan", "malformed emotion, seconds go from above 0 to 3600"},
         {"> emotion happy inf", "malformed emotion, seconds go from above 0 to 3600"},
         {"> emotion happy 2s", "malformed emotion, seconds go from above 0 to 3600"},
+        {"> emotion happy soon", "malformed emotion, seconds go from above 0 to 3600"},
         {"> react", "malformed react, expected: <event>"},
         {"> react tap now", "malformed react, expected: <event>"},
         {"> react wag", "unknown event"},
