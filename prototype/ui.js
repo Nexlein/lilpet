@@ -287,7 +287,7 @@ function bindControls() {
 // --- Loop --------------------------------------------------------------------------------------------------------
 function step(dt) {
     time += dt;
-    if (mode !== 'c') eyes.update(dt, time);
+    if (mode !== 'c') eyes.update(dt);
     if (mode !== 'js') engine.update(dt);
 }
 

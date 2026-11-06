@@ -13,8 +13,8 @@ const DT = 1 / 64;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
 
 // State snapshot shared by simulations and scenes (struct lpv_state in the header)
-function snapshot(eyes, time) {
-    const { gaze, head, cur, blinkState, particles } = eyes;
+function snapshot(eyes) {
+    const { time, gaze, head, cur, blinkState, particles } = eyes;
     const sum = (key) => num(particles.reduce((s, p) => s + (p[key] ?? 0), 0)); // hearts have no spin
     return [
         num(time),
@@ -181,12 +181,11 @@ for (const s of SCENARIOS) {
     if (s.pointer) eyes.setPointer({ x: s.pointer[0], y: s.pointer[1] });
     if (s.gravity) eyes.setGravity({ x: s.gravity[0], y: s.gravity[1] });
     const first = states.length;
-    let t = 0;
     for (let i = 1; i <= s.steps; i++) {
-        t += DT;
+        const t = eyes.time + DT;
         if (s.spin) eyes.setGravity({ x: Math.sin(s.spin * t), y: Math.cos(s.spin * t) });
-        eyes.update(DT, t);
-        if (i % s.every === 0) states.push(row(snapshot(eyes, t)));
+        eyes.update(DT);
+        if (i % s.every === 0) states.push(row(snapshot(eyes)));
     }
     scenarioRows.push(
         `    {"${s.name}", ${s.seed}u, ${emotionEnum(s.emotion ?? 'neutral')}, ` +
@@ -250,7 +249,7 @@ for (const scene of scenes) {
         num(scene.particles?.time ?? 0)
     ];
     const lookIndex = lookKeys.indexOf(`${scene.swatch} ${scene.pupil}`);
-    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes, 0).join(', ')}}},`);
+    out(`    {"${scene.id}", ${lookIndex}, {${sc.join(', ')}}, {${snapshot(eyes).join(', ')}}},`);
 }
 out('};', '', '#endif /* LILPET_JS_VECTORS_H */', '');
 
