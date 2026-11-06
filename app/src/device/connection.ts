@@ -143,9 +143,10 @@ export class Connection {
                         reject(error);
                     }
                 };
-                // Once closed or broken, the stream refuses every write
+                // Once closed or broken, the stream refuses every write: the connection is over, even if reading is not
                 this.#writer.write(new TextEncoder().encode(`${command}\n`)).catch(() => {
                     this.#pending?.reject(new ConnectionClosed());
+                    void this.close();
                 });
             });
         const result = this.#queue.then(run);

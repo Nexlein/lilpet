@@ -81,6 +81,16 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('goes back to idle when only writing to the board fails', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        device.failWrites();
+        await expect(session.send(kite)).rejects.toThrow('plus branché');
+        await vi.waitFor(() => expect(session.snapshot().state).toEqual({ status: 'idle' }));
+        expect(device.closed()).toBe(true);
+    });
+
     it('explains an unplug during hello, once, without writing again', async () => {
         const device = fakePort(() => null);
         const session = new DeviceSession(async () => device.port);
