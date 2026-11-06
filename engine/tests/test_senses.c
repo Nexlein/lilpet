@@ -61,6 +61,13 @@ void test_senses_stop_a_shake_when_the_sensor_stops(void)
     CHECK(eyes.shaking);
     run_frames(&senses, &eyes, NULL, false, 0.5f);
     CHECK(!eyes.shaking);
+
+    /* Back on an object at rest, long after: the shake it stopped in is over, not picked up again */
+    const float rest[3] = {0.0f, 1.0f, 0.0f};
+    run_frames(&senses, &eyes, NULL, false, 3.0f);
+    lp_senses_update(&senses, &eyes, rest, false, STEP);
+    CHECK(!eyes.shaking);
+    CHECK(senses.shake.energy < 0.5f);
 }
 
 void test_senses_skip_a_bad_sample(void)
