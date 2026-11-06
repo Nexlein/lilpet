@@ -97,27 +97,27 @@ Waveshare ont le même boîtier. Flasher l'image d'une autre carte piloterait le
 - `waveshare_132` : l'écran rond 1,32", pas encore essayé sur la vraie carte.
 - `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
 
-La compilation passe par Docker, sans installer ESP-IDF :
+La compilation passe par Docker, sans installer ESP-IDF. Une seule commande s'occupe d'un objet : compiler, flasher,
+vérifier.
 
 ```bash
-BOARD=atoms3r mise run firmware:build
+BOARD=atoms3r mise run firmware:deploy
 ```
 
-```bash
-BOARD=atoms3r mise run firmware:flash
-```
+Elle prend la seule carte branchée, ou celle de `PORT`. Elle refuse une carte qui répond sous un autre nom (`FORCE=1`
+pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche.
+Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
+la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
+
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 780 images, soit environ 12 s (quitter
+avec Ctrl+]) :
 
 ```bash
 mise run firmware:monitor
 ```
 
-Les temps de dessin et d'envoi s'affichent toutes les 780 images, soit environ 12 s (quitter avec Ctrl+]). Pour vérifier
-qu'une carte flashée répond bien à l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées ; son
-look est remis à la fin) :
-
-```bash
-mise run firmware:check-device
-```
+Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
+`board_config.h`. Rien d'autre à toucher, la CI la compile d'elle-même.
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
