@@ -2,14 +2,27 @@
 
 #include "board_config.h"
 #include "driver/gpio.h"
+#include "esp_efuse.h"
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "soc/efuse_defs.h"
 
 #include <stdio.h>
 
 void board_init(void)
 {
+    /* The XIAO's camera outputs sit on the display pins, so nothing touches a pin until the chip package matches. It
+     * cannot tell two boards with the same package apart: mise run firmware:flash asks the board first for that. */
+    const bool pico = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO;
+    while (pico != BOARD_CHIP_PICO) {
+        /* Over and over, for a monitor opened later; USB stays up, so the right image can be flashed */
+        printf("stopped, no pin touched: this is the image of %s, and the chip is not a%s ESP32-S3%s. "
+               "Flash the image of this board.\n",
+               BOARD_NAME, BOARD_CHIP_PICO ? "n" : " QFN56", BOARD_CHIP_PICO ? "-PICO" : "");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+
 #ifdef BOARD_POWER_HOLD
     gpio_set_level(BOARD_POWER_HOLD, 1); /* before it becomes an output: the pin never goes low */
     const gpio_config_t power = {.pin_bit_mask = 1ULL << BOARD_POWER_HOLD, .mode = GPIO_MODE_OUTPUT};
