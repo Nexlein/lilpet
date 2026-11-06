@@ -63,7 +63,7 @@ class Board:
         report_after=12.5,  # seconds after booting
         open_error=None,
         dtr_error=None,
-        stop_at=None,  # Ctrl+C when the board gets this line
+        stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -189,6 +189,8 @@ class Serial:
     def rts(self, value):
         self._rts = value
         self.lines_changed()
+        if value:
+            self.board.stop_if("rts")
 
     def write(self, data):
         clock.now += 0.001
@@ -382,6 +384,14 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(board)
         self.assertEqual(status, 1)
         self.assertIn("FAIL runs to the end (interrupted)", out)
+        self.assertEqual((board.look, board.mood), (look, "neutral"))
+
+    def test_ctrl_c_during_the_reboot_lets_the_chip_go(self):
+        board = Board("atoms3r", stop_at="rts")
+        look = board.look
+        _, out, _ = check_device(board)
+        self.assertIn("FAIL runs to the end (interrupted)", out)
+        self.assertIn("ok   gets its own look back", out)
         self.assertEqual((board.look, board.mood), (look, "neutral"))
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):

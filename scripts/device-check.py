@@ -29,6 +29,7 @@ from board_link import (
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
+BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 REPORT_LINE = r"^(\d+\.\d) frames/s"
 # Catches a dead or crawling drawing loop, not a slow screen: a board reports every 780 frames (LP_BENCH_FRAMES), about
@@ -87,7 +88,7 @@ def reboot(port):
     port.rts = True
     time.sleep(0.1)
     port.rts = False
-    boot = read_lines(port, 3, until=BOOT_LINE)[-1:]  # what comes before may be a report from before the reboot
+    boot = read_lines(port, BOOT_SECONDS, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
     if not (boot and BOOT_LINE in boot[0]):
         return []
     return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
@@ -201,6 +202,9 @@ def run_checks(port, board, test_look, other_look):
 def put_back(port, board, before):
     """Gives the board its own look and usual mood back, whatever stopped the checks"""
     try:
+        if port.rts:  # stopped during a reboot: the chip stays in reset until RTS is released
+            port.rts = False
+            read_lines(port, BOOT_SECONDS)
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
