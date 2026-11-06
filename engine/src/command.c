@@ -80,17 +80,6 @@ static const char *parse_gaze(char *const words[], int count, lp_command *out)
     return "malformed gaze, expected: <x> <y> from -1 to 1, or off";
 }
 
-static const char *parse_eyes_command(const char *name, char *args, lp_command *out)
-{
-    char *words[MAX_WORDS];
-    const int count = split(args, words);
-    if (strcmp(name, "emotion") == 0)
-        return parse_emotion(words, count, out);
-    if (strcmp(name, "react") == 0)
-        return parse_react(words, count, out);
-    return parse_gaze(words, count, out);
-}
-
 const char *lp_command_parse(const lp_command_line *line, lp_command *out)
 {
     *out = (lp_command){.type = LP_COMMAND_NONE};
@@ -116,9 +105,15 @@ const char *lp_command_parse(const lp_command_line *line, lp_command *out)
         out->type = LP_COMMAND_LOOK;
         if (!lp_look_parse(args, &out->look))
             return "malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle";
-    } else if (strcmp(name, "emotion") == 0 || strcmp(name, "react") == 0 || strcmp(name, "gaze") == 0) {
-        return parse_eyes_command(name, args, out);
     } else {
+        char *words[MAX_WORDS];
+        const int count = split(args, words);
+        if (strcmp(name, "emotion") == 0)
+            return parse_emotion(words, count, out);
+        if (strcmp(name, "react") == 0)
+            return parse_react(words, count, out);
+        if (strcmp(name, "gaze") == 0)
+            return parse_gaze(words, count, out);
         return "unknown command";
     }
     return NULL;
