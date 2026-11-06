@@ -32,6 +32,7 @@
     X(test_senses_debounce_the_button)                                                                                 \
     X(test_senses_react_to_a_press_not_a_release)                                                                      \
     X(test_senses_let_go_of_a_face)                                                                                    \
+    X(test_senses_leave_alone_a_pointer_they_did_not_set)                                                              \
     X(test_senses_greet_only_a_new_face)                                                                               \
     X(test_tilt_holds_upside_down_on_noise)                                                                            \
     X(test_tilt_holds_lying_flat)                                                                                      \
