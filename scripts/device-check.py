@@ -23,7 +23,7 @@ ESPRESSIF_USB = 0x303A  # the chip's own USB port: firmware or blank, the board 
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
 OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
 BOOT_LINE = "Calling app_main"
-LINE_SIZE = 96  # of the firmware (commands.c)
+LINE_MAX = 94  # longest line of the firmware (LP_COMMAND_LINE_MAX)
 
 failures = 0
 
@@ -146,7 +146,7 @@ def run_checks(port, test_look, other_look, bench, motion, fields):
     check(too_long == "err line too long", "rejects a line too long", too_long or "no reply")
     hello = ask(port, "> hello")
     check(bool(hello) and hello.startswith("lilpet fw="), "answers after a line too long", hello or "no reply")
-    port.write(b"x" * (LINE_SIZE - 1) + f"> look {other_look}\n".encode())  # right where the firmware's buffer ends
+    port.write(b"x" * (LINE_MAX + 1) + f"> look {other_look}\n".encode())  # right where the line stops fitting
     kept = ask(port, "> look?")
     check(kept == f"look {test_look}", "does not run the end of a line too long", kept or "no reply")
 

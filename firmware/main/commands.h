@@ -1,4 +1,4 @@
-/* Commands from the PC app over the USB serial port, one per line (protocol in notes/app.md):
+/* Commands from the PC app over the USB serial port, one per line (protocol in notes/app.md, read by lp_command_parse):
  *   "> hello"       ->  "< lilpet fw=<version> engine=<version> board=<board> camera=<0|1> motion=<0|1>"
  *   "> look <text>" ->  "< ok" once the look is saved, or "< err <reason>"
  *   "> look?"       ->  "< look <text>", the current look
@@ -17,29 +17,12 @@
 
 #include <stdbool.h>
 
-/* What a command asks of the eyes */
-typedef struct {
-    enum { COMMAND_LOOK, COMMAND_EMOTION, COMMAND_REACT, COMMAND_GAZE } type;
-    union {
-        lp_look look;
-        struct {
-            lp_emotion name;
-            float seconds; /* 0: the new mood */
-        } emotion;
-        lp_event event;
-        struct {
-            bool seen; /* false: the face is gone */
-            float x, y;
-        } gaze;
-    };
-} command;
-
 /* Starts the task that reads commands. `current` is the look shown at startup, `motion` tells hello that a motion
  * sensor answers. */
 void commands_start(const lp_look *current, bool motion);
 
 /* Takes the next command for the eyes; false when none is waiting. The engine is not thread-safe: the drawing loop
  * carries them out, every frame. */
-bool commands_next(command *out);
+bool commands_next(lp_command *out);
 
 #endif
