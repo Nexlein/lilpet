@@ -61,8 +61,9 @@ description = "Everything CI checks on the engine"
 depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
-# One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong image
-# drives the wrong pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in a command line.
+# One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong
+# image drives the wrong pins. Versions of the Python tools go in each task's `tools`: Renovate reads them there, not in
+# a command line.
 [tasks."firmware:board"]
 description = "Fail unless BOARD names a folder of firmware/boards"
 hide = true
