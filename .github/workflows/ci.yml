@@ -63,14 +63,28 @@ jobs:
       - name: Benchmark the renderer
         run: mise run engine:bench
 
+  boards:
+    name: List the firmware boards
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      list: ${{ steps.folders.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A board is a folder of firmware/boards with a board.cmake: a new one is built with no change here
+      - id: folders
+        run: echo "list=$(ls firmware/boards/*/board.cmake | cut -d/ -f3 | jq -Rcs 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
+
   esp32:
     name: ESP32-S3 firmware build (${{ matrix.board }})
+    needs: boards
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        board: [atoms3r, waveshare_132, stamp_s3a]
+        board: ${{ fromJSON(needs.boards.outputs.list) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
