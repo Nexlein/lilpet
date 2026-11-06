@@ -1,7 +1,7 @@
 // Live parity: driven by the same inputs side by side on the interactive page, the prototype and the C engine keep
 // rendering the same image while they animate (parity.spec.mjs only checks still reference scenes). The test steps
 // both renderers by hand, from a fixed seed, so it does not depend on the browser's frame timing and a failure replays.
-// The rest of the file covers what the page does when a part of it cannot load.
+// The rest of the file covers the page itself: what resynchronizing keeps, and what it says when a part cannot load.
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -79,7 +79,7 @@ test('the C engine animates like the prototype, side by side', async ({ page }) 
     expect(errors, 'console errors on the interactive page').toEqual([]);
     const failing = results
         .filter((r) => !r.pass)
-        .map((r) => `${r.label}: mean ${r.mean.toFixed(2)}, ${r.core} core pixels`);
+        .map((r) => `${r.label}: mean ${r.mean.toFixed(2)}, ${r.big} big pixels, ${r.core} of them core`);
     expect(failing, 'moments where the two renderers differ').toEqual([]);
 });
 
@@ -88,6 +88,39 @@ test('a seed replays the same animation', async ({ page }) => {
     const replay = () => page.evaluate(animate, RUNS.slice(0, 1));
     expect(await replay()).toEqual(await replay());
 });
+
+// Each setting away from its default, in the way the page sets it. A pointer shows what follow and head change.
+const point = (page) => page.evaluate(() => window.live.setPointer({ x: 0.6, y: -0.3 }));
+const SETTINGS = [
+    ['an emotion', (page) => page.evaluate(() => window.live.setEmotion('love'))],
+    ['a pointer', point],
+    ['a gravity', (page) => page.evaluate(() => window.live.setGravity({ x: Math.sin(1.2), y: Math.cos(1.2) }))],
+    ['being shaken', (page) => page.evaluate(() => window.live.setShaking(true))],
+    ['a shape', (page) => page.locator('#rx').fill('60')],
+    ['a head amount', (page) => point(page).then(() => page.locator('#head').fill('0'))],
+    ['the pointer not followed', (page) => point(page).then(() => page.locator('#follow').uncheck())]
+];
+
+// Runs in the page: what createEyes carries over from one prototype renderer to the next
+function settings() {
+    const { shape, headAmount, follow, mouse, gravity, shaking, mood } = window.eyes;
+    return { shape, headAmount, follow, mouse, gravity, shaking, mood };
+}
+
+for (const [what, set] of SETTINGS)
+    test(`resynchronizing keeps ${what}, in both renderers`, async ({ page }) => {
+        await openSideBySide(page);
+        await set(page);
+        const before = await page.evaluate(settings);
+        const result = await page.evaluate(() => {
+            window.live.resync(1234);
+            window.live.step(64);
+            return window.live.diff();
+        });
+
+        expect(await page.evaluate(settings)).toEqual(before);
+        expect(result.pass, `mean ${result.mean}, ${result.big} big pixels, ${result.core} core`).toBe(true);
+    });
 
 const modeOn = (page) => page.locator('#modes button.on');
 
