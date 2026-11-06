@@ -18,10 +18,12 @@ export async function fetchJson(url) {
 // 609 over every look and scene, 515 while animating, so maxBig leaves a margin for small changes of the shapes.
 export const PARITY = { maxMean: 1.5, big: 32, maxCore: 3, maxBig: 760 };
 
+const far = new Uint8Array(SIZE * SIZE); // 1 for a big pixel
+
 // Compares two RGBA images of SIZE × SIZE pixels
 export function compare(a, b) {
     const n = SIZE * SIZE;
-    const far = new Uint8Array(n); // 1 for a big pixel
+    far.fill(0);
     let sum = 0;
     let big = 0;
     for (let p = 0; p < n; p++) {
