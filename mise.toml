@@ -109,5 +109,6 @@ run = [
 
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
-# RTS and DTR stay low so opening the port does not reset the chip into download mode
-run = 'uv run --with-requirements scripts/requirements.txt pyserial-miniterm --raw --rts 0 --dtr 0 "${PORT:-/dev/ttyACM0}" 115200'
+# Opening asserts both lines, then pyserial sets DTR, then RTS. The chip reboots on RTS without DTR, so DTR stays high
+# while RTS goes low: opening the port does not reboot the board (checked on the AtomS3R, where --dtr 0 did at each open)
+run = 'uv run --with-requirements scripts/requirements.txt pyserial-miniterm --raw --rts 0 --dtr 1 "${PORT:-/dev/ttyACM0}" 115200'
