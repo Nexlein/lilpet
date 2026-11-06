@@ -620,7 +620,7 @@ void test_shake_makes_it_dizzy_then_calm(void)
     }
     CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
     CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */
-    /* Back to its mood after 2 s, and the spinning dies down soon after */
+    /* Back to its mood when the reaction is over, and the spinning dies down soon after */
     for (int i = 0; i < 3 * 64; i++)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
