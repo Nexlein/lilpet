@@ -15,5 +15,11 @@ if(NOT LILPET_BOARD IN_LIST boards)
                         "BOARD=<board> mise run firmware:build (${boards}).")
 endif()
 
+# ESP-IDF options: the common ones, then those of a board that needs its own
+set(SDKCONFIG_DEFAULTS sdkconfig.defaults)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/boards/${LILPET_BOARD}/sdkconfig.defaults)
+    list(APPEND SDKCONFIG_DEFAULTS boards/${LILPET_BOARD}/sdkconfig.defaults)
+endif()
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(lilpet)
