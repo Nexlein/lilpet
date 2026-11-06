@@ -110,6 +110,7 @@ export class DeviceSession {
 function describe(err: unknown, silent = NO_REPLY): string {
     const message = err instanceof Error ? err.message : String(err);
     if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
+    if (message === 'busy') return 'lilpet est occupé. Réessaie dans un instant.';
     if (message.startsWith('not a lilpet device') || message.startsWith('no reply')) return silent;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
