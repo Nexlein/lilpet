@@ -112,7 +112,9 @@ export class Connection {
         else if (line) this.#events.onLog?.(line);
     }
 
-    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies never mix up.
+    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies keep their order.
+    // shortcut: replies carry no id, so one that comes after its timeout answers the next request. Telling them apart
+    // takes a protocol change on both sides; a board that slow is already reported as not answering.
     request(command: string, timeoutMs = 2000): Promise<string> {
         const run = () =>
             new Promise<string>((resolve, reject) => {
