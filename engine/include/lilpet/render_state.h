@@ -1,10 +1,28 @@
-/* What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed. Not part of the
- * public API. */
-#ifndef LILPET_RENDERER_H
-#define LILPET_RENDERER_H
+/*
+ * What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed. Included by
+ * lilpet.h, because the caller owns the memory and needs its size; nothing here is part of the API.
+ */
+#ifndef LILPET_RENDER_STATE_H
+#define LILPET_RENDER_STATE_H
 
-#include "lilpet/lilpet.h"
-#include "raster.h"
+/* 2D affine transform: (x, y) -> (a x + b y + tx, c x + d y + ty) */
+typedef struct {
+    float a, b, c, d, tx, ty;
+} lp_affine;
+
+/*
+ * An ellipse (center cu, cv; radii ra, rb, in a local frame) made ready for the sub-rows of that frame, which all
+ * share one step (du, dv): the divisions are done once a frame, not per sub-row (the ESP32-S3 has no fast division).
+ */
+typedef struct {
+    float cu, cv, inv_ra, inv_rb;
+    float qu, qv, a, half_inv_a; /* step in unit-circle space, its squared length, 1 / (2 a) */
+} lp_ellipse;
+
+/* The half plane below the line v = m u + c (v grows downward), made ready the same way */
+typedef struct {
+    float m, c, g1, inv_g1; /* g1: how fast v - m u changes along a sub-row */
+} lp_half_plane;
 
 /* A color ready to blend, 0-255 per channel */
 typedef struct {
@@ -55,14 +73,6 @@ typedef struct {
     int particle_count;
     float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
     float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
-} lp_render_state;
+} lp_renderer;
 
-_Static_assert(sizeof(lp_render_state) <= sizeof(lp_renderer), "LP_RENDERER_FLOATS in lilpet.h is too small");
-_Static_assert(_Alignof(lp_render_state) <= _Alignof(lp_renderer), "lp_renderer is not aligned enough");
-
-static inline lp_render_state *lp_render_state_of(lp_renderer *renderer)
-{
-    return (lp_render_state *)renderer;
-}
-
-#endif /* LILPET_RENDERER_H */
+#endif /* LILPET_RENDER_STATE_H */

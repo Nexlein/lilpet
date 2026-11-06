@@ -6,7 +6,6 @@
 #include "internal.h"
 #include "lilpet/lilpet.h"
 #include "raster.h"
-#include "renderer.h"
 
 #include <string.h>
 
@@ -315,7 +314,7 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     setup_pupil(g, e, rx, ry, inner, pupil);
 }
 
-static void setup_particles(lp_render_state *r, const lp_eyes *e)
+static void setup_particles(lp_renderer *r, const lp_eyes *e)
 {
     r->particle_count = 0;
     for (int i = 0; i < e->particle_count; i++) {
@@ -387,7 +386,7 @@ static void blend_row(float *line, int x0, const float *cov, int width, lp_rgb c
     }
 }
 
-static void draw_polygon_row(lp_render_state *r, const lp_polygon *p, int y, lp_rgb color, float alpha)
+static void draw_polygon_row(lp_renderer *r, const lp_polygon *p, int y, lp_rgb color, float alpha)
 {
     if (y < p->box.y0 || y >= p->box.y1)
         return;
@@ -420,7 +419,7 @@ static bool add_inside_eye(float *cov, int x0, int width, const lp_spans *eye, c
     return clipped.n > 0;
 }
 
-static void draw_eye_row(lp_render_state *r, const lp_eye_geometry *g, int y)
+static void draw_eye_row(lp_renderer *r, const lp_eye_geometry *g, int y)
 {
     if (y < g->box.y0 || y >= g->box.y1)
         return;
@@ -470,17 +469,15 @@ static void draw_eye_row(lp_render_state *r, const lp_eye_geometry *g, int y)
 
 /* --- Public API ------------------------------------------------------------------------------------- */
 
-void lp_renderer_init(lp_renderer *renderer)
+void lp_renderer_init(lp_renderer *r)
 {
-    memset(renderer, 0, sizeof *renderer);
-    lp_render_state *r = lp_render_state_of(renderer);
+    memset(r, 0, sizeof *r);
     r->size = LP_SCREEN_SIZE;
     r->scale = 1.0f;
 }
 
-void lp_renderer_set_size(lp_renderer *renderer, int size)
+void lp_renderer_set_size(lp_renderer *r, int size)
 {
-    lp_render_state *r = lp_render_state_of(renderer);
     if (size < 2)
         size = 2;
     if (size > LP_SCREEN_SIZE)
@@ -490,9 +487,8 @@ void lp_renderer_set_size(lp_renderer *renderer, int size)
     r->drawn = false; /* the next frame redraws everything */
 }
 
-void lp_renderer_set_big_endian(lp_renderer *renderer, bool big_endian)
+void lp_renderer_set_big_endian(lp_renderer *r, bool big_endian)
 {
-    lp_render_state *r = lp_render_state_of(renderer);
     r->big_endian = big_endian;
     r->drawn = false; /* the next frame redraws everything */
 }
@@ -507,9 +503,8 @@ static uint16_t pack565(const float *px, unsigned swap)
     return (uint16_t)(v << swap | v >> swap);
 }
 
-lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
+lp_rect lp_render_begin(lp_renderer *r, const lp_eyes *eyes)
 {
-    lp_render_state *r = lp_render_state_of(renderer);
     const lp_blink_pose bp = lp_eyes_blink_pose(eyes);
 
     /* Squash and stretch along the gaze movement, plus a slow "breathing" */
@@ -536,7 +531,7 @@ lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes)
 }
 
 /* Composes row y of the dirty region and writes its pixels, from dirty.x0 to dirty.x1, to `out` */
-static void draw_row(lp_render_state *r, int y, uint16_t *out)
+static void draw_row(lp_renderer *r, int y, uint16_t *out)
 {
     const lp_rect d = r->dirty;
     memset(&r->line[3 * d.x0], 0, (size_t)(d.x1 - d.x0) * 3 * sizeof r->line[0]);
@@ -559,19 +554,17 @@ static void draw_row(lp_render_state *r, int y, uint16_t *out)
     }
 }
 
-void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band)
+void lp_render_rows(lp_renderer *r, int y0, int y1, uint16_t *band)
 {
-    lp_render_state *r = lp_render_state_of(renderer);
     const lp_rect d = r->dirty;
     const int width = d.x1 - d.x0;
     for (int y = y0 > d.y0 ? y0 : d.y0; y < y1 && y < d.y1; y++)
         draw_row(r, y, &band[(y - y0) * width]);
 }
 
-lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame)
+lp_rect lp_render(lp_renderer *r, const lp_eyes *eyes, uint16_t *frame)
 {
-    lp_render_state *r = lp_render_state_of(renderer);
-    const lp_rect dirty = lp_render_begin(renderer, eyes);
+    const lp_rect dirty = lp_render_begin(r, eyes);
     for (int y = dirty.y0; y < dirty.y1; y++)
         draw_row(r, y, &frame[y * r->size + dirty.x0]);
     return dirty;

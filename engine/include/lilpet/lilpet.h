@@ -315,12 +315,8 @@ typedef struct {
     int x0, y0, x1, y1;
 } lp_rect;
 
-#define LP_RENDERER_FLOATS 7606 /* its size: src/renderer.h fails to compile if that is too small */
-
-/* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Opaque. */
-typedef struct {
-    float opaque[LP_RENDERER_FLOATS];
-} lp_renderer;
+/* Scratch memory and dirty-region state of the renderer, owned by the caller (about 30 KB). Do not read its fields. */
+#include "lilpet/render_state.h"
 
 /* Prepares a renderer for the full LP_SCREEN_SIZE screen */
 void lp_renderer_init(lp_renderer *renderer);
