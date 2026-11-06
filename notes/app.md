@@ -3,7 +3,7 @@
 Choix faits le 2026-11-01. Complète la section « App PC » de [architecture.md](architecture.md).
 
 État : version 1 écrite le 2026-11-01 (galerie, aperçu, envoi), testée dans le navigateur, en CI et sur l'AtomS3R. Les
-commandes `emotion`, `react` et `gaze` (novembre 2026) n'ont pas encore été essayées sur une vraie carte.
+commandes `emotion`, `react` et `face` (novembre 2026) n'ont pas encore été essayées sur une vraie carte.
 
 ## Choix
 
@@ -79,10 +79,10 @@ lignes par UART :
   Sert au calage des axes et à `BOARD=<carte> mise run firmware:check-device` ;
 - `> emotion <nom> [secondes]` : une émotion pour ce temps (plus de 0, 3600 au plus), ou la nouvelle humeur sans durée ;
 - `> react <événement>` : la réaction à un événement, par son nom dans `eyes/emotions.json` (`tap`, `gesture_like`,
-  `expression_happy`…). Une ligne par changement, pas par image de la caméra. Une même émotion relancée à moins de 0,5 s
-  prolonge la réaction sans nouvelles étincelles ;
-- `> gaze <x> <y>` : un visage en x, y de -1 à 1, à renvoyer tant qu'il est vu : sans nouvelle position pendant 0,5 s,
-  les yeux le lâchent. Un visage absent depuis 3 s compte comme nouveau et déclenche `face_seen`. `> gaze off` dit
+  `expression_happy`…). Une ligne par changement, pas par image de la caméra. L'émotion change aussitôt, et les étincelles
+  partent au plus toutes les 0,5 s, quelle que soit l'émotion ;
+- `> face <x> <y>` : un visage en x, y de -1 à 1, à renvoyer tant qu'il est vu : sans nouvelle position pendant 0,5 s,
+  les yeux le lâchent. Un visage absent depuis 3 s compte comme nouveau et déclenche `face_seen`. `> face off` dit
   qu'il est parti.
 
 Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` si la boucle de dessin

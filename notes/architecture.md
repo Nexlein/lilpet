@@ -118,8 +118,8 @@ comme en `double`.
   `latest` de l'image officielle suit la branche de développement (`master`), trop instable pour flasher une vraie
   carte ([doc de l'image](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/tools/idf-docker-image.html)).
   Dependabot ouvre une pull request à chaque nouvelle version, que la CI vérifie avant qu'on l'accepte. La CI garde le
-  binaire prêt à flasher de chaque carte. Flash et lecture du port USB par esptool et pyserial, installés par mise, sans
-  installer ESP-IDF. La
+  binaire prêt à flasher de chaque carte. Flash et lecture du port USB par esptool (installé par mise) et pyserial
+  (`scripts/requirements.txt`, par uv), sans installer ESP-IDF. La
   compilation passe par ccache, gardé dans `firmware/.ccache` (et entre deux runs en CI) : une recompilation complète
   passe d'environ 1 min à 26 s en local.
 - **Vérification sur carte** (`BOARD=<carte> mise run firmware:check-device`) : la seule que la CI ne peut pas faire, faute de
@@ -139,13 +139,13 @@ pas besoin du moteur, et ses broches de caméra sont celles de l'écran sur l'au
 
 Le modèle décide, le moteur exécute. Il peut choisir une réaction par son nom (`> react gesture_like`), dont
 `eyes/emotions.json` donne les valeurs par défaut, ou une émotion et sa durée (`> emotion happy 2`), et il dit où regarder
-(`> gaze 0.2 -0.1`). Protocole dans [app.md](app.md). L'aperçu web, l'AtomS3R et l'objet final jouent ainsi les mêmes
-réactions, et changer de modèle ne touche pas au moteur. Un modèle qui répète un événement ne noie pas l'écran : le
-moteur prolonge la réaction sans relancer ses étincelles.
+(`> face 0.2 -0.1`). Protocole dans [app.md](app.md). L'aperçu web, l'AtomS3R et l'objet final jouent ainsi les mêmes
+réactions, et changer de modèle ne touche pas au moteur. Un modèle qui répète un événement ne noie pas l'écran : les
+étincelles partent au plus toutes les 0,5 s, quelle que soit l'émotion.
 
 La liaison UART lira les mêmes lignes que l'USB : `lp_command_parse` ignore tout ce qui ne commence pas par `> `, donc le
-journal de démarrage de l'autre puce, et les fonctions de `commands.c` reçoivent leurs flux : il suffira d'une seconde
-tâche à l'arrivée de la XIAO. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
+journal de démarrage de l'autre puce. À l'arrivée de la XIAO, il faudra une seconde tâche, qui donne ses lignes au même
+analyseur et réponde sur son propre flux. Sans carte caméra, les mêmes commandes se testent depuis le PC sur l'AtomS3R : `lp_senses` lâche un visage
 sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux figés.
 
 ## Performance (mise en place en 2e)
@@ -173,15 +173,16 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
 - **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
-  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
-  puce. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
+  `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran, le boîtier de sa
+  puce et son capteur de mouvement, un `sdkconfig.defaults` facultatif ses options ESP-IDF. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
   composant un fichier `.c`, sans table de fonctions : tout est choisi à la compilation. Un seul binaire reconnaissant sa
   carte n'est pas possible : l'AtomS3R et le Waveshare 1,32" ont le même boîtier (ESP32-S3-PICO), et sonder un bus ou lire
   l'identifiant d'un écran obligerait à piloter des broches sur une carte inconnue. Ajouter un écran : un `.c` de 4
   fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
   aux composants connus : son dossier, rien d'autre.
-- **Mauvaise image** : deux gardes. `firmware:flash` demande `> hello` à la carte et refuse si une autre carte répond
-  (`FORCE=1` pour passer outre, une carte vierge ne répond pas et passe). Au démarrage, `board_init` compare le boîtier
+- **Mauvaise image** : deux gardes. `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et refuse si
+  une autre carte répond, puis donne ce port à esptool. `FORCE=1` passe outre sans rien demander. Une carte vierge, ou qui
+  redémarre en boucle, ne répond pas et passe. Au démarrage, `board_init` compare le boîtier
   de la puce et s'arrête avant de toucher une broche. Limite : une image `stamp_s3a` sur la XIAO n'est pas arrêtée, les
   deux sont en boîtier QFN56 ; le futur firmware de la XIAO devra répondre à `> hello` pour que le flash la protège.
 - Le pilote de l'écran rond (`firmware/main/display_co5300.c`) reprend la démo ESP-IDF officielle de Waveshare pour la carte

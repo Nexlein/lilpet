@@ -9,7 +9,7 @@ Seeed, LilyGO, M5Stack, Viewe et Tailor Pixels). On garde donc deux cartes :
 
 1. **Carte écran** : rendu des yeux et animations, batterie, bouton marche/arrêt.
 2. **Carte vision** : caméra, détection du visage, des gestes et des expressions. Elle envoie ce qu'elle voit à la carte
-   écran par UART (`> react gesture_like`, `> gaze 0.2 -0.1`… : protocole dans [app.md](app.md)).
+   écran par UART (`> react gesture_like`, `> face 0.2 -0.1`… : protocole dans [app.md](app.md)).
 
 Chaque puce garde toute sa puissance pour une seule tâche. Partager les deux sur une carte n'est pas possible : la carte
 écran n'a pas assez de broches libres pour une caméra (il en faut une douzaine).
