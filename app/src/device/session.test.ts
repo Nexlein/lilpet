@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
+import type { PortLike } from './connection';
 import { fakePort, firmware } from './fake-port';
 import { DeviceSession } from './session';
 
@@ -32,6 +33,31 @@ describe('device session', () => {
         const session = new DeviceSession(() => Promise.reject(new DOMException('no port', 'NotFoundError')));
         await session.connect();
         expect(session.snapshot().state).toEqual({ status: 'idle' });
+    });
+
+    it('opens one port picker at a time, and a new one once it is closed', async () => {
+        const device = fakePort(firmware());
+        let choose!: (port: PortLike) => void;
+        let cancel!: (reason: unknown) => void;
+        const requestPort = vi.fn(
+            () =>
+                new Promise<PortLike>((resolve, reject) => {
+                    choose = resolve;
+                    cancel = reject;
+                })
+        );
+        const session = new DeviceSession(requestPort);
+        const first = session.connect();
+        await session.connect(); // the picker is open and the state is still idle: nothing happens
+        expect(requestPort).toHaveBeenCalledOnce();
+        cancel(new DOMException('no port', 'NotFoundError'));
+        await first;
+        const second = session.connect();
+        expect(requestPort).toHaveBeenCalledTimes(2);
+        choose(device.port);
+        await second;
+        expect(session.snapshot().state.status).toBe('connected');
+        await session.disconnect();
     });
 
     it('closes the port and explains when the device is not lilpet', async () => {
