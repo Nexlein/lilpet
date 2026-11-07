@@ -3,5 +3,5 @@ set(engine_dir ${CMAKE_CURRENT_LIST_DIR}/../../../engine)
 include(${engine_dir}/sources.cmake)
 list(TRANSFORM LILPET_SOURCES PREPEND ${engine_dir}/)
 
-idf_component_register(SRCS ${LILPET_SOURCES} INCLUDE_DIRS ${engine_dir}/include)
+idf_component_register(SRCS ${LILPET_SOURCES} INCLUDE_DIRS ${engine_dir}/include LDFRAGMENTS linker.lf)
 target_compile_options(${COMPONENT_LIB} PRIVATE ${LILPET_WARNINGS})
