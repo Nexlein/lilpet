@@ -79,7 +79,7 @@ reference until the engine takes over each feature.
   chip package cannot tell boards apart (the AtomS3R and the Waveshare 1.32" are both ESP32-S3-PICO), but `board_init`
   stops on the wrong package before touching a pin, and `firmware:flash` refuses a board that answers `hello` with
   another name (`scripts/flash-guard.py`, which also gives esptool the port it asked). An image flashed on another board drives that board's pins.
-  `components/lilpet` wraps the engine. Each header is an interface and each part a `.c` file, with no function tables:
+  `components/lilpet` wraps the engine, with the renderer's code in internal RAM (`linker.lf`). Each header is an interface and each part a `.c` file, with no function tables:
   `display.h` is `display_co5300.c` for the Waveshare 1.32" AMOLED (CO5300 over QSPI with ESP-IDF's `esp_lcd`; values
   from Waveshare's demo, not yet run on the board, also used without a display) or `display_atoms3r.c` for the AtomS3R
   LCD (128 px SPI, ST7735S or GC9107 told apart by their ID; values from M5GFX), `display_paced.c` timing the frames of
@@ -88,7 +88,8 @@ reference until the engine takes over each feature.
   holds the board itself: power hold, button, I2C bus, backlight.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for `display_wait_frame`, applies the queued commands, gives the sensors to `lp_senses_update`, draws band by
-  band into two DMA buffers in internal RAM while the previous band is sent, and prints timings over USB after each
+  band into two DMA buffers in internal RAM while the previous band is sent, each band half on each core (a second
+  `lp_renderer`, in a task pinned to core 1), and prints timings over USB after each
   round of 1080 frames. A board with no display (`BOARD_BENCH`, a bare M5Stamp S3A) plays the benchmark animation
   (`engine/tools/bench_script.h`) at 62.5 frames/s instead, with the host's look, seed and fixed step, so that image
   measures the engine on the chip, comparable with `mise run engine:bench`.

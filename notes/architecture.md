@@ -155,8 +155,12 @@ Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash
 
 À mesurer ou à essayer sur du vrai matériel :
 
-- **Temps de dessin à 466 px sur la puce**, jamais mesuré : `BOARD=stamp_s3a mise run firmware:deploy` sur la M5Stamp. Il est
-  estimé entre 16 et 30 ms pour 16,7 ms disponibles, et tout le budget de 60 images/s en dépend. À faire avant l'achat.
+- **Dessin à 466 px encore un peu lent pour 60 images/s.** Mesuré le 8 novembre 2026 sur la M5Stamp S3A, même processeur
+  que le Waveshare (`BOARD=stamp_s3a mise run firmware:deploy`), pour 51 % de l'écran redessiné en moyenne. Sur un cœur :
+  dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s. Sur les deux cœurs, rendu
+  en IRAM : dessin 16,2 ms et 22,7 ms au pire, dessin plus envoi 19,3 ms, soit 51 à 52 images/s. Il manque environ
+  3 ms pour tenir 16,7 ms : accélérer le rendu lui-même (`draw_row`), et essayer le QSPI à 80 MHz sur la carte (moins
+  d'attente sur la dernière bande). Un cache d'instructions de 32 Ko n'apporte que 1,5 % de plus : écarté.
 - **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La démo de Waveshare définit la broche TE sans
   s'en servir.
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
@@ -206,6 +210,12 @@ Limites connues, à reprendre quand elles gêneront :
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
+- **Les deux cœurs dessinent.** Chaque bande est coupée en deux : le cœur 0 dessine le haut, une tâche épinglée sur le
+  cœur 1 dessine le bas, chacun avec son `lp_renderer`, préparé avec les mêmes yeux. Une seule bande part à la fois, donc
+  l'envoi reste caché derrière le dessin de la suivante (une bande sur deux par cœur attendait l'envoi de l'autre :
+  37 images/s au lieu de 44). Le code du rendu (`render.c`, `raster.c`) tourne depuis la mémoire interne (IRAM,
+  `firmware/components/lilpet/linker.lf`) : depuis la flash, les deux cœurs se disputaient le cache d'instructions de
+  16 Ko. Un test du moteur vérifie que deux moteurs de rendu qui se partagent les lignes donnent la même image.
 - **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
   `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
   puce, un `sdkconfig.defaults` facultatif ses options ESP-IDF. Le dossier donne son nom à la carte. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
