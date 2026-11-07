@@ -386,6 +386,8 @@ lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);
  * first time). lp_render_rows then draws rows y0 to y1 (excluded) of that region into `band`: one row after the other,
  * each (dirty.x1 - dirty.x0) pixels wide, the layout a display expects for a window. Rows outside the region are
  * skipped (their place in `band` is left as is). Draw every row of the region before the next lp_render_begin.
+ * Two renderers prepared with the same eyes return the same region and may share its rows, one per core: each row
+ * depends only on the frame, not on the rows drawn before it.
  */
 lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes);
 void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band);

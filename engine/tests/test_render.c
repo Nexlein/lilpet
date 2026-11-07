@@ -16,6 +16,7 @@
 static lp_eyes eyes;
 static lp_renderer renderer;
 static lp_renderer other;
+static lp_renderer second; /* draws half of each band with `other`, as the two cores of the firmware do */
 static uint16_t frame[PIXELS];
 static uint16_t reference[PIXELS];
 
@@ -262,7 +263,10 @@ void test_dirty_region_stays_inside_the_screen(void)
 enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
 static uint16_t band[SIZE * BAND_ROWS];
 
-/* Drawn band by band, an animation gives the same frames as drawn whole; returns the last region */
+/*
+ * Drawn band by band, each band shared by two renderers, an animation gives the same frames as drawn whole; returns the
+ * last region
+ */
 static lp_rect check_bands(int size)
 {
     lp_eyes_init(&eyes, 1);
@@ -271,8 +275,10 @@ static lp_rect check_bands(int size)
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                           /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
+    lp_renderer_init(&second);
     lp_renderer_set_size(&renderer, size);
     lp_renderer_set_size(&other, size);
+    lp_renderer_set_size(&second, size);
     memset(reference, 0, sizeof reference);
     memset(frame, 0, sizeof frame);
     lp_rect dirty = {0, 0, 0, 0};
@@ -280,10 +286,14 @@ static lp_rect check_bands(int size)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
         const lp_rect whole = lp_render(&renderer, &eyes, reference);
         dirty = lp_render_begin(&other, &eyes);
+        const lp_rect shared = lp_render_begin(&second, &eyes);
         CHECK(dirty.x0 == whole.x0 && dirty.y0 == whole.y0 && dirty.x1 == whole.x1 && dirty.y1 == whole.y1);
+        CHECK(shared.x0 == dirty.x0 && shared.y0 == dirty.y0 && shared.x1 == dirty.x1 && shared.y1 == dirty.y1);
         const int width = dirty.x1 - dirty.x0;
         for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
-            lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
+            const int half = y0 + BAND_ROWS / 2;
+            lp_render_rows(&other, y0, half, band);
+            lp_render_rows(&second, half, y0 + BAND_ROWS, &band[(half - y0) * width]);
             for (int y = y0; y < y0 + BAND_ROWS && y < dirty.y1; y++)
                 memcpy(&frame[y * size + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
         }
