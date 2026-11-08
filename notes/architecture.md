@@ -169,8 +169,8 @@ Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
 - **App et vraie carte dans Chrome** : les pannes de port (écriture morte, réponse restée en attente) sont prouvées sur un faux
   port seulement.
-- **Renovate** : il n'a encore ouvert aucune pull request. Vérifier qu'il suit les `tools` des tâches de `mise.toml` et
-  `scripts/requirements.txt`.
+- **Renovate** : réactivé le 9 novembre 2026 sur le repo recréé, il n'a encore ouvert aucune pull request (il passe le
+  lundi matin). Vérifier qu'il suit les `tools` des tâches de `mise.toml` et `scripts/requirements.txt`.
 
 À décider ou à construire pour l'objet final :
 

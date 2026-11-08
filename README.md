@@ -86,6 +86,8 @@ mise run engine:bench
 ```
 
 La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte.
+Tout changement passe par une pull request vers `dev`, la branche par défaut, et n'est mergé qu'avec la CI verte ;
+`main` ne reçoit que des merges de `dev`.
 
 ## Tester sur un ESP32-S3
 
