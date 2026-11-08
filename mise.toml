@@ -16,6 +16,10 @@ ninja = "1.13.2"
 # Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt, on the Python below
 uv = "0.13.7"
 python = "3.15.2"
+# Linters of the git hooks (shell), the CI workflow and the Python scripts (ruff.toml), run by npm run lint
+shellcheck = "0.11.0"
+actionlint = "1.7.12"
+ruff = "0.17.4"
 
 [env]
 # uv runs the scripts on the Python of mise, not on one it downloads itself: one pinned version, here

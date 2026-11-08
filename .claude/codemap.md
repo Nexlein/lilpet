@@ -12,7 +12,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **pre-push** (6) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## (root)
-- **.lintstagedrc.mjs** (13) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+- **.lintstagedrc.mjs** (16) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
 - **playwright.config.mjs** (16) — Browser tests: the parity test renders every reference scene with the prototype and the C engine (WebAssembly) in headless Chromium.
   - exports: default
@@ -391,10 +391,14 @@ npm (`npm run <script>`, workspace app):
 
 npm (`npm run <script>`):
 - `serve`: `python3 -m http.server 8466 --bind 127.0.0.1`
-- `lint`: `oxlint --deny-warnings`
-- `lint:fix`: `oxlint --fix`
-- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern`
-- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern`
+- `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
+- `lint:js`: `oxlint --deny-warnings`
+- `lint:shell`: `shellcheck .husky/pre-commit .husky/pre-push .husky/commit-msg .husky/no-secrets.sh`
+- `lint:actions`: `actionlint`
+- `lint:python`: `ruff check scripts`
+- `lint:fix`: `oxlint --fix && ruff check --fix scripts`
+- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && ruff format scripts`
+- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && ruff format --check scripts`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:vectors`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-engine-vectors.mjs --check`
 - `check:scripts`: `uv run scripts/test_board_scripts.py`

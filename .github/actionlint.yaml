@@ -1,0 +1,5 @@
+# actionlint 1.7.12 predates the ubuntu-26.04 runner label, which GitHub provides (actions/runner-images): declared
+# here so the CI workflow can pin the image its jobs have run on
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
