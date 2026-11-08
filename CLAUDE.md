@@ -19,6 +19,10 @@ reference until the engine takes over each feature.
 
 ## Layout
 
+`.claude/codemap.md` (generated, `npm run codemap`) lists every source file with its purpose, exports, the local files
+it uses and the files, tasks and hooks that use it, then the commands and npm packages: read it before searching, and
+open only the files it points to. Below, the parts and how they fit.
+
 - `prototype/` — design reference, ES modules, canvas 466×466 (the target round AMOLED):
     - `eyes.js` — class `Eyes`: state, animation, its own clock (`update(dt)`), seeded PRNG (mulberry32). `setScene`
       starts over, as `lp_eyes_set_scene` does. No DOM access, so Node can import it
@@ -119,18 +123,29 @@ reference until the engine takes over each feature.
 ## Commands
 
 - `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
-- `npm run check` — Prettier check, oxlint, data validation, generated files up to date, the board scripts on a fake
-  port (`scripts/test_board_scripts.py`, through `uv`), app types and Vitest tests.
-  Same as CI (`.github/workflows/ci.yml`).
+- `mise run setup` — a new clone or worktree (after `mise trust`): tools, `npm ci` (Git silently skips every hook
+  without the `.husky/_` it creates), the Playwright browser.
+- `mise run check` — everything "done" means: `npm run check`, `engine:check`, `npm run test:parity`. CI runs the same
+  commands, as parallel jobs. Firmware changes add `mise run firmware:build-all`.
+- `npm run check` — the fast part (about 10 s, also the pre-push hook): Prettier (tracked files only) and ruff format,
+  linters (oxlint, shellcheck for the hooks, actionlint for CI, ruff), data validation, generated files up to date, the
+  board scripts on a fake port (`scripts/test_board_scripts.py`, through `uv`), the code map up to date
+  (`check:codemap`), app types and Vitest tests.
+- `npm run codemap` — rewrites `.claude/codemap.md` from what git has staged; the pre-commit hook runs it, after
+  lint-staged (`.lintstagedrc.mjs`: lint and format the staged files, and `check:data` + `check:vectors` when their
+  sources are staged). `--check` fails on a stale map, a local import that does not resolve or a source file without a
+  purpose comment at the top.
 - `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
   `app:test` for Vitest.
-- `npm run format` / `npm run lint:fix` — auto-fix.
+- `npm run format` / `npm run lint:fix` — auto-fix (Prettier on tracked files only, so local untracked files are left
+  alone).
 - `npm run test:parity` — Playwright tests: reference scenes, live side by side, data and state checks, and the built
   app, built first, served on their own port 8468, which must be free: two runs at once collide (needs `mise run
 engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
-  build. Single steps: `engine:format-check`, `engine:test`, `engine:tidy`, `engine:wasm`; `engine:format` fixes the
-  formatting.
+  build. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`; `engine:format` fixes the
+  formatting (`.clang-format-ignore` leaves the third-party BMI270 file as it is). The host build uses the system clang
+  and refuses one older than CI's (21).
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
@@ -146,8 +161,6 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
   one plugged in; `FORCE=1` flashes over another board's image. `firmware:monitor` reads the port. esptool and uv come
   from mise, pyserial from `scripts/requirements.txt` through uv: no local ESP-IDF install. CI builds every folder of `firmware/boards` and keeps one artifact each.
   The build keeps its ccache in `firmware/.ccache` (CI caches it too).
-- A new git worktree needs `mise trust` and `npm ci`: Git silently skips every hook without `.husky/_`, which only
-  `npm ci` creates.
 
 ## Conventions
 
@@ -158,8 +171,9 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
   `app/src/ui` and `main.tsx` may import React.
-- Tool versions live in `mise.toml`, exact (Node on the LTS line), used locally and by CI through `jdx/mise-action`
-  (the Python library of the scripts: `scripts/requirements.txt`);
+- Tool versions live in `mise.toml`, exact (Node on the LTS line, Python, the linters), used locally and by CI through
+  `jdx/mise-action`, which pins mise itself (`MISE_VERSION` in `ci.yml`; `min_version` in `mise.toml`) on the
+  `ubuntu-26.04` image (the Python library of the scripts: `scripts/requirements.txt`);
   Renovate proposes each new release as a pull request (`.github/renovate.json5`), Dependabot the rest
   (`.github/dependabot.yml`: npm, Docker images, Actions).
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
@@ -167,5 +181,5 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - A visual change to the prototype that the engine must follow goes with a scene in `prototype/scenes.json`.
 - After changing `prototype/eyes.js`, `scenes.json`, `looks.json` or `emotions.json`: `npm run vectors` (CI fails on a stale file), then
   port the change to the engine until `mise run engine:test` passes.
-- Done means: `npm run check`, `mise run engine:check` and `npm run test:parity` pass, and `prototype/` loads with no
-  console error. Firmware changes: `BOARD=<board> mise run firmware:build` for each board too.
+- Done means: `mise run check` passes, and `prototype/` loads with no console error. Firmware changes:
+  `mise run firmware:build-all` too.

@@ -30,6 +30,20 @@ Projet strictement personnel, non commercial.
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
 - [ ] App PC : looks perso, réglages, animations
 
+## Installer
+
+Prérequis : [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent (tests
+du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
+
+```bash
+mise trust
+mise run setup
+```
+
+`mise run setup` installe les outils de `mise.toml` (Node, Python, uv, CMake, clang-format…), les paquets npm avec
+`npm ci`, qui active aussi les hooks git, et le navigateur des tests Playwright. À refaire dans chaque nouveau worktree
+git : sans `npm ci`, git n'y lance aucun hook.
+
 ## Lancer le prototype
 
 ```bash
@@ -56,27 +70,24 @@ USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». 
 ## Vérifier avant de commiter
 
 ```bash
-npm install
-npm run check
+mise run check
 ```
 
-Vérifie le formatage (Prettier), le code (oxlint), les données (`eyes/` et `prototype/scenes.json`), que les fichiers
-générés sont à jour (`engine/tests/js_vectors.h`, `engine/src/emotions_table.h`), les scripts de carte sur un faux port
-(avec `uv`), puis les types et les tests de l'app PC.
+Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les contrôles du moteur C et les tests de
+parité. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
-Pour le moteur C (outils installés par `mise install`, Docker nécessaire pour le WebAssembly) :
+- `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
+  (Prettier sur les fichiers suivis par git, ruff pour le Python), linters (oxlint, shellcheck pour les hooks, actionlint
+  pour la CI, ruff), données (`eyes/` et `prototype/scenes.json`), fichiers générés à jour (`engine/tests/js_vectors.h`,
+  `engine/src/emotions_table.h`), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis types et
+  tests de l'app PC.
+- `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
+  clang-tidy et la compilation WebAssembly.
+- `npm run test:parity` compare le moteur C au prototype scène par scène et ouvre l'app PC compilée.
 
-```bash
-mise run engine:check
-```
-
-Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
-compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène et ouvrir l'app PC compilée
-(première fois : `npx playwright install --only-shell chromium`) :
-
-```bash
-npm run test:parity
-```
+Avant chaque commit, le hook formate les fichiers indexés, vérifie les fichiers générés quand leurs sources changent et
+régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
+utilise et qui l'utilise.
 
 La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. Pour mesurer la vitesse du rendu
 (temps par image, à comparer sur une même machine) :
