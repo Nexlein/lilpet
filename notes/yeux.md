@@ -1,7 +1,7 @@
 # Yeux
 
-Analyse faite à partir de planches tirées de vidéos de tiers, gardées en local dans `references/` (ignoré par git, jamais
-publié) : `starboy-eye-looks.png` ici.
+Analyse faite à partir de la planche `starboy-eye-looks.png`, tirée de vidéos de tiers. Les planches restent en local
+dans `references/`, ignoré par git et jamais publié.
 
 ## Base commune
 
