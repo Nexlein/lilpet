@@ -244,7 +244,8 @@ Limites connues, à reprendre quand elles gêneront :
 - Temps de dessin sur l'AtomS3R, yeux au repos en 128 px : 8,2 ms par image, puis 4,9 ms (novembre 2026) une fois
   le mélange des couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne
   (la puce n'a pas de division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les
-  pixels répétés réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s.
+  pixels répétés réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s. Sur les deux cœurs
+  (8 novembre) : dessin 1,9 ms, dessin plus envoi 5,1 ms, image propre à l'œil.
 - **Inclinaison** : sur l'AtomS3R, `firmware/main/imu_bmi270.c` lit l'accéléromètre du BMI270 à chaque image
   (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
   passe au moteur par `lp_senses` (lissage, secousse, anti-rebond du bouton, capteur muet : `engine/src/senses.c`, testé
