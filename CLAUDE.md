@@ -113,7 +113,8 @@ reference until the engine takes over each feature.
   `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`).
 - `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
-- `references/` — frame sheets extracted from videos (not formatted, not code).
+- `references/` — frame sheets extracted from third-party videos, behind `notes/yeux.md`: local only, ignored by git,
+  never published.
 
 ## Commands
 
