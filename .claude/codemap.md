@@ -8,9 +8,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
-- **pre-commit** (6) — Tools come from mise.toml, also for a Git client started outside a mise shell
+- **pre-commit** (10) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
+- **pre-push** (6) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## (root)
+- **.lintstagedrc.mjs** (13) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+  - exports: default
 - **playwright.config.mjs** (16) — Browser tests: the parity test renders every reference scene with the prototype and the C engine (WebAssembly) in headless Chromium.
   - exports: default
   - packages: @playwright/test
@@ -321,7 +324,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → prototype/draw.js, prototype/eyes.js, engine/wasm/engine.mjs, prototype/parity.js
   - ← prototype/reference.html
 - **scenes.json** (129) — data
-  - ← prototype/reference.html, prototype/reference.js, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
+  - ← .lintstagedrc.mjs, prototype/reference.html, prototype/reference.js, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
 - **style.css** (21) — What the two pages of the prototype share
   - ← prototype/index.html, prototype/reference.html
 - **ui.js** (353) — Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard.
@@ -334,7 +337,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← scripts/device-check.py, scripts/flash-guard.py
 - **codemap.mjs** (527) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: OUT, kindOf, isTest, sentence, purposeOf, cSymbols, withoutComments, pySymbols, pyModules, usesOf, miseTasks, collapse, buildMap
-  - ← package.json
+  - ← .husky/pre-commit, package.json
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
@@ -364,18 +367,21 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## Commands
 
 mise (`mise run <task>`):
+- `check` — Everything a change must pass: npm run check, the engine checks, the parity tests (Docker for the WebAssembly build); firmware changes add firmware:build-all
 - `engine:bench` — Time the renderer per reference scene and over an animation (Release build); compare on one machine
 - `engine:check` — Everything CI checks on the engine
 - `engine:format` — Format the C sources
-- `engine:format-check` — Fail if a C source is not formatted
+- `engine:format:check` — Fail if a C source is not formatted
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
 - `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
 - `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
+- `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)
 - `firmware:deploy` — Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)
 - `firmware:flash` — Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1
 - `firmware:monitor` — Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])
+- `setup` — Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser
 
 npm (`npm run <script>`, workspace app):
 - `dev`: `vite`
@@ -387,8 +393,8 @@ npm (`npm run <script>`):
 - `serve`: `python3 -m http.server 8466 --bind 127.0.0.1`
 - `lint`: `oxlint --deny-warnings`
 - `lint:fix`: `oxlint --fix`
-- `format`: `prettier --write .`
-- `format:check`: `prettier --check .`
+- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern`
+- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:vectors`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-engine-vectors.mjs --check`
 - `check:scripts`: `uv run scripts/test_board_scripts.py`

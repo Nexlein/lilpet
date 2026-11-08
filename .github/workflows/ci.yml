@@ -33,26 +33,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Format
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Validate looks and scenes
-        run: npm run check:data
-
-      # engine/tests/js_vectors.h must match what the prototype computes today
-      - name: Engine test values up to date
-        run: npm run check:vectors
-
-      # The flash guard and the device check, on a fake serial port (no hardware needed)
-      - name: Board scripts
-        run: npm run check:scripts
-
-      # TypeScript types and Vitest tests of the PC app (no browser or engine build needed)
-      - name: PC app types and tests
-        run: npm run check:app
+      # The same command as locally (package.json): format, lint, data, generated files, board scripts on a fake port,
+      # code map, PC app types and tests. No browser or engine build needed.
+      - name: Check
+        run: npm run check
 
   engine:
     name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)

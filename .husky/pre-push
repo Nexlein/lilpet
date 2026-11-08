@@ -1,0 +1,6 @@
+# Before each push: the fast checks of CI (npm run check, about 10 s). The engine, parity and firmware checks, which
+# need Docker, run in CI. Tools come from mise.toml, also for a Git client started outside a mise shell.
+if [ -z "$LILPET_HOOK_IN_MISE" ] && command -v mise >/dev/null 2>&1; then
+  LILPET_HOOK_IN_MISE=1 exec mise exec -- sh -e "$0" "$@"
+fi
+npm run check

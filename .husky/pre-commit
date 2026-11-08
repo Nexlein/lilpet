@@ -1,6 +1,10 @@
-# Tools come from mise.toml, also for a Git client started outside a mise shell
-if command -v mise >/dev/null 2>&1; then
-  exec mise exec -- sh -c 'sh .husky/no-secrets.sh && npx lint-staged'
+# Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map
+# regenerated from what is staged. Tools come from mise.toml, also for a Git client started outside a mise shell.
+if [ -z "$LILPET_HOOK_IN_MISE" ] && command -v mise >/dev/null 2>&1; then
+  LILPET_HOOK_IN_MISE=1 exec mise exec -- sh -e "$0" "$@"
 fi
 sh .husky/no-secrets.sh
-npx lint-staged
+# One glob after the other: a check of the generated files must not read a file another glob is formatting
+npx lint-staged --concurrent false
+node scripts/codemap.mjs >/dev/null
+git add .claude/codemap.md
