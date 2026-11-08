@@ -12,10 +12,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The mise every job installs (min_version in mise.toml is the oldest that works); Renovate keeps it current
+  MISE_VERSION: 2026.11.4
+
 jobs:
   check:
     name: Format, lint, data, script and app tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -24,7 +28,8 @@ jobs:
       # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          install_args: node uv
+          version: ${{ env.MISE_VERSION }}
+          install_args: node uv python
 
       - run: npm ci
 
@@ -51,13 +56,15 @@ jobs:
 
   engine:
     name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: ${{ env.MISE_VERSION }}
 
       - name: Check the engine
         run: mise run engine:check
@@ -69,7 +76,7 @@ jobs:
 
   boards:
     name: List the firmware boards
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 2
     outputs:
       list: ${{ steps.folders.outputs.list }}
@@ -83,7 +90,7 @@ jobs:
   esp32:
     name: ESP32-S3 firmware build (${{ matrix.board }})
     needs: boards
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -95,6 +102,7 @@ jobs:
       # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
+          version: ${{ env.MISE_VERSION }}
           install: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
@@ -134,13 +142,15 @@ jobs:
 
   parity:
     name: Parity, C engine vs prototype, PC app (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # All tools from mise.toml: the engine:wasm task runs through mise
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: ${{ env.MISE_VERSION }}
 
       - run: npm ci
 

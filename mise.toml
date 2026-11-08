@@ -1,3 +1,7 @@
+# The oldest mise this file works with (tasks that run other tasks, the pypi backend); CI pins its own version
+# (.github/workflows/ci.yml), which Renovate keeps current
+min_version = "2026.11.0"
+
 [tools]
 # Exact versions, the same locally and in CI (jdx/mise-action): a new release cannot turn CI red on unchanged code.
 # Renovate opens a pull request for each new release (.github/renovate.json5), which CI checks before it is merged.
@@ -9,12 +13,15 @@ cmake = "4.4.5"
 ninja = "1.13.2"
 "pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
-# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt
+# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt, on the Python below
 uv = "0.13.7"
+python = "3.15.2"
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
 # Sources checked by clang-format and clang-tidy
 [env]
+# uv runs the scripts on the Python of mise, not on one it downloads itself: one pinned version, here
+UV_PYTHON_PREFERENCE = "only-system"
 LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
 
 [tasks."engine:test"]

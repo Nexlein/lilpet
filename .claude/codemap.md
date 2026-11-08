@@ -121,7 +121,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/main.tsx
 
 ## engine
-- **CMakeLists.txt** (45) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
+- **CMakeLists.txt** (52) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
   - → engine/sources.cmake
 - **sources.cmake** (9) — Engine sources and warning flags, shared by engine/CMakeLists.txt (host, WebAssembly) and the ESP-IDF component (firmware/components/lilpet).
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
