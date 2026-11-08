@@ -18,6 +18,9 @@ __pycache__/
 !.vscode/tasks.json
 *.sw?
 
+# Frame sheets of third-party videos behind notes/yeux.md: kept on the machine, never published
+references/
+
 # Claude Code: personal settings and session worktrees stay local
 .claude/settings.local.json
 .claude/worktrees/

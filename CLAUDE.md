@@ -113,7 +113,8 @@ reference until the engine takes over each feature.
   `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`).
 - `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
-- `references/` — frame sheets extracted from videos (not formatted, not code).
+- `references/` — frame sheets extracted from third-party videos, behind `notes/yeux.md`: local only, ignored by git,
+  never published.
 
 ## Commands
 
@@ -151,6 +152,9 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 ## Conventions
 
 - Code, comments, commits: English. Notes and README: French.
+- Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
+  pull requests with the six CI checks green, merged with a merge commit (GitHub rulesets: no direct push, no force
+  push, no deletion). Dependabot and Renovate open theirs against `dev`.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
   `app/src/ui` and `main.tsx` may import React.
