@@ -1,3 +1,6 @@
+# The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and
+# host-release); with Emscripten, the WebAssembly module (preset wasm). The firmware builds the same sources as an
+# ESP-IDF component (firmware/components/lilpet).
 cmake_minimum_required(VERSION 3.25)
 project(lilpet LANGUAGES C) # version: LP_VERSION_* in include/lilpet/lilpet.h
 
