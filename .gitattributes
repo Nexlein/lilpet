@@ -1,0 +1,2 @@
+# Text files with LF line endings in the repository and in every checkout, as .editorconfig asks
+* text=auto eol=lf
