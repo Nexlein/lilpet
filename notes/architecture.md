@@ -158,7 +158,8 @@ Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash
 - **Dessin à 466 px encore un peu lent pour 60 images/s.** Mesuré le 8 novembre 2026 sur la M5Stamp S3A, même processeur
   que le Waveshare (`BOARD=stamp_s3a mise run firmware:deploy`), pour 51 % de l'écran redessiné en moyenne. Sur un cœur :
   dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s. Sur les deux cœurs, rendu
-  en IRAM : dessin 16,2 ms et 22,7 ms au pire, dessin plus envoi 19,3 ms, soit 51 à 52 images/s. Il manque environ
+  en IRAM, une image préparée partagée : dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à
+  52 images/s. Il manque environ
   3 ms pour tenir 16,7 ms : accélérer le rendu lui-même (`draw_row`), et essayer le QSPI à 80 MHz sur la carte (moins
   d'attente sur la dernière bande). Un cache d'instructions de 32 Ko n'apporte que 1,5 % de plus : écarté. Sur le
   Waveshare, chaque image attend le signal TE suivant : si l'écran rafraîchit à 60 Hz (à vérifier), une image de 19 ms
