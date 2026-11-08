@@ -155,8 +155,15 @@ Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash
 
 À mesurer ou à essayer sur du vrai matériel :
 
-- **Temps de dessin à 466 px sur la puce**, jamais mesuré : `BOARD=stamp_s3a mise run firmware:deploy` sur la M5Stamp. Il est
-  estimé entre 16 et 30 ms pour 16,7 ms disponibles, et tout le budget de 60 images/s en dépend. À faire avant l'achat.
+- **Dessin à 466 px encore un peu lent pour 60 images/s.** Mesuré le 8 novembre 2026 sur la M5Stamp S3A, même processeur
+  que le Waveshare (`BOARD=stamp_s3a mise run firmware:deploy`), pour 51 % de l'écran redessiné en moyenne. Sur un cœur :
+  dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s. Sur les deux cœurs, rendu
+  en IRAM, une image préparée partagée : dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à
+  52 images/s. Il manque environ
+  3 ms pour tenir 16,7 ms : accélérer le rendu lui-même (`draw_row`), et essayer le QSPI à 80 MHz sur la carte (moins
+  d'attente sur la dernière bande). Un cache d'instructions de 32 Ko n'apporte que 1,5 % de plus : écarté. Sur le
+  Waveshare, chaque image attend le signal TE suivant : si l'écran rafraîchit à 60 Hz (à vérifier), une image de 19 ms
+  tombe un rafraîchissement sur deux, donc 30 images/s stables, et 60 seulement sous 16,7 ms.
 - **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La démo de Waveshare définit la broche TE sans
   s'en servir.
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
@@ -206,6 +213,16 @@ Limites connues, à reprendre quand elles gêneront :
   redessinée. Les commandes de l'app passent par le même port ([app.md](app.md)).
 - Chaque image démarre sur le signal de rafraîchissement de l'écran (TE), pour éviter les déchirures. Les bandes
   partent par DMA pendant que le moteur dessine la suivante, dans deux tampons de 28 Ko en mémoire interne.
+- **Les deux cœurs dessinent.** Chaque bande est coupée en deux : le cœur 0 dessine le haut, une tâche épinglée sur le
+  cœur 1 dessine le bas. Les deux lisent la même image, préparée une fois (`lp_render_begin`), et chacun compose ses
+  lignes dans son propre brouillon (`lp_row_scratch`, 12 Ko ; `lp_render_rows_with` pour le second cœur), au lieu d'un
+  second moteur de rendu entier (31 Ko). Deux sémaphores lui passent ses lignes et les reprennent ; tout est statique,
+  donc rien ne peut échouer au démarrage, et une carte qui mettrait `CONFIG_FREERTOS_UNICORE` ne compile pas. Une seule
+  bande part à la fois, donc l'envoi reste caché derrière le dessin de la suivante (une bande sur deux par cœur
+  attendait l'envoi de l'autre : 37 images/s au lieu de 44). Le code du rendu (`render.c`, `raster.c`) tourne depuis la
+  mémoire interne (IRAM, `firmware/components/lilpet/linker.lf`) : depuis la flash, les deux cœurs se disputaient le
+  cache d'instructions de 16 Ko. Un test du moteur vérifie que deux brouillons qui se partagent les lignes donnent la
+  même image.
 - **Une image par carte**, choisie à la compilation (`BOARD`). Une carte est un dossier, `firmware/boards/<carte>/` :
   `board.cmake` liste ses composants, `board_config.h` ses broches, son montage, sa taille d'écran et le boîtier de sa
   puce, un `sdkconfig.defaults` facultatif ses options ESP-IDF. Le dossier donne son nom à la carte. CMake, la CI et `device-check` lisent ces dossiers. Chaque en-tête (`display.h`, `imu.h`) est l'interface, chaque
@@ -234,7 +251,8 @@ Limites connues, à reprendre quand elles gêneront :
 - Temps de dessin sur l'AtomS3R, yeux au repos en 128 px : 8,2 ms par image, puis 4,9 ms (novembre 2026) une fois
   le mélange des couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne
   (la puce n'a pas de division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les
-  pixels répétés réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s.
+  pixels répétés réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s. Sur les deux cœurs
+  (8 novembre) : dessin 1,9 ms, dessin plus envoi 5,1 ms, image propre à l'œil.
 - **Inclinaison** : sur l'AtomS3R, `firmware/main/imu_bmi270.c` lit l'accéléromètre du BMI270 à chaque image
   (démarrage d'après sa fiche technique, avec le fichier de configuration de Bosch), `main.c` lisse la mesure et la
   passe au moteur par `lp_senses` (lissage, secousse, anti-rebond du bouton, capteur muet : `engine/src/senses.c`, testé
@@ -250,6 +268,6 @@ Limites connues, à reprendre quand elles gêneront :
 - Sans écran ni PSRAM, sur la M5Stamp S3A déjà en ma possession, l'image `stamp_s3a` cadence à 62,5 images/s et ses
   bandes de 466 px partent sur des broches non branchées, donc les temps restent réalistes.
   Personne ne regarde : il joue en boucle l'animation de la mesure sur PC (`engine/tools/bench_script.h`), avec le
-  même look (cherry), la même graine et le même pas fixe de 1/60 s, pour que ses temps se comparent à ceux de
-  `mise run engine:bench`. Avec un écran, les temps affichés suivent l'animation
-  libre et ne se comparent pas.
+  même look (cherry), la même graine et le même pas fixe de 1/60 s, pour dessiner les mêmes images que
+  `mise run engine:bench` : la part redessinée se compare, mais son temps de dessin est celui des deux cœurs, contre un
+  seul sur PC. Avec un écran, les temps affichés suivent l'animation libre et ne se comparent pas.

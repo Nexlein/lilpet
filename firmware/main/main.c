@@ -1,11 +1,12 @@
 /*
  * Firmware entry point: the eyes, live on the display. Each frame starts when the display is ready for it, draws its
- * dirty region band by band into two small buffers in internal RAM, and sends each band by DMA while drawing the next
- * one: no whole frame in memory, so it also runs on boards without PSRAM. The eyes idle on their own (saccades, blinks,
- * the head following the gaze), with the look chosen in the PC app (kept in flash, cherry until one is sent).
- * Without a display, they play the benchmark animation instead (engine/tools/bench_script.h), in a loop, so the
- * timings compare with the host's. Commands from the app and the timings, printed once per round of that animation,
- * share the USB serial port (mise run firmware:monitor).
+ * dirty region band by band into two small buffers in internal RAM, each band drawn half by one core and half by the
+ * other, and sends each band by DMA while drawing the next one: no whole frame in memory, so it also runs on boards
+ * without PSRAM. The eyes idle on their own (saccades, blinks, the head following the gaze), with the look chosen in
+ * the PC app (kept in flash, cherry until one is sent). Without a display, they play the benchmark animation instead
+ * (engine/tools/bench_script.h), in a loop, with the host's frames: the redrawn area compares with the host's, the
+ * drawing time is that of both cores (the host draws on one). Commands from the app and the timings, printed once per
+ * round of that animation, share the USB serial port (mise run firmware:monitor).
  *
  * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
  * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
@@ -19,6 +20,9 @@
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
 #include "imu.h"
 #include "lilpet/lilpet.h"
 #include "look_store.h"
@@ -36,9 +40,39 @@
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
 
+#if CONFIG_FREERTOS_UNICORE
+#error "the eyes are drawn on both cores: a board cannot set CONFIG_FREERTOS_UNICORE"
+#endif
+
 static lp_eyes eyes;
 static lp_renderer renderer;
 static lp_senses senses;
+
+/*
+ * The second core draws the bottom half of each band, from the frame `renderer` prepared and with its own scratch,
+ * while this one draws the top half. `start` hands it the rows, `done` gives them back; the eyes are only read
+ * meanwhile. All static, so that nothing can fail to start.
+ */
+#define SECOND_CORE_STACK 4096 /* bytes */
+static struct {
+    int y0, y1;
+    uint16_t *pixels;
+    lp_row_scratch scratch;
+    SemaphoreHandle_t start, done;
+    StaticSemaphore_t start_buffer, done_buffer;
+    StaticTask_t task;
+    StackType_t stack[SECOND_CORE_STACK];
+} second_core;
+
+static void second_core_task(void *arg)
+{
+    (void)arg;
+    for (;;) {
+        xSemaphoreTake(second_core.start, portMAX_DELAY);
+        lp_render_rows_with(&renderer, &second_core.scratch, second_core.y0, second_core.y1, second_core.pixels);
+        xSemaphoreGive(second_core.done);
+    }
+}
 
 /* Sums over the frames since the last report, in microseconds */
 static struct {
@@ -92,7 +126,7 @@ void app_main(void)
     const bool bench = BOARD_BENCH; /* no screen: replay the host benchmark's animation, for the timings */
     printf(
         "\nlilpet %s, board %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d "
-        "rows, %u bytes of internal RAM free\n",
+        "rows on both cores, %u bytes of internal RAM free\n",
         lp_version(), BOARD_NAME, CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen, BOARD_DISPLAY_SIZE, BOARD_DISPLAY_SIZE,
         motion ? "yes" : "none", bench ? "benchmark" : "idle", BAND_ROWS,
         (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
@@ -112,6 +146,10 @@ void app_main(void)
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
     lp_renderer_set_big_endian(&renderer, true);
+    second_core.start = xSemaphoreCreateBinaryStatic(&second_core.start_buffer);
+    second_core.done = xSemaphoreCreateBinaryStatic(&second_core.done_buffer);
+    xTaskCreateStaticPinnedToCore(second_core_task, "second core", SECOND_CORE_STACK, NULL, uxTaskPriorityGet(NULL),
+                                  second_core.stack, &second_core.task, 1);
     lp_senses_init(&senses);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
@@ -132,12 +170,19 @@ void app_main(void)
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         const lp_rect dirty = lp_render_begin(&renderer, &eyes);
-        int64_t render = 0;
+        const int width = dirty.x1 - dirty.x0;
+        int64_t render = 0; /* until both halves of each band are drawn */
         int b = 0;
         for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
             const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
+            const int half = y + (y1 - y) / 2; /* the second core draws from there, into the same band */
             const int64_t t = esp_timer_get_time();
-            lp_render_rows(&renderer, y, y1, bands[b]);
+            second_core.y0 = half;
+            second_core.y1 = y1;
+            second_core.pixels = &bands[b][(half - y) * width];
+            xSemaphoreGive(second_core.start);
+            lp_render_rows(&renderer, y, half, bands[b]);
+            xSemaphoreTake(second_core.done, portMAX_DELAY);
             render += esp_timer_get_time() - t;
             display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);
         }

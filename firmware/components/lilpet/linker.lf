@@ -1,0 +1,6 @@
+# The renderer's inner loops run from internal RAM: from flash, both cores keep missing the shared instruction cache
+[mapping:lilpet]
+archive: liblilpet.a
+entries:
+    render (noflash)
+    raster (noflash)

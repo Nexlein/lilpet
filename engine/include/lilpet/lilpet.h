@@ -20,7 +20,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 13
+#define LP_VERSION_MINOR 14
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
@@ -385,10 +385,18 @@ lp_rect lp_render(lp_renderer *renderer, const lp_eyes *eyes, uint16_t *frame);
  * lp_render_begin prepares a frame and returns the region that changed since the previous frame (the whole screen the
  * first time). lp_render_rows then draws rows y0 to y1 (excluded) of that region into `band`: one row after the other,
  * each (dirty.x1 - dirty.x0) pixels wide, the layout a display expects for a window. Rows outside the region are
- * skipped (their place in `band` is left as is). Draw every row of the region before the next lp_render_begin.
+ * skipped (their place in `band` is left as is). Draw every row of the region before the next lp_render_begin, on one
+ * core or shared between two (lp_render_rows_with).
  */
 lp_rect lp_render_begin(lp_renderer *renderer, const lp_eyes *eyes);
 void lp_render_rows(lp_renderer *renderer, int y0, int y1, uint16_t *band);
+
+/*
+ * lp_render_rows with another scratch, for a second core: the frame prepared by lp_render_begin is only read, so two
+ * cores can draw rows of it at once, one through lp_render_rows (the renderer's own scratch), the other through this
+ * function with its own. A row depends only on the frame, not on the rows drawn before it. The scratch needs no setup.
+ */
+void lp_render_rows_with(const lp_renderer *renderer, lp_row_scratch *scratch, int y0, int y1, uint16_t *band);
 
 #ifdef __cplusplus
 }

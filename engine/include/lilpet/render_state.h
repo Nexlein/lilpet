@@ -69,6 +69,13 @@ typedef struct {
     lp_polygon shape; /* closed-eye stroke */
 } lp_eye_geometry;
 
+/* What drawing a row writes: one per core drawing rows of the same frame (lp_render_rows_with) */
+typedef struct {
+    float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
+    float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
+    lp_edge edges[LP_POLY_MAX];       /* those of the polygon being drawn that reach the row */
+} lp_row_scratch;
+
 typedef struct {
     lp_rect prev;    /* region covered by the previous frame */
     lp_rect dirty;   /* region of the frame being drawn, set by lp_render_begin */
@@ -81,9 +88,7 @@ typedef struct {
     lp_rgb particle_color[LP_MAX_PARTICLES];
     float particle_alpha[LP_MAX_PARTICLES];
     int particle_count;
-    float line[LP_SCREEN_SIZE * 3];   /* RGB of the row being composed, 0-255 */
-    float cov[3][LP_SCREEN_SIZE + 1]; /* coverage rows, stored as differences */
-    lp_edge edges[LP_POLY_MAX];       /* those of the polygon being drawn that reach the row */
+    lp_row_scratch scratch; /* the renderer's own, for lp_render and lp_render_rows */
 } lp_renderer;
 
 #endif /* LILPET_RENDER_STATE_H */

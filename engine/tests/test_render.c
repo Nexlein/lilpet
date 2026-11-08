@@ -16,6 +16,7 @@
 static lp_eyes eyes;
 static lp_renderer renderer;
 static lp_renderer other;
+static lp_row_scratch second; /* draws half of each band of `other`, as the second core of the firmware does */
 static uint16_t frame[PIXELS];
 static uint16_t reference[PIXELS];
 
@@ -262,7 +263,10 @@ void test_dirty_region_stays_inside_the_screen(void)
 enum { BAND_ROWS = 7 }; /* does not divide the region height: the last band is partial */
 static uint16_t band[SIZE * BAND_ROWS];
 
-/* Drawn band by band, an animation gives the same frames as drawn whole; returns the last region */
+/*
+ * Drawn band by band, each band shared by two scratches as the two cores of the firmware do, an animation gives the
+ * same frames as drawn whole; returns the last region
+ */
 static lp_rect check_bands(int size)
 {
     lp_eyes_init(&eyes, 1);
@@ -283,8 +287,11 @@ static lp_rect check_bands(int size)
         CHECK(dirty.x0 == whole.x0 && dirty.y0 == whole.y0 && dirty.x1 == whole.x1 && dirty.y1 == whole.y1);
         const int width = dirty.x1 - dirty.x0;
         for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
-            lp_render_rows(&other, y0, y0 + BAND_ROWS, band);
-            for (int y = y0; y < y0 + BAND_ROWS && y < dirty.y1; y++)
+            const int y1 = y0 + BAND_ROWS < dirty.y1 ? y0 + BAND_ROWS : dirty.y1;
+            const int half = y0 + (y1 - y0) / 2; /* split as the firmware does, the last band too */
+            lp_render_rows(&other, y0, half, band);
+            lp_render_rows_with(&other, &second, half, y1, &band[(half - y0) * width]);
+            for (int y = y0; y < y1; y++)
                 memcpy(&frame[y * size + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
         }
         if (memcmp(frame, reference, (size_t)(size * size) * sizeof frame[0]) != 0)
