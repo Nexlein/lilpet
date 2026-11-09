@@ -22,6 +22,8 @@ PORT = "/dev/ttyACM0"
 HELLO = re.search(r'"< (lilpet [^"]*)\\n"', (ROOT / "firmware" / "main" / "commands.c").read_text()).group(1)
 LILPET_H = (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
 LINE_MAX = int(re.search(r"LP_COMMAND_LINE_MAX\s+(\d+)", LILPET_H).group(1))
+LOOK_SAVING_H = (ROOT / "firmware" / "main" / "look_saving.h").read_text()
+SAVE_GAP = int(re.search(r"#define\s+LOOK_SAVE_GAP_US\s+(\d+)", LOOK_SAVING_H).group(1)) / 1e6  # seconds
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -63,7 +65,7 @@ class Board:
         monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
         cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
-        drops_late_looks=False,  # a look sent within 2 s of the last write answers ok but is never written
+        drops_late_looks=False,  # a look sent within SAVE_GAP of the last write answers ok but is never written
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -72,7 +74,7 @@ class Board:
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
         self.cut, self.drops_late_looks = cut, drops_late_looks
         self.look = "AE0002 FF5252 FF5252 dot"
-        self.kept, self.saved_at = self.look, -10.0  # what the flash holds, and when it was written
+        self.kept, self.saved_at = self.look, -SAVE_GAP  # what the flash holds, and when it was written
         self.mood = "neutral"
         self.in_reset = False
         self.input = b""
@@ -122,7 +124,7 @@ class Board:
             if not re.fullmatch(LOOK, rest):
                 return "err malformed look"
             self.look = rest
-            if not (self.drops_late_looks and clock.now - self.saved_at < 2):
+            if not (self.drops_late_looks and clock.now - self.saved_at < SAVE_GAP):
                 self.kept, self.saved_at = rest, clock.now
             return "ok"
         if word not in DRIVES:

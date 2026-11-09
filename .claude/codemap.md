@@ -267,7 +267,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (178) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.c** (176) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
 - **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
@@ -304,8 +304,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id
   - ← firmware/main/display_atoms3r.c
-- **look_saving.h** (41) — When a look just shown is written to flash: at once, then at most every SAVE_GAP_US, so that a sender streaming looks (an editor's slider) does not...
-  - exports: look_save
+- **look_saving.h** (43) — When a look just shown is written to flash: at once, then at most every LOOK_SAVE_GAP_US, so that a sender streaming looks (an editor's slider) doe...
+  - exports: LOOK_SAVE_GAP_US, look_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles

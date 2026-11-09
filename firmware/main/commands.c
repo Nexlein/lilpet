@@ -18,8 +18,6 @@
 #define QUEUE_SLOTS  32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
 #define RX_BUFFER    1024 /* bytes of commands waiting on the USB port */
 #define READ_WAIT_MS 100  /* how long a read waits for a byte before a look left for later gets its turn */
-/* Microseconds: a new look is written to flash at most this often (look_saving.h) */
-#define SAVE_GAP_US 2000000
 
 /* Set before the task starts, then written by the task alone */
 static struct {
@@ -69,7 +67,7 @@ static void handle_look(const lp_command *c)
     }
     /* Shown even when it cannot be kept: the app still sees it */
     state.current = c->look;
-    const look_save plan = look_save_plan(&c->look, &state.kept, esp_timer_get_time(), state.saved_at, SAVE_GAP_US);
+    const look_save plan = look_save_plan(&c->look, &state.kept, esp_timer_get_time(), state.saved_at);
     state.unsaved = plan == LOOK_SAVE_LATER; /* read_line writes it in its turn */
     if (plan == LOOK_SAVE_NOW && !save_current())
         printf("< err shown, but cannot save the look in flash\n");
@@ -80,7 +78,7 @@ static void handle_look(const lp_command *c)
 /* A look left for later, once its turn comes: no one waits for a reply, so a failure goes to the log */
 static void save_if_due(void)
 {
-    if (!look_save_due(state.unsaved, esp_timer_get_time(), state.saved_at, SAVE_GAP_US))
+    if (!look_save_due(state.unsaved, esp_timer_get_time(), state.saved_at))
         return;
     state.unsaved = false;
     if (!save_current())
@@ -165,8 +163,8 @@ void commands_start(const lp_look *current, bool motion)
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
-    state.kept = *current;         /* what the flash holds, or the default look that stands for nothing kept */
-    state.saved_at = -SAVE_GAP_US; /* the first new look is written at once */
+    state.kept = *current;              /* what the flash holds, or the default look that stands for nothing kept */
+    state.saved_at = -LOOK_SAVE_GAP_US; /* the first new look is written at once */
     state.unsaved = false;
     state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);

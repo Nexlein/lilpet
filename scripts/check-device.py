@@ -60,7 +60,7 @@ def define(header, name):
 
 LINE_MAX = define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
 # A look sent sooner than this after the last write to flash is written once this time has passed
-SAVE_GAP_SECONDS = define(ROOT / "firmware" / "main" / "commands.c", "SAVE_GAP_US") / 1e6
+SAVE_GAP_SECONDS = define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
 
 
 def check(ok, what, detail=""):

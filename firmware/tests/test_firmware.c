@@ -47,19 +47,19 @@ void test_imu_axes_give_gravity_on_the_screen(void)
 
 void test_a_look_is_written_at_once_then_at_most_every_gap(void)
 {
-    const int64_t gap = 2000000;
+    const int64_t gap = LOOK_SAVE_GAP_US;
     const lp_look kept = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
     lp_look other = kept;
     other.pupil_color[1] = 0x0964E7u;
     CHECK(look_same(&kept, &kept) && !look_same(&kept, &other));
-    CHECK(look_save_plan(&kept, &kept, 0, -gap, gap) == LOOK_KEPT);           /* the flash holds it: nothing to write */
-    CHECK(look_save_plan(&other, &kept, 0, -gap, gap) == LOOK_SAVE_NOW);      /* the first new look, at once */
-    CHECK(look_save_plan(&other, &kept, 1999999, 0, gap) == LOOK_SAVE_LATER); /* too soon after the last write */
-    CHECK(look_save_plan(&other, &kept, 2000000, 0, gap) == LOOK_SAVE_NOW);
+    CHECK(look_save_plan(&kept, &kept, 0, -gap) == LOOK_KEPT);           /* the flash holds it: nothing to write */
+    CHECK(look_save_plan(&other, &kept, 0, -gap) == LOOK_SAVE_NOW);      /* the first new look, at once */
+    CHECK(look_save_plan(&other, &kept, gap - 1, 0) == LOOK_SAVE_LATER); /* too soon after the last write */
+    CHECK(look_save_plan(&other, &kept, gap, 0) == LOOK_SAVE_NOW);
     /* The one left for later is written once its turn comes, the last one sent */
-    CHECK(!look_save_due(true, 1999999, 0, gap));
-    CHECK(look_save_due(true, 2000000, 0, gap));
-    CHECK(!look_save_due(false, 9000000, 0, gap));
+    CHECK(!look_save_due(true, gap - 1, 0));
+    CHECK(look_save_due(true, gap, 0));
+    CHECK(!look_save_due(false, 9 * gap, 0));
 }
 
 void test_frame_splits_bands_and_measures_the_redrawn_share(void)
