@@ -62,7 +62,7 @@
     X(test_mood_that_is_the_reaction_stays_after_it)                                                                   \
     X(test_reaction_after_a_scene_returns_to_its_emotion)                                                              \
     X(test_rng_gives_the_mulberry32_sequence)                                                                          \
-    X(test_clamp_with_a_negative_limit_gives_its_opposite)                                                             \
+    X(test_clamp_with_a_negative_limit_gives_zero)                                                                     \
     X(test_every_emotion_and_event_is_found_by_its_name)                                                               \
     X(test_turning_keeps_the_face_level_across_the_wrap)                                                               \
     X(test_gaze_reaches_a_held_pointer)                                                                                \
@@ -102,7 +102,8 @@
     X(test_eyes_off_the_screen_render_nothing)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
-    X(test_small_output_regions_stay_inside)
+    X(test_small_output_regions_stay_inside)                                                                           \
+    X(test_pupil_bigger_than_its_eye_stays_centered)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)

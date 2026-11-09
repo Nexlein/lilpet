@@ -72,15 +72,15 @@ void test_rng_gives_the_mulberry32_sequence(void)
         CHECK(lp_rng_next(&rng) == (float)seed_deadbeef[i] / 16777216.0f);
 }
 
-void test_clamp_with_a_negative_limit_gives_its_opposite(void)
+void test_clamp_with_a_negative_limit_gives_zero(void)
 {
     CHECK(lp_clampf(0.25f, 1.0f) == 0.25f);
     CHECK(lp_clampf(2.0f, 1.0f) == 1.0f);
     CHECK(lp_clampf(-2.0f, 1.0f) == -1.0f);
-    /* A pupil bigger than its eye makes the limit negative: max(-lim, min(lim, v)) is then -lim, whatever v */
-    CHECK(lp_clampf(33.5f, -6.75f) == 6.75f);
-    CHECK(lp_clampf(-33.5f, -6.75f) == 6.75f);
-    CHECK(lp_clampf(0.0f, -6.75f) == 6.75f);
+    /* A pupil bigger than its eye makes the limit negative: no room left, so the pupil stays centered */
+    CHECK(lp_clampf(33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(-33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(0.0f, -6.75f) == 0.0f);
 }
 
 void test_follow_off_ignores_the_pointer(void)

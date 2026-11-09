@@ -158,7 +158,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
   - exports: lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **internal.h** (52) — Helpers shared by the engine sources.
+- **internal.h** (54) — Helpers shared by the engine sources.
   - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/eyes.c, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c

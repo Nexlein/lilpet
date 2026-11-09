@@ -653,3 +653,21 @@ void test_reference_scenes_with_particles_show_some(void)
             LP_FAIL("scene %s: no particle is alive at its time", SCENES[i].id);
     }
 }
+
+/* A pupil bigger than its eye (data allow a pupil scale of 2) has no room to move: it stays centered, so the two eyes
+ * stay mirror images of each other, as they are at rest. Rounding leaves a pixel or two; a pupil pushed to one side
+ * changed thousands. */
+void test_pupil_bigger_than_its_eye_stays_centered(void)
+{
+    const lp_look look = {0xFFFFFFu, LP_PUPIL_CIRCLE, {0x0000FFu, 0x0000FFu}};
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &look);
+    eyes.cur.ps = 2.0f;
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    int asymmetric = 0;
+    for (int y = 0; y < SIZE; y++)
+        for (int x = 0; x < SIZE / 2; x++)
+            asymmetric += frame[y * SIZE + x] != frame[y * SIZE + SIZE - 1 - x];
+    CHECK(asymmetric < 100);
+}

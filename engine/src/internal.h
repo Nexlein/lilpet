@@ -43,10 +43,12 @@ static inline float lp_maxf(float a, float b)
     return a > b ? a : b;
 }
 
-/* In this order on purpose: the limit goes negative when a pupil is bigger than its eye, and -lim wins then */
+/* v within -lim..lim. A negative limit counts as 0: a pupil bigger than its eye has no room to move, so it stays
+ * centered (with max(-lim, min(lim, v)) as such, -lim would win and push it to one side) */
 static inline float lp_clampf(float v, float lim)
 {
-    return lp_maxf(-lim, lp_minf(lim, v));
+    const float l = lp_maxf(lim, 0.0f);
+    return lp_maxf(-l, lp_minf(l, v));
 }
 
 #endif /* LILPET_INTERNAL_H */
