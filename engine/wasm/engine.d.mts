@@ -28,7 +28,7 @@ export interface Engine {
     init(seed: number): void;
     // Unknown pupil, emotion and event names are ignored
     setLook(look: Look): void;
-    setEmotion(name: string, duration?: number): void;
+    setEmotion(name: string): void;
     blink(): void;
     setPointer(point: { x: number; y: number } | null): void;
     react(event: EyeEvent): void;
