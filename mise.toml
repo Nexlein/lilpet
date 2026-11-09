@@ -82,7 +82,7 @@ run = "git ls-files -z -- {{vars.c_sources}} | xargs -0 -r clang-format --dry-ru
 [tasks."engine:tidy"]
 description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
 depends = ["engine:test"]
-run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c engine/tools/*.c firmware/tests/*.c"
+run = "git ls-files -z -- engine/src/*.c engine/tests/*.c engine/tools/*.c firmware/tests/*.c | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug"
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
