@@ -5,7 +5,7 @@
             "Bash(npm run check*)",
             "Bash(npm run format:check)",
             "Bash(npm run codemap)",
-            "Bash(npm run vectors)",
+            "Bash(npm run tables)",
             "Bash(npm run app:build)",
             "Bash(npm run app:test)",
             "Bash(node scripts/*)",

@@ -10,7 +10,7 @@ import { crc32, deflateSync, inflateSync } from 'node:zlib';
 import { loadEngine } from '../engine/wasm/engine.mjs';
 
 const MODULE = 'engine/build/wasm/lilpet.mjs';
-const SCENES = 'prototype/scenes.json';
+const SCENES = 'engine/tests/scenes.json';
 const LOOKS = 'eyes/looks.json';
 const DIR = 'engine/tests/goldens';
 const FAILED = 'engine/build/goldens';

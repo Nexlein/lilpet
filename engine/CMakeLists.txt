@@ -41,7 +41,7 @@ target_include_directories(lilpet PUBLIC include)
 target_link_libraries(lilpet PRIVATE lilpet_warnings)
 
 enable_testing()
-add_executable(lilpet_tests tests/test_main.c tests/test_version.c tests/test_parity.c tests/test_eyes.c
+add_executable(lilpet_tests tests/test_main.c tests/test_version.c tests/test_eyes.c
     tests/test_behavior.c tests/test_look.c tests/test_command.c tests/test_render.c tests/test_senses.c)
 target_link_libraries(lilpet_tests PRIVATE lilpet lilpet_warnings m)
 add_test(NAME lilpet_tests COMMAND lilpet_tests)

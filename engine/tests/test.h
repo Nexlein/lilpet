@@ -13,13 +13,6 @@
 #define LP_TESTS(X)                                                                                                    \
     X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
-    X(test_rng_matches_prototype)                                                                                      \
-    X(test_emotions_match_prototype)                                                                                   \
-    X(test_clamp_matches_prototype)                                                                                    \
-    X(test_blink_poses_match_prototype)                                                                                \
-    X(test_eye_poses_match_prototype)                                                                                  \
-    X(test_simulations_match_prototype)                                                                                \
-    X(test_scenes_match_prototype)                                                                                     \
     X(test_unknown_emotion_is_rejected)                                                                                \
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
@@ -94,6 +87,7 @@
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
     X(test_band_rendering_matches_whole_frame)                                                                         \
+    X(test_reference_scenes_with_particles_show_some)                                                                  \
     X(test_big_endian_swaps_the_bytes_of_every_pixel)                                                                  \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \

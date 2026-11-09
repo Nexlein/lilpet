@@ -9,9 +9,9 @@ export default {
     '.husky/*': 'shellcheck',
     '.github/workflows/*.yml': 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write',
-    // engine/src/emotions_table.h and engine/tests/js_vectors.h (npm run vectors): the whole check, not per file
-    '{eyes/*.json,prototype/eyes.js,prototype/scenes.json,scripts/gen-*.mjs}': () => [
+    // engine/src/emotions_table.h and engine/tests/scenes_table.h (npm run tables): the whole check, not per file
+    '{eyes/*.json,engine/tests/scenes.json,scripts/gen-*.mjs,scripts/expression.mjs}': () => [
         'npm run check:data',
-        'npm run check:vectors'
+        'npm run check:tables'
     ]
 };

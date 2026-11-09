@@ -2,8 +2,8 @@
 #include "lilpet/render_state.h" /* first: it compiles on its own */
 
 #include "../src/raster.h"
-#include "js_vectors.h"
 #include "lilpet/lilpet.h"
+#include "scenes_table.h"
 #include "test.h"
 
 #include <stdlib.h>
@@ -22,8 +22,8 @@ static uint16_t reference[PIXELS];
 
 static int find_scene(const char *id)
 {
-    for (int i = 0; i < (int)(sizeof LPV_SCENES / sizeof LPV_SCENES[0]); i++)
-        if (strcmp(LPV_SCENES[i].id, id) == 0)
+    for (int i = 0; i < (int)(sizeof SCENES / sizeof SCENES[0]); i++)
+        if (strcmp(SCENES[i].id, id) == 0)
             return i;
     LP_FAIL("unknown scene %s", id);
     return 0;
@@ -32,7 +32,7 @@ static int find_scene(const char *id)
 static void set_scene(lp_eyes *e, const char *id)
 {
     const int i = find_scene(id);
-    lp_eyes_set_scene(e, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
+    lp_eyes_set_scene(e, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look]);
 }
 
 /* Fresh full render of a scene into `out` */
@@ -103,7 +103,7 @@ void test_render_first_frame_is_full_screen(void)
 void test_render_puts_colors_where_they_belong(void)
 {
     render_scene("look-cherry", frame);
-    const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("look-cherry")].look];
+    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("look-cherry")].look];
     CHECK_COLOR(frame[5 * SIZE + 5], 0x000000); /* corner: background */
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
@@ -151,7 +151,7 @@ void test_render_glint_is_white(void)
 void test_closed_eye_shows_only_the_stroke(void)
 {
     render_scene("blink-closed", frame);
-    const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("blink-closed")].look];
+    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("blink-closed")].look];
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
         CHECK(g->closed);
@@ -270,9 +270,8 @@ static uint16_t band[SIZE * BAND_ROWS];
 static lp_rect check_bands(int size)
 {
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes,
-                     &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                           /* hearts */
+    lp_eyes_set_look(&eyes, &SCENE_LOOKS[SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                                /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
     lp_renderer_set_size(&renderer, size);
@@ -409,7 +408,7 @@ void test_extreme_poses_render_inside_the_frame(void)
                               .particle_time = 3.0f};
             if (!lp_emotion_get((lp_emotion)e)->emit)
                 scene.has_particles = false;
-            lp_eyes_set_scene(&eyes, &scene, &LPV_LOOKS[p]);
+            lp_eyes_set_scene(&eyes, &scene, &SCENE_LOOKS[p]);
             lp_renderer_init(&renderer);
             lp_render(&renderer, &eyes, frame);
         }
@@ -419,7 +418,7 @@ void test_extreme_poses_render_inside_the_frame(void)
 
 void test_unknown_pupil_renders_as_a_circle(void)
 {
-    lp_look look = LPV_LOOKS[0];
+    lp_look look = SCENE_LOOKS[0];
     look.pupil = LP_PUPIL_CIRCLE;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_look(&eyes, &look);
@@ -639,5 +638,18 @@ void test_small_output_regions_stay_inside(void)
         const lp_rect d = lp_render(&renderer, &eyes, small);
         CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SMALL && d.y1 <= SMALL);
         CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
+    }
+}
+
+/* Each reference scene with particles shows some at its time: the data validator cannot tell without a simulation */
+void test_reference_scenes_with_particles_show_some(void)
+{
+    for (int i = 0; i < (int)(sizeof SCENES / sizeof SCENES[0]); i++) {
+        if (!SCENES[i].scene.has_particles)
+            continue;
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look]);
+        if (eyes.particle_count == 0)
+            LP_FAIL("scene %s: no particle is alive at its time", SCENES[i].id);
     }
 }

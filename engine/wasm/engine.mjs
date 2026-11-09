@@ -3,7 +3,7 @@
 // Used by prototype/reference.html, the live view of prototype/index.html, the parity tests and the PC app.
 
 export const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
-const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
+export const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
 

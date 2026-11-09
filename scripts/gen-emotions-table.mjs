@@ -1,9 +1,15 @@
-// Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables. Apart from
-// gen-engine-vectors.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
-// Run it after changing emotions.json (npm run vectors runs both).
+// Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each
+// expression with every field (scripts/expression.mjs gives the ones an emotion leaves out). Apart from
+// gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
+// Run it after changing emotions.json (npm run tables runs both).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { EMOTIONS, REACTIONS } from '../prototype/eyes.js';
-import { EXPR, emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
+import { readFileSync } from 'node:fs';
+import { EXPRESSION_FIELDS, withNeutral } from './expression.mjs';
+import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
+
+const data = JSON.parse(readFileSync('eyes/emotions.json', 'utf8'));
+const EMOTIONS = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
+const REACTIONS = data.reactions;
 
 const TABLES = 'engine/src/emotions_table.h';
 
@@ -29,7 +35,7 @@ for (const [name, e] of Object.entries(EMOTIONS))
     tables.push(
         `    [${emotionEnum(name)}] = {${note(e)}`,
         `        .name = "${name}",`,
-        `        .expr = {${EXPR.map((k) => `.${k} = ${num(e[k])}`).join(', ')}},`,
+        `        .expr = {${EXPRESSION_FIELDS.map((k) => `.${k} = ${num(e[k])}`).join(', ')}},`,
         `        .emit = ${particleEnum(e.emit?.type)},`,
         `        .emit_rate = ${num(e.emit?.rate ?? 0)},`,
         '    },'

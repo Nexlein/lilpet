@@ -1,6 +1,6 @@
 {
     "schema": {
-        "emotions": "name: { label, expression fields (BASE in prototype/eyes.js gives the ones left out), emit: { type: heart | sparkle, rate per second } }, in the order of lp_emotion",
+        "emotions": "name: { label, expression fields (scripts/expression.mjs gives the ones left out), emit: { type: heart | sparkle, rate per second } }, in the order of lp_emotion",
         "reactions": "name, also the protocol name: { emotion, duration in seconds, sparkles }, in the order of lp_event",
         "note": "optional comment on a row, copied to the generated C table"
     },
