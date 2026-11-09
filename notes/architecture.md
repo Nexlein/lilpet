@@ -52,7 +52,8 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 - **`float` et entiers, jamais `double`** : sur l'ESP32-S3, les `double` sont émulés en logiciel et très lents, et même
   les `float` restent plus lents que les entiers
   ([guide de performance ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/performance/speed.html)).
-- **Hasard à graine** (mulberry32) : même suite de nombres en JS et en C, donc mêmes particules à graine égale.
+- **Hasard à graine** (mulberry32) : même suite de nombres sur toutes les machines, donc mêmes particules à graine
+  égale.
 
 ### App PC
 
@@ -84,9 +85,9 @@ graine), gardée en PNG dans `engine/tests/goldens/`, et une animation scriptée
 presque à plat, à l'envers, secoué, triste, cœurs, caresse, réactions à la caméra, plissé, endormi), jouée par pas de
 1/64 s depuis quatre graines et quatre looks. Une image sur 16 de l'animation est gardée sous forme d'empreinte dans
 `animation.txt` : les entrées changent au milieu des mouvements, donc une vitesse ou une rampe modifiée se voit, ce
-qu'une image prise à la fin de chaque partie ne montrerait pas (la review du retrait du prototype l'a prouvé en
-modifiant trois lignes du moteur). Un PNG des fins de partie du premier passage reste pour l'œil. Tout est comparé
-exactement par `mise run engine:wasm`, donc par `engine:check`, `mise run check` et le job du moteur C en CI. Ce qui
+qu'une image prise à la fin de chaque partie ne montrerait pas : trois lignes du moteur modifiées (rampe de
+l'inclinaison, regard derrière un clignement, vitesse de suivi du pointeur) passaient avec les seules fins de partie.
+Un PNG des fins de partie du premier passage reste pour l'œil. Tout est comparé exactement par `mise run engine:goldens`, donc par `engine:check`, `mise run check` et le job du moteur C en CI. Ce qui
 diffère fait échouer le contrôle et va dans `engine/build/goldens/` : l'image dessinée, avec le nombre de pixels qui
 changent, ou la première image de l'animation qui diffère. La CI le garde comme artefact.
 
@@ -94,8 +95,9 @@ Les rendus viennent du build WebAssembly parce qu'il donne les mêmes pixels sur
 multiplication-addition fusionnée (FMA), et sa propre libm. Un build natif peut utiliser FMA, ce qui change quelques
 arrondis, donc quelques pixels.
 
-Quand l'apparence ou le mouvement des yeux change exprès, `npm run goldens` réécrit les images touchées (le module doit
-être compilé par `mise run engine:wasm`), et on les regarde avant de les commiter. Un changement visuel vient avec une
+Quand l'apparence ou le mouvement des yeux change exprès, `npm run goldens` réécrit les images touchées et les
+empreintes de l'animation, et retire les images qu'aucune scène ne dessine plus (le module doit être compilé par
+`mise run engine:wasm`) ; on les regarde avant de les commiter. Un changement visuel vient avec une
 scène qui le montre.
 
 La logique (hasard, émotions, réactions, regard, inclinaison, particules) est vérifiée à part, avec des valeurs écrites

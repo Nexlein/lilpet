@@ -1,7 +1,7 @@
 // Tests of the code map generator (scripts/codemap.mjs): on small made-up files, what it reads in each language, how it
 // resolves what a file uses and the problems --check reports; then the script itself in a throwaway git repository.
 // Built-in test runner, no dependency.
-// Usage: npm run check:codemap
+// Usage: npm run check:scripts
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

@@ -1,7 +1,7 @@
 /*
  * State and animation of the eyes: emotions, gaze, head, blink, particles.
- * A seed and the same time steps give the same animation: engine/tests/goldens/animation.png replays one, so drawing
- * the random numbers in another order changes it.
+ * A seed and the same time steps give the same animation: engine/tests/goldens/animation.txt pins the frames of one,
+ * so drawing the random numbers in another order changes it.
  */
 #include "internal.h"
 #include "lilpet/lilpet.h"
