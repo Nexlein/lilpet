@@ -15,20 +15,18 @@ Projet strictement personnel, non commercial.
 
 ## Où on en est
 
-- [x] Recherche sur le Starboy → [notes/recherche.md](notes/recherche.md)
-- [x] Analyse des yeux → [notes/yeux.md](notes/yeux.md)
-- [x] Prototype des yeux dans le navigateur, référence de design jusqu'à ce que le moteur C reprenne tout (retiré en
-      novembre 2026)
-- [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
+- [x] Recherche sur le Starboy → [docs/recherche.md](docs/recherche.md)
+- [x] Analyse des yeux → [docs/yeux.md](docs/yeux.md)
+- [x] Architecture choisie → [docs/architecture.md](docs/architecture.md), décisions dans [docs/adr/](docs/adr/)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
-- [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
+- [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
 - [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
       écran rond à tester sur la carte
 - [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
       recevoir
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
-- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
+- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
 - [ ] App PC : looks perso, réglages, animations
 
 ## Installer
@@ -54,7 +52,8 @@ npm run app:dev
 Puis ouvrir http://localhost:8467/ dans Chrome ou Edge (le moteur doit être compilé : `mise run engine:wasm`). On y
 choisit une couleur et une pupille, avec l'aperçu animé par le vrai moteur. « Brancher lilpet » ouvre la liste des ports
 USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même
-éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer `mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
+éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer
+`mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
 
 ## Vérifier avant de commiter
 
@@ -66,7 +65,8 @@ Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les c
 référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
 - `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
-  (Prettier sur les fichiers suivis par git, ruff pour le Python), linters (oxlint, shellcheck pour les hooks, actionlint
+  (Prettier sur les fichiers suivis par git seulement, pour ne jamais toucher un fichier local non suivi ; ruff pour le
+  Python), linters (oxlint, shellcheck pour les hooks, actionlint
   pour la CI, ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour
   (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` (dont la validation et les
   générateurs sur des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis
@@ -78,9 +78,9 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
   réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
 - `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
-Avant chaque commit, le hook formate les fichiers indexés, vérifie les fichiers générés quand leurs sources changent et
-régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
-utilise et qui l'utilise.
+Avant chaque commit, le hook cherche des secrets dans ce qui est indexé, formate les fichiers indexés, vérifie les
+fichiers générés quand leurs sources changent et régénère la carte du code (`npm run codemap`), qui liste chaque fichier
+avec son rôle, ce qu'il exporte, ce qu'il utilise et qui l'utilise.
 
 Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
 
@@ -94,8 +94,8 @@ Tout changement passe par une pull request vers `dev`, la branche par défaut, e
 
 ## Tester sur un ESP32-S3
 
-Il y a une image de firmware par carte, car rien sur la puce ne les distingue à coup sûr : l'AtomS3R et l'écran rond
-Waveshare ont le même boîtier. Flasher l'image d'une autre carte piloterait les mauvaises broches. `BOARD` vaut :
+Il y a une image de firmware par carte ([pourquoi](docs/adr/0006-une-image-par-carte.md)) : flasher l'image d'une
+autre carte piloterait les mauvaises broches. `BOARD` vaut :
 
 - `atoms3r` : l'AtomS3R de M5Stack, écran de 128 px. Quand on le tourne, le visage reste à l'horizontale, et il réagit :
   fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
@@ -112,17 +112,18 @@ BOARD=atoms3r mise run firmware:deploy
 Elle prend la seule carte branchée, ou celle de `PORT`. Elle refuse une carte qui répond sous un autre nom (`FORCE=1`
 pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche.
 Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
-la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
+la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look et son humeur à la fin.
 
-Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 1080 images, soit environ 17 s (quitter
-avec Ctrl+]) :
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
+(`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]) :
 
 ```bash
 mise run firmware:monitor
 ```
 
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
-`board_config.h`. Rien d'autre à toucher, la CI la compile d'elle-même.
+`board_config.h`. La CI la compile d'elle-même ; pour que cette compilation soit exigée avant un merge, ajouter son job
+(« ESP32-S3 firmware build (<carte>) ») aux checks requis des règles GitHub de `main` et `dev`.
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
@@ -132,7 +133,7 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 | Dossier     | Contenu                                                                                    |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| `notes/`    | Notes de recherche, matériel, architecture, yeux                                           |
+| `docs/`     | Architecture, décisions, protocole, firmware, app, yeux, matériel, recherche               |
 | `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
 | `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
 | `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |

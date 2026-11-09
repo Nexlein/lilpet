@@ -55,7 +55,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **fake-port.ts** (109) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
   - exports: firmware, fakePort
   - → app/src/device/connection.ts
-- **protocol.ts** (77) — Text protocol with the device over USB (notes/app.md): commands start with "> ", replies with "< ", any other line is the device's log.
+- **protocol.ts** (77) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/session.ts
@@ -133,7 +133,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
 
 ## engine/include/lilpet
-- **lilpet.h** (405) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see notes/architecture.md).
+- **lilpet.h** (405) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_rng_seed, lp_rng_next, lp_pupil, lp_look, lp_look_parse, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_emotion_from_name, lp_event, lp_reaction, lp_reaction_get, lp_event_from_name, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_spawn, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_shake_update, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
   - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/look_store.h, firmware/main/main.c
@@ -146,7 +146,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/include/lilpet/lilpet.h, engine/include/lilpet/render_state.h
 
 ## engine/src
-- **command.c** (120) — Command lines of the text protocol (notes/app.md): the same on the USB port and on the camera link
+- **command.c** (120) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
   - exports: lp_command_line_add, lp_command_parse
   - → engine/include/lilpet/lilpet.h
 - **emotions.c** (35) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)
@@ -162,7 +162,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/eyes.c, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
-- **look.c** (100) — Looks as text, for the USB protocol with the PC app (notes/app.md): "AE0002 FF5252 FF5252 dot"
+- **look.c** (100) — Looks as text, for the USB protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot"
   - exports: lp_look_parse, lp_look_format
   - → engine/include/lilpet/lilpet.h
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
@@ -219,7 +219,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **engine.d.mts** (41) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Engine, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
+- **engine.mjs** (80) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
@@ -266,10 +266,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (142) — Implements commands.h: commands from the PC app over the USB serial port, one per line (protocol in notes/app.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<ve...
+- **commands.c** (142) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_store.h
-- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (protocol in notes/app.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<ve...
+- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
@@ -313,10 +313,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
-- **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).
+- **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py
-- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
+- **check-device.py** (257) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
   - ← mise.toml

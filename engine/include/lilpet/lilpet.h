@@ -1,5 +1,5 @@
 /*
- * lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see notes/architecture.md).
+ * lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
  * Portable C17: no allocation, no global state, float only (doubles are emulated in software on the ESP32-S3).
  * It is the one reference of the eyes: engine/tests/goldens holds reference renders of its WebAssembly build.
  * Units: pixels of the 466x466 round screen, seconds, radians.
@@ -38,7 +38,7 @@ float lp_rng_next(lp_rng *rng);
 
 /* --- Looks -------------------------------------------------------------------------------------- */
 
-/* Official pupil names (notes/yeux.md) */
+/* Official pupil names (docs/yeux.md) */
 typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE, LP_PUPIL_COUNT } lp_pupil;
 
 typedef struct {
@@ -47,7 +47,7 @@ typedef struct {
     uint32_t pupil_color[2]; /* left and right pupil colors, 0xRRGGBB */
 } lp_look;
 
-/* Looks as text, as the PC app sends them over USB (notes/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
+/* Looks as text, as the PC app sends them over USB (docs/protocole.md): "AE0002 FF5252 FF5252 dot" for the eye, left
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
 #define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
@@ -95,7 +95,7 @@ const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
 /* Emotion from its name; LP_EMOTION_COUNT when unknown */
 lp_emotion lp_emotion_from_name(const char *name);
 
-/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (notes/materiel.md) */
+/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (docs/materiel.md) */
 typedef enum {
     LP_EVENT_TAP,
     LP_EVENT_SHAKE,
@@ -206,7 +206,7 @@ typedef struct {
     float emit_debt; /* fractional particles owed by the current emitter */
 } lp_eyes;
 
-/* Default shape, measured on the original (see notes/yeux.md) */
+/* Default shape, measured on the original (see docs/yeux.md) */
 lp_shape lp_default_shape(void);
 
 void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
@@ -273,7 +273,7 @@ void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bo
  * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
 void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
 
-/* --- Commands: the text protocol of the USB port and the camera link (notes/app.md) ---------------- */
+/* --- Commands: the text protocol of the USB port and the camera link (docs/protocole.md) ---------- */
 
 #define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
 

@@ -51,7 +51,7 @@ void test_every_emotion_and_event_is_found_by_its_name(void)
         CHECK(lp_emotion_from_name(lp_emotion_get((lp_emotion)i)->name) == (lp_emotion)i);
     for (int i = 0; i < LP_EVENT_COUNT; i++)
         CHECK(lp_event_from_name(lp_reaction_get((lp_event)i)->name) == (lp_event)i);
-    /* Names the protocol sends (notes/app.md) */
+    /* Names the protocol sends (docs/protocole.md) */
     CHECK(lp_emotion_from_name("love") == LP_EMOTION_LOVE);
     CHECK(lp_event_from_name("gesture_like") == LP_EVENT_GESTURE_LIKE);
 }

@@ -1,4 +1,4 @@
-# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
+# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
 # reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
 # and lines too long, which change nothing.
@@ -32,8 +32,9 @@ BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 REPORT_LINE = r"^(\d+\.\d) frames/s"
-# Catches a dead or crawling drawing loop, not a slow screen: a board reports every 1080 frames (LP_BENCH_FRAMES), so
-# 17.3 s at full speed and 54 s at this rate, and the wait covers that
+# Catches a dead or crawling drawing loop, not a slow screen: a board reports every LP_BENCH_FRAMES frames
+# (engine/tools/bench_script.h; 1080 today, so 17.3 s at full speed and 54 s at this rate): REPORT_SECONDS covers that,
+# and grows with it
 MIN_FRAMES_PER_SECOND = 20
 REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash

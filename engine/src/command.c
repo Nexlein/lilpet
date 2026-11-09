@@ -1,4 +1,4 @@
-/* Command lines of the text protocol (notes/app.md): the same on the USB port and on the camera link */
+/* Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link */
 #include "lilpet/lilpet.h"
 
 #include <stdlib.h>

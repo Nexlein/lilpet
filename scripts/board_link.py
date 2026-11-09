@@ -1,5 +1,5 @@
 # What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in
-# notes/app.md). uv installs pyserial, from scripts/requirements.txt.
+# docs/protocole.md). uv installs pyserial, from scripts/requirements.txt.
 import os
 import re
 import sys

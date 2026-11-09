@@ -1,6 +1,6 @@
 {
     "schema": {
-        "id": "official swatch name, see notes/yeux.md (Catalogue officiel)",
+        "id": "official swatch name, see docs/yeux.md (Catalogue officiel)",
         "sclera": "eye color (hex), the same for both eyes",
         "pupilColor": "[left, right] pupil colors (hex), may differ"
     },
