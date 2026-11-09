@@ -63,21 +63,23 @@ class Board:
         monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
         cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
+        drops_late_looks=False,  # a look sent within 2 s of the last write answers ok but is never written
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
-        self.cut = cut
+        self.cut, self.drops_late_looks = cut, drops_late_looks
         self.look = "AE0002 FF5252 FF5252 dot"
+        self.kept, self.saved_at = self.look, -10.0  # what the flash holds, and when it was written
         self.mood = "neutral"
         self.in_reset = False
         self.input = b""
         self.opened = 0
 
     def boot(self):
-        self.mood = "neutral"
+        self.look, self.mood = self.kept, "neutral"
         self.reads_from = clock.now + 1
         for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
@@ -120,6 +122,8 @@ class Board:
             if not re.fullmatch(LOOK, rest):
                 return "err malformed look"
             self.look = rest
+            if not (self.drops_late_looks and clock.now - self.saved_at < 2):
+                self.kept, self.saved_at = rest, clock.now
             return "ok"
         if word not in DRIVES:
             return "err unknown command"
@@ -424,6 +428,11 @@ class DeviceCheck(unittest.TestCase):
         self.assertIn("FAIL runs to the end (interrupted)", out)
         self.assertIn("ok   gets its own look back", out)
         self.assertEqual((board.look, board.mood), (look, "neutral"))
+
+    def test_fails_a_board_that_loses_the_last_of_two_quick_looks(self):
+        status, out, _ = check_device(Board("atoms3r", drops_late_looks=True))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL still has the last look after the reboot", out)
 
     def test_keeps_a_monitor_off_the_port(self):
         status, _, _ = check_device(Board("atoms3r", monitor_open=True))

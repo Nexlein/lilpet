@@ -1,7 +1,7 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md):
-# opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
-# reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
-# and lines too long, which change nothing.
+# opening the port does not reboot it, it answers hello and tells its board, keeps the last of two looks sent in a row
+# across a reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad
+# commands and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look and
 # usual mood are put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and
 # firmware/boards/<board>.
@@ -28,7 +28,7 @@ from board_link import (
 )
 
 TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
-OTHER_LOOK = "AE0002 FF5252 FF5252 dot"
+LOOKS = (TEST_LOOK, "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
 BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
@@ -59,6 +59,8 @@ def define(header, name):
 
 
 LINE_MAX = define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
+# A look sent sooner than this after the last write to flash is written once this time has passed
+SAVE_GAP_SECONDS = define(ROOT / "firmware" / "main" / "commands.c", "SAVE_GAP_US") / 1e6
 
 
 def check(ok, what, detail=""):
@@ -124,8 +126,11 @@ def finish(port):
 
 def run_checks(port, board, test_look, other_look):
     """Everything that changes the board's look or mood"""
-    check(ask(port, f"> look {test_look}") == "ok", "keeps a new look")
-    check(ask(port, "> look?") == f"look {test_look}", "tells the new look back")
+    # The second look comes too soon after the first to be written at once: it must be written in its turn
+    check(ask(port, f"> look {other_look}") == "ok", "takes a new look")
+    check(ask(port, f"> look {test_look}") == "ok", "takes a second look right after")
+    check(ask(port, "> look?") == f"look {test_look}", "tells the last look back")
+    time.sleep(SAVE_GAP_SECONDS + 0.5)  # its turn, and the write
 
     log = reboot(port)
     check(bool(log), "reboots on request")
@@ -139,7 +144,7 @@ def run_checks(port, board, test_look, other_look):
         f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
     )
     after = ask(port, "> look?")
-    check_reply(after == f"look {test_look}", "still has the look after the reboot", after)
+    check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
@@ -238,8 +243,8 @@ def check_board(board_name):
     if not (before and before.startswith("look ")):
         finish(port)  # its look could not be put back
 
-    # A run stopped by a power cut leaves the test look on the board: the checks need one it does not wear
-    test_look, other_look = (OTHER_LOOK, TEST_LOOK) if before == f"look {TEST_LOOK}" else (TEST_LOOK, OTHER_LOOK)
+    # Two looks the board does not wear: a run stopped by a power cut leaves one on it
+    test_look, other_look = [look for look in LOOKS if f"look {look}" != before][:2]
     try:
         run_checks(port, board, test_look, other_look)
     except KeyboardInterrupt:
