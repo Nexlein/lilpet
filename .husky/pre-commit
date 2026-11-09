@@ -1,6 +1,11 @@
 # Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map
-# regenerated from what is staged. Tools come from mise.toml, also for a Git client started outside a mise shell.
-if [ -z "$LILPET_HOOK_IN_MISE" ] && command -v mise >/dev/null 2>&1; then
+# regenerated from what is staged. The tools come from mise.toml: the hook runs inside mise, also for a Git client
+# started outside a mise shell.
+if [ -z "$LILPET_HOOK_IN_MISE" ]; then
+  if ! command -v mise >/dev/null 2>&1; then
+    echo "pre-commit: mise is needed, it provides the tools of mise.toml (https://mise.jdx.dev)" >&2
+    exit 1
+  fi
   LILPET_HOOK_IN_MISE=1 exec mise exec -- sh -e "$0" "$@"
 fi
 sh .husky/no-secrets.sh

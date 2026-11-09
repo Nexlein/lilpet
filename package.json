@@ -12,7 +12,7 @@
         "serve": "python3 -m http.server 8466 --bind 127.0.0.1",
         "lint": "npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python",
         "lint:js": "oxlint --deny-warnings",
-        "lint:shell": "shellcheck .husky/pre-commit .husky/pre-push .husky/commit-msg .husky/no-secrets.sh",
+        "lint:shell": "git ls-files -z .husky | xargs -0 shellcheck",
         "lint:actions": "actionlint",
         "lint:python": "ruff check scripts",
         "lint:fix": "oxlint --fix && ruff check --fix scripts",

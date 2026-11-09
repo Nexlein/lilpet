@@ -5,7 +5,8 @@ export default {
     // .clang-format-ignore keeps the third-party BMI270 file as it is
     '{engine,firmware/main,firmware/boards}/**/*.{c,h}': 'clang-format -i',
     '*.py': ['ruff check --fix', 'ruff format'],
-    '.husky/{pre-commit,pre-push,commit-msg,no-secrets.sh}': 'shellcheck',
+    // the git hooks: every file of .husky is a shell script
+    '.husky/*': 'shellcheck',
     '.github/workflows/*.yml': 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write',
     // engine/src/emotions_table.h and engine/tests/js_vectors.h (npm run vectors): the whole check, not per file
