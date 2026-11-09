@@ -189,7 +189,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/include/lilpet/lilpet.h
 
 ## engine/tests
-- tests: js_vectors.h, test.h, test_command.c, test_eyes.c, test_look.c, test_main.c, test_parity.c, test_render.c, test_senses.c, test_version.c
+- tests: js_vectors.h, test.h, test_behavior.c, test_command.c, test_eyes.c, test_look.c, test_main.c, test_parity.c, test_render.c, test_senses.c, test_version.c
 
 ## engine/tools
 - **bench.c** (143) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).
