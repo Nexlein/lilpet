@@ -1,6 +1,7 @@
 /*
  * Minimal test runner for the engine, run on the host (no dependency).
- * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below.
+ * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below (a new file goes in
+ * engine/CMakeLists.txt too).
  */
 #ifndef LILPET_TEST_H
 #define LILPET_TEST_H

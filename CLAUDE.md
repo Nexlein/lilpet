@@ -44,8 +44,9 @@ open only the files it points to. Below, the parts and how they fit.
   `render_state.h` (internal; `screen.h` holds what both headers need). `sources.cmake` lists
   sources and warning flags shared by the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the
   ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); one file per subject:
-  `test_eyes.c` (state, setters, bad input, scenes, clock), `test_reactions.c`, `test_motion.c` (gaze, tilt, shake),
-  `test_pose.c` (blinks), `test_render.c`, `test_senses.c`, `test_look.c`, `test_command.c`, with literal values.
+  `test_eyes.c` (names, random numbers, setters, bad input, time steps, scenes, clock), `test_reactions.c`,
+  `test_motion.c` (gaze, tilt, shake), `test_pose.c` (blinks), `test_render.c`, `test_senses.c`, `test_look.c`,
+  `test_command.c`, `test_version.c`, with literal values (a new file goes in `engine/CMakeLists.txt` too).
   Presets: `host-debug` (ASan + UBSan), `host-release`, `wasm`.
 - `engine/tests/scenes.json` + `engine/tests/goldens/` — frozen reference scenes (look, emotion, blink phase, head,
   gaze, seeded particles) and their reference renders: `scripts/goldens.mjs` makes the WebAssembly engine draw every
@@ -76,8 +77,8 @@ open only the files it points to. Below, the parts and how they fit.
   a lint rule checks it; `SendPanel` owns the state of a send). Picking a mood or petting also reaches the board, and
   the last mood goes again after `hello`. The
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
-  the code (`*.test.ts`); `app/tests/app.spec.mjs` opens the built app in Playwright (`app/playwright.config.mjs`), with a
-  fake `navigator.serial`.
+  the code (`*.test.ts`); `app/tests/app.spec.mjs` opens the built app in Playwright (`app/playwright.config.mjs`),
+  with a fake `navigator.serial`.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one image per board (`atoms3r`, `waveshare_132`, `stamp_s3a`), chosen at
   build time. A board is one folder, nothing else to touch: `boards/<board>/board.cmake` lists its parts and
   `board_config.h` its pins, mounting, display size and chip package, an optional `sdkconfig.defaults` its own ESP-IDF
@@ -91,9 +92,9 @@ open only the files it points to. Below, the parts and how they fit.
   from Waveshare's demo, not yet run on the board, also used without a display) or `display_atoms3r.c` for the AtomS3R
   LCD (128 px SPI, ST7735S or GC9107 told apart by their ID; values from M5GFX), `display_paced.c` timing the frames of
   those with no TE signal; `imu.h` is `imu_bmi270.c` (BMI270, which needs Bosch's configuration file,
-  `firmware/third_party/bmi270/bmi270_config.c`, BSD-3, its bytes unchanged: `third_party/` keeps others' files) or
-  `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c` holds the board itself: power hold, button, I2C
-  bus, backlight.
+  `firmware/third_party/bmi270/bmi270_config.c`, BSD-3, its bytes unchanged: `third_party/` keeps others' files,
+  with our headers for them) or `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c` holds the board
+  itself: power hold, button, I2C bus, backlight.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for `display_wait_frame`, applies the queued commands, gives the sensors to `lp_senses_update`, draws band by
   band into two DMA buffers in internal RAM while the previous band is sent, each band half on each core (the bottom
@@ -144,13 +145,12 @@ open only the files it points to. Below, the parts and how they fit.
 - `npm run format` / `npm run lint:fix` — auto-fix (Prettier on tracked files only, so local untracked files are left
   alone).
 - `npm run test:playwright` — Playwright tests: the built app, built first, with a fake board, served on their own
-  port 8468, which must be free: two runs at once collide (needs
-  `mise run engine:wasm`; first time: `npx playwright install --only-shell chromium`).
+  port 8468, which must be free: two runs at once collide (needs `mise run engine:wasm`; first time:
+  `npm exec -w app -- playwright install --only-shell chromium`, which `mise run setup` runs).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build and its reference renders. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`,
-  `engine:goldens` (the reference renders, after `engine:wasm`);
-  `engine:format` fixes the formatting (in `firmware/third_party`, only our headers). The host
-  build uses the system clang and refuses one older than CI's (21).
+  `engine:goldens` (the reference renders, after `engine:wasm`); `engine:format` fixes the formatting (in
+  `firmware/third_party`, only our headers). The host build uses the system clang and refuses one older than CI's (21).
 - `npm run tables` — rewrites the generated C tables; `npm run goldens` rewrites the reference renders of
   `engine/tests/goldens/` and the hashes of the animation on purpose (needs the module of `mise run engine:wasm`;
   `engine:goldens` fails on them until then).
