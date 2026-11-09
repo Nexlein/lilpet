@@ -133,6 +133,6 @@ function describe(err: unknown, silent = NO_REPLY): string {
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
     if (err instanceof NotLilpet || err instanceof NoReply) return silent;
     if (err instanceof DOMException && err.name === 'NetworkError')
-        return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
+        return 'Le port est déjà ouvert ailleurs (moniteur série ?), ou fermé à ton compte (sous Linux : le groupe dialout). Ferme-le, ou ajoute ton compte au groupe, puis réessaie.';
     return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;
 }

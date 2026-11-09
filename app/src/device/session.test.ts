@@ -130,6 +130,7 @@ describe('device session', () => {
         await session.connect();
         const state = session.snapshot().state;
         expect(state.status === 'idle' && state.error).toMatch(/déjà ouvert ailleurs/);
+        expect(state.status === 'idle' && state.error).toMatch(/groupe dialout/); // the other cause Chrome gives no word for
     });
 
     it('explains a failed send in French', async () => {
