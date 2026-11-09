@@ -97,12 +97,8 @@ Tout changement passe par une pull request vers `dev`, la branche par défaut, e
 ## Tester sur un ESP32-S3
 
 Il y a une image de firmware par carte ([pourquoi](docs/adr/0006-une-image-par-carte.md)) : flasher l'image d'une
-autre carte piloterait les mauvaises broches. `BOARD` vaut :
-
-- `atoms3r` : l'AtomS3R de M5Stack, écran de 128 px. Quand on le tourne, le visage reste à l'horizontale, et il réagit :
-  fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
-- `waveshare_132` : l'écran rond 1,32", pas encore essayé sur la vraie carte.
-- `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
+autre carte piloterait les mauvaises broches. `BOARD` est le nom d'un dossier de `firmware/boards` ; les cartes et ce
+que chacune fait sont dans [le tableau des cartes](docs/firmware.md#les-cartes).
 
 La compilation passe par Docker, sans installer ESP-IDF. Une seule commande s'occupe d'un objet : compiler, flasher,
 vérifier.

@@ -12,6 +12,11 @@ Le firmware ESP-IDF de la carte écran (`firmware/`) : une image par carte
 | `waveshare_132` | AMOLED rond 466 px en QSPI (`display_co5300.c`) | aucun (`imu_none.c`)    | signal TE de l'écran   |
 | `stamp_s3a`     | aucun : le pilote CO5300 envoie dans le vide    | aucun (`imu_none.c`)    | 62,5 images/s, sans TE |
 
+- `atoms3r` : l'AtomS3R de M5Stack, l'objet d'essai. Quand on le tourne, le visage reste à l'horizontale, et il
+  réagit : fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
+- `waveshare_132` : l'écran rond 1,32" de l'objet final, pas encore essayé sur la vraie carte.
+- `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
+
 Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 images/s : des ticks de 1 ms ne font pas 60.
 
 ## Ce que fait le firmware
