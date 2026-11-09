@@ -3,11 +3,11 @@
 // gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Run it after changing emotions.json (npm run tables runs both).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { readFileSync } from 'node:fs';
-import { EXPRESSION_FIELDS, withNeutral } from './expression.mjs';
+import { EMOTIONS as EMOTIONS_FILE, readJson } from './data.mjs';
+import { EXPRESSION, withNeutral } from './expression.mjs';
 import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
-const data = JSON.parse(readFileSync('eyes/emotions.json', 'utf8'));
+const data = readJson(EMOTIONS_FILE);
 const EMOTIONS = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
 const REACTIONS = data.reactions;
 
@@ -35,7 +35,9 @@ for (const [name, e] of Object.entries(EMOTIONS))
     tables.push(
         `    [${emotionEnum(name)}] = {${note(e)}`,
         `        .name = "${name}",`,
-        `        .expr = {${EXPRESSION_FIELDS.map((k) => `.${k} = ${num(e[k])}`).join(', ')}},`,
+        `        .expr = {${Object.keys(EXPRESSION)
+            .map((k) => `.${k} = ${num(e[k])}`)
+            .join(', ')}},`,
         `        .emit = ${particleEnum(e.emit?.type)},`,
         `        .emit_rate = ${num(e.emit?.rate ?? 0)},`,
         '    },'

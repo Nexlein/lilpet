@@ -19,7 +19,7 @@ static const lp_look SCENE_LOOKS[11] = {
     {0x14ABD6u, LP_PUPIL_DOT, {0xEEFA24u, 0xEEFA24u}}, /* buoy dot */
 };
 
-typedef struct { const char *id; int look; lp_scene scene; } reference_scene; /* look: index in SCENE_LOOKS */
+typedef struct { const char *id; int look_index; lp_scene scene; } reference_scene; /* look_index: in SCENE_LOOKS */
 static const reference_scene SCENES[38] = {
     {"look-cherry", 0, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}},
     {"look-popcorn", 1, {LP_EMOTION_NEUTRAL, LP_BLINK_NONE, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, 0u, 0.0f}},

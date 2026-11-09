@@ -32,7 +32,7 @@ static int find_scene(const char *id)
 static void set_scene(lp_eyes *e, const char *id)
 {
     const int i = find_scene(id);
-    lp_eyes_set_scene(e, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look]);
+    lp_eyes_set_scene(e, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look_index]);
 }
 
 /* Fresh full render of a scene into `out` */
@@ -103,7 +103,7 @@ void test_render_first_frame_is_full_screen(void)
 void test_render_puts_colors_where_they_belong(void)
 {
     render_scene("look-cherry", frame);
-    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("look-cherry")].look];
+    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("look-cherry")].look_index];
     CHECK_COLOR(frame[5 * SIZE + 5], 0x000000); /* corner: background */
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
@@ -151,7 +151,7 @@ void test_render_glint_is_white(void)
 void test_closed_eye_shows_only_the_stroke(void)
 {
     render_scene("blink-closed", frame);
-    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("blink-closed")].look];
+    const lp_look *look = &SCENE_LOOKS[SCENES[find_scene("blink-closed")].look_index];
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
         CHECK(g->closed);
@@ -270,8 +270,9 @@ static uint16_t band[SIZE * BAND_ROWS];
 static lp_rect check_bands(int size)
 {
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes, &SCENE_LOOKS[SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                                /* hearts */
+    lp_eyes_set_look(&eyes,
+                     &SCENE_LOOKS[SCENES[find_scene("look-terrarium")].look_index]); /* acorn pupil, cut by the eye */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                               /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
     lp_renderer_set_size(&renderer, size);
@@ -648,7 +649,7 @@ void test_reference_scenes_with_particles_show_some(void)
         if (!SCENES[i].scene.has_particles)
             continue;
         lp_eyes_init(&eyes, 1);
-        lp_eyes_set_scene(&eyes, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look]);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look_index]);
         if (eyes.particle_count == 0)
             LP_FAIL("scene %s: no particle is alive at its time", SCENES[i].id);
     }

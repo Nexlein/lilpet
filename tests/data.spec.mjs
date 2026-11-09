@@ -5,15 +5,13 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { EMOTIONS, LOOKS, SCENES } from '../scripts/data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
 const TABLES_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
 const TABLES = 'engine/src/emotions_table.h';
 const SCENES_TABLE = 'engine/tests/scenes_table.h';
-const LOOKS = 'eyes/looks.json';
-const EMOTIONS = 'eyes/emotions.json';
-const SCENES = 'engine/tests/scenes.json';
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
 // imports (engine/wasm/engine.mjs).

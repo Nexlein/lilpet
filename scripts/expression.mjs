@@ -15,10 +15,8 @@ export const EXPRESSION = {
     spin: { neutral: 0, range: [0, 9] } // dizziness: the gaze circles, the head wobbles
 };
 
-export const EXPRESSION_FIELDS = Object.keys(EXPRESSION);
-
 /** An emotion of eyes/emotions.json with every expression field: the ones it leaves out at their neutral value. */
 export const withNeutral = (emotion) => ({
-    ...Object.fromEntries(EXPRESSION_FIELDS.map((k) => [k, EXPRESSION[k].neutral])),
+    ...Object.fromEntries(Object.entries(EXPRESSION).map(([k, field]) => [k, field.neutral])),
     ...emotion
 });

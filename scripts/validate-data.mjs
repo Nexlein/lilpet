@@ -7,6 +7,7 @@
 // Usage: node scripts/validate-data.mjs
 import { readFileSync } from 'node:fs';
 import { BLINK_PHASES, PUPILS } from '../engine/wasm/engine.mjs';
+import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
 import { EXPRESSION } from './expression.mjs';
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
@@ -78,7 +79,6 @@ function eachRow(path, rows, name, required, keys, check) {
     }
 }
 
-const LOOKS = 'eyes/looks.json';
 const looks = load(LOOKS);
 eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
     if (!isHex(swatch.sclera)) fail('"sclera" must be a #RRGGBB color');
@@ -89,7 +89,6 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 if (Array.isArray(looks?.swatches) && looks.swatches.length !== SWATCH_COUNT)
     errors.push(`${LOOKS}: ${looks.swatches.length} swatches, the catalogue has ${SWATCH_COUNT}`);
 
-const EMOTIONS = 'eyes/emotions.json';
 const emotionData = load(EMOTIONS);
 const emotions = emotionData?.emotions ?? {};
 const EMIT_TYPES = ['heart', 'sparkle'];
@@ -133,7 +132,6 @@ eachRow(
 );
 report(); // the scenes are checked against the swatches and the emotions: they must be right first
 
-const SCENES = 'engine/tests/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set(looks.swatches.map((s) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];

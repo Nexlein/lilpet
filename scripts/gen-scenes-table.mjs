@@ -2,16 +2,17 @@
 // eyes/looks.json), as C tables for the engine's tests and the renderer benchmark (engine/tools/bench.c). Apart from
 // gen-emotions-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Usage: node scripts/gen-scenes-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { readFileSync } from 'node:fs';
+import { SCENES, lookOf, readJson, swatchesById } from './data.mjs';
 import { emotionEnum, num, writeGenerated } from './gen-common.mjs';
 
 const TABLE = 'engine/tests/scenes_table.h';
-const SCENES = 'engine/tests/scenes.json';
 
-const swatches = new Map(JSON.parse(readFileSync('eyes/looks.json', 'utf8')).swatches.map((s) => [s.id, s]));
-const scenes = JSON.parse(readFileSync(SCENES, 'utf8')).scenes;
+const swatches = swatchesById();
+const scenes = readJson(SCENES).scenes;
+// The looks the scenes wear, each once, in the order they first appear
 const lookKey = (scene) => `${scene.swatch} ${scene.pupil}`;
-const lookKeys = [...new Set(scenes.map(lookKey))];
+const firstWearers = [...new Map(scenes.map((scene) => [lookKey(scene), scene])).values()];
+const lookIndex = new Map(firstWearers.map((scene, i) => [lookKey(scene), i]));
 const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
 
@@ -23,19 +24,18 @@ const lines = [
     '',
     '#include "lilpet/lilpet.h"',
     '',
-    `static const lp_look SCENE_LOOKS[${lookKeys.length}] = {`
+    `static const lp_look SCENE_LOOKS[${firstWearers.length}] = {`
 ];
-for (const key of lookKeys) {
-    const [swatchId, pupil] = key.split(' ');
-    const s = swatches.get(swatchId);
+for (const scene of firstWearers) {
+    const look = lookOf(swatches, scene);
     lines.push(
-        `    {${hex(s.sclera)}, LP_PUPIL_${pupil.toUpperCase()}, {${hex(s.pupilColor[0])}, ${hex(s.pupilColor[1])}}}, /* ${key} */`
+        `    {${hex(look.sclera)}, LP_PUPIL_${look.pupil.toUpperCase()}, {${hex(look.pupilColor[0])}, ${hex(look.pupilColor[1])}}}, /* ${lookKey(scene)} */`
     );
 }
 lines.push(
     '};',
     '',
-    'typedef struct { const char *id; int look; lp_scene scene; } reference_scene; /* look: index in SCENE_LOOKS */',
+    'typedef struct { const char *id; int look_index; lp_scene scene; } reference_scene; /* look_index: in SCENE_LOOKS */',
     `static const reference_scene SCENES[${scenes.length}] = {`
 );
 for (const scene of scenes) {
@@ -52,8 +52,8 @@ for (const scene of scenes) {
         `${scene.particles?.seed ?? 0}u`,
         num(scene.particles?.time ?? 0)
     ];
-    lines.push(`    {"${scene.id}", ${lookKeys.indexOf(lookKey(scene))}, {${fields.join(', ')}}},`);
+    lines.push(`    {"${scene.id}", ${lookIndex.get(lookKey(scene))}, {${fields.join(', ')}}},`);
 }
 lines.push('};', '', '#endif /* LILPET_SCENES_TABLE_H */', '');
 
-writeGenerated(TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${lookKeys.length} looks`);
+writeGenerated(TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${firstWearers.length} looks`);

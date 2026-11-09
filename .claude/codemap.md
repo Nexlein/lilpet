@@ -219,9 +219,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## eyes
 - **emotions.json** (67) — data
-  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
 - **looks.json** (109) — data
-  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
+  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/data.mjs, scripts/goldens.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -309,12 +309,15 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **codemap.mjs** (645) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
+- **data.mjs** (18) — Where the data files are, and the look a scene wears: shared by the scripts that read them (the validator, the table generators, the reference rend...
+  - exports: LOOKS, EMOTIONS, SCENES, readJson, swatchesById, lookOf
+  - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/validate-data.mjs
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
   - ← mise.toml
-- **expression.mjs** (24) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
-  - exports: EXPRESSION, EXPRESSION_FIELDS, withNeutral
+- **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
+  - exports: EXPRESSION, withNeutral
   - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **flash-guard.py** (41) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
   - exports: running_board, before_flash
@@ -323,18 +326,18 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-common.mjs** (28) — What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
   - exports: emotionEnum, eventEnum, num, writeGenerated
   - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs
-- **gen-emotions-table.mjs** (60) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
-  - → scripts/expression.mjs, scripts/gen-common.mjs
+- **gen-emotions-table.mjs** (62) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
+  - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
   - ← package.json
 - **gen-scenes-table.mjs** (59) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
-  - → scripts/gen-common.mjs
+  - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
 - **goldens.mjs** (200) — Reference renders of the eyes: the WebAssembly engine draws every reference scene and a short scripted animation, kept as PNG files in engine/tests...
   - exports: encodePng, decodePng, rgbOf, differingPixels, renders
   - → engine/wasm/engine.mjs
   - ← mise.toml, package.json
-- **validate-data.mjs** (182) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
-  - → engine/wasm/engine.mjs, scripts/expression.mjs
+- **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
+  - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
 - tests: codemap.test.mjs, goldens.test.mjs, test_board_scripts.py
 
