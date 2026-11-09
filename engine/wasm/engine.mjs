@@ -58,8 +58,8 @@ export async function loadEngine(moduleUrl) {
         // Live animation, for the PC app
         init: (seed) => m._lpw_init(seed),
         setLook,
-        setEmotion: (name, duration = 0) => {
-            if (emotions.has(name)) m._lpw_set_emotion(emotions.get(name), duration);
+        setEmotion: (name) => {
+            if (emotions.has(name)) m._lpw_set_emotion(emotions.get(name));
         },
         blink: () => m._lpw_blink(),
         setPointer: (point) => m._lpw_set_pointer(point ? 1 : 0, point?.x ?? 0, point?.y ?? 0),

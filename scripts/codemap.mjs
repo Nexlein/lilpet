@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { posix } from 'node:path';
 
-export const OUT = '.claude/codemap.md';
+const OUT = '.claude/codemap.md';
 
 const { basename, dirname, join, normalize } = posix;
 
@@ -176,7 +176,7 @@ export function scanJs(src) {
 }
 
 /** The text of a file without its comments, strings kept: what the code itself names. */
-export function withoutComments(src, kind) {
+function withoutComments(src, kind) {
     if (kind === 'c') return scanC(src, true);
     if (kind === 'css') return src.replace(/\/\*[\s\S]*?\*\//g, '');
     if (kind === 'js') return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
@@ -292,11 +292,11 @@ export function jsSpecifiers(src) {
     return [...new Set(res.flatMap((re) => [...code.matchAll(re)].map((m) => m[1])))];
 }
 
-export function pySymbols(src) {
+function pySymbols(src) {
     return [...src.matchAll(/^(?:async\s+)?(?:def|class)\s+([A-Za-z]\w*)/gm)].map((m) => m[1]);
 }
 
-export function pyModules(src) {
+function pyModules(src) {
     return [
         ...[...src.matchAll(/^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)/gm)].flatMap((m) => m[1].split(/\s*,\s*/)),
         ...[...src.matchAll(/^\s*from\s+([\w.]+)\s+import\b/gm)].map((m) => m[1])

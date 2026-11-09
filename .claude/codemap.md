@@ -78,7 +78,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
   - ← app/src/main.tsx
-- **DeviceBar.tsx** (40) — Connection to the device, in the header
+- **DeviceBar.tsx** (39) — Connection to the device, in the header
   - exports: DeviceBar
   - → app/src/device/session.ts
   - ← app/src/ui/App.tsx
@@ -336,7 +336,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/device-check.py, scripts/flash-guard.py
 - **codemap.mjs** (645) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
-  - exports: OUT, kindOf, isTest, scanJs, withoutComments, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, pySymbols, pyModules, repository, usesOf, collapse, miseTasks, buildMap
+  - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
@@ -386,7 +386,6 @@ mise (`mise run <task>`):
 npm (`npm run <script>`, workspace app):
 - `dev`: `vite`
 - `build`: `tsc && vite build`
-- `preview`: `vite preview`
 - `test`: `vitest run`
 
 npm (`npm run <script>`):

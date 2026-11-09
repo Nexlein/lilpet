@@ -25,8 +25,7 @@ export function DeviceBar({ state, onConnect, onDisconnect }: Props) {
                         <span className="led" aria-hidden="true" />
                         lilpet est branché
                         <small>
-                            {state.info.board && `${state.info.board}, `}firmware {state.info.firmware}, moteur{' '}
-                            {state.info.engine}
+                            {state.info.board}, firmware {state.info.firmware}, moteur {state.info.engine}
                         </small>
                     </>
                 )}

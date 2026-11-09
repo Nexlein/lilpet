@@ -15,7 +15,7 @@ const char *lpw_event_name(int event);
 
 void lpw_init(uint32_t seed);
 void lpw_set_look(uint32_t sclera, int pupil, uint32_t left, uint32_t right);
-void lpw_set_emotion(int emotion, float duration);
+void lpw_set_emotion(int emotion);
 void lpw_blink(void);
 void lpw_set_pointer(int active, float x, float y);
 void lpw_set_gravity(int active, float x, float y);

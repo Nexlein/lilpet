@@ -6,7 +6,7 @@ status=0
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
 while IFS= read -r f; do
   case "$(basename "$f")" in
-    "" | .env.example) ;;
+    "") ;;
     .env | .env.*) echo "no-secrets: $f must not be committed" >&2; status=1 ;;
   esac
 done <<EOF

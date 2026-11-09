@@ -6,7 +6,6 @@ __pycache__/
 .DS_Store
 .env
 .env.*
-!.env.example
 
 # editor directories and files
 .idea
