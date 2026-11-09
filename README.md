@@ -111,11 +111,12 @@ vérifier.
 BOARD=atoms3r mise run firmware:deploy
 ```
 
-Elle prend la seule carte branchée, ou celle de `PORT`. Elle refuse une carte qui répond sous un autre nom (`FORCE=1`
-pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche.
-Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
-la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look et son
-humeur à la fin.
+Elle prend la seule carte branchée, ou celle de `PORT` (vide, il compte comme absent), et s'arrête si elle n'en trouve
+aucune. Elle refuse une carte qui répond sous un autre nom (`FORCE=1` pour passer outre), et chaque image s'arrête au
+démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les étapes existent aussi une par une :
+`firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la carte comme l'app (réponse, le
+dernier de deux looks envoyés d'affilée gardé après un redémarrage, commandes, entrées refusées) et remet son look et
+son humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
 (`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]) :
