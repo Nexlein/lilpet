@@ -42,7 +42,9 @@ Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 imag
 
 Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lancés avec ceux du moteur
 (`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S
-n'a jamais tourné sur une carte) et le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`).
+n'a jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le
+moment où un look s'écrit en flash (`look_saving.h`) et le calcul d'une image : les bandes partagées entre les deux
+cœurs, la part de l'écran redessinée (`frame.h`).
 Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
 ## Pilotes d'écran
