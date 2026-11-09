@@ -24,6 +24,6 @@ cœurs, qui partagent un cache d'instructions de 16 Ko, ou de 32 Ko au prix de 1
 
 ## Conséquences
 
-- Sur la M5Stamp S3A, à 466 px, le dessin passe d'environ 30 à 51 images/s ([mesures](../firmware.md#sur-la-puce)).
+- Sur la M5Stamp S3A, à 466 px, le dessin passe de 30,7 à 51-52 images/s ([mesures](../firmware.md#sur-la-puce)).
 - Un test du moteur vérifie que deux brouillons qui se partagent les lignes donnent la même image.
 - Un cache d'instructions de 32 Ko n'apporte que 1,5 % de plus : écarté.
