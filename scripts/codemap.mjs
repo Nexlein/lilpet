@@ -352,8 +352,9 @@ export function usesOf(file, src, kind, repo) {
     const unresolved = [];
     const built = [];
     const relative = (spec) => {
-        const hit = resolveRelative(file, spec, repo);
-        const path = normalize(join(dirname(file), spec.startsWith('/') ? spec.slice(1) : spec));
+        const bare = spec.replace(/\?[^/]*$/, ''); // Vite's queries, as in "x.c?raw", name the same file
+        const hit = resolveRelative(file, bare, repo);
+        const path = normalize(join(dirname(file), bare.startsWith('/') ? bare.slice(1) : bare));
         if (hit) local.push(hit);
         else if (repo.isIgnored(path))
             built.push(path); // a build output, absent until built

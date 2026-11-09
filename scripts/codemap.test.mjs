@@ -180,11 +180,12 @@ import { useState } from 'react';
 import { x } from '@scope/pkg/sub';
 import { readFileSync } from 'node:fs';
 import gone from './gone';
-import wasm from '../../engine/build/wasm/lilpet.mjs';`,
+import wasm from '../../engine/build/wasm/lilpet.mjs';
+import source from '../../engine/src/eyes.c?raw';`,
         'js',
         repo
     );
-    assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json']);
+    assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json', 'engine/src/eyes.c']);
     assert.deepEqual(js.packages, ['react', '@scope/pkg']);
     assert.deepEqual(js.unresolved, ['./gone']);
     assert.deepEqual(js.built, ['engine/build/wasm/lilpet.mjs']);
