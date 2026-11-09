@@ -52,8 +52,10 @@ Le reste se vérifie sur la carte, avec `firmware:check-device`.
 - **Écran rond** (`firmware/main/display_co5300.c`) : il reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
-  Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs
-  et l'absence de déchirure.
+  Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs,
+  l'absence de déchirure, et que le signal TE vient avant que l'écran s'allume. L'écran ne s'allume qu'après la première
+  image, car sa mémoire garde du bruit au démarrage, et `display_init` cherche le TE avant : s'il n'en voit pas, le
+  journal le dit (« no TE signal »).
 - **AtomS3R** (`firmware/main/display_atoms3r.c`) : il reprend les réglages de la bibliothèque de M5Stack
   ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp), `board_M5AtomS3R`) : SPI à 40 MHz,
   identifiant lu pour distinguer les deux puces d'écran (ST7735S ou GC9107), séquence d'initialisation complète de
