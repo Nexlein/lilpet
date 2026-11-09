@@ -6,8 +6,9 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (38) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
+- **.lintstagedrc.mjs** (42) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
+  - → scripts/data.mjs
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
@@ -346,12 +347,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **codemap.mjs** (648) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
-- **data.mjs** (18) — Where the data files are, and the look a scene wears: shared by the scripts that read them (the validator, the table generators, the reference rend...
-  - exports: LOOKS, EMOTIONS, SCENES, readJson, swatchesById, lookOf
-  - ← scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
+- **data.mjs** (28) — Where the data files and the C tables generated from them are, and the look a scene wears: shared by the scripts that read them (the validator, the...
+  - exports: LOOKS, EMOTIONS, SCENES, EMOTIONS_TABLE, LOOKS_TABLE, SCENES_TABLE, GENERATORS, readJson, swatchesById, lookOf
+  - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/tables.mjs, scripts/validate-data.mjs
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
-  - ← engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+  - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
   - exports: c_define, pupil_types
   - ← scripts/check-device.py
@@ -361,16 +362,16 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← mise.toml
 - **gen-common.mjs** (28) — What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
   - exports: emotionEnum, eventEnum, num, writeGenerated
-  - ← scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs
-- **gen-emotions-table.mjs** (64) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
+  - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs
+- **gen-emotions-table.mjs** (62) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
   - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
-  - ← package.json
-- **gen-looks-table.mjs** (55) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
+  - ← scripts/data.mjs
+- **gen-looks-table.mjs** (58) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
   - → scripts/data.mjs, scripts/gen-common.mjs
-  - ← package.json
-- **gen-scenes-table.mjs** (60) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
+  - ← scripts/data.mjs
+- **gen-scenes-table.mjs** (58) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
-  - ← package.json
+  - ← scripts/data.mjs
 - **goldens.mjs** (229) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
   - exports: strict, compare
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
@@ -378,9 +379,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
   - exports: encodePng, decodePng, rgbOf, differingPixels
   - ← scripts/goldens.mjs
+- **tables.mjs** (11) — Runs every table generator of scripts/data.mjs (npm run tables), each in its own process, so that a fault in one data file never stops the tables o...
+  - → scripts/data.mjs
+  - ← .lintstagedrc.mjs, package.json
 - **validate-data.mjs** (204) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
-  - ← package.json
+  - ← .lintstagedrc.mjs, package.json
 - tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
@@ -419,12 +423,12 @@ npm (`npm run <script>`):
 - `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format`
 - `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format --check`
 - `check:data`: `node scripts/validate-data.mjs`
-- `check:tables`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-looks-table.mjs --check && node scripts/gen-scenes-table.mjs --check`
+- `check:tables`: `node scripts/tables.mjs --check`
 - `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
 - `check:codemap`: `node scripts/codemap.mjs --check`
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`
-- `tables`: `node scripts/gen-emotions-table.mjs && node scripts/gen-looks-table.mjs && node scripts/gen-scenes-table.mjs`
+- `tables`: `node scripts/tables.mjs`
 - `test:playwright`: `npm run app:build && npm run test:playwright -w app`
 - `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:tables && npm run check:scripts && npm run check:codemap && npm run check:app`
 - `prepare`: `husky`

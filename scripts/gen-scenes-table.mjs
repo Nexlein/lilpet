@@ -2,10 +2,8 @@
 // eyes/looks.json), as C tables for the engine's tests and the renderer benchmark (engine/tools/bench.c). Apart from
 // gen-emotions-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Usage: node scripts/gen-scenes-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { SCENES, lookOf, readJson, swatchesById } from './data.mjs';
+import { SCENES, SCENES_TABLE, lookOf, readJson, swatchesById } from './data.mjs';
 import { emotionEnum, num, writeGenerated } from './gen-common.mjs';
-
-const TABLE = 'engine/tests/scenes_table.h';
 
 const swatches = swatchesById();
 const scenes = readJson(SCENES).scenes;
@@ -57,4 +55,4 @@ for (const scene of scenes) {
 }
 lines.push('};', '', '#endif /* LILPET_SCENES_TABLE_H */', '');
 
-writeGenerated(TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${firstWearers.length} looks`);
+writeGenerated(SCENES_TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${firstWearers.length} looks`);

@@ -1,14 +1,18 @@
 // What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the
 // files generated from it when one of them is staged (with no unstaged change left in them), then lint and format each
 // file.
-// The validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs)
+import { EMOTIONS, GENERATORS, LOOKS, SCENES } from './scripts/data.mjs';
+
+// The data files, the tables generated from them and their generators (scripts/data.mjs), and the scripts they use. The
+// validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs).
 const DATA = [
-    'eyes/*.json',
-    'engine/tests/scenes.json',
-    'engine/src/emotions_table.h',
-    'engine/src/looks_table.h',
-    'engine/tests/scenes_table.h',
-    'scripts/gen-*.mjs',
+    LOOKS,
+    EMOTIONS,
+    SCENES,
+    ...Object.keys(GENERATORS),
+    ...Object.values(GENERATORS),
+    'scripts/gen-common.mjs',
+    'scripts/tables.mjs',
     'scripts/expression.mjs',
     'scripts/data.mjs',
     'scripts/validate-data.mjs',

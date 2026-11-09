@@ -8,14 +8,11 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
-import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
+import { EMOTIONS, EMOTIONS_TABLE, GENERATORS, LOOKS, SCENES, SCENES_TABLE } from './data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
-const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
-const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
-const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
-const LOOKS_TABLE = 'engine/src/looks_table.h';
-const SCENES_TABLE = 'engine/tests/scenes_table.h';
+const EMOTIONS_SCRIPT = GENERATORS[EMOTIONS_TABLE];
+const SCENES_SCRIPT = GENERATORS[SCENES_TABLE];
 const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
@@ -29,9 +26,7 @@ async function withCopy(use) {
             'eyes',
             'engine/wasm/engine.mjs',
             SCENES,
-            EMOTIONS_TABLE,
-            LOOKS_TABLE,
-            SCENES_TABLE
+            ...Object.keys(GENERATORS)
         ])
             cpSync(path, join(dir, path), { recursive: true });
         return await use(dir);
@@ -182,6 +177,16 @@ describe('the validator refuses', PARALLEL, () => {
 });
 
 describe('the table generators', PARALLEL, () => {
+    test('npm run tables runs every generator, even after one fails', () =>
+        withCopy(async (dir) => {
+            changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5)); // the first generator fails
+            writeFileSync(join(dir, SCENES), 'not JSON'); // and the last one
+            const { status, stderr } = await run(dir, 'scripts/tables.mjs', '--check');
+            assert.equal(status, 1);
+            assert.ok(stderr.includes(`${EMOTIONS_TABLE}: out of date`), stderr);
+            assert.ok(stderr.includes('Unexpected token'), stderr);
+        }));
+
     test('a fault in scenes.json stops the scene table, not the emotion tables', () =>
         withCopy(async (dir) => {
             assert.equal((await run(dir, SCENES_SCRIPT, '--check')).status, 0); // only the fault can stop it

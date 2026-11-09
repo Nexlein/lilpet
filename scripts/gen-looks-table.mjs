@@ -2,11 +2,10 @@
 // eye shape and the pupil shapes. The swatches stay in the JSON: the PC app sends a look's colors, the engine never
 // needs the catalogue. Run it after changing looks.json (npm run tables runs every generator).
 // Usage: node scripts/gen-looks-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { LOOKS, readJson } from './data.mjs';
+import { LOOKS, LOOKS_TABLE, readJson } from './data.mjs';
 import { num, writeGenerated } from './gen-common.mjs';
 
 const data = readJson(LOOKS);
-const TABLE = 'engine/src/looks_table.h';
 
 const pupilEnum = (type) => `LP_PUPIL_${type.toUpperCase()}`;
 const color = (hex) => `0x${hex.slice(1).toUpperCase()}u`;
@@ -52,4 +51,8 @@ lines.push(
     ''
 );
 
-writeGenerated(TABLE, lines.join('\n'), `default ${swatch.id} ${data.default.pupil}, ${pupils.length} pupil types`);
+writeGenerated(
+    LOOKS_TABLE,
+    lines.join('\n'),
+    `default ${swatch.id} ${data.default.pupil}, ${pupils.length} pupil types`
+);
