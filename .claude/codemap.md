@@ -332,8 +332,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-scenes-table.mjs** (59) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
-- **goldens.mjs** (187) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
-  - exports: renders
+- **goldens.mjs** (206) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+  - exports: compare
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
   - ← mise.toml, package.json
 - **png.mjs** (82) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
@@ -342,7 +342,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
-- tests: codemap.test.mjs, png.test.mjs, test_board_scripts.py
+- tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
 
 ## tests
 - tests: app.spec.mjs, data.spec.mjs, page-errors.mjs
