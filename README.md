@@ -17,9 +17,7 @@ Projet strictement personnel, non commercial.
 
 - [x] Recherche sur le Starboy → [docs/recherche.md](docs/recherche.md)
 - [x] Analyse des yeux → [docs/yeux.md](docs/yeux.md)
-- [x] Prototype des yeux dans le navigateur, référence de design jusqu'à ce que le moteur C reprenne tout (retiré en
-      novembre 2026)
-- [x] Architecture choisie → [docs/architecture.md](docs/architecture.md)
+- [x] Architecture choisie → [docs/architecture.md](docs/architecture.md), décisions dans [docs/adr/](docs/adr/)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
 - [ ] Commande du matériel
@@ -78,8 +76,8 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
   réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
 - `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
-Avant chaque commit, le hook formate les fichiers indexés, vérifie les fichiers générés quand leurs sources changent et
-régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
+Avant chaque commit, le hook cherche des secrets dans ce qui est indexé, formate les fichiers indexés, vérifie les
+fichiers générés quand leurs sources changent et régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
 utilise et qui l'utilise.
 
 Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
@@ -94,8 +92,8 @@ Tout changement passe par une pull request vers `dev`, la branche par défaut, e
 
 ## Tester sur un ESP32-S3
 
-Il y a une image de firmware par carte, car rien sur la puce ne les distingue à coup sûr : l'AtomS3R et l'écran rond
-Waveshare ont le même boîtier. Flasher l'image d'une autre carte piloterait les mauvaises broches. `BOARD` vaut :
+Il y a une image de firmware par carte ([pourquoi](docs/adr/0006-une-image-par-carte.md)) : flasher l'image d'une
+autre carte piloterait les mauvaises broches. `BOARD` vaut :
 
 - `atoms3r` : l'AtomS3R de M5Stack, écran de 128 px. Quand on le tourne, le visage reste à l'horizontale, et il réagit :
   fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
@@ -114,15 +112,16 @@ pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un au
 Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
 la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
 
-Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 1080 images, soit environ 17 s (quitter
-avec Ctrl+]) :
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi à chaque tour de l'animation de mesure, environ
+toutes les 17 s (quitter avec Ctrl+]) :
 
 ```bash
 mise run firmware:monitor
 ```
 
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
-`board_config.h`. Rien d'autre à toucher, la CI la compile d'elle-même.
+`board_config.h`. La CI la compile d'elle-même ; pour que cette compilation soit exigée avant un merge, ajouter son job
+(« ESP32-S3 firmware build (<carte>) ») aux checks requis des règles GitHub de `main` et `dev`.
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
