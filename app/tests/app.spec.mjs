@@ -736,6 +736,9 @@ test('goes on when the browser blocks its storage', async ({ page }) => {
     await expect(page.locator('.look-name h1')).toHaveText('socks');
     await page.locator('.favorite').click();
     await expect(page.locator('.favorites .chip')).toHaveCount(1);
+    await chip(page, 'kite').click(); // the favorites live in the page meanwhile: a second one keeps the first
+    await page.locator('.favorite').click();
+    await expect(page.locator('.favorites .chip')).toHaveText(['socks point', 'kite point']);
 });
 
 test('goes on when the browser storage is full', async ({ page }) => {

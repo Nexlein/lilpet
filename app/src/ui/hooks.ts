@@ -30,9 +30,20 @@ export function useDevice() {
     return { state, log, connect, disconnect, send, emotion, react };
 }
 
-// A value kept in the browser: read once, written on every change
-export function useStored<T>(read: (store: KeyValueStore) => T, write: (store: KeyValueStore, value: T) => void) {
+// A value kept in the browser: read once, written on every change. shared: read again when another tab writes it, so
+// that a change here starts from theirs
+export function useStored<T>(
+    read: (store: KeyValueStore) => T,
+    write: (store: KeyValueStore, value: T) => void,
+    shared = false
+) {
     const [value, setValue] = useState<T>(() => read(browserStore));
+    useEffect(() => {
+        if (!shared) return;
+        const reload = () => setValue(read(browserStore));
+        addEventListener('storage', reload); // fired in the other tabs, never in the one that wrote
+        return () => removeEventListener('storage', reload);
+    }, [read, shared]);
     const update = (next: T) => {
         setValue(next);
         write(browserStore, next);

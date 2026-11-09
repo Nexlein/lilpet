@@ -73,7 +73,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: preview.test.ts
 
 ## app/src/ui
-- **App.tsx** (70) — lilpet PC app: pick the eyes, see them live, send them to the device
+- **App.tsx** (59) — lilpet PC app: pick the eyes, see them live, send them to the device
   - exports: App
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
@@ -111,7 +111,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (52) — React state around the engine, the device connection and the browser
+- **hooks.ts** (63) — React state around the engine, the device connection and the browser
   - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
   - → app/src/data/favorites.ts, app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react

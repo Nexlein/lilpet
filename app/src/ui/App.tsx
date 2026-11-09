@@ -1,15 +1,7 @@
 // lilpet PC app: pick the eyes, see them live, send them to the device
 import type { CSSProperties } from 'react';
 import { findSwatch, inkOn, type LookColors, type PupilType } from '../data/looks';
-import {
-    browserStore,
-    loadCurrent,
-    loadFavorites,
-    lookKey,
-    saveCurrent,
-    saveFavorites,
-    type LookChoice
-} from '../data/favorites';
+import { loadCurrent, loadFavorites, lookKey, saveCurrent, saveFavorites, type LookChoice } from '../data/favorites';
 import { DeviceBar } from './DeviceBar';
 import { DeviceLog } from './DeviceLog';
 import { Gallery } from './Gallery';
@@ -27,15 +19,12 @@ export function App() {
     const engine = useEngine();
     const device = useDevice();
     const [choice, setChoice] = useStored((s) => loadCurrent(s) ?? DEFAULT, saveCurrent);
-    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites);
+    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites, true); // other tabs may add some
     const { swatch, pupil } = choice;
     const key = lookKey(swatch.id, pupil);
 
-    // From what is stored: another tab may have changed it since this one read it
-    const toggleFavorite = () => {
-        const stored = loadFavorites(browserStore).filter((k) => k !== key);
-        setFavorites(favorites.includes(key) ? stored : [...stored, key]);
-    };
+    const toggleFavorite = () =>
+        setFavorites(favorites.includes(key) ? favorites.filter((k) => k !== key) : [...favorites, key]);
 
     return (
         <div style={theme(swatch)}>
