@@ -54,11 +54,12 @@ static const init_cmd INIT[] = {
     {CMD_BRIGHTNESS, 1, {0xFFu}, 0},   /* brightness */
     {0x63u, 1, {0xFFu}, 0},            /* vendor command, value from the demo */
     {CMD_SLEEP_OUT, 0, {0}, 100},      /* leave sleep, then wait */
-    {CMD_DISPLAY_ON, 0, {0}, 0},       /* display on */
     {CMD_ORIENTATION, 1, {0xC0u}, 0},  /* rows and columns reversed: 180 degrees, as the panel is mounted */
 };
 
 static esp_lcd_panel_io_handle_t io;
+/* The panel's memory holds noise after a reset: it turns on once the first frame is in (display_flush) */
+static bool on;
 
 static void send(uint32_t cmd, const uint8_t *params, size_t len)
 {
@@ -161,4 +162,8 @@ void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 void display_flush(void)
 {
     send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
+    if (!on) {
+        send(CMD_DISPLAY_ON, NULL, 0);
+        on = true;
+    }
 }

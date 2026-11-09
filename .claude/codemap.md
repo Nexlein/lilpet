@@ -279,7 +279,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_atoms3r.c** (227) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h
-- **display_co5300.c** (164) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+- **display_co5300.c** (169) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
   - → firmware/boards/*/board_config.h, firmware/main/display.h
 - **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
