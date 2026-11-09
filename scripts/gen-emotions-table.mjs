@@ -29,6 +29,8 @@ const tables = [
     '#include "lilpet/lilpet.h"',
     '',
     countCheck(Object.keys(emotions).length, 'LP_EMOTION_COUNT', 'lp_emotion'),
+    // A field missing from scripts/expression.mjs would silently be 0 in every emotion
+    `_Static_assert(sizeof(lp_expression) == ${Object.keys(EXPRESSION).length} * sizeof(float), "lp_expression in lilpet.h and scripts/expression.mjs differ");`,
     'static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {'
 ];
 for (const [name, e] of Object.entries(emotions))

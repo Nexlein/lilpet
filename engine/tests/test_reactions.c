@@ -268,3 +268,40 @@ void test_love_sends_hearts_at_its_rate_until_they_fade(void)
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
     CHECK(eyes.particle_count == 0);
 }
+
+void test_particles_owed_by_one_emitter_are_not_owed_by_another(void)
+{
+    /* 0.3 s of love owes 0.9 of a heart; sleepy sends sparkles, 0.4 a second: its first one comes 2.5 s later, not
+     * 0.25 s later with the hearts' debt carried over. A sparkle lives 0.6 s at least: one that came too early is still
+     * there at 0.5 s. */
+    const lp_emotion_def *love = lp_emotion_get(LP_EMOTION_LOVE);
+    const lp_emotion_def *sleepy = lp_emotion_get(LP_EMOTION_SLEEPY);
+    CHECK(love->emit == LP_PARTICLE_HEART && sleepy->emit == LP_PARTICLE_SPARKLE);
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    lp_test_play(&eyes, 0.3f);
+    CHECK(eyes.particle_count == 0 && eyes.emit_debt > 0.5f);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_SLEEPY, 0.0f);
+    lp_test_play(&eyes, 0.5f);
+    CHECK(eyes.particle_count == 0);
+    lp_test_play(&eyes, 1.1f / sleepy->emit_rate - 0.5f);
+    CHECK(eyes.particle_count == 1); /* on time */
+}
+
+void test_particles_owed_at_one_rate_are_not_owed_at_another(void)
+{
+    /* Happy and sleepy both send sparkles, at 1.2 and 0.4 a second: 0.75 s of happy owes 0.9 of a sparkle, which
+     * sleepy does not owe. Checked at 0.5 s, while a sparkle that came too early would still be there. */
+    const lp_emotion_def *happy = lp_emotion_get(LP_EMOTION_HAPPY);
+    const lp_emotion_def *sleepy = lp_emotion_get(LP_EMOTION_SLEEPY);
+    CHECK(happy->emit == sleepy->emit && happy->emit_rate != sleepy->emit_rate);
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_HAPPY, 0.0f);
+    lp_test_play(&eyes, 0.75f);
+    CHECK(eyes.particle_count == 0 && eyes.emit_debt > 0.5f);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_SLEEPY, 0.0f);
+    lp_test_play(&eyes, 0.5f);
+    CHECK(eyes.particle_count == 0);
+}

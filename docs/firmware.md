@@ -38,13 +38,24 @@ Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 imag
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.
 
+## Tests
+
+Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lancés avec ceux du moteur
+(`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S
+n'a jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le
+moment où un look s'écrit en flash (`look_saving.h`) et le calcul d'une image : les bandes partagées entre les deux
+cœurs, la part de l'écran redessinée (`frame.h`).
+Le reste se vérifie sur la carte, avec `firmware:check-device`.
+
 ## Pilotes d'écran
 
 - **Écran rond** (`firmware/main/display_co5300.c`) : il reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
-  Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs
-  et l'absence de déchirure.
+  Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs,
+  l'absence de déchirure, et que le signal TE vient avant que l'écran s'allume. L'écran ne s'allume qu'après la première
+  image, car sa mémoire garde du bruit au démarrage, et `display_init` cherche le TE avant : s'il n'en voit pas, le
+  journal le dit (« no TE signal »).
 - **AtomS3R** (`firmware/main/display_atoms3r.c`) : il reprend les réglages de la bibliothèque de M5Stack
   ([M5GFX](https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp), `board_M5AtomS3R`) : SPI à 40 MHz,
   identifiant lu pour distinguer les deux puces d'écran (ST7735S ou GC9107), séquence d'initialisation complète de
@@ -71,14 +82,15 @@ qu'un PC.
 
 ### Sur la puce
 
-- **M5Stamp S3A, 466 px** (`BOARD=stamp_s3a mise run firmware:deploy`), même processeur que le Waveshare : sans écran
-  ni PSRAM, ses bandes de 466 px partent sur des broches non branchées, donc les temps restent réalistes. Elle joue en
-  boucle l'animation de mesure, avec le même look (cherry), la même graine et le même pas fixe de 1/60 s que sur PC,
-  pour dessiner les mêmes images que `mise run engine:bench` : la part redessinée se compare, mais son temps de dessin
-  est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, pour 51 % de l'écran redessiné en
-  moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s ;
-  sur les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à
-  52 images/s.
+- **M5Stamp S3A, 466 px** (`BOARD=stamp_s3a mise run firmware:deploy`), même processeur que le Waveshare : sans écran ni
+  PSRAM, ses bandes de 466 px partent sur des broches non branchées, donc les temps restent réalistes. Elle joue en
+  boucle l'animation de mesure, avec le même look (cherry), la même graine et le même pas fixe de 1/60 s que sur PC.
+  Chaque tour démarre comme chaque passe sur PC (les mêmes yeux, leur première image dessinée entière et non comptée),
+  donc il dessine les mêmes images que `mise run engine:bench`, toutes : la part redessinée se compare, mais son temps
+  de dessin est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, avant que chaque tour reparte de
+  zéro (les tours suivant le premier continuaient alors l'animation du précédent), pour 51 % de l'écran redessiné en
+  moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s ; sur
+  les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à 52 images/s.
 - **AtomS3R, 128 px**, yeux au repos : 8,2 ms de dessin par image, puis 4,9 ms (novembre 2026) une fois le mélange des
   couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne (la puce n'a pas de
   division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les pixels répétés

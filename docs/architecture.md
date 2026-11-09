@@ -21,10 +21,11 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`).
 - **Vision** (`vision/`, créé à l'achat de la XIAO) : la carte vision, sa caméra et son modèle, reliés à la carte
   écran par UART ; le modèle décide, le moteur exécute ([décision 7](adr/0007-deux-cartes-uart.md)). Matériel :
   [materiel.md](materiel.md).
-- **Outillage** : les mêmes outils aux mêmes versions en local et en CI ([décision 8](adr/0008-outils-figes.md)).
-  CMake et Ninja avec des presets (`host-debug` avec AddressSanitizer et UBSan, `host-release`, `wasm`), clang-format
-  et clang-tidy pour le C, avertissements traités comme des erreurs, un mini-lanceur de tests sans dépendance
-  (`engine/tests/test.h`) ; côté JS, Prettier et oxlint ; des hooks git et une carte du code générée, vérifiée en CI.
+- **Outillage** : les mêmes outils aux mêmes versions en local et en CI ([décision 8](adr/0008-outils-figes.md)). CMake
+  et Ninja avec des presets (`host-debug` avec AddressSanitizer et UBSan, `host-release`, `wasm`), clang-format et
+  clang-tidy pour le C, avertissements traités comme des erreurs, un mini-lanceur de tests sans dépendance
+  (`engine/tests/test.h`), qui fait aussi tourner les parties pures du firmware (`firmware/tests`) ; côté JS, Prettier
+  et oxlint ; des hooks git et une carte du code générée, vérifiée en CI.
 
 ## Décisions
 
@@ -77,4 +78,7 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 - Le protocole n'a pas d'identifiants : l'app associe une réponse à une demande par ordre d'arrivée.
 - Le WebAssembly garde une seule instance d'yeux, ce que l'éditeur devra changer.
 - `EyeGlyph` recopie les constantes de pupilles du moteur.
+- `lp_eyes_set_shape` accepte toute inclinaison : la rotation des émotions (jusqu'à -1,2 rad) a été réglée pour
+  l'inclinaison mesurée (0,37 rad), et au-delà un œil peut tourner de plus d'un quart de tour. L'éditeur des yeux devra
+  la borner.
 - Les lignes de particules parcourent toute leur boîte : les limiter aux colonnes touchées déplaçait un pixel.

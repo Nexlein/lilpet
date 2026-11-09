@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (28) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+- **.lintstagedrc.mjs** (37) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
 
 ## .husky
@@ -48,7 +48,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
-- **device.ts** (59) — What the app asks the device, on top of a connection
+- **device.ts** (60) — What the app asks the device, on top of a connection
   - exports: BoardBusy, NotLilpet, hello, command, LookSent, sendLook
   - → app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/protocol.ts
   - ← app/src/device/session.ts, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
@@ -59,7 +59,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/session.ts
-- **session.ts** (121) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
+- **session.ts** (141) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
   - ← app/src/ui/DeviceBar.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
@@ -111,7 +111,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (52) — React state around the engine, the device connection and the browser
+- **hooks.ts** (63) — React state around the engine, the device connection and the browser
   - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
   - → app/src/data/favorites.ts, app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react
@@ -127,16 +127,16 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: app.spec.mjs
 
 ## engine
-- **CMakeLists.txt** (52) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
+- **CMakeLists.txt** (53) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
   - → engine/sources.cmake
 - **sources.cmake** (9) — Engine sources and warning flags, shared by engine/CMakeLists.txt (host, WebAssembly) and the ESP-IDF component (firmware/components/lilpet).
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
 
 ## engine/include/lilpet
-- **lilpet.h** (405) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
+- **lilpet.h** (407) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_rng_seed, lp_rng_next, lp_pupil, lp_look, lp_look_parse, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_emotion_from_name, lp_event, lp_reaction, lp_reaction_get, lp_event_from_name, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_spawn, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_shake_update, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -152,13 +152,13 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.c** (35) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)
   - exports: lp_reaction_get, lp_emotion_get, lp_emotion_from_name, lp_event_from_name
   - → engine/src/emotions_table.h, engine/include/lilpet/lilpet.h
-- **emotions_table.h** (89) — Generated by scripts/gen-emotions-table.mjs from eyes/emotions.json: do not edit.
+- **emotions_table.h** (90) — Generated by scripts/gen-emotions-table.mjs from eyes/emotions.json: do not edit.
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/emotions.c
-- **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
+- **eyes.c** (439) — State and animation of the eyes: emotions, gaze, head, blink, particles.
   - exports: lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **internal.h** (52) — Helpers shared by the engine sources.
+- **internal.h** (54) — Helpers shared by the engine sources.
   - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/eyes.c, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
@@ -200,10 +200,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: test.h, test_command.c, test_eyes.c, test_look.c, test_main.c, test_motion.c, test_pose.c, test_reactions.c, test_render.c, test_senses.c, test_version.c
 
 ## engine/tools
-- **bench.c** (143) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).
+- **bench.c** (142) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).
   - exports: main
   - → engine/tests/scenes_table.h, engine/tools/bench_script.h, engine/include/lilpet/lilpet.h
-- **bench_script.h** (39) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
+- **bench_script.h** (46) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
   - → engine/include/lilpet/lilpet.h
   - ← engine/tools/bench.c, firmware/main/main.c
 
@@ -224,6 +224,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
+- tests: engine.test.mjs
 
 ## eyes
 - **emotions.json** (67) — data
@@ -266,9 +267,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (142) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.c** (176) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
-  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_store.h
+  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
 - **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
@@ -276,24 +277,37 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (227) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (222) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
-  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h
-- **display_co5300.c** (164) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h, firmware/main/lcd_id.h
+- **display_co5300.c** (170) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
   - → firmware/boards/*/board_config.h, firmware/main/display.h
 - **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
   - exports: display_wait_frame
   - → firmware/main/display.h
+- **frame.h** (26) — The arithmetic of a frame on the board (main.c): which rows of a band each core draws, and the share of the screen a frame redraws, for the timing ...
+  - → engine/include/lilpet/lilpet.h
+  - ← firmware/main/main.c
 - **imu.h** (16) — Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (board.cmake)
   - exports: imu_init, imu_gravity
   - ← firmware/main/commands.c, firmware/main/imu_bmi270.c, firmware/main/imu_none.c, firmware/main/main.c
-- **imu_bmi270.c** (143) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
+- **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
+  - exports: imu_axis
+  - ← firmware/main/imu_bmi270.c
+- **imu_bmi270.c** (137) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
-  - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h
+  - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_axes.h
 - **imu_none.c** (13) — Boards without a motion sensor
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h
+- **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
+  - exports: LCD_ID_ANSWER, lcd_id
+  - ← firmware/main/display_atoms3r.c
+- **look_saving.h** (43) — When a look just shown is written to flash: at once, then at most every LOOK_SAVE_GAP_US, so that a sender streaming looks (an editor's slider) doe...
+  - exports: LOOK_SAVE_GAP_US, look_save
+  - → engine/include/lilpet/lilpet.h
+  - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h
@@ -301,9 +315,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (205) — Firmware entry point: the eyes, live on the display.
+- **main.c** (235) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
-  - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+  - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+
+## firmware/tests
+- tests: test_firmware.c
 
 ## firmware/third_party/bmi270
 - **bmi270_config.c** (558) — Uploaded to the sensor at startup (imu_bmi270.c): without it, the BMI270 gives no measurement
@@ -313,10 +330,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
-- **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
-  - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
+- **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
+  - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py
-- **check-device.py** (257) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+- **check-device.py** (263) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
   - ← mise.toml
@@ -328,22 +345,22 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
-  - ← scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
-- **flash-guard.py** (41) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
+  - ← engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+- **flash-guard.py** (48) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
   - exports: running_board, before_flash
   - → scripts/board_link.py
   - ← mise.toml
 - **gen-common.mjs** (28) — What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
   - exports: emotionEnum, eventEnum, num, writeGenerated
   - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs
-- **gen-emotions-table.mjs** (62) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
+- **gen-emotions-table.mjs** (64) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
   - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
   - ← package.json
-- **gen-scenes-table.mjs** (59) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
+- **gen-scenes-table.mjs** (60) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
-- **goldens.mjs** (206) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
-  - exports: compare
+- **goldens.mjs** (229) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+  - exports: strict, compare
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
   - ← mise.toml, package.json
 - **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
@@ -382,16 +399,16 @@ npm (`npm run <script>`, workspace app):
 
 npm (`npm run <script>`):
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
-- `lint:js`: `oxlint --deny-warnings`
+- `lint:js`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --deny-warnings`
 - `lint:shell`: `git ls-files -z .husky | xargs -0 shellcheck`
-- `lint:actions`: `actionlint`
-- `lint:python`: `ruff check scripts`
-- `lint:fix`: `oxlint --fix && ruff check --fix scripts`
-- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && ruff format scripts`
-- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && ruff format --check scripts`
+- `lint:actions`: `git ls-files -z -- '.github/workflows/*.yml' '.github/workflows/*.yaml' | xargs -0 -r actionlint`
+- `lint:python`: `git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check`
+- `lint:fix`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --fix && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check --fix`
+- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format`
+- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format --check`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:tables`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-scenes-table.mjs --check`
-- `check:scripts`: `node --test scripts/ && uv run scripts/test_board_scripts.py`
+- `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
 - `check:codemap`: `node scripts/codemap.mjs --check`
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`

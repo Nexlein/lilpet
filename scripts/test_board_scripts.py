@@ -19,9 +19,14 @@ SCRIPTS = Path(__file__).resolve().parent
 ROOT = SCRIPTS.parent
 PORT = "/dev/ttyACM0"
 
-HELLO = re.search(r'"< (lilpet [^"]*)\\n"', (ROOT / "firmware" / "main" / "commands.c").read_text()).group(1)
+COMMANDS_C = (ROOT / "firmware" / "main" / "commands.c").read_text()
+HELLO = re.search(r'"< (lilpet [^"]*)\\n"', COMMANDS_C).group(1)
 LILPET_H = (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
 LINE_MAX = int(re.search(r"LP_COMMAND_LINE_MAX\s+(\d+)", LILPET_H).group(1))
+LOOK_SAVING_H = (ROOT / "firmware" / "main" / "look_saving.h").read_text()
+SAVE_GAP = int(re.search(r"#define\s+LOOK_SAVE_GAP_US\s+(\d+)", LOOK_SAVING_H).group(1)) / 1e6  # seconds
+# Seconds: the firmware may notice that a late look's turn came this much later (read_line in commands.c)
+READ_WAIT = int(re.search(r"#define\s+READ_WAIT_MS\s+(\d+)", COMMANDS_C).group(1)) / 1000
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -62,29 +67,50 @@ class Board:
         dtr_error=None,
         monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
+        cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
+        drops_late_looks=False,  # a look that waits for its turn answers ok but is never written
+        comes_back=True,  # starts again after a reset
+        lost_at=None,  # the port goes away when the board gets this line (unplugged)
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
+        self.cut, self.drops_late_looks, self.comes_back, self.lost_at = cut, drops_late_looks, comes_back, lost_at
+        self.lost = False
         self.look = "AE0002 FF5252 FF5252 dot"
+        # What the flash holds, when it was written, and a look waiting for its turn (firmware/main/look_saving.h)
+        self.kept, self.saved_at, self.late = self.look, -SAVE_GAP, None
         self.mood = "neutral"
         self.in_reset = False
         self.input = b""
         self.opened = 0
 
     def boot(self):
-        self.mood = "neutral"
+        self.look, self.mood = self.kept, "neutral"
+        self.saved_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
         self.reads_from = clock.now + 1
         for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
         if self.report:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
 
+    def write_late_look(self):
+        """What the firmware does while it runs: a look waiting for its turn is written once its turn comes, at the
+        latest when its read gives up waiting for a byte"""
+        if self.late and clock.now - self.saved_at >= SAVE_GAP + READ_WAIT and not self.drops_late_looks:
+            self.kept, self.saved_at, self.late = self.late, self.saved_at + SAVE_GAP + READ_WAIT, None
+
     def set_reset(self, held):
+        if held and not self.in_reset:
+            self.write_late_look()
+            self.late = None  # not written by then: lost
         if self.in_reset and not held:
-            self.boot()
+            if self.comes_back:
+                self.boot()
+            else:
+                self.reads_from = math.inf
         self.in_reset = held
 
     def receive(self, data):
@@ -96,6 +122,7 @@ class Board:
             if reply:
                 self.output.append((clock.now, f"< {reply}"))
             self.stop_if(line.decode())
+            self.lost = self.lost or line.decode() == self.lost_at
 
     def stop_if(self, event):
         if event == self.stop_at:
@@ -118,6 +145,13 @@ class Board:
             if not re.fullmatch(LOOK, rest):
                 return "err malformed look"
             self.look = rest
+            self.write_late_look()
+            if rest == self.kept:
+                self.late = None
+            elif clock.now - self.saved_at >= SAVE_GAP:
+                self.kept, self.saved_at, self.late = rest, clock.now, None
+            else:
+                self.late = rest
             return "ok"
         if word not in DRIVES:
             return "err unknown command"
@@ -144,6 +178,7 @@ class Serial:
         self.port, self.baudrate, self.timeout, self.exclusive = None, None, None, None
         self.board = None  # once open
         self._dtr = self._rts = True
+        self._rest = b""  # the second part of a cut line
 
     def open(self):
         board = plugged[self.port]
@@ -193,15 +228,26 @@ class Serial:
             self.board.stop_if("rts")
 
     def write(self, data):
+        if self.board.lost:
+            raise OSError("device disconnected")
         clock.now += 0.001
         self.board.receive(data)
 
     def readline(self):
+        if self.board.lost:
+            raise OSError("device disconnected")
+        if self._rest:
+            rest, self._rest = self._rest, b""
+            return rest
         line = self.board.next_line()
         if line is None:
             clock.now += self.timeout
             return b""
-        return f"{line}\r\n".encode()
+        data = f"{line}\r\n".encode()
+        if self.board.cut:
+            clock.now += self.timeout  # readline gave up in the middle of the line
+            data, self._rest = data[: self.board.cut], data[self.board.cut :]
+        return data
 
 
 serial = types.ModuleType("serial")
@@ -308,8 +354,27 @@ class FlashGuard(unittest.TestCase):
         self.assertIn("FORCE=1", err)
         self.assertEqual(board.opened, 0)
 
-    def test_prints_nothing_with_no_board(self):
-        self.assertEqual(guard()[:2], (0, ""))
+    def test_stops_with_no_board(self):
+        # esptool would try every serial port and flash whatever answers, with no hello asked
+        status, out, _ = guard()
+        self.assertIn("No board found", status)
+        self.assertEqual(out, "")
+
+    def test_force_lets_esptool_look_for_a_board(self):
+        status, out, err = guard(FORCE="1")
+        self.assertEqual((status, out), (0, ""))
+        self.assertIn("esptool looks for one", err)
+
+    def test_an_empty_port_means_the_only_board(self):
+        status, out, _ = guard(Board("waveshare_132"), PORT="")
+        self.assertIn(f"{PORT} runs the image of waveshare_132", status)
+        self.assertEqual(out, "")
+
+    def test_reads_a_hello_cut_in_two(self):
+        # Its first half has no board=: read alone, it would pass for a silent board
+        status, out, _ = guard(Board("waveshare_132", cut=20))
+        self.assertIn("runs the image of waveshare_132", status)
+        self.assertEqual(out, "")
 
     def test_stops_when_several_boards_could_be_meant(self):
         status, out, _ = guard(Board("atoms3r"), Board("atoms3r"))
@@ -336,6 +401,9 @@ class DeviceCheck(unittest.TestCase):
 
     def test_passes_a_healthy_board(self):
         self.assert_passes(Board("atoms3r"))
+
+    def test_passes_a_board_whose_lines_come_in_two_parts(self):
+        self.assert_passes(Board("atoms3r", cut=12))
 
     def test_passes_a_board_with_no_motion_sensor(self):
         self.assert_passes(Board("waveshare_132", motion=False))
@@ -392,6 +460,22 @@ class DeviceCheck(unittest.TestCase):
         self.assertIn("FAIL runs to the end (interrupted)", out)
         self.assertIn("ok   gets its own look back", out)
         self.assertEqual((board.look, board.mood), (look, "neutral"))
+
+    def test_fails_a_board_that_loses_the_last_of_two_quick_looks(self):
+        status, out, _ = check_device(Board("atoms3r", drops_late_looks=True))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL still has the last look after the reboot", out)
+
+    def test_fails_a_board_that_does_not_come_back_after_the_reboot(self):
+        status, out, _ = check_device(Board("atoms3r", comes_back=False))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL reboots on request", out)
+
+    def test_a_port_lost_midway_says_how_to_give_the_look_back(self):
+        status, out, _ = check_device(Board("atoms3r", lost_at="> react tap"))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL runs to the end (port lost: device disconnected)", out)
+        self.assertIn("FAIL gets its own look back (port lost, send it again: > look AE0002 FF5252 FF5252 dot)", out)
 
     def test_keeps_a_monitor_off_the_port(self):
         status, _, _ = check_device(Board("atoms3r", monitor_open=True))

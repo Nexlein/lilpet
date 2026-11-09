@@ -40,6 +40,10 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 {
     if ((unsigned)emotion >= LP_EMOTION_COUNT || !isfinite(duration))
         return;
+    const lp_emotion_def *from = lp_emotion_get(eyes->emotion);
+    const lp_emotion_def *to = lp_emotion_get(emotion);
+    if (to->emit != from->emit || to->emit_rate != from->emit_rate)
+        eyes->emit_debt = 0.0f; /* what one emitter owed is not owed by another */
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
     if (duration <= 0.0f)
@@ -91,14 +95,15 @@ void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
 
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
 {
-    if (isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt))
+    const bool finite = isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt);
+    if (finite && shape->rx > 0.0f && shape->ry > 0.0f) /* an eye with no size is no shape */
         eyes->shape = *shape;
 }
 
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
 {
     if (isfinite(amount))
-        eyes->head_amount = amount;
+        eyes->head_amount = lp_maxf(0.0f, lp_minf(1.0f, amount));
 }
 
 void lp_eyes_blink(lp_eyes *eyes)

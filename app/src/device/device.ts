@@ -53,7 +53,8 @@ export async function command(connection: Connection, line: string): Promise<voi
 
 export type LookSent = 'kept' | 'shown';
 
-// The device shows the look at once and keeps it in flash; 'shown': the flash refused it, the look is only on screen
+// The device shows the look at once and keeps it in flash, at once or in its turn (docs/protocole.md); 'shown': the
+// flash refused it, the look is only on screen
 export async function sendLook(connection: Connection, look: Look): Promise<LookSent> {
     return (await ask(connection, lookCommand(look))) === 'shown' ? 'shown' : 'kept';
 }

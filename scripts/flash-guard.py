@@ -2,8 +2,8 @@
 # wrong pins. A blank board says nothing, and neither does an image stopped by its chip check, a firmware older than
 # board= or a board that keeps rebooting, whose port fails: those go on. FORCE=1 asks nothing: it replaces the board's
 # image for good, and it is the way out when nothing else answers.
-# Prints the port on stdout, so that esptool flashes the board it asked, or nothing with no board found. Messages go to
-# stderr.
+# Prints the port on stdout, so that esptool flashes the board it asked. With no board found it stops: esptool would try
+# every serial port and flash whatever answers, with nothing asked. Messages go to stderr.
 # Usage: run by BOARD=<board> mise run firmware:flash (PORT, or the only board plugged in).
 import os
 import sys
@@ -24,9 +24,16 @@ def running_board(name):
 
 def before_flash(board):
     name = find_port()
+    force = os.environ.get("FORCE") == "1"
     if name is None:
-        return  # esptool tells that no board answers
-    if os.environ.get("FORCE") == "1":
+        if not force:
+            sys.exit(
+                "No board found on a USB port of the chip: plug one in (a board that does not show up: unplug it, hold"
+                " BOOT, plug it back), or let esptool look for it with FORCE=1."
+            )
+        print("No board found: esptool looks for one (FORCE=1)", file=sys.stderr)
+        return
+    if force:
         print(f"{name}: flashing {board} over whatever it runs (FORCE=1)", file=sys.stderr)
     else:
         running = running_board(name)

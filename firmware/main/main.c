@@ -20,6 +20,7 @@
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "frame.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -33,9 +34,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
-#define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
-#define REPORT_FRAMES LP_BENCH_FRAMES /* a whole round of the benchmark: every report covers the same frames */
+#define BAND_ROWS  30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
+#define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
@@ -79,6 +79,51 @@ static struct {
     int frames;
     int64_t render, render_max, frame, frame_max, area;
 } stats;
+
+/* What the renderer needs for this board: the size of its display, and the byte order of the controllers */
+static void start_renderer(void)
+{
+    lp_renderer_init(&renderer);
+    lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
+    lp_renderer_set_big_endian(&renderer, true);
+}
+
+/*
+ * Draws the frame of `eyes` band by band into the two DMA buffers, each band half on each core, while the band before
+ * is sent, then waits for the last one. Returns the region drawn; *render: the time both cores spent drawing.
+ */
+static lp_rect draw_frame(uint16_t *bands[2], int64_t *render)
+{
+    const lp_rect dirty = lp_render_begin(&renderer, &eyes);
+    const int width = dirty.x1 - dirty.x0;
+    *render = 0;
+    int b = 0;
+    for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
+        const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
+        const int half = frame_band_half(y, y1);
+        const int64_t t = esp_timer_get_time();
+        second_core.y0 = half;
+        second_core.y1 = y1;
+        second_core.pixels = &bands[b][(half - y) * width];
+        xSemaphoreGive(second_core.start);
+        lp_render_rows(&renderer, y, half, bands[b]);
+        xSemaphoreTake(second_core.done, portMAX_DELAY);
+        *render += esp_timer_get_time() - t;
+        display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);
+    }
+    display_flush();
+    return dirty;
+}
+
+/* A round of the benchmark starts as each pass of tools/bench.c: the same eyes, and their first frame drawn whole,
+ * not counted. Its frames are then the host's, every one. */
+static void start_bench_round(uint16_t *bands[2])
+{
+    lp_bench_start(&eyes);
+    start_renderer();
+    int64_t render;
+    draw_frame(bands, &render);
+}
 
 static void report(int64_t elapsed_us)
 {
@@ -140,17 +185,16 @@ void app_main(void)
     look_store_load(&look);
     commands_start(&look, motion);
 
-    lp_eyes_init(&eyes, 1);
-    /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
-    lp_eyes_set_look(&eyes, bench ? &LP_BENCH_LOOK : &look);
-    lp_renderer_init(&renderer);
-    lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
-    lp_renderer_set_big_endian(&renderer, true);
+    lp_eyes_init(&eyes, 1); /* the benchmark starts its own eyes: start_bench_round */
+    lp_eyes_set_look(&eyes, &look);
+    start_renderer();
     second_core.start = xSemaphoreCreateBinaryStatic(&second_core.start_buffer);
     second_core.done = xSemaphoreCreateBinaryStatic(&second_core.done_buffer);
     xTaskCreateStaticPinnedToCore(second_core_task, "second core", SECOND_CORE_STACK, NULL, uxTaskPriorityGet(NULL),
                                   second_core.stack, &second_core.task, 1);
     lp_senses_init(&senses);
+    if (bench)
+        start_bench_round(bands);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
@@ -169,24 +213,8 @@ void app_main(void)
         lp_senses_update(&senses, &eyes, imu_gravity(g) ? g : NULL, board_button_pressed(), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
-        const lp_rect dirty = lp_render_begin(&renderer, &eyes);
-        const int width = dirty.x1 - dirty.x0;
-        int64_t render = 0; /* until both halves of each band are drawn */
-        int b = 0;
-        for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
-            const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
-            const int half = y + (y1 - y) / 2; /* the second core draws from there, into the same band */
-            const int64_t t = esp_timer_get_time();
-            second_core.y0 = half;
-            second_core.y1 = y1;
-            second_core.pixels = &bands[b][(half - y) * width];
-            xSemaphoreGive(second_core.start);
-            lp_render_rows(&renderer, y, half, bands[b]);
-            xSemaphoreTake(second_core.done, portMAX_DELAY);
-            render += esp_timer_get_time() - t;
-            display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);
-        }
-        display_flush();
+        int64_t render;
+        const lp_rect dirty = draw_frame(bands, &render);
         const int64_t frame = esp_timer_get_time() - start;
 
         stats.frames++;
@@ -194,12 +222,14 @@ void app_main(void)
         stats.render_max = render > stats.render_max ? render : stats.render_max;
         stats.frame += frame;
         stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
-        stats.area +=
-            (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (BOARD_DISPLAY_SIZE * BOARD_DISPLAY_SIZE);
-        if (stats.frames == REPORT_FRAMES) {
+        stats.area += frame_area_permille(dirty, BOARD_DISPLAY_SIZE);
+        if (f == LP_BENCH_FRAMES - 1) { /* a whole round of the benchmark: every report covers the same frames */
             const int64_t now = esp_timer_get_time();
             report(now - report_start);
-            report_start = now;
+            if (bench)
+                start_bench_round(bands); /* between two rounds, out of any frame's time */
+            /* Outside the benchmark, the report's own time counts in the next one */
+            report_start = bench ? esp_timer_get_time() : now;
         }
     }
 }

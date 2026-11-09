@@ -26,13 +26,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history, for the secret scan
 
       # Installs the tools from mise.toml, same as local development (only those `npm run check` uses). Actions are
       # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
-          install_args: node uv python shellcheck actionlint ruff
+          install_args: node uv python shellcheck actionlint ruff gitleaks
+
+      # The pre-commit hook scans what is staged, but a commit can skip it (--no-verify, a worktree without its hooks)
+      - name: Scan the history for secrets
+        run: gitleaks git --redact --no-banner --verbose
 
       - run: npm ci
 

@@ -7,6 +7,7 @@
 #include "board.h"
 #include "board_config.h"
 #include "display.h"
+#include "lcd_id.h"
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
@@ -114,10 +115,7 @@ static void send(uint8_t cmd, const uint8_t *params, size_t len)
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(io, cmd, params, len));
 }
 
-/*
- * Reads the controller ID (command 0x04) on the data wire, at a low clock. The answer may start after a dummy bit or
- * byte, so every alignment of the bits read is tried against the IDs M5GFX knows.
- */
+/* Reads the controller ID (command 0x04) on the data wire, at a low clock, and tells the controller (lcd_id.h) */
 static const panel *detect(char *raw, size_t raw_size)
 {
     spi_device_handle_t dev;
@@ -134,7 +132,7 @@ static const panel *detect(char *raw, size_t raw_size)
         .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_CS_KEEP_ACTIVE, .length = 8, .tx_data = {CMD_READ_ID}};
     ESP_ERROR_CHECK(spi_device_polling_transmit(dev, &command));
     gpio_set_level(BOARD_LCD_DC, 1);
-    uint8_t answer[6] = {0};
+    uint8_t answer[LCD_ID_ANSWER] = {0};
     spi_transaction_t data = {.rxlength = 8 * sizeof answer, .rx_buffer = answer};
     ESP_ERROR_CHECK(spi_device_polling_transmit(dev, &data));
     spi_device_release_bus(dev);
@@ -142,18 +140,15 @@ static const panel *detect(char *raw, size_t raw_size)
 
     snprintf(raw, raw_size, "%02X %02X %02X %02X %02X %02X", answer[0], answer[1], answer[2], answer[3], answer[4],
              answer[5]);
-    uint64_t bits = 0;
-    for (size_t i = 0; i < sizeof answer; i++)
-        bits = bits << 8u | answer[i];
-    for (unsigned shift = 0; shift <= 16u; shift++) {
-        const uint32_t word = (uint32_t)(bits >> (16u - shift)); /* 4 bytes as they came, first byte highest */
-        const uint32_t id = __builtin_bswap32(word);             /* first byte lowest, as M5GFX compares them */
-        if ((id & 0xFFFFu) == 0x7683u || (id & 0xFFFFu) == 0x897Cu)
-            return &ST7735S;
-        if ((id & 0xFFFFFFu) == 0x079100u)
-            return &GC9107;
+    switch (lcd_id_match(answer)) {
+    case LCD_ID_ST7735S:
+        return &ST7735S;
+    case LCD_ID_GC9107:
+        return &GC9107;
+    case LCD_ID_UNKNOWN:
+    default:
+        return NULL;
     }
-    return NULL;
 }
 
 const char *display_init(size_t max_band_bytes)

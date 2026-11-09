@@ -55,6 +55,7 @@
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
+    X(test_shape_and_head_amount_stay_in_their_ranges)                                                                 \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
     X(test_emotion_without_a_positive_duration_is_the_mood)                                                            \
     X(test_duration_that_is_not_finite_leaves_the_mood)                                                                \
@@ -62,7 +63,7 @@
     X(test_mood_that_is_the_reaction_stays_after_it)                                                                   \
     X(test_reaction_after_a_scene_returns_to_its_emotion)                                                              \
     X(test_rng_gives_the_mulberry32_sequence)                                                                          \
-    X(test_clamp_with_a_negative_limit_gives_its_opposite)                                                             \
+    X(test_clamp_with_a_negative_limit_gives_zero)                                                                     \
     X(test_every_emotion_and_event_is_found_by_its_name)                                                               \
     X(test_turning_keeps_the_face_level_across_the_wrap)                                                               \
     X(test_gaze_reaches_a_held_pointer)                                                                                \
@@ -70,6 +71,8 @@
     X(test_every_emotion_settles_on_its_expression)                                                                    \
     X(test_blink_pose_stops_at_the_end_of_its_phase)                                                                   \
     X(test_love_sends_hearts_at_its_rate_until_they_fade)                                                              \
+    X(test_particles_owed_by_one_emitter_are_not_owed_by_another)                                                      \
+    X(test_particles_owed_at_one_rate_are_not_owed_at_another)                                                         \
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
@@ -99,10 +102,15 @@
     X(test_cutting_spans)                                                                                              \
     X(test_polygon_edges_reach_every_sub_row)                                                                          \
     X(test_line_too_far_misses_an_ellipse)                                                                             \
-    X(test_eyes_off_the_screen_render_nothing)                                                                         \
+    X(test_extreme_shapes_stay_in_the_buffers)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
-    X(test_small_output_regions_stay_inside)
+    X(test_small_output_regions_stay_inside)                                                                           \
+    X(test_pupil_bigger_than_its_eye_stays_centered)                                                                   \
+    X(test_lcd_id_tells_the_two_controllers_apart)                                                                     \
+    X(test_imu_axes_give_gravity_on_the_screen)                                                                        \
+    X(test_a_look_is_written_at_once_then_at_most_every_gap)                                                           \
+    X(test_frame_splits_bands_and_measures_the_redrawn_share)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)

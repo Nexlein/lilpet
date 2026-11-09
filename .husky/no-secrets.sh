@@ -2,8 +2,8 @@
 # Blocks commits that stage .env files or secrets. Uses gitleaks when installed (mise: gitleaks),
 # otherwise falls back to a short regex list so the hook still protects a machine without it.
 status=0
-# One path per line, so names with spaces stay whole.
-staged=$(git diff --cached --name-only --diff-filter=ACMR)
+# One path per line, so names with spaces stay whole, and not quoted, so that a path with accents ends in its name.
+staged=$(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR)
 while IFS= read -r f; do
   case "$(basename "$f")" in
     "") ;;

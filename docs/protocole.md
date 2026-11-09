@@ -9,8 +9,13 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas). Une ligne fait au plus 94
   caractères : au-delà, `< err line too long`, et le reste est jeté.
 - `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>`.
-- `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>`. Le
-  look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`).
+- `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok`, `< err <raison>`, ou
+  `< err busy` si la file de la boucle de dessin est pleine (comme les commandes des yeux, plus bas). Le look s'affiche
+  même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un nouveau look est
+  écrit en flash tout de suite, puis au plus toutes les 2 s, pour ne pas l'user : un look qui arrive plus tôt répond
+  `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là : le dernier envoyé est celui que la
+  carte garde, un peu plus de 2 s plus tard au pire. Si cette écriture-là échoue, la carte a déjà répondu `< ok` : seul
+  son journal le dit. Un look qui attend son tour se perd si la carte perd l'alimentation ou redémarre avant.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
@@ -25,8 +30,10 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   les yeux le lâchent, pour qu'une source qui s'arrête ne les laisse pas figés. Un visage absent depuis 3 s compte
   comme nouveau et déclenche `face_seen`. `> face off` dit qu'il est parti.
 
-Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` si la boucle de dessin
-ne suit plus. Sur la carte qui joue l'animation de mesure (`stamp_s3a`), elles sont refusées.
+Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` tout de suite si la file
+de la boucle de dessin est pleine (32 commandes entre deux images) : le firmware n'attend pas, sinon le port USB
+jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure
+(`stamp_s3a`), elles sont refusées.
 
 ## Qui s'en sert
 

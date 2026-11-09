@@ -19,7 +19,7 @@ export function App() {
     const engine = useEngine();
     const device = useDevice();
     const [choice, setChoice] = useStored((s) => loadCurrent(s) ?? DEFAULT, saveCurrent);
-    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites);
+    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites, true); // other tabs may add some
     const { swatch, pupil } = choice;
     const key = lookKey(swatch.id, pupil);
 

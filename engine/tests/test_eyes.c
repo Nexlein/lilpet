@@ -72,15 +72,15 @@ void test_rng_gives_the_mulberry32_sequence(void)
         CHECK(lp_rng_next(&rng) == (float)seed_deadbeef[i] / 16777216.0f);
 }
 
-void test_clamp_with_a_negative_limit_gives_its_opposite(void)
+void test_clamp_with_a_negative_limit_gives_zero(void)
 {
     CHECK(lp_clampf(0.25f, 1.0f) == 0.25f);
     CHECK(lp_clampf(2.0f, 1.0f) == 1.0f);
     CHECK(lp_clampf(-2.0f, 1.0f) == -1.0f);
-    /* A pupil bigger than its eye makes the limit negative: max(-lim, min(lim, v)) is then -lim, whatever v */
-    CHECK(lp_clampf(33.5f, -6.75f) == 6.75f);
-    CHECK(lp_clampf(-33.5f, -6.75f) == 6.75f);
-    CHECK(lp_clampf(0.0f, -6.75f) == 6.75f);
+    /* A pupil bigger than its eye makes the limit negative: no room left, so the pupil stays centered */
+    CHECK(lp_clampf(33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(-33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(0.0f, -6.75f) == 0.0f);
 }
 
 void test_follow_off_ignores_the_pointer(void)
@@ -107,6 +107,23 @@ void test_head_amount_zero_keeps_the_head_still(void)
     for (int i = 0; i < 320; i++)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
     CHECK(eyes.head.yaw == 0.0f && eyes.head.pitch == 0.0f && eyes.head.roll == 0.0f);
+}
+
+void test_shape_and_head_amount_stay_in_their_ranges(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 1e20f);
+    CHECK(eyes.head_amount == 1.0f);
+    lp_eyes_set_head_amount(&eyes, -3.0f);
+    CHECK(eyes.head_amount == 0.0f);
+    /* An eye with no size, or a negative one, is no shape: the one before stays */
+    const lp_shape before = eyes.shape;
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 0.0f, .ry = 50.0f, .gap = 101.0f, .tilt = 0.37f});
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 50.0f, .ry = -50.0f, .gap = 101.0f, .tilt = 0.37f});
+    CHECK(eyes.shape.rx == before.rx && eyes.shape.ry == before.ry);
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 1.0f, .ry = 400.0f, .gap = 400.0f, .tilt = -0.5f});
+    CHECK(eyes.shape.rx == 1.0f && eyes.shape.ry == 400.0f && eyes.shape.gap == 400.0f && eyes.shape.tilt == -0.5f);
 }
 
 void test_set_shape_is_used_by_the_renderer(void)

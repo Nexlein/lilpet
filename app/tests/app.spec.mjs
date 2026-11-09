@@ -233,6 +233,20 @@ test('the filters narrow the colors down, and let go', async ({ page }) => {
     await expect(chips).toHaveCount(100);
 });
 
+test("two tabs keep each other's favorites", async ({ page, context }) => {
+    await page.goto(APP);
+    const other = await context.newPage(); // opened before the first favorite: it read none
+    await other.goto(APP);
+    await chip(page, 'socks').click();
+    await page.locator('.favorite').click();
+    await expect(other.locator('.favorites .chip')).toHaveText(['socks point']); // told by the first tab
+    await chip(other, 'kite').click();
+    await other.locator('.favorite').click();
+    await page.reload();
+    await expect(page.locator('.favorites .chip')).toHaveText(['socks point', 'kite point']);
+    await other.close();
+});
+
 test('a favorite keeps its pupil, comes back with it, and goes when removed', async ({ page }) => {
     await page.goto(APP);
     const heart = page.locator('.favorite');
@@ -723,6 +737,9 @@ test('goes on when the browser blocks its storage', async ({ page }) => {
     await expect(page.locator('.look-name h1')).toHaveText('socks');
     await page.locator('.favorite').click();
     await expect(page.locator('.favorites .chip')).toHaveCount(1);
+    await chip(page, 'kite').click(); // the favorites live in the page meanwhile: a second one keeps the first
+    await page.locator('.favorite').click();
+    await expect(page.locator('.favorites .chip')).toHaveText(['socks point', 'kite point']);
 });
 
 test('goes on when the browser storage is full', async ({ page }) => {

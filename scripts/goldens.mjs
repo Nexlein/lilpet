@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'nod
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadEngine } from '../engine/wasm/engine.mjs';
-import { SCENES, lookOf, readJson, swatchesById } from './data.mjs';
+import { EMOTIONS, SCENES, lookOf, readJson, swatchesById } from './data.mjs';
 import { decodePng, differingPixels, encodePng, rgbOf } from './png.mjs';
 
 const MODULE = 'engine/build/wasm/lilpet.mjs';
@@ -18,6 +18,7 @@ const DIR = 'engine/tests/goldens';
 const FAILED = 'engine/build/goldens';
 const HASHES = 'animation.txt';
 const FIRST = 'animation-first-difference.png'; // the first frame of the animation that differs
+const RENDER = /^(scene-[a-z0-9-]+\.png|animation\.(png|txt))$/; // what this script writes: the only files it removes
 const STEP = 1 / 64; // exact in float, as the engine's tests step
 const SAMPLE = 16; // steps between two hashed frames
 
@@ -52,6 +53,23 @@ for (const [label, steps] of PARTS)
 
 const hash = (rgb) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
 const pixelsDiffer = (n) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
+
+function requireKnown(names, name, what) {
+    if (!names.includes(name)) throw new Error(`the reference animation names an unknown ${what}: "${name}"`);
+}
+
+/**
+ * The engine, refusing an emotion or an event it does not know: it would ignore it, and a part of the animation would
+ * test nothing while its frames still matched.
+ */
+export function strict(engine, events) {
+    return {
+        ...engine,
+        setEmotion: (name) => (requireKnown(engine.emotions, name, 'emotion'), engine.setEmotion(name)),
+        react: (event) => (requireKnown(events, event, 'event'), engine.react(event))
+    };
+}
+
 /** The frame lines of the text of animation.txt, without its comments */
 const framesOf = (text) => text.split('\n').filter((line) => line && !line.startsWith('#'));
 
@@ -61,7 +79,10 @@ const framesOf = (text) => text.split('\n').filter((line) => line && !line.start
  * frame is kept, not the hundreds of others.
  */
 async function renders(expected) {
-    const engine = await loadEngine(pathToFileURL(resolve(MODULE)).href);
+    const engine = strict(
+        await loadEngine(pathToFileURL(resolve(MODULE)).href),
+        Object.keys(readJson(EMOTIONS).reactions)
+    );
     const swatches = swatchesById();
     const images = [];
     for (const scene of readJson(SCENES).scenes) {
@@ -184,8 +205,10 @@ export function compare({ size, images, hashes, firstDifferent }, { dir, failed,
     }
     const wanted = new Set([...images.map((i) => `${i.name}.png`), HASHES]);
     for (const file of readdirSync(dir).filter((f) => !wanted.has(f))) {
-        if (check) problems.push(`${dir}/${file}: nothing draws it any more`);
-        else rmSync(`${dir}/${file}`);
+        const render = RENDER.test(file);
+        if (check) problems.push(`${dir}/${file}: ${render ? 'nothing draws it any more' : 'not a reference render'}`);
+        else if (render) rmSync(`${dir}/${file}`);
+        else console.warn(`${dir}/${file}: not a reference render, left alone`);
     }
     return { problems, rewritten };
 }
