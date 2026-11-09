@@ -13,7 +13,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
-- **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
+- **no-secrets.sh** (20) — Blocks commits that stage .env files or secrets (gitleaks, from mise.toml: the hook runs inside mise, and refuses the commit if gitleaks is still m...
 - **pre-commit** (8) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
 - **pre-push** (8) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
