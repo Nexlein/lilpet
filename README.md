@@ -52,7 +52,8 @@ npm run app:dev
 Puis ouvrir http://localhost:8467/ dans Chrome ou Edge (le moteur doit être compilé : `mise run engine:wasm`). On y
 choisit une couleur et une pupille, avec l'aperçu animé par le vrai moteur. « Brancher lilpet » ouvre la liste des ports
 USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même
-éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer `mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
+éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer
+`mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
 
 ## Vérifier avant de commiter
 
@@ -64,7 +65,8 @@ Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les c
 référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
 - `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
-  (Prettier sur les fichiers suivis par git, ruff pour le Python), linters (oxlint, shellcheck pour les hooks, actionlint
+  (Prettier sur les fichiers suivis par git seulement, pour ne jamais toucher un fichier local non suivi ; ruff pour le
+  Python), linters (oxlint, shellcheck pour les hooks, actionlint
   pour la CI, ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour
   (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` (dont la validation et les
   générateurs sur des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis
@@ -77,8 +79,8 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
 - `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
 Avant chaque commit, le hook cherche des secrets dans ce qui est indexé, formate les fichiers indexés, vérifie les
-fichiers générés quand leurs sources changent et régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
-utilise et qui l'utilise.
+fichiers générés quand leurs sources changent et régénère la carte du code (`npm run codemap`), qui liste chaque fichier
+avec son rôle, ce qu'il exporte, ce qu'il utilise et qui l'utilise.
 
 Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
 
@@ -112,8 +114,8 @@ pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un au
 Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
 la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
 
-Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi à chaque tour de l'animation de mesure, environ
-toutes les 17 s (quitter avec Ctrl+]) :
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
+(`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]) :
 
 ```bash
 mise run firmware:monitor
@@ -131,7 +133,7 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 | Dossier     | Contenu                                                                                    |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| `docs/`     | Documentation : architecture, décisions, protocole, app, yeux, matériel, recherche         |
+| `docs/`     | Architecture, décisions, protocole, firmware, app, yeux, matériel, recherche               |
 | `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
 | `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
 | `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |

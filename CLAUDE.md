@@ -17,23 +17,25 @@ model that will choose the reactions does not exist yet; what it will send is re
 - `docs/architecture.md` before structural work: the parts, the decisions (`docs/adr/`), the open points.
 - `docs/yeux.md` before changing how the eyes look or move: the measured style of the originals.
 - `docs/protocole.md` before changing a command, `docs/firmware.md` before firmware work, `docs/app.md` for the app's
-  spec and roadmap. `README.md` has the setup and the commands for a person.
+  spec and roadmap, `docs/materiel.md` for the hardware, `docs/recherche.md` for what is known of the original.
+  `README.md` has the setup and the commands for a person.
 
 ## Rules
 
 - Code, comments, commits and this file: English. `docs/` and README: French.
-- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it), but scripts that
-  are only run in kebab-case (`check-device.py`), like JS and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React
-  components in PascalCase (`SendPanel.tsx`). A JS test sits next to its module, `<module>.test.mjs` (Node) or
-  `<module>.test.ts` (Vitest); the app's browser tests are in `app/tests`, the engine's in `engine/tests`.
+- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it, and a Python test
+  is `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like JS
+  and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A JS test
+  sits next to its module, `<module>.test.mjs` (Node) or `<module>.test.ts` (Vitest); the app's browser tests are in
+  `app/tests`, the engine's in `engine/tests`.
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets: no direct push, no
   force push, no deletion). The rulesets name the required checks by job name: renaming a CI job or adding a board
-  means updating both rulesets. Dependabot and Renovate open their pull requests against `dev`.
+  means updating both rulesets.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
 - Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate and Dependabot propose each update as a pull
-  request (`docs/adr/0008-outils-figes.md`).
+  request against `dev` (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals: recreate the style, never copy their assets. `references/`
   (frame sheets of third-party videos, behind `docs/yeux.md`) stays local, ignored by git, never published.
 - After changing `eyes/*.json`, `engine/tests/scenes.json` or `scripts/expression.mjs`: `npm run tables` (CI fails on
@@ -47,6 +49,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   silently skips every hook.
 - Never install emsdk through mise: its clang and node shadow the system ones and send ccache into a loop. The
   WebAssembly build runs in the image of `engine/wasm/Dockerfile`, ESP-IDF in the one of `firmware/Dockerfile`.
+- Prettier runs on the files git tracks only (`npm run format`, `format:check`), so the owner's untracked local notes
+  are never touched: keep it that way.
 - The reference renders come from the WebAssembly build: a host build may use FMA and differ by a few pixels. The host
   build uses the system clang and refuses one older than CI's (21).
 - The engine is not thread-safe: the firmware queues the commands for its drawing loop.
