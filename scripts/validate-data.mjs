@@ -17,7 +17,11 @@ const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
 // From the engine's screen.h: the biggest eye radius and gap the drawing is made for, and the particles it shows
 const SCREEN_H = readFileSync('engine/include/lilpet/screen.h', 'utf8');
-const screenDefine = (name) => Number(new RegExp(`#define ${name}\\s+(\\d+)`).exec(SCREEN_H)[1]);
+function screenDefine(name) {
+    const found = new RegExp(`#define ${name}\\s+(\\d+)`).exec(SCREEN_H);
+    if (!found) throw new Error(`engine/include/lilpet/screen.h: no "#define ${name} <number>"`);
+    return Number(found[1]);
+}
 const HALF_SCREEN = screenDefine('LP_SCREEN_SIZE') / 2;
 const MAX_SPARKLES = screenDefine('LP_MAX_PARTICLES');
 const MEASURED_TILT = 0.37; // radians: the emotions' turns were tuned for it (docs/architecture.md)
