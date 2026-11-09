@@ -214,7 +214,7 @@ void lp_eyes_blink(lp_eyes *eyes);
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
 /* Gravity from an accelerometer, in the screen plane (x right, y down, in g), or inactive without one */
 void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
-/* Being shaken (lp_shake_update): the shake reaction lasts as long, and a little after */
+/* Being shaken (lp_senses_update tells it): the shake reaction lasts as long, and a little after */
 void lp_eyes_set_shaking(lp_eyes *eyes, bool shaking);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
@@ -229,7 +229,7 @@ void lp_eyes_update(lp_eyes *eyes, float dt);
 
 /* --- Motion sensor -------------------------------------------------------------------------------- */
 
-/* Tells a shake from raw accelerometer samples (motion.c). The caller owns it; zero it to start. */
+/* The shake detector's state (motion.c), part of lp_senses: lp_senses_update feeds it the raw samples */
 typedef struct {
     float energy; /* distance from 1 g, smoothed */
     float strong; /* seconds of strong motion, before it counts as a shake */
