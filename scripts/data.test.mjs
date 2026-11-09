@@ -15,7 +15,7 @@ const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
 const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
 const SCENES_TABLE = 'engine/tests/scenes_table.h';
-const SIDE_BY_SIDE = { concurrency: availableParallelism() };
+const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
 // imports (engine/wasm/engine.mjs).
@@ -153,7 +153,7 @@ const CASES = [
     [EMOTIONS, 'sparkles on a shake', (d) => (d.reactions.shake.sparkles = 1), '"sparkles" must be 0'],
     [EMOTIONS, 'sparkles upside down', (d) => (d.reactions.upside_down.sparkles = 1), '"sparkles" must be 0']
 ];
-describe('the validator refuses', SIDE_BY_SIDE, () => {
+describe('the validator refuses', PARALLEL, () => {
     for (const [file, what, change, message] of CASES)
         test(`${file}: ${what}`, async () => assertRefused(await validate(file, change), message));
 
@@ -167,7 +167,7 @@ describe('the validator refuses', SIDE_BY_SIDE, () => {
         });
 });
 
-describe('the table generators', SIDE_BY_SIDE, () => {
+describe('the table generators', PARALLEL, () => {
     test('a fault in scenes.json stops the scene table, not the emotion tables', () =>
         withCopy(async (dir) => {
             assert.equal((await run(dir, SCENES_SCRIPT, '--check')).status, 0); // only the fault can stop it
