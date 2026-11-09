@@ -24,6 +24,13 @@ test("a group takes dotfiles, and others' sources stay out", () => {
     assert.ok(!trackedFiles('c').includes('firmware/third_party/bmi270/bmi270_config.c')); // others' sources stay
 });
 
+test('a group is the same from a subfolder', () => {
+    const fromApp = spawnSync(process.execPath, ['../scripts/files.mjs', 'js'], { cwd: 'app', encoding: 'utf8' });
+    const paths = fromApp.stdout.split('\0').filter(Boolean);
+    assert.equal(paths.length, trackedFiles('js').length);
+    assert.ok(paths.includes('../.lintstagedrc.mjs'), fromApp.stdout); // relative to where it runs, for xargs
+});
+
 test('an unknown group stops with the list of groups', () => {
     const { status, stderr } = spawnSync(process.execPath, ['scripts/files.mjs', 'jss'], { encoding: 'utf8' });
     assert.equal(status, 2);
