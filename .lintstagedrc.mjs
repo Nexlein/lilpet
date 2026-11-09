@@ -32,6 +32,6 @@ export default {
     '*.py': ['ruff check --fix', 'ruff format'],
     // the git hooks: every file of .husky is a shell script
     '.husky/*': 'shellcheck',
-    '.github/workflows/*.yml': 'actionlint',
+    '.github/workflows/*.{yml,yaml}': 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write'
 };

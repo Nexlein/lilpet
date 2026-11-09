@@ -401,7 +401,7 @@ npm (`npm run <script>`):
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
 - `lint:js`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --deny-warnings`
 - `lint:shell`: `git ls-files -z .husky | xargs -0 shellcheck`
-- `lint:actions`: `git ls-files -z -- '.github/workflows/*.yml' | xargs -0 -r actionlint`
+- `lint:actions`: `git ls-files -z -- '.github/workflows/*.yml' '.github/workflows/*.yaml' | xargs -0 -r actionlint`
 - `lint:python`: `git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check`
 - `lint:fix`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --fix && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check --fix`
 - `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format`
