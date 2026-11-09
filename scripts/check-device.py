@@ -22,6 +22,7 @@ from board_link import (
     find_port,
     has_motion_sensor,
     hello_fields,
+    next_line,
     open_port,
     read_reply,
 )
@@ -73,8 +74,7 @@ def check_reply(ok, what, reply):
 def read_lines(port, seconds, until=None):
     """What the board prints for that long, or up to and with the first line that matches `until`"""
     lines, end = [], time.time() + seconds
-    while time.time() < end:
-        line = port.readline().decode(errors="replace").strip()
+    while (line := next_line(port, end)) is not None:
         if line:
             lines.append(line)
             if until and re.search(until, line):

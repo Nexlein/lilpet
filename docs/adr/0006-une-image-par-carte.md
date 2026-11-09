@@ -28,6 +28,8 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 - Ajouter un écran : un `.c` de 4 fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2
   fonctions et une ligne. Ajouter une carte aux composants connus : son dossier, que la CI compile d'elle-même (README,
   « Tester sur un ESP32-S3 »).
-- Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde.
+- Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde. Sans carte trouvée
+  sur un port USB de la puce, le flash s'arrête : esptool essaierait chaque port série et flasherait ce qui répond.
+  `FORCE=1` le laisse chercher.
 - Une image `stamp_s3a` sur la XIAO n'est pas arrêtée par la seconde : les deux sont en boîtier QFN56. Le futur firmware
   de la XIAO devra répondre à `> hello` pour que le flash la protège.

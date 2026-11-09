@@ -62,12 +62,14 @@ class Board:
         dtr_error=None,
         monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
+        cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
+        self.cut = cut
         self.look = "AE0002 FF5252 FF5252 dot"
         self.mood = "neutral"
         self.in_reset = False
@@ -144,6 +146,7 @@ class Serial:
         self.port, self.baudrate, self.timeout, self.exclusive = None, None, None, None
         self.board = None  # once open
         self._dtr = self._rts = True
+        self._rest = b""  # the second part of a cut line
 
     def open(self):
         board = plugged[self.port]
@@ -197,11 +200,18 @@ class Serial:
         self.board.receive(data)
 
     def readline(self):
+        if self._rest:
+            rest, self._rest = self._rest, b""
+            return rest
         line = self.board.next_line()
         if line is None:
             clock.now += self.timeout
             return b""
-        return f"{line}\r\n".encode()
+        data = f"{line}\r\n".encode()
+        if self.board.cut:
+            clock.now += self.timeout  # readline gave up in the middle of the line
+            data, self._rest = data[: self.board.cut], data[self.board.cut :]
+        return data
 
 
 serial = types.ModuleType("serial")
@@ -308,8 +318,27 @@ class FlashGuard(unittest.TestCase):
         self.assertIn("FORCE=1", err)
         self.assertEqual(board.opened, 0)
 
-    def test_prints_nothing_with_no_board(self):
-        self.assertEqual(guard()[:2], (0, ""))
+    def test_stops_with_no_board(self):
+        # esptool would try every serial port and flash whatever answers, with no hello asked
+        status, out, _ = guard()
+        self.assertIn("No board found", status)
+        self.assertEqual(out, "")
+
+    def test_force_lets_esptool_look_for_a_board(self):
+        status, out, err = guard(FORCE="1")
+        self.assertEqual((status, out), (0, ""))
+        self.assertIn("esptool looks for one", err)
+
+    def test_an_empty_port_means_the_only_board(self):
+        status, out, _ = guard(Board("waveshare_132"), PORT="")
+        self.assertIn(f"{PORT} runs the image of waveshare_132", status)
+        self.assertEqual(out, "")
+
+    def test_reads_a_hello_cut_in_two(self):
+        # Its first half has no board=: read alone, it would pass for a silent board
+        status, out, _ = guard(Board("waveshare_132", cut=20))
+        self.assertIn("runs the image of waveshare_132", status)
+        self.assertEqual(out, "")
 
     def test_stops_when_several_boards_could_be_meant(self):
         status, out, _ = guard(Board("atoms3r"), Board("atoms3r"))
@@ -336,6 +365,9 @@ class DeviceCheck(unittest.TestCase):
 
     def test_passes_a_healthy_board(self):
         self.assert_passes(Board("atoms3r"))
+
+    def test_passes_a_board_whose_lines_come_in_two_parts(self):
+        self.assert_passes(Board("atoms3r", cut=12))
 
     def test_passes_a_board_with_no_motion_sensor(self):
         self.assert_passes(Board("waveshare_132", motion=False))
