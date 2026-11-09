@@ -72,6 +72,7 @@
     X(test_blink_pose_stops_at_the_end_of_its_phase)                                                                   \
     X(test_love_sends_hearts_at_its_rate_until_they_fade)                                                              \
     X(test_particles_owed_by_one_emitter_are_not_owed_by_another)                                                      \
+    X(test_particles_owed_at_one_rate_are_not_owed_at_another)                                                         \
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
