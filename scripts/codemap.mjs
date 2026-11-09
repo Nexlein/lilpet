@@ -164,7 +164,7 @@ export function scanJs(src) {
                 j++;
             }
             out += '/ /';
-            i = j + 1;
+            i = src[j] === '\n' ? j : j + 1; // not closed on its line: a division after all, the line break stays
         } else out += src[i++];
     }
     return out;

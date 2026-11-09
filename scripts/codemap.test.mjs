@@ -187,6 +187,7 @@ test('reads JS past templates, regular expressions and divisions', () => {
         "${`nested ${'}'} template`}`;",
         'const re = /[`\'"]\\/x/g; // a backtick and quotes in a regular expression',
         'const half = total / 2 / 1;',
+        'const tag = <b>x</b>;', // JSX: read as an unclosed regular expression, the next line must still start a line
         "import { real } from './real';",
         'export const after = 1;'
     ].join('\n');
