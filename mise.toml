@@ -36,7 +36,8 @@ run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
 [vars]
-# Sources formatted by clang-format: firmware/third_party keeps others' files as they are, only our headers there
+# Sources formatted by clang-format, the ones git tracks: firmware/third_party keeps others' files as they are, only our
+# headers there are formatted, and an untracked file is never touched
 c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h firmware/third_party/*/*.h"
 
 [tasks."engine:test"]
@@ -72,11 +73,11 @@ run = [
 
 [tasks."engine:format"]
 description = "Format the C sources"
-run = "clang-format -i {{vars.c_sources}}"
+run = "git ls-files -z -- {{vars.c_sources}} | xargs -0 -r clang-format -i"
 
 [tasks."engine:format:check"]
 description = "Fail if a C source is not formatted"
-run = "clang-format --dry-run --Werror {{vars.c_sources}}"
+run = "git ls-files -z -- {{vars.c_sources}} | xargs -0 -r clang-format --dry-run --Werror"
 
 [tasks."engine:tidy"]
 description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
