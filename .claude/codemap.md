@@ -55,7 +55,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **fake-port.ts** (109) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
   - exports: firmware, fakePort
   - → app/src/device/connection.ts
-- **protocol.ts** (77) — Text protocol with the device over USB (docs/app.md): commands start with "> ", replies with "< ", any other line is the device's log.
+- **protocol.ts** (77) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/session.ts
@@ -146,7 +146,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/include/lilpet/lilpet.h, engine/include/lilpet/render_state.h
 
 ## engine/src
-- **command.c** (120) — Command lines of the text protocol (docs/app.md): the same on the USB port and on the camera link
+- **command.c** (120) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
   - exports: lp_command_line_add, lp_command_parse
   - → engine/include/lilpet/lilpet.h
 - **emotions.c** (35) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)
@@ -162,7 +162,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/eyes.c, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
-- **look.c** (100) — Looks as text, for the USB protocol with the PC app (docs/app.md): "AE0002 FF5252 FF5252 dot"
+- **look.c** (100) — Looks as text, for the USB protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot"
   - exports: lp_look_parse, lp_look_format
   - → engine/include/lilpet/lilpet.h
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
@@ -266,10 +266,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (142) — Implements commands.h: commands from the PC app over the USB serial port, one per line (protocol in docs/app.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<ver...
+- **commands.c** (142) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_store.h
-- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (protocol in docs/app.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<ver...
+- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
@@ -313,10 +313,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
-- **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/app.md).
+- **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py
-- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in docs/app.md): opening the port does not reboot ...
+- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
   - ← mise.toml

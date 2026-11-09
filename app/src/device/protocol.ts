@@ -1,5 +1,5 @@
-// Text protocol with the device over USB (docs/app.md): commands start with "> ", replies with "< ", any other line
-// is the device's log. Pure functions, tested without hardware.
+// Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any
+// other line is the device's log. Pure functions, tested without hardware.
 import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
 

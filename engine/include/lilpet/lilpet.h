@@ -47,7 +47,7 @@ typedef struct {
     uint32_t pupil_color[2]; /* left and right pupil colors, 0xRRGGBB */
 } lp_look;
 
-/* Looks as text, as the PC app sends them over USB (docs/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
+/* Looks as text, as the PC app sends them over USB (docs/protocole.md): "AE0002 FF5252 FF5252 dot" for the eye, left
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
 #define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
@@ -273,7 +273,7 @@ void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bo
  * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
 void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
 
-/* --- Commands: the text protocol of the USB port and the camera link (docs/app.md) ---------------- */
+/* --- Commands: the text protocol of the USB port and the camera link (docs/protocole.md) ---------- */
 
 #define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
 

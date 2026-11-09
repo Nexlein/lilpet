@@ -1,4 +1,4 @@
-/* Looks as text, for the USB protocol with the PC app (docs/app.md): "AE0002 FF5252 FF5252 dot" */
+/* Looks as text, for the USB protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot" */
 #include "lilpet/lilpet.h"
 
 #include <string.h>
