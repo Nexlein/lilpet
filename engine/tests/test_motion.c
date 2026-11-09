@@ -119,8 +119,7 @@ void test_turning_keeps_the_face_level_across_the_wrap(void)
 static void hold(lp_eyes *eyes, float gx, float gy, float seconds)
 {
     lp_eyes_set_gravity(eyes, true, gx, gy);
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
-        lp_eyes_update(eyes, 1.0f / 64.0f);
+    lp_test_play(eyes, seconds);
 }
 
 void test_upside_down_makes_it_angry_until_righted(void)
