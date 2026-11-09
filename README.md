@@ -73,8 +73,8 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
   clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
   `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
-  étapes. Ce qui diffère est écrit dans `engine/build/goldens/`. Quand les yeux changent exprès, `npm run goldens` réécrit ces images ; les
-  regarder avant de les commiter.
+  étapes. Ce qui diffère est écrit dans `engine/build/goldens/`. Quand les yeux changent exprès, `npm run goldens`
+  réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
 - `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte et essaie les scripts de données sur des
   données cassées.
 
