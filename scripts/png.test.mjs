@@ -1,6 +1,6 @@
 // Tests of scripts/png.mjs, the PNG files of the reference renders: what is written reads back pixel for pixel, a
 // difference is counted per pixel, and a file it did not write is refused rather than misread. Built-in test runner,
-// no dependency. The renders themselves are compared by mise run engine:wasm (scripts/goldens.mjs).
+// no dependency. The renders themselves are compared by mise run engine:goldens (scripts/goldens.mjs).
 // Usage: npm run check:scripts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -42,4 +42,8 @@ test('refuses what it did not write', () => {
         png.subarray(png.indexOf('IEND') - 4)
     ]);
     assert.throws(() => decodePng(forged), /filter 4/);
+    // A file with fewer rows than its header says: the missing ones would read as black
+    const short = encodePng(1, 2, Buffer.from([10, 20, 30, 40, 50, 60]));
+    short.writeUInt32BE(3, 16 + 4); // the height in IHDR (the CRC is not read)
+    assert.throws(() => decodePng(short), /bytes of rows for 1 × 3/);
 });
