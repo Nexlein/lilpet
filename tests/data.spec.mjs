@@ -5,22 +5,20 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { EMOTIONS, LOOKS, SCENES } from '../scripts/data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
 const TABLES_SCRIPT = 'scripts/gen-emotions-table.mjs';
-const VECTORS_SCRIPT = 'scripts/gen-engine-vectors.mjs';
+const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
 const TABLES = 'engine/src/emotions_table.h';
-const VECTORS = 'engine/tests/js_vectors.h';
-const LOOKS = 'eyes/looks.json';
-const EMOTIONS = 'eyes/emotions.json';
-const SCENES = 'prototype/scenes.json';
+const SCENES_TABLE = 'engine/tests/scenes_table.h';
 
-// Calls `use` with a copy of the data. The scripts and the prototype are copied too: eyes.js imports the emotions.json
-// next to it, not the one of the working directory.
+// Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
+// imports (engine/wasm/engine.mjs).
 function withCopy(use) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
-        for (const path of ['package.json', 'scripts', 'eyes', 'prototype', TABLES, VECTORS])
+        for (const path of ['package.json', 'scripts', 'eyes', 'engine/wasm/engine.mjs', SCENES, TABLES, SCENES_TABLE])
             cpSync(path, join(dir, path), { recursive: true });
         return use(dir);
     } finally {
@@ -100,9 +98,13 @@ const CASES = [
         (d) => (d.scenes[0].particles = { seed: 1, time: 1 }),
         'emits no particles'
     ],
-    [SCENES, 'particles all gone', (d) => (sleepy(d).particles.time = 4), 'no particle is alive'],
     [SCENES, 'a time too long to simulate', (d) => (sleepy(d).particles.time = 1e9), '"particles.time" must be'],
-    [SCENES, 'a time JS and C round apart', (d) => (sleepy(d).particles.time = 0.525), '"particles.time" must be'],
+    [
+        SCENES,
+        'a time that is not exact in a float',
+        (d) => (sleepy(d).particles.time = 0.525),
+        '"particles.time" must be'
+    ],
     [EMOTIONS, 'no emotions', (d) => delete d.emotions, '"emotions" must be a non-empty object'],
     [EMOTIONS, 'no reactions', (d) => delete d.reactions, '"reactions" must be a non-empty object'],
     [EMOTIONS, 'no neutral emotion', (d) => delete d.emotions.neutral, '"emotions.neutral" is missing'],
@@ -111,7 +113,6 @@ const CASES = [
     [EMOTIONS, 'no upside_down reaction', (d) => delete d.reactions.upside_down, '"reactions.upside_down" is missing'],
     [EMOTIONS, 'no tap reaction', (d) => delete d.reactions.tap, '"reactions.tap" is missing'],
     [EMOTIONS, 'no face_seen reaction', (d) => delete d.reactions.face_seen, '"reactions.face_seen" is missing'],
-    [EMOTIONS, 'an emission too slow for a scene', (d) => (d.emotions.sleepy.emit.rate = 0.01), 'no particle is alive'],
     [EMOTIONS, 'an emotion that is null', (d) => (d.emotions.sad = null), 'emotions.sad: must be an object'],
     [EMOTIONS, 'no label', (d) => delete d.emotions.sad.label, '"label" must be'],
     [EMOTIONS, 'a misspelled field', (d) => (d.emotions.sad.tll = 0.2), 'unknown key "tll"'],
@@ -154,11 +155,11 @@ for (const file of [LOOKS, EMOTIONS, SCENES])
         expect(status).toBe(1);
     });
 
-test('a fault in scenes.json stops the vectors, not the emotion tables', () => {
+test('a fault in scenes.json stops the scene table, not the emotion tables', () => {
     withCopy((dir) => {
-        expect(run(dir, VECTORS_SCRIPT, '--check').status).toBe(0); // only the fault can stop them
+        expect(run(dir, SCENES_SCRIPT, '--check').status).toBe(0); // only the fault can stop it
         writeFileSync(join(dir, SCENES), 'not JSON');
-        expect(run(dir, VECTORS_SCRIPT, '--check').status).not.toBe(0);
+        expect(run(dir, SCENES_SCRIPT, '--check').status).not.toBe(0);
         expect(run(dir, TABLES_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
     });
 });
@@ -168,7 +169,7 @@ test('a changed emotion makes the tables out of date, until generated again', ()
         changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5));
         const stale = run(dir, TABLES_SCRIPT, '--check');
         expect(stale.status).toBe(1);
-        expect(stale.stderr).toContain(`${TABLES}: out of date, run npm run vectors`);
+        expect(stale.stderr).toContain(`${TABLES}: out of date, run npm run tables`);
 
         run(dir, TABLES_SCRIPT);
         expect(run(dir, TABLES_SCRIPT, '--check').status).toBe(0);

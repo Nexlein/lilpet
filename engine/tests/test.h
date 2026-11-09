@@ -13,13 +13,6 @@
 #define LP_TESTS(X)                                                                                                    \
     X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
-    X(test_rng_matches_prototype)                                                                                      \
-    X(test_emotions_match_prototype)                                                                                   \
-    X(test_clamp_matches_prototype)                                                                                    \
-    X(test_blink_poses_match_prototype)                                                                                \
-    X(test_eye_poses_match_prototype)                                                                                  \
-    X(test_simulations_match_prototype)                                                                                \
-    X(test_scenes_match_prototype)                                                                                     \
     X(test_unknown_emotion_is_rejected)                                                                                \
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
@@ -60,6 +53,19 @@
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
+    X(test_emotion_without_a_positive_duration_is_the_mood)                                                            \
+    X(test_duration_that_is_not_finite_leaves_the_mood)                                                                \
+    X(test_bad_point_clears_a_pointer_and_a_gravity)                                                                   \
+    X(test_mood_that_is_the_reaction_stays_after_it)                                                                   \
+    X(test_reaction_after_a_scene_returns_to_its_emotion)                                                              \
+    X(test_rng_gives_the_mulberry32_sequence)                                                                          \
+    X(test_clamp_with_a_negative_limit_gives_its_opposite)                                                             \
+    X(test_every_emotion_and_event_is_found_by_its_name)                                                               \
+    X(test_turning_keeps_the_face_level_across_the_wrap)                                                               \
+    X(test_gaze_reaches_a_held_pointer)                                                                                \
+    X(test_tilt_slides_the_eyes_toward_the_low_side)                                                                   \
+    X(test_every_emotion_settles_on_its_expression)                                                                    \
+    X(test_love_sends_hearts_at_its_rate_until_they_fade)                                                              \
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
@@ -81,6 +87,7 @@
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
     X(test_band_rendering_matches_whole_frame)                                                                         \
+    X(test_reference_scenes_with_particles_show_some)                                                                  \
     X(test_big_endian_swaps_the_bytes_of_every_pixel)                                                                  \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \

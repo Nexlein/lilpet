@@ -5,9 +5,10 @@ Décision prise le 2026-10-27. À mettre à jour si un choix change.
 ## Contexte
 
 Les yeux doivent tourner à trois endroits : sur l'objet (ESP32-S3 + écran rond AMOLED 466×466), dans un simulateur
-sur PC, et dans la future app PC qui sert à changer les yeux et les animations. Le prototype actuel est en JavaScript
-(Canvas 2D) : parfait pour explorer le design, mais il ne peut pas tourner sur l'ESP32. Tout ce qui y est ajouté
-devrait être réécrit en C pour l'objet.
+sur PC, et dans la future app PC qui sert à changer les yeux et les animations. Le prototype d'alors était en
+JavaScript (Canvas 2D) : parfait pour explorer le design, mais il ne pouvait pas tourner sur l'ESP32. Tout ce qui y
+était ajouté aurait dû être réécrit en C pour l'objet. Il a été retiré en novembre 2026, une fois tout repris par le
+moteur.
 
 ## Options étudiées
 
@@ -67,7 +68,7 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 | Dossier      | Rôle                                                                           | État           |
 | ------------ | ------------------------------------------------------------------------------ | -------------- |
-| `prototype/` | Référence de design en JS. Scènes de référence dans `prototype/scenes.json`    | Fait           |
+| `prototype/` | Référence de design en JS. Ses scènes sont passées dans `engine/tests/`        | Retiré         |
 | `eyes/`      | Données des looks (puis des animations)                                        | Fait           |
 | `engine/`    | Moteur C17 : état, animations, dessin. Aucune dépendance, aucun accès matériel | Fait (étape 2) |
 | `app/`       | App PC : TypeScript + Vite, moteur en WebAssembly, éditeur, Web Serial         | Version 1      |
@@ -75,32 +76,35 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 | `vision/`    | ESP-IDF, carte caméra (XIAO), sans le moteur : modèle, événements par UART     | Créé à l'achat |
 | `scripts/`   | Outils du dépôt (validation des données…)                                      | Fait           |
 
-## Règle de parité
+## Rendus de référence
 
-Le prototype JS est la référence visuelle tant que le moteur C n'a pas tout repris. Chaque scène de
-`prototype/scenes.json` (look, émotion, phase du clignement, pose de la tête, regard, particules à graine) doit être
-rendue de la même façon par le moteur. Les bords lissés ne seront pas identiques au pixel près (Canvas 2D et notre
-dessin ligne par ligne lissent différemment), donc la comparaison tolère un petit écart. Une fois une fonction portée,
-le moteur devient la source de vérité pour elle.
+Le moteur C est la seule référence des yeux. `scripts/goldens.mjs` fait dessiner par le moteur compilé en WebAssembly
+chaque scène de `engine/tests/scenes.json` (look, émotion, phase du clignement, pose de la tête, regard, particules à
+graine), gardée en PNG dans `engine/tests/goldens/`, et une animation scriptée (repos, suivi du pointeur, objet tourné,
+presque à plat, à l'envers, secoué, triste, cœurs, caresse, réactions à la caméra, plissé, endormi), jouée par pas de
+1/64 s depuis quatre graines et quatre looks. Une image sur 16 de l'animation est gardée sous forme d'empreinte dans
+`animation.txt` : les entrées changent au milieu des mouvements, donc une vitesse ou une rampe modifiée se voit, ce
+qu'une image prise à la fin de chaque partie ne montrerait pas (la review du retrait du prototype l'a prouvé en
+modifiant trois lignes du moteur). Un PNG des fins de partie du premier passage reste pour l'œil. Tout est comparé
+exactement par `mise run engine:wasm`, donc par `engine:check`, `mise run check` et le job du moteur C en CI. Ce qui
+diffère fait échouer le contrôle et va dans `engine/build/goldens/` : l'image dessinée, avec le nombre de pixels qui
+changent, ou la première image de l'animation qui diffère. La CI le garde comme artefact.
 
-Pour l'image, `prototype/reference.html` rend chaque scène avec le prototype et avec le moteur compilé en WebAssembly,
-côte à côte, et calcule l'écart. Tolérance : écart moyen ≤ 1,5 sur 255 par canal, au plus 760 gros pixels, dont un canal
-s'écarte de plus de 32, et au plus 3 pixels de cœur, c'est-à-dire gros comme leurs 4 voisins. Le test Playwright `tests/parity.spec.mjs` fait échouer la CI si
-une scène sort de la tolérance. La règle a changé en novembre 2026 : compter tous les pixels à plus de 32 laissait
-passer des étincelles absentes, et faisait échouer des looks blancs sur leurs seuls bords lissés. L'écart de cœur
-mesuré vaut 0 sur les scènes et sur 12 600 combinaisons, 1 au plus sur 450 scènes de particules.
+Les rendus viennent du build WebAssembly parce qu'il donne les mêmes pixels sur toutes les machines : pas de
+multiplication-addition fusionnée (FMA), et sa propre libm. Un build natif peut utiliser FMA, ce qui change quelques
+arrondis, donc quelques pixels.
 
-L'animation est vérifiée aussi : sur la page interactive, en côte à côte, les deux rendus reçoivent les mêmes commandes
-et avancent par pas fixes de 1/64 s. Le test `tests/live.spec.mjs` les fait avancer à la main (repos, suivi de la
-souris, cœurs, caresse, endormi) et échoue s'ils sortent de la même tolérance. Une différence d'arrondi entre `float`
-et `double` qui ferait basculer un événement les décalerait : la page affiche l'écart et propose de les resynchroniser.
+Quand l'apparence ou le mouvement des yeux change exprès, `npm run goldens` réécrit les images touchées (le module doit
+être compilé par `mise run engine:wasm`), et on les regarde avant de les commiter. Un changement visuel vient avec une
+scène qui le montre.
 
-Pour la logique (hasard, émotions, clignement, regard, tête, particules), la comparaison est **exacte** : le script
-`scripts/gen-engine-vectors.mjs` (lancé par `npm run vectors`, avec `gen-emotions-table.mjs` pour les tables C) fait
-tourner le prototype et écrit les valeurs attendues dans
-`engine/tests/js_vectors.h`, que les tests C vérifient. Le hasard donne les mêmes nombres dans les deux langages (24
-bits, exacts dans un `float`), et les simulations avancent par pas de 1/64 s pour que le temps soit exact en `float`
-comme en `double`.
+La logique (hasard, émotions, réactions, regard, inclinaison, particules) est vérifiée à part, avec des valeurs écrites
+en dur dans les tests C (`engine/tests/test_behavior.c` et les autres). Le hasard donne des nombres de 24 bits, exacts
+dans un `float`, et les simulations avancent par pas de 1/64 s pour que le temps reste exact en `float`.
+
+Jusqu'en novembre 2026, le prototype JS était la référence : le moteur lui était comparé scène par scène, avec une
+petite tolérance pour les bords lissés, et sur des valeurs de logique calculées par le prototype. Une fois tout repris
+par le moteur, ces comparaisons ont laissé la place aux rendus de référence et aux valeurs écrites en dur.
 
 ## Outillage du moteur (mis en place en 2a)
 
@@ -134,8 +138,8 @@ comme en `double`.
 ## Outillage du dépôt (novembre 2026)
 
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
-  `engine:check`, la parité). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au lieu de
-  recopier les étapes de `npm run check` : une étape ajoutée au contrôle rapide ne peut plus manquer en CI. Une
+  `engine:check`, les tests Playwright). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au
+  lieu de recopier les étapes de `npm run check` : une étape ajoutée au contrôle rapide ne peut plus manquer en CI. Une
   quatrième partie de `mise run check` devrait aussi devenir un job (commentaire en tête des jobs de `ci.yml`). `npm run check` reste la partie rapide (environ 10 s), lancée avant
   chaque push ; ce qui demande Docker reste à la CI.
 - **Versions figées partout** : mise lui-même (`min_version`, et la version de la CI, tenue à jour par Renovate),
@@ -171,7 +175,7 @@ sans nouvelle position, pour qu'une source qui s'arrête ne laisse pas les yeux 
 ## Points ouverts
 
 Ce que les audits de novembre 2026 laissent à faire. Ils n'ont trouvé ni crash, ni corruption mémoire, ni perte de données
-(118 400 images et 3 millions de lignes de commande au hasard), et JS et C restent identiques. Tout le reste est corrigé.
+(118 400 images et 3 millions de lignes de commande au hasard). Tout le reste est corrigé.
 
 À mesurer ou à essayer sur du vrai matériel :
 

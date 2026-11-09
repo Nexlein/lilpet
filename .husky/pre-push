@@ -1,4 +1,4 @@
-# Before each push: the fast checks of CI (npm run check, about 10 s). The engine, parity and firmware checks, which
+# Before each push: the fast checks of CI (npm run check, about 10 s). The engine, Playwright and firmware checks, which
 # need Docker, run in CI. The tools come from mise.toml: the hook runs inside mise.
 if [ -z "$LILPET_HOOK_IN_MISE" ]; then
   if ! command -v mise >/dev/null 2>&1; then

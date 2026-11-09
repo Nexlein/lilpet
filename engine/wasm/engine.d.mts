@@ -8,7 +8,7 @@ export type PupilType = (typeof PUPILS)[number];
 // Names of lp_event: the reactions of eyes/emotions.json, so the two cannot drift apart
 export type EyeEvent = keyof (typeof emotions)['reactions'];
 
-// Same look object as the prototype (makeLook in prototype/eyes.js)
+// A swatch of eyes/looks.json worn with a pupil type (makeLook in app/src/data/looks.ts)
 export interface Look {
     id?: string;
     sclera: string;
@@ -16,7 +16,7 @@ export interface Look {
     pupilColor: readonly [string, string];
 }
 
-// A frozen frame: the part of a reference scene (prototype/scenes.json) the app sets
+// A frozen frame: the part of a reference scene (engine/tests/scenes.json) the app sets
 export interface Scene {
     emotion?: string;
 }

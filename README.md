@@ -17,7 +17,8 @@ Projet strictement personnel, non commercial.
 
 - [x] Recherche sur le Starboy → [notes/recherche.md](notes/recherche.md)
 - [x] Analyse des yeux → [notes/yeux.md](notes/yeux.md)
-- [x] Prototype des yeux dans le navigateur, figé comme référence de design → `prototype/`
+- [x] Prototype des yeux dans le navigateur, référence de design jusqu'à ce que le moteur C reprenne tout (retiré en
+      novembre 2026)
 - [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
@@ -44,18 +45,6 @@ mise run setup
 `npm ci`, qui active aussi les hooks git, et le navigateur des tests Playwright. À refaire dans chaque nouveau worktree
 git : sans `npm ci`, git n'y lance aucun hook.
 
-## Lancer le prototype
-
-```bash
-npm run serve
-```
-
-Puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger les modules et les données).
-Le sélecteur « Rendu » affiche le prototype, le moteur C (après `mise run engine:wasm`) ou les deux côte à côte, pilotés
-par les mêmes commandes.
-Les scènes de référence, que le moteur C reproduit, sont sur
-http://127.0.0.1:8466/prototype/reference.html.
-
 ## Lancer l'app PC
 
 ```bash
@@ -73,24 +62,27 @@ USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». 
 mise run check
 ```
 
-Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les contrôles du moteur C et les tests de
-parité. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
+Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les contrôles du moteur C avec ses rendus de
+référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
 - `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
   (Prettier sur les fichiers suivis par git, ruff pour le Python), linters (oxlint, shellcheck pour les hooks, actionlint
-  pour la CI, ruff), données (`eyes/` et `prototype/scenes.json`), fichiers générés à jour (`engine/tests/js_vectors.h`,
-  `engine/src/emotions_table.h`), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis types et
-  tests de l'app PC.
+  pour la CI, ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour
+  (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), scripts de carte sur un faux port, carte du code
+  (`.claude/codemap.md`), puis types et tests de l'app PC.
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
-  clang-tidy et la compilation WebAssembly.
-- `npm run test:parity` compare le moteur C au prototype scène par scène et ouvre l'app PC compilée.
+  clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
+  `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
+  étapes. Ce qui diffère est écrit dans `engine/build/goldens/`. Quand les yeux changent exprès, `npm run goldens`
+  réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
+- `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte et essaie les scripts de données sur des
+  données cassées.
 
 Avant chaque commit, le hook formate les fichiers indexés, vérifie les fichiers générés quand leurs sources changent et
 régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
 utilise et qui l'utilise.
 
-La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. Pour mesurer la vitesse du rendu
-(temps par image, à comparer sur une même machine) :
+Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
 
 ```bash
 mise run engine:bench
@@ -138,13 +130,12 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 ## Arborescence
 
-| Dossier      | Contenu                                                                                  |
-| ------------ | ---------------------------------------------------------------------------------------- |
-| `notes/`     | Notes de recherche, matériel, architecture, yeux                                         |
-| `eyes/`      | Les 100 couleurs officielles et les émotions et réactions, en données                    |
-| `prototype/` | Référence de design : état et dessin des yeux, page interactive, scènes de référence     |
-| `engine/`    | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
-| `firmware/`  | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
-| `app/`       | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB       |
-| `scripts/`   | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
-| `tests/`     | Tests Playwright : parité avec le prototype, données, app PC                             |
+| Dossier     | Contenu                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| `notes/`    | Notes de recherche, matériel, architecture, yeux                                         |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                    |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
+| `app/`      | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB       |
+| `scripts/`  | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
+| `tests/`    | Tests Playwright : app PC, scripts de données                                            |

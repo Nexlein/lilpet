@@ -2,13 +2,16 @@
 // - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
 //   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
-// - prototype/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
-//   fields
+// - engine/tests/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
+//   fields (that each scene with particles shows some is an engine test: it takes a simulation)
 // Usage: node scripts/validate-data.mjs
 import { readFileSync } from 'node:fs';
+import { BLINK_PHASES, PUPILS } from '../engine/wasm/engine.mjs';
+import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
+import { EXPRESSION } from './expression.mjs';
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
-const ID = /^[a-z0-9-]+$/; // ends up in the pages' HTML
+const ID = /^[a-z0-9-]+$/; // ends up in a C string and in a file name (engine/tests/goldens)
 const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
 const errors = [];
@@ -76,7 +79,6 @@ function eachRow(path, rows, name, required, keys, check) {
     }
 }
 
-const LOOKS = 'eyes/looks.json';
 const looks = load(LOOKS);
 eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
     if (!isHex(swatch.sclera)) fail('"sclera" must be a #RRGGBB color');
@@ -87,23 +89,8 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 if (Array.isArray(looks?.swatches) && looks.swatches.length !== SWATCH_COUNT)
     errors.push(`${LOOKS}: ${looks.swatches.length} swatches, the catalogue has ${SWATCH_COUNT}`);
 
-const EMOTIONS = 'eyes/emotions.json';
 const emotionData = load(EMOTIONS);
 const emotions = emotionData?.emotions ?? {};
-// Expression fields (BASE in prototype/eyes.js) and their ranges
-const EXPRESSION = {
-    tl: [0, 1],
-    ts: [-1, 1],
-    bl: [0, 1],
-    sq: [0, 0.95], // 1 squashes the eye flat: lp_affine_inverse would divide by zero
-    cr: [0, 1],
-    rot: [-1.2, 1.5], // lower turns the eye past a quarter turn with the 0.37 tilt: the lid would come up from below
-    hl: [0, 1],
-    ps: [0.2, 2],
-    es: [0.5, 1.5],
-    gy: [-1, 1],
-    spin: [0, 9]
-};
 const EMIT_TYPES = ['heart', 'sparkle'];
 const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
 const HELD = ['shake', 'upside_down']; // they repeat every frame while their cause lasts
@@ -115,7 +102,12 @@ eachRow(
     ['label', 'emit', 'note', ...Object.keys(EXPRESSION)],
     (emotion, fail) => {
         if (typeof emotion.label !== 'string' || !emotion.label) fail('"label" must be a non-empty string');
-        for (const [k, [min, max]] of Object.entries(EXPRESSION))
+        for (const [
+            k,
+            {
+                range: [min, max]
+            }
+        ] of Object.entries(EXPRESSION))
             if (emotion[k] !== undefined && !isNum(emotion[k], min, max))
                 fail(`"${k}" must be between ${min} and ${max}`);
         if (emotion.emit === undefined) return;
@@ -138,16 +130,12 @@ eachRow(
         else if (HELD.includes(id) && reaction.sparkles !== 0) fail('"sparkles" must be 0: it repeats while held');
     }
 );
-report(); // eyes.js cannot load without its emotions
+report(); // the scenes are checked against the swatches and the emotions: they must be right first
 
-const { BLINK_PHASES, Eyes } = await import('../prototype/eyes.js');
-const { PUPIL_TYPES } = await import('../prototype/draw.js');
-
-const SCENES = 'prototype/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set(looks.swatches.map((s) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
-const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C vectors would not compile past it
+const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C scene table would not compile past it
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     // A misspelled key would be ignored, and the scene would test less than it says
     for (const k of Object.keys(scene))
@@ -155,12 +143,13 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     for (const k of ['blink', 'head', 'gaze', 'particles'])
         if (scene[k] !== undefined && !isObject(scene[k])) fail(`"${k}" must be an object`);
     if (!swatchIds.has(scene.swatch)) fail(`"swatch" must be a swatch id from ${LOOKS}`);
-    if (!PUPIL_TYPES.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPIL_TYPES.join(', ')}`);
+    if (!PUPILS.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPILS.join(', ')}`);
     const emotion = scene.emotion ?? 'neutral';
     const known = Object.hasOwn(emotions, emotion);
     if (!known) fail(`"emotion" must be one of ${Object.keys(emotions).join(', ')}`);
     if (isObject(scene.blink)) {
-        if (!BLINK_PHASES.includes(scene.blink.phase)) fail(`"blink.phase" must be one of ${BLINK_PHASES.join(', ')}`);
+        const phases = BLINK_PHASES.filter(Boolean);
+        if (!phases.includes(scene.blink.phase)) fail(`"blink.phase" must be one of ${phases.join(', ')}`);
         if (!isNum(scene.blink.t, 0, 1)) fail('"blink.t" must be a number of seconds between 0 and 1');
     }
     // Roll goes past a quarter turn when the object is turned (tilt)
@@ -176,15 +165,10 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     if (isObject(scene.particles)) {
         if (!Number.isInteger(scene.particles.seed) || !isNum(scene.particles.seed, 0, MAX_SEED))
             fail(`"particles.seed" must be a whole number between 0 and ${MAX_SEED}`);
-        // Whole steps of 1/60 s, and exact in a float: JS and C replay as many of them
-        const timeOk = isNum(scene.particles.time, 0.25, 10) && Number.isInteger(scene.particles.time * 4);
-        if (!timeOk) fail('"particles.time" must be a multiple of 0.25 seconds, up to 10');
+        // Exact in a float, so the engine replays a whole number of steps
+        if (!isNum(scene.particles.time, 0.25, 10) || !Number.isInteger(scene.particles.time * 4))
+            fail('"particles.time" must be a multiple of 0.25 seconds, up to 10');
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
-        else if (known && timeOk) {
-            const eyes = new Eyes(1);
-            eyes.setScene(scene, null);
-            if (eyes.particles.length === 0) fail('no particle is alive at "particles.time"');
-        }
     }
 });
 

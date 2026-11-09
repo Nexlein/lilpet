@@ -1,4 +1,4 @@
-// Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps like the prototype.
+// Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
 import { loadEngine, type Engine, type Look, type Scene } from '../../../engine/wasm/engine.mjs';
 
 export type { Engine };

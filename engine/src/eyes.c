@@ -1,7 +1,7 @@
 /*
  * State and animation of the eyes: emotions, gaze, head, blink, particles.
- * Port of the Eyes class in prototype/eyes.js. Random numbers are drawn in the same order as there, so a seed
- * gives the same animation in both (tests/test_parity.c).
+ * A seed and the same time steps give the same animation: engine/tests/goldens/animation.png replays one, so drawing
+ * the random numbers in another order changes it.
  */
 #include "internal.h"
 #include "lilpet/lilpet.h"
@@ -211,7 +211,7 @@ static void update_blink(lp_eyes *e, float dt)
 }
 
 /* Dizzy: the gaze circles (radius, in gaze units) and the head wobbles (rad), in proportion to spin / max; the spin
- * wears off slower than it comes, so the eyes calm down after the emotion is over (DIZZY in prototype/eyes.js) */
+ * wears off slower than it comes, so the eyes calm down after the emotion is over */
 #define DIZZY_MAX      9.0f
 #define DIZZY_RADIUS   0.55f
 #define DIZZY_WOBBLE   0.12f
@@ -339,7 +339,7 @@ static gaze_aim update_gaze(lp_eyes *e, float dt, float t, float slide)
 /*
  * The clock goes back by a whole number of breaths (render.c: sin(time * 2.1)) about every 17 minutes, with every
  * deadline: a float clock that keeps growing loses its fractions, runs fast after 3 days and stops after 6 at 60
- * frames/s. The prototype counts in double and needs no wrap; the parity vectors stay far below it.
+ * frames/s.
  */
 #define CLOCK_WRAP (336.0f * 2.0f * LP_PI / 2.1f)
 

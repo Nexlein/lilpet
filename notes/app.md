@@ -106,8 +106,8 @@ firmware, le look reçu est appliqué et gardé dans la mémoire flash (NVS d'ES
 
 ## Fini quand (version 1)
 
-- Dans la galerie, on choisit une couleur et une pupille, et l'aperçu montre le même rendu que le prototype (même
-  moteur).
+- Dans la galerie, on choisit une couleur et une pupille, et l'aperçu montre les yeux dessinés par le moteur C,
+  celui de l'objet.
 - Sur l'AtomS3R : connecter, envoyer un look, débrancher puis rebrancher, et `> look?` rend toujours ce look.
 - `npm run check`, les tests Vitest, le build de l'app et la CI passent.
 

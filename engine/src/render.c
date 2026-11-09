@@ -1,6 +1,5 @@
 /*
- * Renderer: draws the eyes row by row into an RGB565 frame. Port of drawEyes() and its helpers in prototype/draw.js;
- * the shapes and transforms follow the same order as the canvas calls there.
+ * Renderer: draws the eyes row by row into an RGB565 frame.
  * Each row is composed in a float RGB buffer: eyes (sclera, pupil, glint, each clipped to the eye), then particles.
  */
 #include "internal.h"
@@ -9,7 +8,7 @@
 
 #include <string.h>
 
-/* Closed-eye stroke, measured on the official footage (see CLOSED in prototype/draw.js) */
+/* Closed-eye stroke, measured on the official footage */
 #define CLOSED_HALF_WIDTH 0.76f
 #define CLOSED_BOTTOM     0.7f
 #define CLOSED_DEPTH      0.245f
@@ -152,7 +151,7 @@ static void poly_cap(lp_polygon *p, float cx, float cy, float nx, float ny, floa
     }
 }
 
-/* Closed eye: lower half of a flat ellipse stroked with round tips (drawClosedEye in the prototype) */
+/* Closed eye: lower half of a flat ellipse stroked with round tips */
 static void poly_closed(lp_polygon *p, float rx, float ry)
 {
     p->count = 0;
@@ -182,7 +181,7 @@ static void poly_closed(lp_polygon *p, float rx, float ry)
     poly_cap(p, cx[0], cy[0], -nx[0], -ny[0], 0.0f, -1.0f, h);
 }
 
-/* Heart of size s at the origin (drawHeart in the prototype) */
+/* Heart of size s at the origin */
 static void poly_heart(lp_polygon *p, float s)
 {
     p->count = 0;
@@ -192,7 +191,7 @@ static void poly_heart(lp_polygon *p, float s)
     poly_cubic(p, right, HEART_STEPS);
 }
 
-/* 4-point sparkle of size s: quadratic curves through the center (drawSparkle in the prototype) */
+/* 4-point sparkle of size s: quadratic curves through the center */
 static void poly_sparkle(lp_polygon *p, float s)
 {
     p->count = 0;
@@ -254,7 +253,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     }
 }
 
-/* Mirrors drawEye in the prototype: same transform chain, lids and cuts */
+/* One eye: its transform chain (place, head roll, perspective, tilt, size and squash), then its lids and cuts */
 /* `scale` maps the 466-pixel layout to the output size (lp_renderer_set_size) */
 static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_pose bp, float squash_x, float squash_y,
                       float scale)

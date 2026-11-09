@@ -16,7 +16,6 @@ export interface Swatch {
 // Checked by scripts/validate-data.mjs (CI): two pupil colors each
 export const SWATCHES: readonly Swatch[] = data.swatches as unknown as Swatch[];
 
-// Same rule as makeLook in prototype/eyes.js
 export function makeLook(swatch: Swatch, pupil: PupilType): Look {
     return { id: swatch.id, sclera: swatch.sclera, pupil, pupilColor: swatch.pupilColor };
 }

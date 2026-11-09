@@ -1,7 +1,7 @@
 /*
  * lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see notes/architecture.md).
  * Portable C17: no allocation, no global state, float only (doubles are emulated in software on the ESP32-S3).
- * It reproduces the design prototype (prototype/eyes.js); names and constants match it.
+ * It is the one reference of the eyes: engine/tests/goldens holds reference renders of its WebAssembly build.
  * Units: pixels of the 466x466 round screen, seconds, radians.
  */
 #ifndef LILPET_LILPET_H
@@ -26,14 +26,14 @@ extern "C" {
 /* Engine version as "MAJOR.MINOR.PATCH" */
 const char *lp_version(void);
 
-/* --- Random numbers: mulberry32, same sequence as createRng in prototype/eyes.js ---------------- */
+/* --- Random numbers: mulberry32, one sequence per seed ------------------------------------------ */
 
 typedef struct {
     uint32_t state;
 } lp_rng;
 
 void lp_rng_seed(lp_rng *rng, uint32_t seed);
-/* Uniform in [0, 1), 24-bit resolution: the exact same values as the prototype */
+/* Uniform in [0, 1), 24-bit resolution: exact in float, the same values on every platform */
 float lp_rng_next(lp_rng *rng);
 
 /* --- Looks -------------------------------------------------------------------------------------- */
@@ -84,7 +84,7 @@ typedef struct {
 typedef enum { LP_PARTICLE_NONE, LP_PARTICLE_HEART, LP_PARTICLE_SPARKLE } lp_particle_type;
 
 typedef struct {
-    const char *name;      /* same names as the prototype ("neutral", "love"...) */
+    const char *name;      /* as in eyes/emotions.json and the protocol ("neutral", "love"...) */
     lp_expression expr;    /* target shape */
     lp_particle_type emit; /* particles spawned while the emotion is on */
     float emit_rate;       /* particles per second */
@@ -115,7 +115,7 @@ typedef enum {
 
 /* How the eyes react to an event: an emotion for a while, and a burst of sparkles (eyes/emotions.json) */
 typedef struct {
-    const char *name; /* same names as the prototype ("tap", "gesture_like"...) */
+    const char *name; /* as in eyes/emotions.json and the protocol ("tap", "gesture_like"...) */
     lp_emotion emotion;
     float duration; /* seconds */
     int sparkles;
@@ -229,7 +229,7 @@ void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
 void lp_eyes_set_shaking(lp_eyes *eyes, bool shaking);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
-/* Eye shape: radii, gap and tilt (the prototype page's sliders, later the PC app) */
+/* Eye shape: radii, gap and tilt (for the PC app's future eye editor) */
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape);
 /* How much the head follows the gaze: 0 still, 1 fully (0.6 by default) */
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount);
@@ -321,7 +321,7 @@ typedef struct {
 /* Reads a whole line into `out`. Returns NULL, or what is wrong with it: the reason given after "< err ". */
 const char *lp_command_parse(const lp_command_line *line, lp_command *out);
 
-/* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
+/* --- Reference scenes (engine/tests/scenes.json) ------------------------------------------------ */
 
 typedef struct {
     lp_emotion emotion;
