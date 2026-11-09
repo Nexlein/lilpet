@@ -28,7 +28,7 @@ UV_PYTHON_PREFERENCE = "only-system"
 # --- Whole-repository tasks -------------------------------------------------------------------------------------------
 [tasks.setup]
 description = "Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser"
-run = ["mise install", "npm ci", "npx playwright install --only-shell chromium"]
+run = ["mise install", "npm ci", "npm exec -w app -- playwright install --only-shell chromium"]
 
 [tasks.check]
 description = "Everything a change must pass: npm run check, the engine checks with the reference renders, the PC app in a browser (Docker for the WebAssembly build); firmware changes add firmware:build-all"

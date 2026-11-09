@@ -157,7 +157,7 @@ jobs:
       # Headless shell only, without --with-deps: the runner image already has its libraries, and the apt fonts that
       # option adds took about 11 minutes to download
       - name: Install Chromium
-        run: npx playwright install --only-shell chromium
+        run: npm exec -w app -- playwright install --only-shell chromium
 
       # Builds the PC app first: it ships the engine it was built with, and app/tests/app.spec.mjs opens this build
       - name: Open the PC app with a fake board
