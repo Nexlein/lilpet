@@ -1,21 +1,25 @@
-// scripts/validate-data.mjs refuses bad data: each case breaks a copy of the data files and reads the error. The
-// generators of the C files work on such a copy too.
-import { spawnSync } from 'node:child_process';
+// Tests of scripts/validate-data.mjs and of the generators of the engine's C tables (gen-*-table.mjs), on copies of the
+// data: each case breaks a copy of a data file and reads the error. Built-in test runner, no dependency; the copies are
+// checked side by side.
+// Usage: npm run check:scripts
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test } from '@playwright/test';
-import { EMOTIONS, LOOKS, SCENES } from '../scripts/data.mjs';
+import { describe, test } from 'node:test';
+import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
 const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
 const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
 const SCENES_TABLE = 'engine/tests/scenes_table.h';
+const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
 // imports (engine/wasm/engine.mjs).
-function withCopy(use) {
+async function withCopy(use) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
         for (const path of [
@@ -28,20 +32,19 @@ function withCopy(use) {
             SCENES_TABLE
         ])
             cpSync(path, join(dir, path), { recursive: true });
-        return use(dir);
+        return await use(dir);
     } finally {
         rmSync(dir, { recursive: true });
     }
 }
 
-// Runs a script in a copy; returns its exit code and error output
+// Runs a script in a copy; gives its exit code (null if it was stopped) and error output
 function run(dir, ...command) {
-    const { status, stderr } = spawnSync(process.execPath, command, {
-        cwd: dir,
-        encoding: 'utf8',
-        timeout: 10_000 // Playwright cannot stop a synchronous call
-    });
-    return { status, stderr };
+    return new Promise((done) =>
+        execFile(process.execPath, command, { cwd: dir, timeout: 10_000 }, (error, _stdout, stderr) =>
+            done({ status: error ? (typeof error.code === 'number' ? error.code : null) : 0, stderr })
+        )
+    );
 }
 
 function changeFile(dir, file, edit) {
@@ -58,9 +61,15 @@ function validate(file, edit) {
     });
 }
 
-test('the data files are valid', () => {
-    expect(validate().stderr).toBe('');
-    expect(validate().status).toBe(0);
+// An error message that says `message`, not a stack trace, and a failure
+function assertRefused({ status, stderr }, message) {
+    assert.ok(stderr.includes(message), `expected ${JSON.stringify(message)} in:\n${stderr}`);
+    assert.ok(!stderr.includes('    at '), `a stack trace:\n${stderr}`);
+    assert.equal(status, 1);
+}
+
+test('the data files are valid', async () => {
+    assert.deepEqual(await validate(), { status: 0, stderr: '' });
 });
 
 const sleepy = (d) => d.scenes.find((s) => s.id === 'emotion-sleepy');
@@ -144,42 +153,37 @@ const CASES = [
     [EMOTIONS, 'sparkles on a shake', (d) => (d.reactions.shake.sparkles = 1), '"sparkles" must be 0'],
     [EMOTIONS, 'sparkles upside down', (d) => (d.reactions.upside_down.sparkles = 1), '"sparkles" must be 0']
 ];
-for (const [file, what, change, message] of CASES)
-    test(`${file}: ${what} is refused`, () => {
-        const { status, stderr } = validate(file, change);
-        expect(stderr).toContain(message);
-        expect(stderr).not.toContain('    at '); // an error message, not a stack trace
-        expect(status).toBe(1);
-    });
+describe('the validator refuses', PARALLEL, () => {
+    for (const [file, what, change, message] of CASES)
+        test(`${file}: ${what}`, async () => assertRefused(await validate(file, change), message));
 
-for (const file of [LOOKS, EMOTIONS, SCENES])
-    test(`${file}: a file that is not JSON is refused`, () => {
-        const { status, stderr } = withCopy((dir) => {
-            writeFileSync(join(dir, file), 'not JSON');
-            return run(dir, SCRIPT);
+    for (const file of [LOOKS, EMOTIONS, SCENES])
+        test(`${file}: a file that is not JSON`, async () => {
+            const result = await withCopy((dir) => {
+                writeFileSync(join(dir, file), 'not JSON');
+                return run(dir, SCRIPT);
+            });
+            assertRefused(result, `${file}: Unexpected token`);
         });
-        expect(stderr).toContain(`${file}: Unexpected token`);
-        expect(stderr).not.toContain('    at ');
-        expect(status).toBe(1);
-    });
-
-test('a fault in scenes.json stops the scene table, not the emotion tables', () => {
-    withCopy((dir) => {
-        expect(run(dir, SCENES_SCRIPT, '--check').status).toBe(0); // only the fault can stop it
-        writeFileSync(join(dir, SCENES), 'not JSON');
-        expect(run(dir, SCENES_SCRIPT, '--check').status).not.toBe(0);
-        expect(run(dir, EMOTIONS_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
-    });
 });
 
-test('a changed emotion makes the tables out of date, until generated again', () => {
-    withCopy((dir) => {
-        changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5));
-        const stale = run(dir, EMOTIONS_SCRIPT, '--check');
-        expect(stale.status).toBe(1);
-        expect(stale.stderr).toContain(`${EMOTIONS_TABLE}: out of date, run npm run tables`);
+describe('the table generators', PARALLEL, () => {
+    test('a fault in scenes.json stops the scene table, not the emotion tables', () =>
+        withCopy(async (dir) => {
+            assert.equal((await run(dir, SCENES_SCRIPT, '--check')).status, 0); // only the fault can stop it
+            writeFileSync(join(dir, SCENES), 'not JSON');
+            assert.notEqual((await run(dir, SCENES_SCRIPT, '--check')).status, 0);
+            assert.deepEqual(await run(dir, EMOTIONS_SCRIPT, '--check'), { status: 0, stderr: '' });
+        }));
 
-        run(dir, EMOTIONS_SCRIPT);
-        expect(run(dir, EMOTIONS_SCRIPT, '--check').status).toBe(0);
-    });
+    test('a changed emotion makes the tables out of date, until generated again', () =>
+        withCopy(async (dir) => {
+            changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5));
+            const stale = await run(dir, EMOTIONS_SCRIPT, '--check');
+            assert.equal(stale.status, 1);
+            assert.ok(stale.stderr.includes(`${EMOTIONS_TABLE}: out of date, run npm run tables`), stale.stderr);
+
+            await run(dir, EMOTIONS_SCRIPT);
+            assert.equal((await run(dir, EMOTIONS_SCRIPT, '--check')).status, 0);
+        }));
 });

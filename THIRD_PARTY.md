@@ -5,7 +5,7 @@ BSD licences below ask for it).
 
 | Part                                          | Where                                                             | Licence      |
 | --------------------------------------------- | ----------------------------------------------------------------- | ------------ |
-| Bosch BMI270 configuration file               | `firmware/main/bmi270_config.c`, in the firmware                  | BSD-3-Clause |
+| Bosch BMI270 configuration file               | `firmware/third_party/bmi270/bmi270_config.c`, in the firmware    | BSD-3-Clause |
 | LovyanGFX panel init sequences                | `firmware/main/display_atoms3r.c`, through M5GFX, in the firmware | FreeBSD      |
 | M5GFX board values (pins, offsets, backlight) | `firmware/main/display_atoms3r.c`, in the firmware                | MIT          |
 | ESP-IDF                                       | linked into the firmware                                          | Apache-2.0   |

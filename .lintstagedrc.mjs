@@ -15,8 +15,9 @@ const DATA = [
 
 export default {
     '*.{js,mjs,ts,tsx}': ['oxlint --fix --deny-warnings', 'prettier --write'],
-    // .clang-format-ignore keeps the third-party BMI270 file as it is
+    // firmware/third_party keeps others' files as they are: only our headers there are formatted
     '{engine,firmware/main,firmware/boards}/**/*.{c,h}': 'clang-format -i',
+    'firmware/third_party/**/*.h': 'clang-format -i',
     '*.py': ['ruff check --fix', 'ruff format'],
     // the git hooks: every file of .husky is a shell script
     '.husky/*': 'shellcheck',

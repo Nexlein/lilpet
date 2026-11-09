@@ -1,4 +1,4 @@
-/* Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_behavior.c) */
+/* Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c) */
 #include "lilpet/lilpet.h"
 
 void lp_rng_seed(lp_rng *rng, uint32_t seed)

@@ -68,15 +68,15 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
 - `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
   (Prettier sur les fichiers suivis par git, ruff pour le Python), linters (oxlint, shellcheck pour les hooks, actionlint
   pour la CI, ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour
-  (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/`, scripts de carte sur un
-  faux port, carte du code (`.claude/codemap.md`), puis types et tests de l'app PC.
+  (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` (dont la validation et les
+  générateurs sur des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis
+  types et tests de l'app PC.
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
   clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
   `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
   étapes. Ce qui diffère est écrit dans `engine/build/goldens/`. Quand les yeux changent exprès, `npm run goldens`
   réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
-- `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte et essaie les scripts de données sur des
-  données cassées.
+- `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
 Avant chaque commit, le hook formate les fichiers indexés, vérifie les fichiers générés quand leurs sources changent et
 régénère la carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il
@@ -130,12 +130,11 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 ## Arborescence
 
-| Dossier     | Contenu                                                                                  |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| `notes/`    | Notes de recherche, matériel, architecture, yeux                                         |
-| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                    |
-| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
-| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
-| `app/`      | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB       |
-| `scripts/`  | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
-| `tests/`    | Tests Playwright : app PC, scripts de données                                            |
+| Dossier     | Contenu                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `notes/`    | Notes de recherche, matériel, architecture, yeux                                           |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |
+| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB      |
+| `scripts/`  | Données (validation, tables générées), rendus de référence, carte du code, outils de carte |

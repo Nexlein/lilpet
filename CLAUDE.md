@@ -43,9 +43,11 @@ open only the files it points to. Below, the parts and how they fit.
   job summary, no time limit). Public API in `include/lilpet/lilpet.h`; the caller owns `lp_eyes` and `lp_renderer`, whose fields sit in
   `render_state.h` (internal; `screen.h` holds what both headers need). `sources.cmake` lists
   sources and warning flags shared by the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the
-  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); `tests/test_behavior.c`
-  pins behavior with literal values (mood, reactions, random numbers, gaze, tilt, particles). Presets: `host-debug`
-  (ASan + UBSan), `host-release`, `wasm`.
+  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); one file per subject:
+  `test_eyes.c` (names, random numbers, setters, bad input, time steps, scenes, clock), `test_reactions.c`,
+  `test_motion.c` (gaze, tilt, shake), `test_pose.c` (blinks), `test_render.c`, `test_senses.c`, `test_look.c`,
+  `test_command.c`, `test_version.c`, with literal values (a new file goes in `engine/CMakeLists.txt` too).
+  Presets: `host-debug` (ASan + UBSan), `host-release`, `wasm`.
 - `engine/tests/scenes.json` + `engine/tests/goldens/` — frozen reference scenes (look, emotion, blink phase, head,
   gaze, seeded particles) and their reference renders: `scripts/goldens.mjs` makes the WebAssembly engine draw every
   scene into a PNG file (`scripts/png.mjs`), and a scripted animation (4 seeds and looks, inputs changing in the middle
@@ -69,13 +71,14 @@ open only the files it points to. Below, the parts and how they fit.
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
   connection and text protocol of `notes/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
   `protocol.ts` reads a reply once into a typed result (`parseReply`); `session.ts` is the connect / send / unplug state
-  machine, tested with the fake board of `fake-port.ts`, which stands alone: `tests/app.spec.mjs` sends its text to the
-  page),
+  machine, tested with the fake board of `fake-port.ts`, which stands alone: `app/tests/app.spec.mjs` sends its text
+  to the page),
   `src/engine` (live preview with the WebAssembly engine), `src/ui` (React; only this part and `main.tsx` may import it,
   a lint rule checks it; `SendPanel` owns the state of a send). Picking a mood or petting also reaches the board, and
   the last mood goes again after `hello`. The
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
-  the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright, with a fake `navigator.serial`.
+  the code (`*.test.ts`); `app/tests/app.spec.mjs` opens the built app in Playwright (`app/playwright.config.mjs`),
+  with a fake `navigator.serial`.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one image per board (`atoms3r`, `waveshare_132`, `stamp_s3a`), chosen at
   build time. A board is one folder, nothing else to touch: `boards/<board>/board.cmake` lists its parts and
   `board_config.h` its pins, mounting, display size and chip package, an optional `sdkconfig.defaults` its own ESP-IDF
@@ -89,8 +92,9 @@ open only the files it points to. Below, the parts and how they fit.
   from Waveshare's demo, not yet run on the board, also used without a display) or `display_atoms3r.c` for the AtomS3R
   LCD (128 px SPI, ST7735S or GC9107 told apart by their ID; values from M5GFX), `display_paced.c` timing the frames of
   those with no TE signal; `imu.h` is `imu_bmi270.c` (BMI270, which needs Bosch's configuration file,
-  `bmi270_config.c`, BSD-3, its bytes unchanged) or `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c`
-  holds the board itself: power hold, button, I2C bus, backlight.
+  `firmware/third_party/bmi270/bmi270_config.c`, BSD-3, its bytes unchanged: `third_party/` keeps others' files,
+  with our headers for them) or `imu_none.c` (the Waveshare 1.32" has no motion sensor). `board.c` holds the board
+  itself: power hold, button, I2C bus, backlight.
   `main/main.c` shows the eyes live, idling on their own (saccades, blinks, the head following the gaze): each frame
   waits for `display_wait_frame`, applies the queued commands, gives the sensors to `lp_senses_update`, draws band by
   band into two DMA buffers in internal RAM while the previous band is sent, each band half on each core (the bottom
@@ -128,9 +132,10 @@ open only the files it points to. Below, the parts and how they fit.
   same commands, as parallel jobs. Firmware changes add `mise run firmware:build-all`.
 - `npm run check` — the fast part (about 10 s, also the pre-push hook): Prettier (tracked files only) and ruff format,
   linters (oxlint, shellcheck for the hooks, actionlint for CI, ruff), data validation, generated files up to date, the
-  Node tests of `scripts/` (`node --test`), the board scripts on a fake port (`scripts/test_board_scripts.py`, through
-  `uv`), the code map up to date
-  (`check:codemap`), app types and Vitest tests.
+  Node tests of `scripts/` (`node --test`: the validator and the table generators on broken copies of the data, the
+  reference renders' comparison, PNG files, the code map), the board scripts on a fake port
+  (`scripts/test_board_scripts.py`, through `uv`), the code map up to date (`check:codemap`), app types and Vitest
+  tests.
 - `npm run codemap` — rewrites `.claude/codemap.md` from what git has staged; the pre-commit hook runs it, after
   lint-staged (`.lintstagedrc.mjs`: lint and format the staged files, and `check:data` + `check:tables` when their
   sources are staged). `--check` fails on a stale map, a local import that does not resolve or a source file without a
@@ -139,14 +144,13 @@ open only the files it points to. Below, the parts and how they fit.
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix (Prettier on tracked files only, so local untracked files are left
   alone).
-- `npm run test:playwright` — Playwright tests: the data scripts on broken copies of the data, and the built app,
-  built first, with a fake board, served on their own port 8468, which must be free: two runs at once collide (needs
-  `mise run engine:wasm`; first time: `npx playwright install --only-shell chromium`).
+- `npm run test:playwright` — Playwright tests: the built app, built first, with a fake board, served on their own
+  port 8468, which must be free: two runs at once collide (needs `mise run engine:wasm`; first time:
+  `npm exec -w app -- playwright install --only-shell chromium`, which `mise run setup` runs).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build and its reference renders. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`,
-  `engine:goldens` (the reference renders, after `engine:wasm`);
-  `engine:format` fixes the formatting (`.clang-format-ignore` leaves the third-party BMI270 file as it is). The host
-  build uses the system clang and refuses one older than CI's (21).
+  `engine:goldens` (the reference renders, after `engine:wasm`); `engine:format` fixes the formatting (in
+  `firmware/third_party`, only our headers). The host build uses the system clang and refuses one older than CI's (21).
 - `npm run tables` — rewrites the generated C tables; `npm run goldens` rewrites the reference renders of
   `engine/tests/goldens/` and the hashes of the animation on purpose (needs the module of `mise run engine:wasm`;
   `engine:goldens` fails on them until then).
@@ -158,7 +162,7 @@ open only the files it points to. Below, the parts and how they fit.
   `firmware:build` into `firmware/build/<board>/` (`flash_args` and its three images, plus `merged-binary.bin` for a
   blank board, which also erases the stored look), in the ESP-IDF image pinned in `firmware/Dockerfile` (latest release;
   Dependabot proposes new ones); `firmware:flash` writes the bootloader, partition table and app only, so the look kept
-  in NVS survives; `firmware:check-device` (`scripts/device-check.py`, through `uv`: no reboot on opening, hello and its
+  in NVS survives; `firmware:check-device` (`scripts/check-device.py`, through `uv`: no reboot on opening, hello and its
   board, a look kept across a reboot, no screen fault in the boot log, at least 20 frames/s, emotion, react, face, bad
   commands and lines too long rejected, about 1 g from a motion sensor; puts the board's look and mood back, the one
   check CI cannot run). `PORT` picks the board, otherwise the only
@@ -169,6 +173,10 @@ open only the files it points to. Below, the parts and how they fit.
 ## Conventions
 
 - Code, comments, commits: English. Notes and README: French.
+- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it), but scripts that
+  are only run in kebab-case (`check-device.py`), like JS and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React
+  components in PascalCase (`SendPanel.tsx`). A JS test sits next to its module, `<module>.test.mjs` (Node) or
+  `<module>.test.ts` (Vitest); the app's browser tests are in `app/tests`, the engine's in `engine/tests`.
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with the six CI checks green, merged with a merge commit (GitHub rulesets: no direct push, no force
   push, no deletion). Dependabot and Renovate open theirs against `dev`.

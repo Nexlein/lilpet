@@ -1,9 +1,12 @@
 /*
  * Minimal test runner for the engine, run on the host (no dependency).
- * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below.
+ * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below (a new file goes in
+ * engine/CMakeLists.txt too).
  */
 #ifndef LILPET_TEST_H
 #define LILPET_TEST_H
+
+#include "lilpet/lilpet.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -135,5 +138,15 @@ extern int lp_test_failures;
         if (!(fabsf(a_ - e_) <= (tolerance)))                                                                          \
             LP_FAIL("%s is %g, expected %g", #actual, (double)a_, (double)e_);                                         \
     } while (0)
+
+#define LP_TEST_STEP    (1.0f / 64.0f) /* a time step of the animation, exact in float */
+#define LP_TEST_SETTLED 1e-4f /* what an easing given seconds to settle leaves of its distance, with float rounding */
+
+/* Plays `seconds` of animation, LP_TEST_STEP at a time */
+static inline void lp_test_play(lp_eyes *eyes, float seconds)
+{
+    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++)
+        lp_eyes_update(eyes, LP_TEST_STEP);
+}
 
 #endif /* LILPET_TEST_H */

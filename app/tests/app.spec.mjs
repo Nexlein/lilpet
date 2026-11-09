@@ -3,10 +3,17 @@
 // in CI if the build is missing.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
-import { fakePort } from '../app/src/device/fake-port.ts';
-import { collectErrors } from './page-errors.mjs';
+import { fakePort } from '../src/device/fake-port.ts';
 
-const APP = '/app/dist/index.html';
+const APP = '/dist/index.html'; // served from app/ (playwright.config.mjs)
+
+// What a page reports as an error: tests end by expecting none
+function collectErrors(page) {
+    const errors = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
+    return errors;
+}
 
 // Every test ends with no error in the page
 const test = base.extend({
@@ -20,10 +27,13 @@ const test = base.extend({
     ]
 });
 
-test.skip(!existsSync('app/dist/index.html') && !process.env.CI, 'build the app first: npm run app:build');
+test.skip(
+    !existsSync(new URL('../dist/index.html', import.meta.url)) && !process.env.CI,
+    'build the app first: npm run app:build'
+);
 
-// What the fake board answers to hello, as the firmware does (main/commands.c)
-const HELLO = 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1';
+// What the fake board answers to hello, in the firmware's format (main/commands.c); its versions are made up
+const HELLO = 'lilpet fw=1.2.3 engine=4.5.6 board=atoms3r camera=0 motion=1';
 
 // Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
 function plugBoard(makePort, hello) {
@@ -328,7 +338,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toBeFocused();
     await expect(status).toContainText('lilpet est branché');
-    await expect(status).toContainText('atoms3r, firmware 0.5.0, moteur 0.13.0');
+    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
     await expect(button).toHaveText('Débrancher');
     await expect(button).toBeFocused();
 
@@ -346,7 +356,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
 
     // Plugged in again: nothing was sent to it
     await plugIn(page);
-    await expect(status).toContainText('atoms3r, firmware 0.5.0, moteur 0.13.0');
+    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
     await expect(note(page)).toBeEmpty();
 
     await page.getByRole('button', { name: 'Débrancher' }).click();

@@ -35,7 +35,7 @@ function engineFiles() {
 }
 
 export default defineConfig({
-    base: './', // relative paths: the build works from any folder (tests serve it from /app/dist/)
+    base: './', // relative paths: the build works from any folder (the Playwright tests serve it from /dist/)
     plugins: [react(), engineFiles()],
     server: { port: 8467 },
     test: { include: ['src/**/*.test.ts'] }

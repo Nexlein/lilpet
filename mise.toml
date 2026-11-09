@@ -28,7 +28,7 @@ UV_PYTHON_PREFERENCE = "only-system"
 # --- Whole-repository tasks -------------------------------------------------------------------------------------------
 [tasks.setup]
 description = "Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser"
-run = ["mise install", "npm ci", "npx playwright install --only-shell chromium"]
+run = ["mise install", "npm ci", "npm exec -w app -- playwright install --only-shell chromium"]
 
 [tasks.check]
 description = "Everything a change must pass: npm run check, the engine checks with the reference renders, the PC app in a browser (Docker for the WebAssembly build); firmware changes add firmware:build-all"
@@ -36,8 +36,8 @@ run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
 [vars]
-# Sources formatted by clang-format (.clang-format-ignore keeps the third-party BMI270 file as it is)
-c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
+# Sources formatted by clang-format: firmware/third_party keeps others' files as they are, only our headers there
+c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h firmware/third_party/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -128,7 +128,7 @@ run = 'port=$(uv run --with-requirements scripts/requirements.txt scripts/flash-
 description = "Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)"
 depends = ["firmware:board"]
 # The only part CI cannot test (no hardware). Puts the board's own look back at the end.
-run = "uv run --with-requirements scripts/requirements.txt scripts/device-check.py"
+run = "uv run --with-requirements scripts/requirements.txt scripts/check-device.py"
 
 [tasks."firmware:deploy"]
 description = "Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)"

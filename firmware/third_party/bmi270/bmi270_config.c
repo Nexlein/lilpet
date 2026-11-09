@@ -40,7 +40,7 @@
  */
 
 /* Uploaded to the sensor at startup (imu_bmi270.c): without it, the BMI270 gives no measurement */
-#include "imu_bmi270.h"
+#include "bmi270_config.h"
 
 const uint8_t BMI270_CONFIG[BMI270_CONFIG_SIZE] = {
     0xC8u, 0x2Eu, 0x00u, 0x2Eu, 0x80u, 0x2Eu, 0x3Du, 0xB1u, 0xC8u, 0x2Eu, 0x00u, 0x2Eu, 0x80u, 0x2Eu, 0x91u, 0x03u,

@@ -58,7 +58,7 @@ Hors version 1, dans l'ordre probable :
 | `src/ui/`     | Composants React : galerie, aperçu, panneau de l'objet                                         |
 
 `engine`, `data` et `device` ne dépendent pas de React : Vitest les teste seuls, et ils resservent ailleurs (éditeur
-d'animations, outils). Seul `ui` dépend de React.
+d'animations, outils). Seuls `ui` et `main.tsx`, qui le monte, dépendent de React (une règle d'oxlint le vérifie).
 
 ## Protocole avec l'objet
 
