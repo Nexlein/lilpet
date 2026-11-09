@@ -37,7 +37,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: KeyValueStore, browserStore, LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
   - → app/src/data/looks.ts
   - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
-- **looks.ts** (104) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
+- **looks.ts** (103) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
   - exports: LookColors, Swatch, SWATCHES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, Family, FAMILIES, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
   - → eyes/looks.json, engine/wasm/engine.mjs
   - ← app/src/data/favorites.ts, app/src/device/device.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/ui/App.tsx, app/src/ui/EyeGlyph.tsx, app/src/ui/Gallery.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/labels.ts
@@ -66,7 +66,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
-- **preview.ts** (76) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps like the prototype.
+- **preview.ts** (76) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
   - exports: loadEyeEngine, Preview, pointerIn, Engine
   - → engine/wasm/engine.mjs
   - ← app/src/ui/Screen.tsx, app/src/ui/hooks.ts
@@ -175,10 +175,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
-- **render.c** (599) — Renderer: draws the eyes row by row into an RGB565 frame.
+- **render.c** (598) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
-- **rng.c** (22) — Seeded random numbers (mulberry32), the same sequence as createRng in prototype/eyes.js
+- **rng.c** (22) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_behavior.c)
   - exports: lp_rng_seed, lp_rng_next
   - → engine/include/lilpet/lilpet.h
 - **senses.c** (85) — From what the hardware reports to the state of the eyes, the same way on every board.
@@ -211,7 +211,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **engine.d.mts** (41) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Engine, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the same scene and look objects as t...
+- **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **smoke.mjs** (51) — Loads the WebAssembly build in Node and checks the C API answers and renders something.

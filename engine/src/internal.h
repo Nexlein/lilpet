@@ -13,7 +13,7 @@
 #define LP_BLINK_ANTICIP_TIME 0.06f
 #define LP_BLINK_CLOSE_TIME   0.1f
 
-/* Emitter debt often sums to exactly 1, where float and double rounding disagree: same margin as the prototype */
+/* Emitter debt often sums to exactly 1, which rounding can leave just below: the margin still emits on time */
 #define LP_EMIT_EPSILON 1e-4f
 
 /* Spring-like smoothing toward target, frame-rate independent */
@@ -43,7 +43,7 @@ static inline float lp_maxf(float a, float b)
     return a > b ? a : b;
 }
 
-/* Same order as clamp in the prototype: the limit goes negative when a pupil is bigger than its eye */
+/* In this order on purpose: the limit goes negative when a pupil is bigger than its eye, and -lim wins then */
 static inline float lp_clampf(float v, float lim)
 {
     return lp_maxf(-lim, lp_minf(lim, v));

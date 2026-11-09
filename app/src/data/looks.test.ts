@@ -40,7 +40,7 @@ describe('swatches', () => {
         expect(SWATCHES.filter(hasTwoPupilColors)).toHaveLength(14);
     });
 
-    it('builds a look like makeLook in the prototype', () => {
+    it('builds a look from a swatch and a pupil type', () => {
         const cherry = findSwatch('cherry')!;
         expect(makeLook(cherry, 'cat')).toEqual({
             id: 'cherry',

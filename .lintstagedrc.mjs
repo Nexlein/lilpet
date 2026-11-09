@@ -1,5 +1,5 @@
 // What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each
-// file, then check the files generated from the data and the prototype when one of their sources is staged.
+// file, then check the files generated from the data when one of their sources is staged.
 export default {
     '*.{js,mjs,ts,tsx}': ['oxlint --fix --deny-warnings', 'prettier --write'],
     // .clang-format-ignore keeps the third-party BMI270 file as it is

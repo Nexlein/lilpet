@@ -1,6 +1,6 @@
-// JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the
-// same scene and look objects as the prototype (prototype/scenes.json, eyes/looks.json).
-// Used by prototype/reference.html, the live view of prototype/index.html, the parity tests and the PC app.
+// JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with
+// scene objects as in engine/tests/scenes.json and looks (a swatch of eyes/looks.json worn with a pupil type).
+// Used by the PC app, the reference renders (scripts/goldens.mjs), the data validator and smoke.mjs.
 
 export const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 export const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
@@ -36,7 +36,7 @@ export async function loadEngine(moduleUrl) {
         size,
         emotions: [...emotions.keys()],
 
-        // Same scene object as Eyes.setScene in prototype/eyes.js
+        // A scene object as in engine/tests/scenes.json, frozen by lp_eyes_set_scene
         renderScene(scene, look) {
             setLook(look);
             m._lpw_set_scene(

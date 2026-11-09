@@ -1,4 +1,4 @@
-/* Seeded random numbers (mulberry32), the same sequence as createRng in prototype/eyes.js */
+/* Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_behavior.c) */
 #include "lilpet/lilpet.h"
 
 void lp_rng_seed(lp_rng *rng, uint32_t seed)
@@ -6,7 +6,7 @@ void lp_rng_seed(lp_rng *rng, uint32_t seed)
     rng->state = seed;
 }
 
-/* mulberry32 (public domain), unsigned 32-bit arithmetic wraps like Math.imul in the prototype */
+/* mulberry32 (public domain), in unsigned 32-bit arithmetic, which wraps */
 static uint32_t next_u32(lp_rng *rng)
 {
     rng->state += 0x6d2b79f5u;

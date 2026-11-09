@@ -1,4 +1,4 @@
-/* Engine behavior the parity vectors do not cover: limits, invalid input and the setters used by the live view */
+/* Engine behavior: limits, invalid input, the shape, follow and head setters, tilt, shake and reactions */
 #include "lilpet/lilpet.h"
 #include "test.h"
 
@@ -26,7 +26,7 @@ void test_particle_pool_drops_extra_particles(void)
 
 void test_particles_keep_the_random_sequence_when_dropped(void)
 {
-    /* A full pool still draws the particle's random numbers, so later animation matches the prototype */
+    /* A full pool still draws the particle's random numbers, so later animation does not depend on the pool */
     lp_eyes full;
     lp_eyes room;
     lp_eyes_init(&full, 9);

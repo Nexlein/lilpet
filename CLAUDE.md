@@ -14,8 +14,8 @@ them to the device, so keep looks (and later animations) as data, not code.
 
 Decided in `notes/architecture.md` (read it before structural work): one eye engine in C17 (`engine/`),
 compiled for the ESP32-S3 with ESP-IDF and to WebAssembly with Emscripten; custom scanline renderer, RGB565, dirty
-regions, `float` never `double`; PC app in TypeScript + Vite with Web Serial (`app/`). The JS prototype is the visual
-reference until the engine takes over each feature.
+regions, `float` never `double`; PC app in TypeScript + Vite with Web Serial (`app/`). The engine is the one reference
+of the eyes: reference renders of its WebAssembly build pin how they look (`engine/tests/goldens/`).
 
 ## Layout
 
@@ -23,19 +23,6 @@ reference until the engine takes over each feature.
 it uses and the files, tasks and hooks that use it, then the commands and npm packages: read it before searching, and
 open only the files it points to. Below, the parts and how they fit.
 
-- `prototype/` — design reference, ES modules, canvas 466×466 (the target round AMOLED):
-    - `eyes.js` — class `Eyes`: state, animation, its own clock (`update(dt)`), seeded PRNG (mulberry32). `setScene`
-      starts over, as `lp_eyes_set_scene` does. No DOM access, so Node can import it
-      (`scripts/validate-data.mjs` does). `draw.js` — drawing, as `render.c` in the engine (`drawEyes`, `setupCanvas`,
-      the pupil table).
-    - `ui.js` + `index.html` — interactive page. The "Rendu" switch shows the prototype, the C engine (WebAssembly)
-      or both side by side, driven by the same inputs; side by side they advance in fixed 1/64 s steps to stay in sync.
-      `window.eyes` exposes the prototype for console debugging, `window.live` the hooks of `tests/live.spec.mjs`
-      (`resync(seed)`, `pickLook`, `react`), which fails CI when the two drift apart while animating, from fixed seeds.
-    - `scenes.json` + `reference.html`/`reference.js` — frozen reference scenes (look, emotion, blink phase, head,
-      gaze, seeded particles), rendered side by side by the prototype and the C engine (WebAssembly), with a score
-      per scene. Tolerances, `compareFrame`, `fetchJson` and `ENGINE_URL` in `parity.js`, shared styles in `style.css`.
-      `tests/parity.spec.mjs` (Playwright) fails CI when a scene is out of tolerance.
 - `engine/` — C17 eye engine. State and animation: `src/eyes.c` (emotions, gaze, head, blink, particles, reactions:
   `lp_eyes_react` with the event table: the emotion changes at once, and sparkles burst at most every 0.5 s whatever the
   emotion, so a chatty model cannot flood the screen; upside down from gravity; a temporary emotion goes back to the mood, the last
@@ -44,11 +31,11 @@ open only the files it points to. Below, the parts and how they fit.
   hardware reports becomes eyes state, same on every board: smoothing, button debounce, a sensor or a face that stopped
   reporting, a new face firing `face_seen`), `src/pose.c`
   (blink pose, eye pose on the 3D head), `src/rng.c` (mulberry32). Rendering: `src/render.c` builds each eye's geometry
-  (same transform chain as the prototype) and composes the frame row by row into RGB565, redrawing only the dirty
-  region, whole (`lp_render`) or in bands (`lp_render_begin` + `lp_render_rows`: it never reads the previous frame back,
-  so the device needs no whole frame in memory; `lp_render_rows_with` draws rows of the same frame with another
-  `lp_row_scratch`, for a second core), at 466 px or any smaller square size (`lp_renderer_set_size`: same
-  layout, scaled at output), high byte first for the display controllers (`lp_renderer_set_big_endian`);
+  and composes the frame row by row into RGB565, redrawing only the dirty region, whole (`lp_render`) or in bands
+  (`lp_render_begin` + `lp_render_rows`: it never reads the previous frame back, so the device needs no whole frame
+  in memory; `lp_render_rows_with` draws rows of the same frame with another `lp_row_scratch`, for a second core), at
+  466 px or any smaller square size (`lp_renderer_set_size`: same layout, scaled at output), high byte first for the
+  display controllers (`lp_renderer_set_big_endian`);
   `src/raster.c` turns ellipses, lids, cuts and polygons into sub-row spans and exact horizontal coverage (`LP_SUBROWS`
   vertical samples). Input that is not finite is dropped, the time step is capped at 1 s, `lp_eyes_set_scene` starts
   over. `tools/bench.c` + `mise run engine:bench` time the renderer per scene and over an
@@ -56,16 +43,25 @@ open only the files it points to. Below, the parts and how they fit.
   job summary, no time limit). Public API in `include/lilpet/lilpet.h`; the caller owns `lp_eyes` and `lp_renderer`, whose fields sit in
   `render_state.h` (internal; `screen.h` holds what both headers need). `sources.cmake` lists
   sources and warning flags shared by the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the
-  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`). Presets: `host-debug`
+  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); `tests/test_behavior.c`
+  pins behavior with literal values (mood, reactions, random numbers, gaze, tilt, particles). Presets: `host-debug`
   (ASan + UBSan), `host-release`, `wasm`.
-- `engine/tests/js_vectors.h` and `engine/src/emotions_table.h` — generated by `npm run vectors`: the first by
-  `scripts/gen-engine-vectors.mjs` from the prototype (RNG values, poses, seeded simulations with the whole expression,
-  blink and particle sums, scene states), the second by `scripts/gen-emotions-table.mjs` from `eyes/emotions.json`;
-  helpers in `scripts/gen-common.mjs`. `tests/test_parity.c` checks the engine against them. Random numbers are drawn
-  in the same order in JS and C: keep it that way when changing either side.
+- `engine/tests/scenes.json` + `engine/tests/goldens/` — frozen reference scenes (look, emotion, blink phase, head,
+  gaze, seeded particles) and their reference renders: `scripts/goldens.mjs` makes the WebAssembly engine draw every
+  scene and a short scripted animation (fixed seed, 1/64 s steps) into PNG files, compared pixel for pixel. The
+  WebAssembly build gives the same pixels on every machine; a host build may use FMA and differ. `mise run engine:wasm`
+  checks them; a failure writes the actual image under `engine/build/goldens/`, with the count of differing pixels.
+- `engine/src/emotions_table.h` and `engine/tests/scenes_table.h` — generated by `npm run tables`: the first by
+  `scripts/gen-emotions-table.mjs` from `eyes/emotions.json` (`scripts/expression.mjs` holds the expression fields,
+  their neutral values and ranges), the second by `scripts/gen-scenes-table.mjs` from `engine/tests/scenes.json` and
+  `eyes/looks.json` (`SCENES`, `SCENE_LOOKS`, for `tests/test_render.c` and `tools/bench.c`); helpers in
+  `scripts/gen-common.mjs`.
 - `engine/wasm/` — WebAssembly bindings (`bindings.c`, `lpw_*` functions) and `engine.mjs`, the JS wrapper that
-  loads `engine/build/wasm/lilpet.mjs` and takes the same scene and look objects as the prototype; unknown names are
-  ignored; `renderView` gives the pixels without a copy, `PUPILS` the pupil list; `engine.d.mts` types what the app uses of it, with `EyeEvent` read from `eyes/emotions.json`. `src/look.c` reads and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
+  loads `engine/build/wasm/lilpet.mjs` and takes scene objects as in `scenes.json` and looks; unknown names are
+  ignored; `renderView` gives the pixels without a copy, `PUPILS` and `BLINK_PHASES` the names in the engine's order;
+  `setShape`, `setFollow` and `setHeadAmount` wait for the app's future eye editor;
+  `engine.d.mts` types what the app uses of it, with `EyeEvent` read from `eyes/emotions.json`. `src/look.c` reads
+  and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
 - `app/` — PC app v1 (spec and protocol in `notes/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
   connection and text protocol of `notes/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
@@ -103,18 +99,19 @@ open only the files it points to. Below, the parts and how they fit.
   `main/commands.c` reads the commands on the same USB port and queues them for the drawing loop (the engine is not
   thread-safe); `src/command.c` in the engine parses them (`lp_command_parse`, tested on the host). The camera board
   will send the same lines over UART. `main/look_store.c` keeps the look in NVS.
-  Gravity (`lp_eyes_set_gravity`) turns the face to stay level and slides the eyes toward the low side (prototype:
-  `gravity` in `eyes.js`, "Objet tourné" slider). Reactions (`eyes/emotions.json`): held upside down it gets angry,
+  Gravity (`lp_eyes_set_gravity`) turns the face to stay level and slides the eyes toward the low side. Reactions
+  (`eyes/emotions.json`): held upside down it gets angry,
   shaken dizzy while it lasts (the gaze circles, the head wobbles), pressed (the AtomS3R's screen is a button) or petted
   in the app happy, and the gestures and expressions a camera sends each have their own.
 - `eyes/emotions.json` — emotions (French label, expression, particles) and reactions, by event name: the one source
-  for the prototype, the C tables and the app's labels.
+  for the C tables and the app's labels.
 - `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
-  A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `eyes.js`); scenes name both.
-  Looks carry no glint: only emotions add one.
+  A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `app/src/data/looks.ts`);
+  scenes name both. Looks carry no glint: only emotions add one.
 - `scripts/validate-data.mjs` — validates `looks.json`, `emotions.json` and `scenes.json` (ids, colors, exactly 100
   swatches, known pupil types and emotions, the names the code asks for, ranges, no sparkles on the held reactions
-  `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`).
+  `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`); the blink phases and
+  pupils come from `engine/wasm/engine.mjs`. That each scene with particles shows some is an engine test.
 - `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
 - `references/` — frame sheets extracted from third-party videos, behind `notes/yeux.md`: local only, ignored by git,
@@ -122,30 +119,31 @@ open only the files it points to. Below, the parts and how they fit.
 
 ## Commands
 
-- `npm run serve` — serve the repo on http://127.0.0.1:8466/prototype/ (modules and data fetches need HTTP).
 - `mise run setup` — a new clone or worktree (after `mise trust`): tools, `npm ci` (Git silently skips every hook
   without the `.husky/_` it creates), the Playwright browser.
-- `mise run check` — everything "done" means: `npm run check`, `engine:check`, `npm run test:parity`. CI runs the same
-  commands, as parallel jobs. Firmware changes add `mise run firmware:build-all`.
+- `mise run check` — everything "done" means: `npm run check`, `engine:check`, `npm run test:playwright`. CI runs the
+  same commands, as parallel jobs. Firmware changes add `mise run firmware:build-all`.
 - `npm run check` — the fast part (about 10 s, also the pre-push hook): Prettier (tracked files only) and ruff format,
   linters (oxlint, shellcheck for the hooks, actionlint for CI, ruff), data validation, generated files up to date, the
   board scripts on a fake port (`scripts/test_board_scripts.py`, through `uv`), the code map up to date
   (`check:codemap`), app types and Vitest tests.
 - `npm run codemap` — rewrites `.claude/codemap.md` from what git has staged; the pre-commit hook runs it, after
-  lint-staged (`.lintstagedrc.mjs`: lint and format the staged files, and `check:data` + `check:vectors` when their
+  lint-staged (`.lintstagedrc.mjs`: lint and format the staged files, and `check:data` + `check:tables` when their
   sources are staged). `--check` fails on a stale map, a local import that does not resolve or a source file without a
   purpose comment at the top.
 - `npm run app:dev` — app on http://localhost:8467/ (needs `mise run engine:wasm`); `app:build` into `app/dist`,
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix (Prettier on tracked files only, so local untracked files are left
   alone).
-- `npm run test:parity` — Playwright tests: reference scenes, live side by side, data and state checks, and the built
-  app, built first, served on their own port 8468, which must be free: two runs at once collide (needs `mise run
-engine:wasm`; first time: `npx playwright install --only-shell chromium`).
+- `npm run test:playwright` — Playwright tests: the data scripts on broken copies of the data, and the built app,
+  built first, with a fake board, served on their own port 8468, which must be free: two runs at once collide (needs
+  `mise run engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
-  build. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`; `engine:format` fixes the
-  formatting (`.clang-format-ignore` leaves the third-party BMI270 file as it is). The host build uses the system clang
-  and refuses one older than CI's (21).
+  build and its reference renders. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`;
+  `engine:format` fixes the formatting (`.clang-format-ignore` leaves the third-party BMI270 file as it is). The host
+  build uses the system clang and refuses one older than CI's (21).
+- `npm run tables` — rewrites the generated C tables; `npm run goldens` rewrites the reference renders of
+  `engine/tests/goldens/` on purpose (needs the module of `mise run engine:wasm`, which fails on them until then).
 - `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
@@ -169,8 +167,7 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
   pull requests with the six CI checks green, merged with a merge commit (GitHub rulesets: no direct push, no force
   push, no deletion). Dependabot and Renovate open theirs against `dev`.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
-- No build step and no runtime dependency in the prototype: plain HTML, CSS and JS. The app has its build (Vite); only
-  `app/src/ui` and `main.tsx` may import React.
+- The app has its build (Vite); only `app/src/ui` and `main.tsx` may import React.
 - Tool versions live in `mise.toml`, exact (Node on the LTS line, Python, the linters), used locally and by CI through
   `jdx/mise-action`, which pins mise itself (`LILPET_MISE_VERSION` in `ci.yml`; `min_version` in `mise.toml`) on the
   `ubuntu-26.04` image (the Python library of the scripts: `scripts/requirements.txt`);
@@ -178,8 +175,8 @@ engine:wasm`; first time: `npx playwright install --only-shell chromium`).
   (`.github/dependabot.yml`: npm, Docker images, Actions).
 - Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
   assets.
-- A visual change to the prototype that the engine must follow goes with a scene in `prototype/scenes.json`.
-- After changing `prototype/eyes.js`, `scenes.json`, `looks.json` or `emotions.json`: `npm run vectors` (CI fails on a stale file), then
-  port the change to the engine until `mise run engine:test` passes.
-- Done means: `mise run check` passes, and `prototype/` loads with no console error. Firmware changes:
-  `mise run firmware:build-all` too.
+- A visual change to the eyes goes with a scene in `engine/tests/scenes.json` that shows it, and new reference renders.
+- After changing `eyes/looks.json`, `eyes/emotions.json`, `engine/tests/scenes.json` or `scripts/expression.mjs`:
+  `npm run tables` (CI fails on a stale file). After changing how the eyes look or move: `npm run goldens`, then look
+  at the images it rewrote before committing them.
+- Done means: `mise run check` passes. Firmware changes: `mise run firmware:build-all` too.

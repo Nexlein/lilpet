@@ -137,7 +137,7 @@ const SCENES = 'engine/tests/scenes.json';
 const scenes = load(SCENES);
 const swatchIds = new Set(looks.swatches.map((s) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
-const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C vectors would not compile past it
+const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C scene table would not compile past it
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     // A misspelled key would be ignored, and the scene would test less than it says
     for (const k of Object.keys(scene))

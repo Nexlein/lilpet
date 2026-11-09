@@ -101,11 +101,12 @@ yeux (`tiktok-eye-picking.png`), réaction au geste (`tiktok-gesture-reaction.pn
 - **Formes spéciales** : des yeux en forme de **flammes** (jaune et orange), et des flammes posées au-dessus des yeux.
 - **Hétérochromie** visible : yeux blancs, pupille orange à gauche, cyan à droite.
 - **Inclinaison** : quand on penche l'objet, les yeux glissent et tournent selon la gravité (accéléromètre).
-  Repris dans le prototype et le moteur (`gravity` dans `eyes.js`, `lp_eyes_set_gravity`) : le visage tourne pour
+  Repris dans le moteur (`lp_eyes_set_gravity`) : le visage tourne pour
   rester à l'horizontale, sur un tour complet, et les yeux glissent vers le côté le plus bas ; posé à plat, rien ne
   change. Ma recréation, réglée à l'œil sur l'AtomS3R, pas une mesure des originaux.
-- **Réactions** (novembre 2026, ma recréation, à affiner) : une table de données dans `eyes/emotions.json`, lue par le
-  prototype et générée pour le moteur. Tenu à l'envers plus de 0,6 s, il se fâche tant que ça dure (la colère « tenu à l'envers » ci-dessus) ;
+- **Réactions** (novembre 2026, ma recréation, à affiner) : une table de données dans `eyes/emotions.json`, dont sont
+  générées les tables C du moteur. Tenu à l'envers plus de 0,6 s, il se fâche tant que ça dure (la colère « tenu à
+  l'envers » ci-dessus) ;
   secoué plus d'environ 0,4 s, il est étourdi pendant la secousse et 1,5 s après : paupières lourdes,
   petites pupilles qui tournent en rond, tête qui vacille, puis les pupilles ralentissent et il se calme ; un choc ou
   un coup de poignet bref ne compte pas. « Étourdi » est une émotion à moi, absente des originaux (la surprise seule se voyait
@@ -156,7 +157,7 @@ fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis
   près. Pas d'œuf dessiné à la main.
 - Les pupilles penchent d'environ 5°, le haut vers le nez (mesuré sur `cat` et `acorn`, aux deux yeux), à l'inverse
   de l'inclinaison de l'œil.
-- Prototype et moteur suivent ces valeurs (`PUPILS`, `PUPIL_LEAN` et `drawPupil` dans `prototype/draw.js`). Notre
+- Le moteur suit ces valeurs (`PUPIL_REST`, `PUPIL_LEAN` et `setup_pupil` dans `engine/src/render.c`). Notre
   rendu, mesuré de la même façon que la page officielle, tombe à 0,011 largeur d'œil près au pire (largeur du `dot`).
 - Looks : repris tels quels dans `eyes/looks.json`, sans reflet (le reflet ne vient qu'avec certaines émotions).
 
