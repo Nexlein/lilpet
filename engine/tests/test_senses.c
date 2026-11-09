@@ -47,8 +47,8 @@ void test_senses_start_over_when_a_sensor_comes_back(void)
     run_frames(&senses, &eyes, NULL, false, 5.0f);
     CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
 
-    /* Upright all along: what the sensor said before it went quiet no longer turns the face */
-    for (int i = 0; i < 30; i++) {
+    /* Upright all along, for half a second: what the sensor said before it went quiet no longer turns the face */
+    for (int i = 0; i < (int)(0.5f / LP_TEST_STEP); i++) {
         lp_senses_update(&senses, &eyes, upright, false, LP_TEST_STEP);
         lp_eyes_update(&eyes, LP_TEST_STEP);
         CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
@@ -77,7 +77,7 @@ void test_senses_stop_a_shake_when_the_sensor_stops(void)
     lp_eyes eyes;
     lp_senses senses;
     start(&eyes, &senses);
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < (int)(1.0f / LP_TEST_STEP); i++) { /* a second of shaking */
         const float sample[3] = {i % 2 ? 6.0f : -6.0f, 1.0f, 0.0f};
         lp_senses_update(&senses, &eyes, sample, false, LP_TEST_STEP);
         lp_eyes_update(&eyes, LP_TEST_STEP);

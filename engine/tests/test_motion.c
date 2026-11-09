@@ -166,7 +166,7 @@ static float shake_for(lp_shake *shake, float amplitude, float seconds)
 {
     const float dt = LP_TEST_STEP;
     float shaken = 0.0f;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++) {
+    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++) {
         const float x = amplitude * sinf(FULL_TURN * 6.0f * (float)i * dt);
         shaken += lp_shake_update(shake, x, 1.0f, 0.0f, dt) ? dt : 0.0f;
     }
@@ -199,7 +199,7 @@ void test_shake_is_told_from_tilt_and_knocks(void)
 static bool steady(lp_shake *shake, float g, float seconds)
 {
     bool shaken = shake->active;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
+    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++)
         shaken = lp_shake_update(shake, g, 0.0f, 0.0f, LP_TEST_STEP);
     return shaken;
 }
@@ -218,7 +218,7 @@ void test_shake_limits(void)
 
     /* 3 g away, the energy passes 1.5 g in 6 samples at 8 per second, then counts for 0.3 s: 20 samples more */
     shake = (lp_shake){0};
-    CHECK(!steady(&shake, 4.0f, 24.0f / 64.0f));
+    CHECK(!steady(&shake, 4.0f, 24.0f * LP_TEST_STEP));
     CHECK(steady(&shake, 4.0f, LP_TEST_STEP));
 }
 
