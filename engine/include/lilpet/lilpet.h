@@ -229,8 +229,9 @@ void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
 void lp_eyes_set_shaking(lp_eyes *eyes, bool shaking);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
-/* Eye shape: radii, gap and tilt (for the PC app's future eye editor). Radii from 20 px to half the screen, tilt from 0
- * to the measured 0.37 rad: a value past them is held at the limit */
+/* Eye shape: radii, gap and tilt (for the PC app's future eye editor). A value that is not finite, or a radius that is
+ * not positive, leaves the shape as it was. The emotions' turns were tuned for the measured tilt (0.37 rad): past it,
+ * an eye can turn more than a quarter turn (docs/architecture.md, known limits). */
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape);
 /* How much the head follows the gaze: 0 still, 1 fully (0.6 by default), held within 0 to 1 */
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount);

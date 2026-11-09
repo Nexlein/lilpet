@@ -117,10 +117,13 @@ void test_shape_and_head_amount_stay_in_their_ranges(void)
     CHECK(eyes.head_amount == 1.0f);
     lp_eyes_set_head_amount(&eyes, -3.0f);
     CHECK(eyes.head_amount == 0.0f);
-    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 1.0f, .ry = -50.0f, .gap = 400.0f, .tilt = 1.2f});
-    CHECK(eyes.shape.rx == 20.0f && eyes.shape.ry == 20.0f && eyes.shape.gap == 400.0f && eyes.shape.tilt == 0.37f);
-    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 1e6f, .ry = 300.0f, .gap = 0.0f, .tilt = -0.5f});
-    CHECK(eyes.shape.rx == LP_SCREEN_SIZE / 2.0f && eyes.shape.ry == LP_SCREEN_SIZE / 2.0f && eyes.shape.tilt == 0.0f);
+    /* An eye with no size, or a negative one, is no shape: the one before stays */
+    const lp_shape before = eyes.shape;
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 0.0f, .ry = 50.0f, .gap = 101.0f, .tilt = 0.37f});
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 50.0f, .ry = -50.0f, .gap = 101.0f, .tilt = 0.37f});
+    CHECK(eyes.shape.rx == before.rx && eyes.shape.ry == before.ry);
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 1.0f, .ry = 400.0f, .gap = 400.0f, .tilt = -0.5f});
+    CHECK(eyes.shape.rx == 1.0f && eyes.shape.ry == 400.0f && eyes.shape.gap == 400.0f && eyes.shape.tilt == -0.5f);
 }
 
 void test_set_shape_is_used_by_the_renderer(void)

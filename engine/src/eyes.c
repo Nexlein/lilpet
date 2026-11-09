@@ -93,30 +93,17 @@ void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
     eyes->follow = follow;
 }
 
-static float within(float v, float lo, float hi)
-{
-    return lp_maxf(lo, lp_minf(hi, v));
-}
-
-/* The radii the drawing is made for, and no more tilt than the measured one: the emotions' turns (rot in
- * scripts/expression.mjs) were chosen for it, and more would turn an eye past a quarter turn */
-#define SHAPE_RADIUS_MIN 20.0f
-#define SHAPE_TILT_MAX   0.37f
-
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
 {
-    if (!isfinite(shape->rx) || !isfinite(shape->ry) || !isfinite(shape->gap) || !isfinite(shape->tilt))
-        return;
-    eyes->shape = (lp_shape){.rx = within(shape->rx, SHAPE_RADIUS_MIN, LP_CENTER),
-                             .ry = within(shape->ry, SHAPE_RADIUS_MIN, LP_CENTER),
-                             .gap = shape->gap,
-                             .tilt = within(shape->tilt, 0.0f, SHAPE_TILT_MAX)};
+    const bool finite = isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt);
+    if (finite && shape->rx > 0.0f && shape->ry > 0.0f) /* an eye with no size is no shape */
+        eyes->shape = *shape;
 }
 
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
 {
     if (isfinite(amount))
-        eyes->head_amount = within(amount, 0.0f, 1.0f);
+        eyes->head_amount = lp_maxf(0.0f, lp_minf(1.0f, amount));
 }
 
 void lp_eyes_blink(lp_eyes *eyes)
