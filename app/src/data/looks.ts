@@ -42,8 +42,9 @@ export const hasTwoPupilColors = (s: Swatch): boolean => s.pupilColor[0] !== s.p
 
 // --- Color families, for the gallery filter ----------------------------------------------------------------------
 
-export type Family = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'neutral';
-export const FAMILIES: readonly Family[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'neutral'];
+// The filter's buttons, in order; the type follows, so a family cannot be in one and not the other
+export const FAMILIES = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'neutral'] as const;
+export type Family = (typeof FAMILIES)[number];
 
 type Rgb = [number, number, number];
 

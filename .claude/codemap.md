@@ -39,8 +39,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: KeyValueStore, browserStore, LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
   - → app/src/data/looks.ts
   - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
-- **looks.ts** (113) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
-  - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, Family, FAMILIES, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
+- **looks.ts** (114) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
+  - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, FAMILIES, Family, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
   - → eyes/looks.json, engine/wasm/engine.mjs
   - ← app/src/data/favorites.ts, app/src/device/device.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/ui/App.tsx, app/src/ui/EyeGlyph.tsx, app/src/ui/Gallery.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/labels.ts
 - tests: looks.test.ts
