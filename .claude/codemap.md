@@ -178,7 +178,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **render.c** (598) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
-- **rng.c** (22) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_behavior.c)
+- **rng.c** (22) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c)
   - exports: lp_rng_seed, lp_rng_next
   - → engine/include/lilpet/lilpet.h
 - **senses.c** (85) — From what the hardware reports to the state of the eyes, the same way on every board.
@@ -189,7 +189,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/include/lilpet/lilpet.h
 
 ## engine/tests
-- tests: scenes.json, scenes_table.h, test.h, test_behavior.c, test_command.c, test_eyes.c, test_look.c, test_main.c, test_render.c, test_senses.c, test_version.c
+- tests: scenes.json, scenes_table.h, test.h, test_command.c, test_eyes.c, test_look.c, test_main.c, test_motion.c, test_pose.c, test_reactions.c, test_render.c, test_senses.c, test_version.c
 
 ## engine/tools
 - **bench.c** (143) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).

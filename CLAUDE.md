@@ -43,9 +43,10 @@ open only the files it points to. Below, the parts and how they fit.
   job summary, no time limit). Public API in `include/lilpet/lilpet.h`; the caller owns `lp_eyes` and `lp_renderer`, whose fields sit in
   `render_state.h` (internal; `screen.h` holds what both headers need). `sources.cmake` lists
   sources and warning flags shared by the host build, the WebAssembly module (`wasm/smoke.mjs` checks it loads) and the
-  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); `tests/test_behavior.c`
-  pins behavior with literal values (mood, reactions, random numbers, gaze, tilt, particles). Presets: `host-debug`
-  (ASan + UBSan), `host-release`, `wasm`.
+  ESP-IDF component. Tests use the tiny runner in `tests/test.h` (list new tests in `LP_TESTS`); one file per subject:
+  `test_eyes.c` (state, setters, bad input, scenes, clock), `test_reactions.c`, `test_motion.c` (gaze, tilt, shake),
+  `test_pose.c` (blinks), `test_render.c`, `test_senses.c`, `test_look.c`, `test_command.c`, with literal values.
+  Presets: `host-debug` (ASan + UBSan), `host-release`, `wasm`.
 - `engine/tests/scenes.json` + `engine/tests/goldens/` — frozen reference scenes (look, emotion, blink phase, head,
   gaze, seeded particles) and their reference renders: `scripts/goldens.mjs` makes the WebAssembly engine draw every
   scene into a PNG file (`scripts/png.mjs`), and a scripted animation (4 seeds and looks, inputs changing in the middle

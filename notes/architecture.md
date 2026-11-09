@@ -101,7 +101,7 @@ empreintes de l'animation, et retire les images qu'aucune scène ne dessine plus
 scène qui le montre.
 
 La logique (hasard, émotions, réactions, regard, inclinaison, particules) est vérifiée à part, avec des valeurs écrites
-en dur dans les tests C (`engine/tests/test_behavior.c` et les autres). Le hasard donne des nombres de 24 bits, exacts
+en dur dans les tests C (`engine/tests/`, un fichier par sujet). Le hasard donne des nombres de 24 bits, exacts
 dans un `float`, et les simulations avancent par pas de 1/64 s pour que le temps reste exact en `float`.
 
 Jusqu'en novembre 2026, le prototype JS était la référence : le moteur lui était comparé scène par scène, avec une
