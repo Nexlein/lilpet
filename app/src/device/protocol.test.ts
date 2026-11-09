@@ -16,21 +16,20 @@ import { Connection, ConnectionClosed, portPicker } from './connection';
 import { NotLilpet, command, hello, sendLook } from './device';
 import { FAKE_HELLO, FAKE_INFO, fakePort, firmware } from './fake-port';
 
-// The field names of a hello reply, in order
+// The field names of a hello reply
 const fieldNames = (reply: string) => reply.split(' ').map((word) => word.split('=')[0]);
 
 // What the app reads of the firmware's replies, compared with what firmware/main/commands.c prints
 describe('the firmware', () => {
     const format = /"< (lilpet [^"]*)\\n"/.exec(COMMANDS_C)?.[1] ?? '';
 
-    it('writes a hello the app reads', () => {
-        let n = 0;
-        const reply = format.replace(/%[sd]/g, () => String(n++)); // "lilpet fw=0 engine=1 board=2 ..."
-        expect(parseHello(reply)).toEqual({ firmware: '0', engine: '1', board: '2' });
+    it('writes a hello the app reads, whatever the order of its fields', () => {
+        const reply = format.replace(/(\w+)=%[sd]/g, '$1=v-$1'); // "lilpet fw=v-fw engine=v-engine ..."
+        expect(parseHello(reply)).toEqual({ firmware: 'v-fw', engine: 'v-engine', board: 'v-board' });
     });
 
     it('has the fields of the fake board', () => {
-        expect(fieldNames(FAKE_HELLO)).toEqual(fieldNames(format));
+        expect(fieldNames(FAKE_HELLO).toSorted()).toEqual(fieldNames(format).toSorted());
     });
 
     it('writes the replies the app tells apart', () => {
@@ -179,7 +178,7 @@ describe('connection', () => {
         expect(await sendLook(connection, look)).toBe('shown');
         reply = 'err malformed look';
         await expect(sendLook(connection, look)).rejects.toThrow('malformed look');
-        await expect(command(connection, '> emotion furious')).rejects.toThrow('malformed look');
+        await expect(command(connection, emotionCommand('furious'))).rejects.toThrow('malformed look');
         await connection.close();
     });
 
