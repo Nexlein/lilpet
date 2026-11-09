@@ -224,6 +224,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
+- tests: engine.test.mjs
 
 ## eyes
 - **emotions.json** (67) — data
@@ -391,7 +392,7 @@ npm (`npm run <script>`):
 - `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && ruff format --check scripts`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:tables`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-scenes-table.mjs --check`
-- `check:scripts`: `node --test scripts/ && uv run scripts/test_board_scripts.py`
+- `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
 - `check:codemap`: `node scripts/codemap.mjs --check`
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`
