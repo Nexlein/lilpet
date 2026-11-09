@@ -1,6 +1,6 @@
 /* Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse):
  *   "> hello"       ->  "< lilpet fw=<version> engine=<version> board=<board> camera=<0|1> motion=<0|1>"
- *   "> look <text>" ->  "< ok" (written to flash at once, or in its turn: look_saving.h), or "< err <reason>"
+ *   "> look <text>" ->  "< ok" (kept in flash at once or in its turn, look_saving.h), "< err busy" or "< err <reason>"
  *   "> look?"       ->  "< look <text>", the current look
  *   "> imu?"        ->  "< imu <x> <y> <z>", gravity in g in screen coordinates (imu.h), or "< err no motion sensor"
  *   "> emotion <name> [seconds]"  an emotion for that long (above 0, up to 3600); with no seconds, the new mood
