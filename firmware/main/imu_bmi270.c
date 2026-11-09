@@ -5,11 +5,11 @@
  */
 #include "imu.h"
 
+#include "../third_party/bmi270/bmi270_config.h"
 #include "board.h"
 #include "board_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "imu_bmi270.h"
 
 #include <stdio.h>
 #include <string.h>

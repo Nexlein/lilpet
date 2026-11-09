@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (27) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+- **.lintstagedrc.mjs** (28) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
 - **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium.
   - exports: default
@@ -229,7 +229,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← .github/workflows/ci.yml, mise.toml
 
 ## firmware/boards/atoms3r
-- **board.cmake** (2) — Parts of the board, files of firmware/main.
+- **board.cmake** (3) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party).
 - **board_config.h** (33) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CAMERA, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
   - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
@@ -252,8 +252,6 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **bmi270_config.c** (558) — Uploaded to the sensor at startup (imu_bmi270.c): without it, the BMI270 gives no measurement
-  - → firmware/main/imu_bmi270.h
 - **board.c** (99) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - → firmware/main/board.h, firmware/boards/*/board_config.h
@@ -284,10 +282,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/commands.c, firmware/main/imu_bmi270.c, firmware/main/imu_none.c, firmware/main/main.c
 - **imu_bmi270.c** (143) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
-  - → firmware/main/imu.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_bmi270.h
-- **imu_bmi270.h** (11) — Bosch's configuration file for the BMI270 (bmi270_config.c, BSD-3-Clause)
-  - exports: BMI270_CONFIG_SIZE
-  - ← firmware/main/bmi270_config.c, firmware/main/imu_bmi270.c
+  - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h
 - **imu_none.c** (13) — Boards without a motion sensor
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h
@@ -301,6 +296,13 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **main.c** (205) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+
+## firmware/third_party/bmi270
+- **bmi270_config.c** (558) — Uploaded to the sensor at startup (imu_bmi270.c): without it, the BMI270 gives no measurement
+  - → firmware/third_party/bmi270/bmi270_config.h
+- **bmi270_config.h** (11) — Bosch's configuration file for the BMI270 (bmi270_config.c, BSD-3-Clause), loaded by firmware/main/imu_bmi270.c
+  - exports: BMI270_CONFIG_SIZE
+  - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).

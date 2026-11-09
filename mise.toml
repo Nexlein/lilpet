@@ -36,8 +36,8 @@ run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
 [vars]
-# Sources formatted by clang-format (.clang-format-ignore keeps the third-party BMI270 file as it is)
-c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
+# Sources formatted by clang-format: firmware/third_party keeps others' files as they are, only our headers there
+c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h firmware/third_party/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
