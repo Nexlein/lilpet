@@ -10,24 +10,38 @@
 #include "imu.h"
 #include "look_store.h"
 
+#include "esp_timer.h"
+
 #include <stdio.h>
 
-#define QUEUE_SLOTS   8    /* the drawing loop empties them every frame */
-#define QUEUE_WAIT_MS 100  /* several frames: only a stuck drawing loop makes a command wait that long */
-#define RX_BUFFER     1024 /* bytes of commands waiting on the USB port */
+#define QUEUE_SLOTS 32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
+#define RX_BUFFER   1024 /* bytes of commands waiting on the USB port */
+#define SAVE_GAP_US                                                                                                    \
+    2000000 /* microseconds: a new look is written to flash at most this often, or the flash wears out */
 
 /* Set before the task starts, then written by the task alone */
 static struct {
     lp_look current;
+    lp_look kept;     /* the last look written to flash */
+    int64_t saved_at; /* when it was written (esp_timer_get_time) */
     bool motion;
 } state;
 
-/* To the drawing loop: a command that reached RX_BUFFER is never dropped, it waits for a slot or gets an error */
+/*
+ * To the drawing loop. A command gets a slot at once or `< err busy`, never a wait: while this task waits, nothing
+ * reads the USB port, and the driver drops the packets that no longer fit RX_BUFFER, which splices the lines behind.
+ */
 static QueueHandle_t queue;
 
 static bool push(const lp_command *c)
 {
-    return xQueueSend(queue, c, pdMS_TO_TICKS(QUEUE_WAIT_MS)) == pdTRUE;
+    return xQueueSend(queue, c, 0) == pdTRUE;
+}
+
+static bool same_look(const lp_look *a, const lp_look *b)
+{
+    return a->sclera == b->sclera && a->pupil == b->pupil && a->pupil_color[0] == b->pupil_color[0] &&
+           a->pupil_color[1] == b->pupil_color[1];
 }
 
 static void handle_eyes_command(const lp_command *c)
@@ -49,7 +63,19 @@ static void handle_look(const lp_command *c)
     }
     /* Shown even when it cannot be kept: the app still sees it */
     state.current = c->look;
-    printf(look_store_save(&c->look) ? "< ok\n" : "< err shown, but cannot save the look in flash\n");
+    const int64_t now = esp_timer_get_time();
+    if (same_look(&c->look, &state.kept)) {
+        printf("< ok\n");
+    } else if (now - state.saved_at < SAVE_GAP_US) {
+        /* A sender streaming looks (an editor's slider) sends the last one again once it stops */
+        printf("< err shown, but not kept: one new look every 2 s at most\n");
+    } else if (look_store_save(&c->look)) {
+        state.kept = c->look;
+        state.saved_at = now;
+        printf("< ok\n");
+    } else {
+        printf("< err shown, but cannot save the look in flash\n");
+    }
 }
 
 static void reply_look(const lp_look *look)
@@ -132,6 +158,8 @@ void commands_start(const lp_look *current, bool motion)
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
+    state.kept = *current;         /* what the flash holds, or the default look that stands for nothing kept */
+    state.saved_at = -SAVE_GAP_US; /* the first new look is written at once */
     state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }

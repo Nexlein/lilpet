@@ -183,7 +183,7 @@ def run_checks(port, board, test_look, other_look):
         reply = ask(port, command)
         check_reply(bool(reply) and reply.startswith("err "), f'rejects "{command}"', reply)
 
-    burst = 30  # more than the queue to the drawing loop holds, which must lose none
+    burst = 30  # sent at once: the queue to the drawing loop holds them all, with no wait that would drop a packet
     port.write(b"> react tap\n" * burst)
     replies = [read_reply(port) for _ in range(burst)]
     expected = f"{replies.count(accepted)} as expected"
