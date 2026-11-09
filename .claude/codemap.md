@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (35) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+- **.lintstagedrc.mjs** (37) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
 
 ## .husky
