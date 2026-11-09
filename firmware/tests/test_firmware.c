@@ -1,5 +1,5 @@
-/* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes
- */
+/* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
+ * when a look is written to flash, the band split between the cores and the share of the screen redrawn */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
 #include "../main/frame.h"
