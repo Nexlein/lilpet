@@ -4,9 +4,16 @@
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
 import { fakePort } from '../app/src/device/fake-port.ts';
-import { collectErrors } from './page-errors.mjs';
 
 const APP = '/app/dist/index.html';
+
+// What a page reports as an error: tests end by expecting none
+function collectErrors(page) {
+    const errors = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
+    return errors;
+}
 
 // Every test ends with no error in the page
 const test = base.extend({

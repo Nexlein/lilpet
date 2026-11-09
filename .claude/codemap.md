@@ -345,7 +345,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: codemap.test.mjs, data.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
 
 ## tests
-- tests: app.spec.mjs, page-errors.mjs
+- tests: app.spec.mjs
 
 ## Commands
 
