@@ -219,7 +219,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## eyes
 - **emotions.json** (67) — data
-  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, prototype/eyes.js, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **looks.json** (109) — data
   - ← app/src/data/looks.ts, playwright.config.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 
@@ -301,15 +301,6 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **main.c** (205) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
-
-## prototype
-- **draw.js** (208) — Draws the eyes of the design prototype on a canvas, from the state of an Eyes object (eyes.js): what render.c does in the C engine.
-  - exports: PUPIL_TYPES, setupCanvas, drawEyes
-  - → prototype/eyes.js
-- **eyes.js** (462) — Eyes of the design prototype: state and animation, no DOM access, so that Node can import them (draw.js draws them).
-  - exports: SIZE, BLINK_PHASES, makeLook, BASE, EMOTIONS, REACTIONS, createRng, clamp, Eyes
-  - → eyes/emotions.json
-  - ← prototype/draw.js
 
 ## scripts
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).
