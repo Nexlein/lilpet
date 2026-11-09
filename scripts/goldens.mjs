@@ -54,7 +54,7 @@ for (const [label, steps] of PARTS)
 const hash = (rgb) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
 const pixelsDiffer = (n) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
 
-function known(names, name, what) {
+function requireKnown(names, name, what) {
     if (!names.includes(name)) throw new Error(`the reference animation names an unknown ${what}: "${name}"`);
 }
 
@@ -65,8 +65,8 @@ function known(names, name, what) {
 export function strict(engine, events) {
     return {
         ...engine,
-        setEmotion: (name) => (known(engine.emotions, name, 'emotion'), engine.setEmotion(name)),
-        react: (event) => (known(events, event, 'event'), engine.react(event))
+        setEmotion: (name) => (requireKnown(engine.emotions, name, 'emotion'), engine.setEmotion(name)),
+        react: (event) => (requireKnown(events, event, 'event'), engine.react(event))
     };
 }
 
