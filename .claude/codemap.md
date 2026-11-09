@@ -386,7 +386,6 @@ mise (`mise run <task>`):
 npm (`npm run <script>`, workspace app):
 - `dev`: `vite`
 - `build`: `tsc && vite build`
-- `preview`: `vite preview`
 - `test`: `vitest run`
 
 npm (`npm run <script>`):
