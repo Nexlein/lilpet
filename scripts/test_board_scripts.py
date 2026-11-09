@@ -137,7 +137,7 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            return HELLO % ("0.5.0", "0.13.0", self.name, 0, self.motion)
+            return HELLO % ("0.5.0", "0.13.0", self.name, self.motion)
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
