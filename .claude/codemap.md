@@ -277,15 +277,18 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
+- **dcs.h** (34) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
+  - exports: DCS_NOP, DCS_READ_ID, DCS_SLEEP_OUT, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS
+  - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (222) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (211) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
-  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h, firmware/main/lcd_id.h
-- **display_co5300.c** (170) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
+- **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
-  - → firmware/boards/*/board_config.h, firmware/main/display.h
+  - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
 - **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
   - exports: display_wait_frame
   - → firmware/main/display.h

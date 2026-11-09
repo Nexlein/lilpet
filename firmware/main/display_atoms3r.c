@@ -6,6 +6,7 @@
  */
 #include "board.h"
 #include "board_config.h"
+#include "dcs.h"
 #include "display.h"
 #include "lcd_id.h"
 
@@ -21,16 +22,6 @@
 
 #define SPI_HZ (40 * 1000 * 1000) /* M5GFX's write clock */
 #define ID_HZ  (1 * 1000 * 1000)  /* slow and safe, for the one ID read */
-
-#define CMD_NOP          0x00u
-#define CMD_READ_ID      0x04u
-#define CMD_INVERT_OFF   0x20u
-#define CMD_INVERT_ON    0x21u
-#define CMD_COLUMNS      0x2Au
-#define CMD_ROWS         0x2Bu
-#define CMD_WRITE_RAM    0x2Cu
-#define CMD_ORIENTATION  0x36u
-#define CMD_PIXEL_FORMAT 0x3Au
 
 typedef struct {
     uint8_t cmd;
@@ -129,7 +120,7 @@ static const panel *detect(char *raw, size_t raw_size)
     ESP_ERROR_CHECK(spi_device_acquire_bus(dev, portMAX_DELAY));
     gpio_set_level(BOARD_LCD_DC, 0);
     spi_transaction_t command = {
-        .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_CS_KEEP_ACTIVE, .length = 8, .tx_data = {CMD_READ_ID}};
+        .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_CS_KEEP_ACTIVE, .length = 8, .tx_data = {DCS_READ_ID}};
     ESP_ERROR_CHECK(spi_device_polling_transmit(dev, &command));
     gpio_set_level(BOARD_LCD_DC, 1);
     uint8_t answer[LCD_ID_ANSWER] = {0};
@@ -195,9 +186,9 @@ const char *display_init(size_t max_band_bytes)
         if (step->delay_ms)
             vTaskDelay(pdMS_TO_TICKS(step->delay_ms));
     }
-    send(chip->invert ? CMD_INVERT_ON : CMD_INVERT_OFF, NULL, 0);
-    send(CMD_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
-    send(CMD_ORIENTATION, &chip->orientation, 1);
+    send(chip->invert ? DCS_INVERT_ON : DCS_INVERT_OFF, NULL, 0);
+    send(DCS_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
+    send(DCS_ORIENTATION, &chip->orientation, 1);
     board_backlight_on();
     return chip->name;
 }
@@ -205,18 +196,16 @@ const char *display_init(size_t max_band_bytes)
 void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    const int c0 = x0 + chip->column;
-    const int c1 = x1 - 1 + chip->column;
-    const int r0 = y0 + chip->row;
-    const int r1 = y1 - 1 + chip->row;
-    const uint8_t columns[4] = {(uint8_t)(c0 >> 8), (uint8_t)c0, (uint8_t)(c1 >> 8), (uint8_t)c1};
-    const uint8_t rows[4] = {(uint8_t)(r0 >> 8), (uint8_t)r0, (uint8_t)(r1 >> 8), (uint8_t)r1};
-    send(CMD_COLUMNS, columns, sizeof columns); /* waits until the previous band is sent */
-    send(CMD_ROWS, rows, sizeof rows);
-    ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(io, CMD_WRITE_RAM, pixels, count * sizeof pixels[0]));
+    uint8_t columns[4];
+    uint8_t rows[4];
+    dcs_range(x0 + chip->column, x1 - 1 + chip->column, columns);
+    dcs_range(y0 + chip->row, y1 - 1 + chip->row, rows);
+    send(DCS_COLUMNS, columns, sizeof columns); /* waits until the previous band is sent */
+    send(DCS_ROWS, rows, sizeof rows);
+    ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(io, DCS_WRITE_RAM, pixels, count * sizeof pixels[0]));
 }
 
 void display_flush(void)
 {
-    send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
+    send(DCS_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
 }
