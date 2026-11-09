@@ -130,11 +130,11 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 ## Arborescence
 
-| Dossier     | Contenu                                                                                  |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| `notes/`    | Notes de recherche, matériel, architecture, yeux                                         |
-| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                    |
-| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
-| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
-| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB    |
-| `scripts/`  | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
+| Dossier     | Contenu                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `notes/`    | Notes de recherche, matériel, architecture, yeux                                           |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |
+| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB      |
+| `scripts/`  | Données (validation, tables générées), rendus de référence, carte du code, outils de carte |

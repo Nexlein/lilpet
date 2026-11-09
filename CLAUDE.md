@@ -173,6 +173,10 @@ open only the files it points to. Below, the parts and how they fit.
 ## Conventions
 
 - Code, comments, commits: English. Notes and README: French.
+- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it), but scripts that
+  are only run in kebab-case (`check-device.py`), like JS and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React
+  components in PascalCase (`SendPanel.tsx`). A JS test sits next to its module, `<module>.test.mjs` (Node) or
+  `<module>.test.ts` (Vitest); the app's browser tests are in `app/tests`, the engine's in `engine/tests`.
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with the six CI checks green, merged with a merge commit (GitHub rulesets: no direct push, no force
   push, no deletion). Dependabot and Renovate open theirs against `dev`.
