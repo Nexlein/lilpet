@@ -213,7 +213,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → eyes/emotions.json
 - **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the same scene and look objects as t...
   - exports: PUPILS, loadEngine
-  - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, prototype/reference.js, prototype/ui.js
+  - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, prototype/reference.js, prototype/ui.js, scripts/goldens.mjs
 - **smoke.mjs** (51) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 
@@ -221,7 +221,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, prototype/eyes.js, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **looks.json** (109) — data
-  - ← app/src/data/looks.ts, prototype/reference.js, prototype/ui.js, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
+  - ← app/src/data/looks.ts, prototype/reference.js, prototype/ui.js, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -324,7 +324,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → prototype/draw.js, prototype/eyes.js, engine/wasm/engine.mjs, prototype/parity.js
   - ← prototype/reference.html
 - **scenes.json** (129) — data
-  - ← .lintstagedrc.mjs, prototype/reference.html, prototype/reference.js, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
+  - ← .lintstagedrc.mjs, prototype/reference.html, prototype/reference.js, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **style.css** (21) — What the two pages of the prototype share
   - ← prototype/index.html, prototype/reference.html
 - **ui.js** (353) — Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard.
@@ -356,10 +356,14 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-engine-vectors.mjs** (281) — Generates engine/tests/js_vectors.h: values computed by the JS prototype (prototype/eyes.js) that the C engine must reproduce (engine/tests/test_pa...
   - → prototype/eyes.js, scripts/gen-common.mjs
   - ← package.json
+- **goldens.mjs** (200) — Reference renders of the eyes: the WebAssembly engine draws every reference scene and a short scripted animation, kept as PNG files in engine/tests...
+  - exports: encodePng, decodePng, rgbOf, differingPixels, renders
+  - → engine/wasm/engine.mjs
+  - ← mise.toml, package.json
 - **validate-data.mjs** (196) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
   - → prototype/eyes.js, prototype/draw.js
   - ← package.json
-- tests: codemap.test.mjs, test_board_scripts.py
+- tests: codemap.test.mjs, goldens.test.mjs, test_board_scripts.py
 
 ## tests
 - tests: app.spec.mjs, data.spec.mjs, eyes.spec.mjs, live.spec.mjs, page-errors.mjs, parity.spec.mjs
@@ -374,7 +378,7 @@ mise (`mise run <task>`):
 - `engine:format:check` — Fail if a C source is not formatted
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
 - `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
-- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
+- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI), check it loads in Node and draws the reference renders of engine/tests/goldens
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)
@@ -400,9 +404,10 @@ npm (`npm run <script>`):
 - `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && ruff format --check scripts`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:vectors`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-engine-vectors.mjs --check`
-- `check:scripts`: `uv run scripts/test_board_scripts.py`
-- `check:codemap`: `node --test scripts/codemap.test.mjs && node scripts/codemap.mjs --check`
+- `check:scripts`: `node --test scripts/ && uv run scripts/test_board_scripts.py`
+- `check:codemap`: `node scripts/codemap.mjs --check`
 - `codemap`: `node scripts/codemap.mjs`
+- `goldens`: `node scripts/goldens.mjs`
 - `vectors`: `node scripts/gen-emotions-table.mjs && node scripts/gen-engine-vectors.mjs`
 - `test:parity`: `npm run app:build && playwright test`
 - `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:vectors && npm run check:scripts && npm run check:codemap && npm run check:app`
