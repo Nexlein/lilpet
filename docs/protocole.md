@@ -15,7 +15,8 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   écrit en flash tout de suite, puis au plus toutes les 2 s, pour ne pas l'user : un look qui arrive plus tôt répond
   `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là : le dernier envoyé est celui que la
   carte garde, un peu plus de 2 s plus tard au pire. Si cette écriture-là échoue, la carte a déjà répondu `< ok` : seul
-  son journal le dit. Un look qui attend son tour se perd si la carte perd l'alimentation ou redémarre avant.
+  son journal le dit. Qu'une écriture échoue tout de suite ou plus tard, la carte réessaie toutes les 2 s. Un look qui
+  attend son tour se perd si la carte perd l'alimentation ou redémarre avant.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers

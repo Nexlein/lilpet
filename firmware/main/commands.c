@@ -17,14 +17,13 @@
 
 #define QUEUE_SLOTS  32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
 #define RX_BUFFER    1024 /* bytes of commands waiting on the USB port */
-#define READ_WAIT_MS 100  /* how long a read waits for a byte before a look left for later gets its turn */
+#define READ_WAIT_MS 100  /* how long a read waits for a byte before a look waiting for its turn gets it */
 
 /* Set before the task starts, then written by the task alone */
 static struct {
     lp_look current;
     lp_look kept;     /* the last look written to flash */
-    int64_t saved_at; /* when it was written (esp_timer_get_time) */
-    bool unsaved;     /* `current` waits for its turn to be written */
+    int64_t tried_at; /* the last write or try (esp_timer_get_time) */
     bool motion;
 } state;
 
@@ -39,12 +38,16 @@ static bool push(const lp_command *c)
     return xQueueSend(queue, c, 0) == pdTRUE;
 }
 
-static bool save_current(void)
+/* Writes the shown look to flash once its turn comes (look_saving.h); false when the flash refuses it */
+static bool save_if_due(void)
 {
+    const int64_t now = esp_timer_get_time();
+    if (!look_save_due(&state.current, &state.kept, now, state.tried_at))
+        return true;
+    state.tried_at = now;
     if (!look_store_save(&state.current))
         return false;
     state.kept = state.current;
-    state.saved_at = esp_timer_get_time();
     return true;
 }
 
@@ -65,24 +68,12 @@ static void handle_look(const lp_command *c)
         printf("< err busy\n");
         return;
     }
-    /* Shown even when it cannot be kept: the app still sees it */
+    /* Shown even when it cannot be kept: the app still sees it. Written now if its turn has come, else by read_line */
     state.current = c->look;
-    const look_save plan = look_save_plan(&c->look, &state.kept, esp_timer_get_time(), state.saved_at);
-    state.unsaved = plan == LOOK_SAVE_LATER; /* read_line writes it in its turn */
-    if (plan == LOOK_SAVE_NOW && !save_current())
+    if (!save_if_due())
         printf("< err shown, but cannot save the look in flash\n");
     else
         printf("< ok\n");
-}
-
-/* A look left for later, once its turn comes: no one waits for a reply, so a failure goes to the log */
-static void save_if_due(void)
-{
-    if (!look_save_due(state.unsaved, esp_timer_get_time(), state.saved_at))
-        return;
-    state.unsaved = false;
-    if (!save_current())
-        printf("cannot save the look in flash\n");
 }
 
 static void reply_look(const lp_look *look)
@@ -135,7 +126,8 @@ static void read_line(lp_command_line *line)
     for (;;) {
         char byte;
         const bool got = usb_serial_jtag_read_bytes(&byte, 1, pdMS_TO_TICKS(READ_WAIT_MS)) == 1;
-        save_if_due();
+        if (!save_if_due()) /* no one waits for a reply: a failure goes to the log, and is tried again a gap later */
+            printf("\ncannot save the look in flash\n"); /* on a line of its own, like a reply (handle) */
         if (got && lp_command_line_add(line, byte))
             return;
     }
@@ -164,8 +156,7 @@ void commands_start(const lp_look *current, bool motion)
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
     state.kept = *current;              /* what the flash holds, or the default look that stands for nothing kept */
-    state.saved_at = -LOOK_SAVE_GAP_US; /* the first new look is written at once */
-    state.unsaved = false;
+    state.tried_at = -LOOK_SAVE_GAP_US; /* the first new look is written at once */
     state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }

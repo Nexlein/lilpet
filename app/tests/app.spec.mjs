@@ -407,7 +407,7 @@ test('says when the flash refuses a look, and when the board does', async ({ pag
 
     await page.evaluate(() => (window.board.replies.look = 'err shown, but cannot save the look in flash'));
     await send.click();
-    await expect(note(page)).toHaveText('cherry est sur lilpet, mais ne sera pas gardé.');
+    await expect(note(page)).toHaveText('cherry est sur lilpet, mais pas encore gardé.');
 
     await page.evaluate(() => (window.board.replies.look = 'err malformed look'));
     await send.click();
