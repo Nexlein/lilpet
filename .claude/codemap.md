@@ -160,8 +160,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
   - exports: lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **internal.h** (111) — Helpers shared by the engine sources.
-  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_rng_seed, lp_rng_next, lp_emotion_from_name, lp_event_from_name, lp_default_shape, lp_eyes_spawn, lp_shake_update, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_pupil_shape, lp_pupils, lp_pupils_get, lp_look_malformed, lp_approach, lp_ease_in, lp_ease_out, lp_minf, lp_maxf, lp_clampf
+- **internal.h** (100) — Helpers shared by the engine sources.
+  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_rng_seed, lp_rng_next, lp_emotion_from_name, lp_event_from_name, lp_default_shape, lp_eyes_spawn, lp_shake_update, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_pupil_shape, lp_pupils, lp_pupils_get, lp_look_malformed, lp_approach, lp_minf, lp_maxf, lp_clampf
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/command.c, engine/src/emotions.c, engine/src/eyes.c, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/rng.c, engine/src/senses.c
 - **look.c** (118) — Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB protocol with the PC app (doc...
@@ -173,7 +173,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
   - exports: lp_shake_update
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **pose.c** (72) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
+- **pose.c** (83) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
   - exports: lp_eyes_blink_pose, lp_eyes_eye_pose
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
 - **raster.c** (233) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
