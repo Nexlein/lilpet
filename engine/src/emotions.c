@@ -1,3 +1,4 @@
+/* Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h) */
 #include "emotions_table.h"
 #include "lilpet/lilpet.h"
 

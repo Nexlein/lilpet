@@ -1,3 +1,7 @@
+# The oldest mise this file works with (tasks that run other tasks, the pypi backend); CI pins its own version
+# (.github/workflows/ci.yml), which Renovate keeps current
+min_version = "2026.11.0"
+
 [tools]
 # Exact versions, the same locally and in CI (jdx/mise-action): a new release cannot turn CI red on unchanged code.
 # Renovate opens a pull request for each new release (.github/renovate.json5), which CI checks before it is merged.
@@ -9,13 +13,31 @@ cmake = "4.4.5"
 ninja = "1.13.2"
 "pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
-# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt
+# Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt, on the Python below
 uv = "0.13.7"
+python = "3.15.2"
+# Linters of the git hooks (shell), the CI workflow and the Python scripts (ruff.toml), run by npm run lint
+shellcheck = "0.11.0"
+actionlint = "1.7.12"
+ruff = "0.17.4"
 
-# --- C engine tasks: `mise run engine:check` runs them all, like CI -------------------------------
-# Sources checked by clang-format and clang-tidy
 [env]
-LILPET_C_SOURCES = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
+# uv runs the scripts on the Python of mise, not on one it downloads itself: one pinned version, here
+UV_PYTHON_PREFERENCE = "only-system"
+
+# --- Whole-repository tasks -------------------------------------------------------------------------------------------
+[tasks.setup]
+description = "Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser"
+run = ["mise install", "npm ci", "npx playwright install --only-shell chromium"]
+
+[tasks.check]
+description = "Everything a change must pass: npm run check, the engine checks, the parity tests (Docker for the WebAssembly build); firmware changes add firmware:build-all"
+run = ["npm run check", { task = "engine:check" }, "npm run test:parity"]
+
+# --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
+[vars]
+# Sources formatted by clang-format (.clang-format-ignore keeps the third-party BMI270 file as it is)
+c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -45,11 +67,11 @@ run = [
 
 [tasks."engine:format"]
 description = "Format the C sources"
-run = "clang-format -i $LILPET_C_SOURCES"
+run = "clang-format -i {{vars.c_sources}}"
 
-[tasks."engine:format-check"]
+[tasks."engine:format:check"]
 description = "Fail if a C source is not formatted"
-run = "clang-format --dry-run --Werror $LILPET_C_SOURCES"
+run = "clang-format --dry-run --Werror {{vars.c_sources}}"
 
 [tasks."engine:tidy"]
 description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
@@ -58,7 +80,7 @@ run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
-depends = ["engine:format-check", "engine:test", "engine:tidy", "engine:wasm"]
+depends = ["engine:format:check", "engine:test", "engine:tidy", "engine:wasm"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
 # One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong
@@ -84,6 +106,10 @@ run = [
     "docker build -t lilpet-idf - < firmware/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" build merge-bin',
 ]
+
+[tasks."firmware:build-all"]
+description = "Build the firmware of every board of firmware/boards, as CI does"
+run = 'for dir in firmware/boards/*/; do BOARD=$(basename "$dir") mise run firmware:build || exit 1; done'
 
 [tasks."firmware:flash"]
 description = "Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1"

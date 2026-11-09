@@ -131,6 +131,26 @@ comme en `double`.
   ne sait pas lire, Dependabot pour npm, les images Docker et les actions, toutes épinglées par
   commit.
 
+## Outillage du dépôt (novembre 2026)
+
+- **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
+  `engine:check`, la parité). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au lieu de
+  recopier les étapes de `npm run check` : une étape ajoutée au contrôle rapide ne peut plus manquer en CI. Une
+  quatrième partie de `mise run check` devrait aussi devenir un job (commentaire en tête des jobs de `ci.yml`). `npm run check` reste la partie rapide (environ 10 s), lancée avant
+  chaque push ; ce qui demande Docker reste à la CI.
+- **Versions figées partout** : mise lui-même (`min_version`, et la version de la CI, tenue à jour par Renovate),
+  l'image `ubuntu-26.04` de la CI, Python (par mise, et uv l'utilise au lieu d'en télécharger un), et les linters du
+  shell (shellcheck), du workflow (actionlint) et du Python (ruff). Le compilateur C du PC reste celui du système :
+  `engine/CMakeLists.txt` refuse un clang plus ancien que celui de la CI (21), qui n'est pas testé.
+- **Hooks git** : avant un commit, le scan de secrets, lint-staged (lint et formatage des fichiers indexés, contrôle des
+  fichiers générés quand leurs sources changent) et la carte du code ; avant un push, `npm run check`. Prettier ne
+  traite que les fichiers suivis par git, pour ne jamais toucher un fichier local non suivi.
+- **Carte du code** (`scripts/codemap.mjs`, sans dépendance) : `.claude/codemap.md` décrit chaque fichier source (rôle,
+  exports, fichiers utilisés, et fichiers, tâches et hooks qui l'utilisent), les données et qui les lit, les commandes
+  et les paquets npm. Elle se lit depuis l'index git, donc elle correspond toujours à ce qui sera commité. La CI échoue
+  si elle est périmée, si un import local est introuvable ou si un fichier ne dit pas à quoi il sert, ce qui oblige
+  chaque fichier à commencer par une phrase sur son rôle.
+
 ## Vision
 
 Le but : un modèle d'IA dans l'objet traite ce que voit la caméra, les gestes, le visage et les expressions de la

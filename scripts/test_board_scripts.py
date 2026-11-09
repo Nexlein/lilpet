@@ -20,11 +20,8 @@ ROOT = SCRIPTS.parent
 PORT = "/dev/ttyACM0"
 
 HELLO = re.search(r'"< (lilpet [^"]*)\\n"', (ROOT / "firmware" / "main" / "commands.c").read_text()).group(1)
-LINE_MAX = int(
-    re.search(
-        r"LP_COMMAND_LINE_MAX\s+(\d+)", (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
-    ).group(1)
-)
+LILPET_H = (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
+LINE_MAX = int(re.search(r"LP_COMMAND_LINE_MAX\s+(\d+)", LILPET_H).group(1))
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -212,9 +209,7 @@ serial.Serial = Serial
 serial.tools = types.ModuleType("serial.tools")
 serial.tools.list_ports = types.ModuleType("serial.tools.list_ports")
 serial.tools.list_ports.comports = lambda: [types.SimpleNamespace(device=port, vid=0x303A) for port in plugged]
-sys.modules.update(
-    {"serial": serial, "serial.tools": serial.tools, "serial.tools.list_ports": serial.tools.list_ports}
-)
+sys.modules.update({"serial": serial, "serial.tools": serial.tools, "serial.tools.list_ports": serial.tools.list_ports})
 
 import board_link  # noqa: E402  after the fake, so that it can never reach a real port
 

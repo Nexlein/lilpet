@@ -7,6 +7,8 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
+# Prettier, clang-format and ruff wrap at the same width
+max_line_length = 120
 
 [*.{yml,yaml}]
 indent_size = 2

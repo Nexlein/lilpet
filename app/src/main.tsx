@@ -1,3 +1,4 @@
+// Entry point of the PC app: loads the font and the styles, and renders the app into #root
 import '@fontsource-variable/bricolage-grotesque';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
