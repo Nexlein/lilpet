@@ -305,14 +305,19 @@ class FirmwareFacts(unittest.TestCase):
         # count of eyes/emotions.json
         known = {"LP_EMOTION_COUNT": len(json.loads((ROOT / "eyes" / "emotions.json").read_text())["emotions"])}
 
+        def term(word):
+            if word in known:
+                return known[word]
+            if not word.isdigit():
+                self.fail(f"bench_script.h: {word} is neither a number nor a name defined before")
+            return int(word)
+
         def value(expression):
-            return sum(
-                math.prod(known[w] if w in known else int(w) for w in t.split("*")) for t in expression.split("+")
-            )
+            return sum(math.prod(term(word) for word in product.split("*")) for product in expression.split("+"))
 
         bench = (ROOT / "engine" / "tools" / "bench_script.h").read_text()
         for name, expression in re.findall(r"^\s*(LP_BENCH_\w+) = ([\w\s+*]+?),", bench, re.M):
-            known[name] = value(expression.replace(" ", ""))
+            known[name] = value("".join(expression.split()))  # without spaces or line breaks
         check = (SCRIPTS / "check-device.py").read_text()
         rate = int(re.search(r"^MIN_FRAMES_PER_SECOND = (\d+)", check, re.M).group(1))
         window = int(re.search(r"^REPORT_SECONDS = (\d+)", check, re.M).group(1))
