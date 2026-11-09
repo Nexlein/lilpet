@@ -36,8 +36,7 @@ BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 REPORT_LINE = r"^(\d+\.\d) frames/s"
 # Catches a dead or crawling drawing loop, not a slow screen: a board reports every LP_BENCH_FRAMES frames
-# (engine/tools/bench_script.h; 1080 today, so 17.3 s at full speed and 54 s at this rate): REPORT_SECONDS covers that,
-# and grows with it
+# (engine/tools/bench_script.h), and REPORT_SECONDS waits for a whole round at this rate (a test checks it)
 MIN_FRAMES_PER_SECOND = 20
 REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash

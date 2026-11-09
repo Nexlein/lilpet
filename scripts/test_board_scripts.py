@@ -4,6 +4,7 @@
 # Usage: npm run check:scripts
 import contextlib
 import io
+import json
 import math
 import os
 import re
@@ -298,6 +299,18 @@ class FirmwareFacts(unittest.TestCase):
         command_c = (ROOT / "engine" / "src" / "command.c").read_text()
         for reply in (REPLY_UNKNOWN, REPLY_TOO_LONG):
             self.assertIn(f'return "{reply.removeprefix("err ")}";', command_c)
+
+    def test_the_report_window_holds_a_round_at_the_lowest_rate(self):
+        # LP_BENCH_FRAMES, from the enum of bench_script.h, with the emotion count of eyes/emotions.json
+        known = {"LP_EMOTION_COUNT": len(json.loads((ROOT / "eyes" / "emotions.json").read_text())["emotions"])}
+        bench = (ROOT / "engine" / "tools" / "bench_script.h").read_text()
+        for name, value in re.findall(r"^\s*(LP_BENCH_\w+) = ([\w\s+*]+?),", bench, re.M):
+            known[name] = eval(value, {"__builtins__": {}}, known)  # names, numbers, + and * only
+        check = (SCRIPTS / "check-device.py").read_text()
+        rate = int(re.search(r"^MIN_FRAMES_PER_SECOND = (\d+)", check, re.M).group(1))
+        window = int(re.search(r"^REPORT_SECONDS = (\d+)", check, re.M).group(1))
+        self.assertGreater(known["LP_BENCH_FRAMES"], 0)
+        self.assertLessEqual(known["LP_BENCH_FRAMES"] / rate, window)
 
     def test_c_define_stops_on_a_missing_define(self):
         with self.assertRaises(SystemExit):
