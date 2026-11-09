@@ -12,8 +12,8 @@ const TILT = degrees(EYE_SHAPE.tilt); // top of each eye outward
 const LEAN = degrees(PUPIL_LEAN); // top of each pupil toward the nose
 
 // A pupil's radii in the drawing: a disc's radius is a fraction of the eye's rx for both
-function radii(p: PupilShape): [number, number] {
-    return 'r' in p ? [p.r * RX, p.r * RX] : [p.rx * RX, p.ry * RY];
+function radii(p: PupilShape): { rx: number; ry: number } {
+    return 'r' in p ? { rx: p.r * RX, ry: p.r * RX } : { rx: p.rx * RX, ry: p.ry * RY };
 }
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
 export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
     const p = PUPIL_SHAPES[pupil];
-    const [prx, pry] = radii(p);
+    const pupilRadii = radii(p);
     return (
         <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
@@ -50,8 +50,8 @@ export function EyeGlyph({ colors, pupil }: Props) {
                         <ellipse
                             cx={px}
                             cy={py}
-                            rx={prx}
-                            ry={pry}
+                            rx={pupilRadii.rx}
+                            ry={pupilRadii.ry}
                             fill={colors.pupilColor[side < 0 ? 0 : 1]}
                             transform={`rotate(${inner * LEAN} ${px} ${py})`}
                             clipPath={`url(#${eye}-clip)`}
