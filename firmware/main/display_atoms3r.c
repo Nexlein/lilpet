@@ -32,7 +32,7 @@ typedef struct {
 
 /* Vendor init sequences of M5GFX (Panel_ST7735S in Panel_ST7735.hpp, Panel_GC9107 in Panel_GC9A01.hpp) */
 static const init_step ST7735S_INIT[] = {
-    {0x01u, 0, 150, {0}}, /* software reset */
+    {DCS_SOFT_RESET, 0, 150, {0}},
     {DCS_SLEEP_OUT, 0, 500, {0}},
     {0xB1u, 3, 0, {0x01u, 0x2Cu, 0x2Du}},
     {0xB2u, 3, 0, {0x01u, 0x2Cu, 0x2Du}},
@@ -52,7 +52,7 @@ static const init_step ST7735S_INIT[] = {
      16,
      0,
      {0x03u, 0x1Du, 0x07u, 0x06u, 0x2Eu, 0x2Cu, 0x29u, 0x2Du, 0x2Eu, 0x2Eu, 0x37u, 0x3Fu, 0x00u, 0x00u, 0x02u, 0x10u}},
-    {0x13u, 0, 10, {0}}, /* normal mode */
+    {DCS_NORMAL_MODE, 0, 10, {0}},
     {DCS_DISPLAY_ON, 0, 100, {0}},
 };
 static const init_step GC9107_INIT[] = {

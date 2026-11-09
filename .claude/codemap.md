@@ -280,8 +280,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
-- **dcs.h** (34) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
-  - exports: DCS_NOP, DCS_READ_ID, DCS_SLEEP_OUT, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, dcs_range
+- **dcs.h** (37) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
+  - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_CONTROL, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush

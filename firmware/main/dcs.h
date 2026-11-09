@@ -9,8 +9,10 @@
 #include <stdint.h>
 
 #define DCS_NOP          0x00u
+#define DCS_SOFT_RESET   0x01u
 #define DCS_READ_ID      0x04u
 #define DCS_SLEEP_OUT    0x11u
+#define DCS_NORMAL_MODE  0x13u
 #define DCS_INVERT_OFF   0x20u
 #define DCS_INVERT_ON    0x21u
 #define DCS_DISPLAY_ON   0x29u
@@ -21,6 +23,7 @@
 #define DCS_ORIENTATION  0x36u
 #define DCS_PIXEL_FORMAT 0x3Au
 #define DCS_BRIGHTNESS   0x51u
+#define DCS_CONTROL      0x53u /* turns brightness control on */
 
 /* First to last, both included, in the four big-endian bytes of DCS_COLUMNS and DCS_ROWS */
 static inline void dcs_range(int first, int last, uint8_t out[4])

@@ -41,7 +41,7 @@ static const init_cmd INIT[] = {
     {0xC4u, 1, {0x80u}, 0},            /* vendor command, value from the demo */
     {DCS_PIXEL_FORMAT, 1, {0x55u}, 0}, /* 16 bits per pixel, RGB565 */
     {DCS_TE_ON, 1, {0x00u}, 0},        /* TE signal at each vertical blank */
-    {0x53u, 1, {0x20u}, 0},            /* brightness control on */
+    {DCS_CONTROL, 1, {0x20u}, 0},      /* brightness control on */
     {DCS_BRIGHTNESS, 1, {0xFFu}, 0},   /* brightness */
     {0x63u, 1, {0xFFu}, 0},            /* vendor command, value from the demo */
     {DCS_SLEEP_OUT, 0, {0}, 100},      /* leave sleep, then wait */
