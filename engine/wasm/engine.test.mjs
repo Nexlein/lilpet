@@ -22,8 +22,14 @@ function enumerators(name, prefix) {
         .map((e) => e.slice(prefix.length).toLowerCase());
 }
 
-test('pupil types in the order of lp_pupil', () => {
+test('pupil types in the order of lp_pupil, in the module and in its types', () => {
     assert.deepEqual(PUPILS, enumerators('lp_pupil', 'LP_PUPIL_'));
+    const types = readFileSync(new URL('engine.d.mts', import.meta.url), 'utf8');
+    const declared = /export const PUPILS: readonly \[([^\]]*)\]/.exec(types)?.[1] ?? '';
+    assert.deepEqual(
+        [...declared.matchAll(/'(\w+)'/g)].map((m) => m[1]),
+        PUPILS
+    );
 });
 
 test('blink phases in the order of lp_blink_phase, with no phase for none', () => {
