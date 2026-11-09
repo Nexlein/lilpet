@@ -33,7 +33,7 @@ typedef struct {
 /* Vendor init sequences of M5GFX (Panel_ST7735S in Panel_ST7735.hpp, Panel_GC9107 in Panel_GC9A01.hpp) */
 static const init_step ST7735S_INIT[] = {
     {0x01u, 0, 150, {0}}, /* software reset */
-    {0x11u, 0, 500, {0}}, /* sleep out */
+    {DCS_SLEEP_OUT, 0, 500, {0}},
     {0xB1u, 3, 0, {0x01u, 0x2Cu, 0x2Du}},
     {0xB2u, 3, 0, {0x01u, 0x2Cu, 0x2Du}},
     {0xB3u, 6, 0, {0x01u, 0x2Cu, 0x2Du, 0x01u, 0x2Cu, 0x2Du}},
@@ -52,8 +52,8 @@ static const init_step ST7735S_INIT[] = {
      16,
      0,
      {0x03u, 0x1Du, 0x07u, 0x06u, 0x2Eu, 0x2Cu, 0x29u, 0x2Du, 0x2Eu, 0x2Eu, 0x37u, 0x3Fu, 0x00u, 0x00u, 0x02u, 0x10u}},
-    {0x13u, 0, 10, {0}},  /* normal mode */
-    {0x29u, 0, 100, {0}}, /* display on */
+    {0x13u, 0, 10, {0}}, /* normal mode */
+    {DCS_DISPLAY_ON, 0, 100, {0}},
 };
 static const init_step GC9107_INIT[] = {
     {0xFEu, 0, 5, {0}}, /* unlock the vendor registers */
@@ -75,8 +75,8 @@ static const init_step GC9107_INIT[] = {
     {0xC7u, 1, 0, {0x18u}},
     {0xF0u, 14, 0, {0x01u, 0x2Bu, 0x23u, 0x3Cu, 0xB7u, 0x12u, 0x17u, 0x60u, 0x00u, 0x06u, 0x0Cu, 0x17u, 0x12u, 0x1Fu}},
     {0xF1u, 14, 0, {0x05u, 0x2Eu, 0x2Du, 0x44u, 0xD6u, 0x15u, 0x17u, 0xA0u, 0x02u, 0x0Du, 0x0Du, 0x1Au, 0x18u, 0x1Fu}},
-    {0x11u, 0, 120, {0}}, /* sleep out */
-    {0x29u, 0, 0, {0}},   /* display on */
+    {DCS_SLEEP_OUT, 0, 120, {0}},
+    {DCS_DISPLAY_ON, 0, 0, {0}},
 };
 
 typedef struct {
