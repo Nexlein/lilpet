@@ -26,9 +26,9 @@ dans `references/`, ignoré par git et jamais publié.
 
 Un look = une couleur de [eyes/looks.json](../eyes/looks.json) + un type de pupille.
 
-## Animations à faire
+## Techniques d'animation
 
-Idées tirées des techniques classiques d'animation d'yeux :
+Les techniques classiques d'animation d'yeux, toutes reprises par le moteur :
 
 - **Clignements** à intervalle irrégulier.
 - **Petits mouvements** constants de la pupille (saccades).
@@ -267,7 +267,3 @@ fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis
 | umbrella    | 0,4 %  | `#E7E3E9` | `#F65F28`      | `#4F6BF8`      |
 | valentine   | 1,9 %  | `#DD06CB` | `#7B1612`      | =              |
 | whale       | 1,9 %  | `#0059A3` | `#0095FF`      | =              |
-
-## Idées perso
-
-_(à remplir)_
