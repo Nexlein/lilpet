@@ -516,6 +516,7 @@ export function buildMap(contents, isIgnored = () => false) {
         const generated = /^generated\b/i.test(purpose);
         info.set(f, {
             kind,
+            generated,
             lines: src.split('\n').length - (src.endsWith('\n') ? 1 : 0),
             purpose,
             exports: generated ? [] : symbolsOf(f, src, kind),
@@ -531,6 +532,8 @@ export function buildMap(contents, isIgnored = () => false) {
             i.purpose = `Implements ${basename(header)}: ${/^[A-Z][a-z]/.test(said) ? said[0].toLowerCase() + said.slice(1) : said}`;
     }
 
+    // A test folder also holds data and generated files: they are listed with their users, not as tests
+    const test = (f) => isTest(f) && kinds.get(f) !== 'data' && !info.get(f)?.generated;
     const usedBy = new Map(files.map((f) => [f, new Set()]));
     for (const [f, i] of info) for (const dep of i.local) usedBy.get(dep)?.add(f);
     const mentioners = all.filter((f) => MENTION_SOURCES.test(f) || (kinds.get(f) && kinds.get(f) !== 'data'));
@@ -543,7 +546,7 @@ export function buildMap(contents, isIgnored = () => false) {
     const problems = [];
     for (const [f, i] of info) {
         for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
-        if (!i.purpose && !isTest(f) && i.kind !== 'data')
+        if (!i.purpose && !test(f) && i.kind !== 'data')
             problems.push(`${f}: no purpose comment at the top (what the file is for, in one sentence)`);
     }
 
@@ -563,8 +566,8 @@ export function buildMap(contents, isIgnored = () => false) {
     }
     for (const [dir, list] of [...groups].toSorted(([a], [b]) => byCodeUnit(a, b))) {
         lines.push(`## ${dir}`);
-        const tests = list.filter(isTest);
-        for (const f of list.filter((x) => !isTest(x))) {
+        const tests = list.filter(test);
+        for (const f of list.filter((x) => !test(x))) {
             const i = info.get(f);
             const label = i.kind === 'data' ? 'data' : i.purpose;
             lines.push(`- **${basename(f)}** (${i.lines})${label ? ` — ${label}` : ''}`);
@@ -572,7 +575,7 @@ export function buildMap(contents, isIgnored = () => false) {
             if (i.local.length) lines.push(`  - → ${collapse(i.local, files).join(', ')}`);
             if (i.built.length) lines.push(`  - → built: ${i.built.join(', ')}`);
             if (i.packages.length) lines.push(`  - packages: ${i.packages.join(', ')}`);
-            const users = [...usedBy.get(f)].filter((u) => !isTest(u)).toSorted(byCodeUnit);
+            const users = [...usedBy.get(f)].filter((u) => !test(u)).toSorted(byCodeUnit);
             if (users.length) lines.push(`  - ← ${collapse(users, files).join(', ')}`);
         }
         if (tests.length) lines.push(`- tests: ${tests.map((t) => basename(t)).join(', ')}`);
