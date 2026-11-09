@@ -105,7 +105,9 @@
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
     X(test_small_output_regions_stay_inside)                                                                           \
-    X(test_pupil_bigger_than_its_eye_stays_centered)
+    X(test_pupil_bigger_than_its_eye_stays_centered)                                                                   \
+    X(test_lcd_id_tells_the_two_controllers_apart)                                                                     \
+    X(test_imu_axes_give_gravity_on_the_screen)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)

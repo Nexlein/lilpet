@@ -127,7 +127,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: app.spec.mjs
 
 ## engine
-- **CMakeLists.txt** (52) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
+- **CMakeLists.txt** (53) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
   - → engine/sources.cmake
 - **sources.cmake** (9) — Engine sources and warning flags, shared by engine/CMakeLists.txt (host, WebAssembly) and the ESP-IDF component (firmware/components/lilpet).
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
@@ -277,9 +277,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (227) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (222) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
-  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h
+  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/display.h, firmware/main/lcd_id.h
 - **display_co5300.c** (169) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
   - → firmware/boards/*/board_config.h, firmware/main/display.h
@@ -289,12 +289,18 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **imu.h** (16) — Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (board.cmake)
   - exports: imu_init, imu_gravity
   - ← firmware/main/commands.c, firmware/main/imu_bmi270.c, firmware/main/imu_none.c, firmware/main/main.c
-- **imu_bmi270.c** (143) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
+- **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
+  - exports: imu_axis
+  - ← firmware/main/imu_bmi270.c
+- **imu_bmi270.c** (137) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
-  - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h
+  - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_axes.h
 - **imu_none.c** (13) — Boards without a motion sensor
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h
+- **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
+  - exports: LCD_ID_ANSWER, lcd_id
+  - ← firmware/main/display_atoms3r.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h
@@ -305,6 +311,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **main.c** (212) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+
+## firmware/tests
+- tests: test_firmware.c
 
 ## firmware/third_party/bmi270
 - **bmi270_config.c** (558) — Uploaded to the sensor at startup (imu_bmi270.c): without it, the BMI270 gives no measurement

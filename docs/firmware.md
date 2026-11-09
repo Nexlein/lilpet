@@ -38,6 +38,13 @@ Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 imag
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.
 
+## Tests
+
+Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lancés avec ceux du moteur
+(`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S
+n'a jamais tourné sur une carte) et le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`).
+Le reste se vérifie sur la carte, avec `firmware:check-device`.
+
 ## Pilotes d'écran
 
 - **Écran rond** (`firmware/main/display_co5300.c`) : il reprend la démo ESP-IDF officielle de Waveshare pour la carte
@@ -76,10 +83,10 @@ qu'un PC.
   boucle l'animation de mesure, avec le même look (cherry), la même graine et le même pas fixe de 1/60 s que sur PC, et
   chaque tour repart de zéro comme chaque passe sur PC, pour dessiner les mêmes images que `mise run engine:bench`. Sa
   première image, qui redessine ce que la dernière du tour précédent a laissé, n'est pas comptée. La part redessinée se
-  compare, mais son temps de dessin est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, pour 51 % de l'écran redessiné en
-  moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s ;
-  sur les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à
-  52 images/s.
+  compare, mais son temps de dessin est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, pour 51
+  % de l'écran redessiné en moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5
+  ms, soit 30,7 images/s ; sur les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3
+  ms, soit 51 à 52 images/s.
 - **AtomS3R, 128 px**, yeux au repos : 8,2 ms de dessin par image, puis 4,9 ms (novembre 2026) une fois le mélange des
   couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne (la puce n'a pas de
   division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les pixels répétés

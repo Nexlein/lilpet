@@ -10,6 +10,7 @@
 #include "board_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "imu_axes.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -37,10 +38,7 @@
 #define CHUNK      64      /* bytes of the configuration per write */
 
 /* Sensor axes to screen axes: how the sensor is mounted on the board */
-static const struct {
-    int axis;
-    float sign;
-} SCREEN_AXES[3] = BOARD_IMU_AXES;
+static const imu_axis SCREEN_AXES[3] = BOARD_IMU_AXES;
 
 static i2c_master_dev_handle_t dev;
 
@@ -134,10 +132,6 @@ bool imu_gravity(float out[3])
     uint8_t raw[6];
     if (!dev || !read_reg(REG_ACC_X, raw, sizeof raw))
         return false;
-    float sensor[3];
-    for (int i = 0; i < 3; i++)
-        sensor[i] = (float)(int16_t)(uint16_t)(raw[2 * i] | (unsigned)raw[2 * i + 1] << 8u) / LSB_PER_G;
-    for (int i = 0; i < 3; i++)
-        out[i] = SCREEN_AXES[i].sign * sensor[SCREEN_AXES[i].axis];
+    imu_axes_to_screen(raw, SCREEN_AXES, LSB_PER_G, out);
     return true;
 }

@@ -38,7 +38,7 @@ run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 [vars]
 # Sources formatted by clang-format, the ones git tracks: firmware/third_party keeps others' files as they are, only our
 # headers there are formatted, and an untracked file is never touched
-c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h firmware/third_party/*/*.h"
+c_sources = "engine/include/lilpet/*.h engine/src/*.[ch] engine/tests/*.[ch] engine/tools/*.[ch] engine/wasm/*.[ch] firmware/main/*.[ch] firmware/boards/*/*.h firmware/tests/*.[ch] firmware/third_party/*/*.h"
 
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
@@ -82,7 +82,7 @@ run = "git ls-files -z -- {{vars.c_sources}} | xargs -0 -r clang-format --dry-ru
 [tasks."engine:tidy"]
 description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
 depends = ["engine:test"]
-run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c engine/tools/*.c"
+run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests/*.c engine/tools/*.c firmware/tests/*.c"
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
