@@ -4,6 +4,7 @@
 #include "../boards/atoms3r/board_config.h"
 #include "../main/imu_axes.h"
 #include "../main/lcd_id.h"
+#include "../main/look_saving.h"
 
 void test_lcd_id_tells_the_two_controllers_apart(void)
 {
@@ -41,4 +42,21 @@ void test_imu_axes_give_gravity_on_the_screen(void)
     imu_axes_to_screen(extremes, atoms3r, 4096.0f, g);
     CHECK_NEAR(g[0], -32767.0f / 4096.0f, 1e-6f);
     CHECK(g[1] == 8.0f && g[2] == 1.0f / 4096.0f);
+}
+
+void test_a_look_is_written_at_once_then_at_most_every_gap(void)
+{
+    const int64_t gap = 2000000;
+    const lp_look kept = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
+    lp_look other = kept;
+    other.pupil_color[1] = 0x0964E7u;
+    CHECK(look_same(&kept, &kept) && !look_same(&kept, &other));
+    CHECK(look_save_plan(&kept, &kept, 0, -gap, gap) == LOOK_KEPT);           /* the flash holds it: nothing to write */
+    CHECK(look_save_plan(&other, &kept, 0, -gap, gap) == LOOK_SAVE_NOW);      /* the first new look, at once */
+    CHECK(look_save_plan(&other, &kept, 1999999, 0, gap) == LOOK_SAVE_LATER); /* too soon after the last write */
+    CHECK(look_save_plan(&other, &kept, 2000000, 0, gap) == LOOK_SAVE_NOW);
+    /* The one left for later is written once its turn comes, the last one sent */
+    CHECK(!look_save_due(true, 1999999, 0, gap));
+    CHECK(look_save_due(true, 2000000, 0, gap));
+    CHECK(!look_save_due(false, 9000000, 0, gap));
 }

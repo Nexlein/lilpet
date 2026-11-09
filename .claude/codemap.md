@@ -136,7 +136,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lilpet.h** (406) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_rng_seed, lp_rng_next, lp_pupil, lp_look, lp_look_parse, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_emotion_from_name, lp_event, lp_reaction, lp_reaction_get, lp_event_from_name, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_spawn, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_shake_update, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -267,9 +267,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (170) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.c** (178) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
-  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_store.h
+  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
 - **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
@@ -301,6 +301,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id
   - ← firmware/main/display_atoms3r.c
+- **look_saving.h** (41) — When a look just shown is written to flash: at once, then at most every SAVE_GAP_US, so that a sender streaming looks (an editor's slider) does not...
+  - exports: look_save
+  - → engine/include/lilpet/lilpet.h
+  - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h

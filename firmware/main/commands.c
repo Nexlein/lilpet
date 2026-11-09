@@ -8,22 +8,25 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "imu.h"
+#include "look_saving.h"
 #include "look_store.h"
 
 #include "esp_timer.h"
 
 #include <stdio.h>
 
-#define QUEUE_SLOTS 32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
-#define RX_BUFFER   1024 /* bytes of commands waiting on the USB port */
-#define SAVE_GAP_US                                                                                                    \
-    2000000 /* microseconds: a new look is written to flash at most this often, or the flash wears out */
+#define QUEUE_SLOTS  32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
+#define RX_BUFFER    1024 /* bytes of commands waiting on the USB port */
+#define READ_WAIT_MS 100  /* how long a read waits for a byte before a look left for later gets its turn */
+/* Microseconds: a new look is written to flash at most this often (look_saving.h) */
+#define SAVE_GAP_US 2000000
 
 /* Set before the task starts, then written by the task alone */
 static struct {
     lp_look current;
     lp_look kept;     /* the last look written to flash */
     int64_t saved_at; /* when it was written (esp_timer_get_time) */
+    bool unsaved;     /* `current` waits for its turn to be written */
     bool motion;
 } state;
 
@@ -38,10 +41,13 @@ static bool push(const lp_command *c)
     return xQueueSend(queue, c, 0) == pdTRUE;
 }
 
-static bool same_look(const lp_look *a, const lp_look *b)
+static bool save_current(void)
 {
-    return a->sclera == b->sclera && a->pupil == b->pupil && a->pupil_color[0] == b->pupil_color[0] &&
-           a->pupil_color[1] == b->pupil_color[1];
+    if (!look_store_save(&state.current))
+        return false;
+    state.kept = state.current;
+    state.saved_at = esp_timer_get_time();
+    return true;
 }
 
 static void handle_eyes_command(const lp_command *c)
@@ -63,19 +69,22 @@ static void handle_look(const lp_command *c)
     }
     /* Shown even when it cannot be kept: the app still sees it */
     state.current = c->look;
-    const int64_t now = esp_timer_get_time();
-    if (same_look(&c->look, &state.kept)) {
-        printf("< ok\n");
-    } else if (now - state.saved_at < SAVE_GAP_US) {
-        /* A sender streaming looks (an editor's slider) sends the last one again once it stops */
-        printf("< err shown, but not kept: one new look every 2 s at most\n");
-    } else if (look_store_save(&c->look)) {
-        state.kept = c->look;
-        state.saved_at = now;
-        printf("< ok\n");
-    } else {
+    const look_save plan = look_save_plan(&c->look, &state.kept, esp_timer_get_time(), state.saved_at, SAVE_GAP_US);
+    state.unsaved = plan == LOOK_SAVE_LATER; /* read_line writes it in its turn */
+    if (plan == LOOK_SAVE_NOW && !save_current())
         printf("< err shown, but cannot save the look in flash\n");
-    }
+    else
+        printf("< ok\n");
+}
+
+/* A look left for later, once its turn comes: no one waits for a reply, so a failure goes to the log */
+static void save_if_due(void)
+{
+    if (!look_save_due(state.unsaved, esp_timer_get_time(), state.saved_at, SAVE_GAP_US))
+        return;
+    state.unsaved = false;
+    if (!save_current())
+        printf("cannot save the look in flash\n");
 }
 
 static void reply_look(const lp_look *look)
@@ -120,18 +129,17 @@ static void handle(const lp_command_line *line)
     fflush(stdout);
 }
 
-/* Waits for a line and reads it, whatever it holds */
+/* Waits for a line and reads it, whatever it holds. The driver's read, with a timeout: after each byte, and while the
+ * port is quiet, a look left for later gets written once its turn comes */
 static void read_line(lp_command_line *line)
 {
     *line = (lp_command_line){0};
     for (;;) {
-        const int byte = fgetc(stdin);
-        if (byte == EOF) {
-            clearerr(stdin);
-            vTaskDelay(pdMS_TO_TICKS(20));
-        } else if (lp_command_line_add(line, (char)byte)) {
+        char byte;
+        const bool got = usb_serial_jtag_read_bytes(&byte, 1, pdMS_TO_TICKS(READ_WAIT_MS)) == 1;
+        save_if_due();
+        if (got && lp_command_line_add(line, byte))
             return;
-        }
     }
 }
 
@@ -147,19 +155,19 @@ static void commands_task(void *arg)
 
 void commands_start(const lp_look *current, bool motion)
 {
-    /* Blocking reads on the USB serial port: needs its driver, not just the default console output */
+    /* Reads with a timeout (read_line) and the replies through printf: both need the port's driver, not just the
+     * default console output. The driver drops what does not fit in its buffer: this one holds a burst of about 80
+     * commands, where the default 256 bytes held 20. */
     usb_serial_jtag_driver_config_t config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
-    /* The driver drops what does not fit in its buffer: this one holds a burst of about 80 commands while the queue
-     * drains, where the default 256 bytes held 20. */
     config.rx_buffer_size = RX_BUFFER;
     usb_serial_jtag_driver_install(&config);
     usb_serial_jtag_vfs_use_driver();
-    setvbuf(stdin, NULL, _IONBF, 0);
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
     state.kept = *current;         /* what the flash holds, or the default look that stands for nothing kept */
     state.saved_at = -SAVE_GAP_US; /* the first new look is written at once */
+    state.unsaved = false;
     state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }

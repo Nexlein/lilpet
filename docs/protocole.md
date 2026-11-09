@@ -11,9 +11,9 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 - `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>`.
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>`. Le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un
-  nouveau look est écrit en flash au plus toutes les 2 s, pour ne pas l'user : un look qui arrive plus tôt s'affiche
-  sans être gardé (`< err shown, but not kept: one new look every 2 s at most`), et l'envoyeur renvoie le dernier une
-  fois arrêté. Le look déjà gardé répond toujours `< ok`.
+  nouveau look est écrit en flash tout de suite, puis au plus toutes les 2 s, pour ne pas l'user : un look qui arrive
+  plus tôt répond `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là. Le dernier envoyé est
+  donc celui que la carte garde, au plus 2 s plus tard.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
@@ -30,7 +30,8 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 
 Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` tout de suite si la file
 de la boucle de dessin est pleine (32 commandes entre deux images) : le firmware n'attend pas, sinon le port USB
-jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure (`stamp_s3a`), elles sont refusées.
+jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure
+(`stamp_s3a`), elles sont refusées.
 
 ## Qui s'en sert
 
