@@ -1,19 +1,25 @@
-// Tests of the code map generator (scripts/codemap.mjs) on small made-up files: what it reads in each language, how it
-// resolves what a file uses, and the problems --check reports. Built-in test runner, no dependency.
+// Tests of the code map generator (scripts/codemap.mjs): on small made-up files, what it reads in each language, how it
+// resolves what a file uses and the problems --check reports; then the script itself in a throwaway git repository.
+// Built-in test runner, no dependency.
 // Usage: npm run check:codemap
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { after, test } from 'node:test';
 import {
     buildMap,
     collapse,
     cSymbols,
+    firstSentence,
     isTest,
     jsExports,
     jsSpecifiers,
     kindOf,
     miseTasks,
     purposeOf,
-    sentence,
+    repository,
     usesOf
 } from './codemap.mjs';
 
@@ -51,8 +57,12 @@ test('takes the first sentence of the first comment, after a licence', () => {
     assert.equal(purposeOf('<!doctype html><head><!-- The page --></head>', 'html'), 'The page');
     assert.equal(purposeOf('# A CMake file\nproject(x)', 'cmake'), 'A CMake file');
     assert.equal(purposeOf('int main(void) {}', 'c'), '');
-    assert.equal(sentence('Use e.g. this: a.b() works. Next one.'), 'Use e.g.');
-    assert.equal(sentence('x'.repeat(200)).length, 150);
+    assert.equal(
+        firstSentence('Board parts, e.g. the button, i.e. GPIO41. Next one.'),
+        'Board parts, e.g. the button, i.e. GPIO41.'
+    );
+    assert.equal(firstSentence('Calls a.b() and v1.2 then stops. Next.'), 'Calls a.b() and v1.2 then stops.');
+    assert.equal(firstSentence('x'.repeat(200)).length, 150);
 });
 
 test('lists what a C header declares and what a C source defines', () => {
@@ -131,7 +141,7 @@ test('resolves local files, notes packages and build outputs, reports what is mi
         'firmware/boards/one/board_config.h',
         'firmware/boards/two/board_config.h'
     ];
-    const known = new Set(files);
+    const repo = repository(files, ignored);
     const js = usesOf(
         'app/src/a.ts',
         `import { B } from './b';
@@ -143,9 +153,7 @@ import { readFileSync } from 'node:fs';
 import gone from './gone';
 import wasm from '../../engine/build/wasm/lilpet.mjs';`,
         'js',
-        files,
-        known,
-        ignored
+        repo
     );
     assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json']);
     assert.deepEqual(js.packages, ['react', '@scope/pkg']);
@@ -155,15 +163,17 @@ import wasm from '../../engine/build/wasm/lilpet.mjs';`,
         'firmware/main/main.c',
         '#include "lilpet/lilpet.h"\n#include "board_config.h"\n#include "esp_timer.h"\n#include <stdio.h>',
         'c',
-        files,
-        known
+        repo
     );
     assert.deepEqual(c.local, [
         'engine/include/lilpet/lilpet.h',
         'firmware/boards/one/board_config.h',
         'firmware/boards/two/board_config.h'
     ]);
-    assert.deepEqual(collapse(c.local), ['engine/include/lilpet/lilpet.h', 'firmware/boards/*/board_config.h']);
+    assert.deepEqual(collapse(c.local, files), ['engine/include/lilpet/lilpet.h', 'firmware/boards/*/board_config.h']);
+    // Two boards out of three: no `*`, which would claim every board
+    const three = [...files, 'firmware/boards/three/board_config.h'];
+    assert.deepEqual(collapse(c.local, three), c.local);
 });
 
 test('reads the visible mise tasks with their description', () => {
@@ -224,4 +234,48 @@ test('builds the map: purposes, users, data readers, task users and problems', (
         'engine/src/lonely.c: no purpose comment at the top (what the file is for, in one sentence)'
     ]);
     assert.equal(buildMap(contents).text, text, 'the same files give the same map');
+});
+
+// --- The script itself, on the index of a throwaway repository -------------------------------------------------------
+
+const SCRIPT = new URL('./codemap.mjs', import.meta.url).pathname;
+const repoDir = mkdtempSync(join(tmpdir(), 'lilpet-codemap-'));
+after(() => rmSync(repoDir, { recursive: true, force: true }));
+
+const git = (...args) => execFileSync('git', args, { cwd: repoDir, encoding: 'utf8' });
+const codemap = (...args) => spawnSync('node', [SCRIPT, ...args], { cwd: repoDir, encoding: 'utf8' });
+const put = (path, text) => {
+    mkdirSync(join(repoDir, path, '..'), { recursive: true });
+    writeFileSync(join(repoDir, path), text);
+};
+
+test('writes the map from what is staged and checks it against the staged map', () => {
+    git('init', '-q');
+    put('src/a.mjs', "// Says hello\nimport { b } from './b.mjs';\nexport const a = b;\n");
+    put('src/b.mjs', '// Gives b\nexport const b = 1;\n');
+    git('add', 'src');
+
+    assert.equal(codemap().status, 0); // creates .claude/ for the map
+    const map = readFileSync(join(repoDir, '.claude/codemap.md'), 'utf8');
+    assert.match(map, /\*\*a\.mjs\*\* \(3\) — Says hello\n {2}- exports: a\n {2}- → src\/b\.mjs/);
+    assert.equal(codemap('--check').status, 1, 'the map is written but not staged yet');
+    git('add', '.claude/codemap.md');
+    assert.equal(codemap('--check').status, 0);
+
+    // A change in the working tree only does not count: the map follows what gets committed
+    put('src/b.mjs', '// Gives b, now with more\nexport const b = 2;\nexport const c = 3;\n');
+    assert.equal(codemap('--check').status, 0);
+    git('add', 'src/b.mjs');
+    const stale = codemap('--check');
+    assert.equal(stale.status, 1);
+    assert.match(stale.stderr, /out of date, run npm run codemap and stage it/);
+
+    // A local import that does not resolve fails the check, even with a fresh map
+    put('src/c.mjs', "// Uses a file that is not there\nimport { d } from './d.mjs';\nexport const c = d;\n");
+    git('add', 'src');
+    codemap();
+    git('add', '.claude/codemap.md');
+    const broken = codemap('--check');
+    assert.equal(broken.status, 1);
+    assert.match(broken.stderr, /src\/c\.mjs: local import "\.\/d\.mjs" not found/);
 });

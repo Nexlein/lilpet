@@ -4,12 +4,16 @@
 // Usage: npm run codemap (the pre-commit hook runs it). With --check it writes nothing and fails if the map is out of
 // date, if a local import does not resolve or if a source file says nothing about its purpose (npm run check, CI).
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { posix } from 'node:path';
 
 export const OUT = '.claude/codemap.md';
 
 const { basename, dirname, join, normalize } = posix;
+
+// The same order on every machine (localeCompare would follow the locale's collation)
+const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
 // --- What a file is ----------------------------------------------------------------------------------------------
 
@@ -33,45 +37,62 @@ export function kindOf(path) {
 export const isTest = (path) =>
     /(^|\/)tests?\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path) || /(^|\/)test_[^/]+$/.test(path);
 
-// --- Purpose: the first sentence of the file's first comment ------------------------------------------------------
+// --- Comments -----------------------------------------------------------------------------------------------------
 
-const LICENSE = /^\s*(copyright|spdx|licen[cs]e|\(c\))/i;
+const SLASH_COMMENT = /^\s*(?:\/\*([\s\S]*?)\*\/|((?:[ \t]*\/\/.*\n?)+))/;
+const HASH_COMMENT = /^\s*((?:[ \t]*#.*\n?)+)/;
+const LEADING_COMMENT = {
+    c: SLASH_COMMENT,
+    js: SLASH_COMMENT,
+    css: /^\s*\/\*([\s\S]*?)\*\//,
+    py: /^\s*(?:"""([\s\S]*?)"""|((?:[ \t]*#.*\n?)+))/,
+    cmake: HASH_COMMENT,
+    sh: HASH_COMMENT
+};
 
+/** The comments at the top of a file, in order (a licence first, then the file's own description). */
 function leadingComments(src, kind) {
     let s = src.replace(/^\uFEFF/, '').replace(/^#!.*\n/, '');
     if (kind === 'html') return [...s.slice(0, 4000).matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]);
     if (kind === 'py') s = s.replace(/^# \/\/\/ script[\s\S]*?^# \/\/\/\n/m, '');
     const comments = [];
-    const patterns = {
-        c: /^\s*(?:\/\*([\s\S]*?)\*\/|((?:[ \t]*\/\/.*\n?)+))/,
-        js: /^\s*(?:\/\*([\s\S]*?)\*\/|((?:[ \t]*\/\/.*\n?)+))/,
-        css: /^\s*\/\*([\s\S]*?)\*\//,
-        py: /^\s*(?:"""([\s\S]*?)"""|((?:[ \t]*#.*\n?)+))/,
-        cmake: /^\s*((?:[ \t]*#.*\n?)+)/,
-        sh: /^\s*((?:[ \t]*#.*\n?)+)/
-    };
-    // Comments that follow each other at the top (a licence first, then the file's own description)
     for (;;) {
-        const m = s.match(patterns[kind]);
+        const m = s.match(LEADING_COMMENT[kind]);
         if (!m) return comments;
         comments.push(m[1] ?? m[2] ?? '');
         s = s.slice(m[0].length);
     }
 }
 
-export function sentence(text, max = 150) {
+/** The text of a file without its comments, strings kept: what the code itself names. */
+export function withoutComments(src, kind) {
+    if (kind === 'c' || kind === 'js' || kind === 'css')
+        return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+    if (kind === 'py' || kind === 'sh' || kind === 'cmake') return src.replace(/^[ \t]*#.*$/gm, '');
+    if (kind === 'html') return src.replace(/<!--[\s\S]*?-->/g, '');
+    return src;
+}
+
+// --- Purpose: the first sentence of the file's first comment ------------------------------------------------------
+
+const LICENSE = /^\s*(copyright|spdx|licen[cs]e|\(c\))/i;
+const ABBREVIATION = /\b(e\.g|i\.e|etc|vs|cf)\.$/i;
+const PURPOSE_MAX = 150;
+
+export function firstSentence(text) {
     const flat = text
         .replace(/^[ \t]*(\*|\/\/|#)[ \t]?/gm, '')
         .replace(/\s+/g, ' ')
         .trim();
-    const first = flat.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? flat;
-    return first.length > max ? `${first.slice(0, max - 3)}...` : first;
+    const end = [...flat.matchAll(/[.!?](?=\s|$)/g)].find((m) => !ABBREVIATION.test(flat.slice(0, m.index + 1)));
+    const first = end ? flat.slice(0, end.index + 1) : flat;
+    return first.length > PURPOSE_MAX ? `${first.slice(0, PURPOSE_MAX - 3)}...` : first;
 }
 
 export function purposeOf(src, kind) {
     if (kind === 'data') return '';
-    const own = leadingComments(src, kind).find((c) => c.trim() && !LICENSE.test(sentence(c)));
-    return own ? sentence(own) : '';
+    const own = leadingComments(src, kind).find((c) => c.trim() && !LICENSE.test(firstSentence(c)));
+    return own ? firstSentence(own) : '';
 }
 
 // --- Symbols ------------------------------------------------------------------------------------------------------
@@ -96,59 +117,42 @@ export function cSymbols(src, header) {
     }
     const flat = code.replace(/^[ \t]*#.*(?:\\\n.*)*$/gm, ' ');
     let depth = 0;
-    let head = '';
-    let braced = ''; // head of the braces just closed at the top level, e.g. "typedef struct"
+    let statement = ''; // what is written at the top level since the last `;` or `{`
+    let beforeBraces = ''; // the statement before the braces just closed, e.g. "typedef struct"
     for (const ch of flat) {
         if (ch === '{') {
             if (depth === 0) {
-                const fn = head.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/);
-                if (!header && fn && !/\bstatic\b/.test(head) && !/[=]/.test(head)) names.push(fn[1]);
-                braced = head;
-                head = '';
+                const fn = statement.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/);
+                if (!header && fn && !/\bstatic\b/.test(statement) && !/[=]/.test(statement)) names.push(fn[1]);
+                beforeBraces = statement;
+                statement = '';
             }
             depth++;
         } else if (ch === '}') {
             depth = Math.max(0, depth - 1);
             // A function body ends there; only a type definition goes on to its name and `;`
-            if (depth === 0 && !/^\s*(typedef|struct|enum|union)\b/.test(braced)) braced = '';
+            if (depth === 0 && !/^\s*(typedef|struct|enum|union)\b/.test(beforeBraces)) beforeBraces = '';
         } else if (depth === 0) {
             if (ch === ';') {
-                const stmt = `${braced} ${head}`.replace(/\s+/g, ' ').trim();
-                if (header && /^typedef\b/.test(stmt)) {
+                const whole = `${beforeBraces} ${statement}`.replace(/\s+/g, ' ').trim();
+                if (header && /^typedef\b/.test(whole)) {
                     const name =
-                        stmt.match(/\(\s*\*\s*([A-Za-z_]\w*)\s*\)/)?.[1] ?? stmt.match(/([A-Za-z_]\w*)\s*$/)?.[1];
+                        whole.match(/\(\s*\*\s*([A-Za-z_]\w*)\s*\)/)?.[1] ?? whole.match(/([A-Za-z_]\w*)\s*$/)?.[1];
                     if (name) names.push(name);
-                } else if (header && !braced) {
-                    const fn = head.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/s);
-                    if (fn && !/\b(static|typedef)\b/.test(head) && !/\(\s*\*/.test(head)) names.push(fn[1]);
+                } else if (header && !beforeBraces) {
+                    const fn = statement.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/s);
+                    if (fn && !/\b(static|typedef)\b/.test(statement) && !/\(\s*\*/.test(statement)) names.push(fn[1]);
                 }
-                head = '';
-                braced = '';
-            } else head += ch;
+                statement = '';
+                beforeBraces = '';
+            } else statement += ch;
         }
     }
     return [...new Set(names)];
 }
 
-/** The text of a file without its comments, strings kept: what the code itself names. */
-export function withoutComments(src, kind) {
-    if (kind === 'c' || kind === 'js' || kind === 'css')
-        return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
-    if (kind === 'py' || kind === 'sh' || kind === 'cmake') return src.replace(/^[ \t]*#.*$/gm, '');
-    if (kind === 'html') return src.replace(/<!--[\s\S]*?-->/g, '');
-    return src;
-}
-
-function stripJs(src) {
-    // Template literals out too: an import is never written in one, and test fixtures often are
-    return src
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1')
-        .replace(/`(?:\\[\s\S]|[^`\\])*`/g, '``');
-}
-
 export function jsExports(src) {
-    const code = stripJs(src);
+    const code = withoutComments(src, 'js');
     const names = [];
     for (const m of code.matchAll(
         /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|abstract\s+class)\s+([A-Za-z_$][\w$]*)/gm
@@ -168,7 +172,7 @@ export function jsExports(src) {
 
 /** Every module specifier a JS or TS file loads, static or dynamic. */
 export function jsSpecifiers(src) {
-    const code = stripJs(src);
+    const code = withoutComments(src, 'js');
     const res = [
         // Static imports and re-exports start a line (Prettier keeps them so); a string that only looks like one does not
         /^[ \t]*(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/gm,
@@ -190,24 +194,36 @@ export function pyModules(src) {
     ];
 }
 
+function symbolsOf(path, src, kind) {
+    if (kind === 'c') return cSymbols(src, path.endsWith('.h'));
+    if (kind === 'js') return jsExports(src);
+    if (kind === 'py') return pySymbols(src);
+    return [];
+}
+
 // --- Resolving what a file uses -----------------------------------------------------------------------------------
 
 const JS_EXTENSIONS = ['', '.ts', '.tsx', '.mts', '.mjs', '.js', '.json', '.d.mts'];
 
-function resolveRelative(from, spec, known) {
+/** The files of the repository, and the git rule for a path that is not one of them. */
+export function repository(files, isIgnored = () => false) {
+    return { files, known: new Set(files), isIgnored };
+}
+
+function resolveRelative(from, spec, repo) {
     const base = spec.startsWith('/') ? join(dirname(from), spec.slice(1)) : normalize(join(dirname(from), spec));
     const candidates = [
         ...JS_EXTENSIONS.map((e) => base + e),
         ...['ts', 'tsx', 'mjs', 'js'].map((e) => `${base}/index.${e}`)
     ];
-    return candidates.find((c) => known.has(c));
+    return candidates.find((c) => repo.known.has(c));
 }
 
-/** A path by its end ("lilpet/lilpet.h", "sources.cmake"): the one file, or every file of a board folder. */
-function bySuffix(spec, from, files) {
+/** A C include or a CMake file by the end of its path ("lilpet/lilpet.h"): the one file, or each board's. */
+function resolveBySuffix(spec, from, repo) {
     const near = normalize(join(dirname(from), spec));
-    if (files.includes(near)) return [near];
-    const hits = files.filter((f) => f === spec || f.endsWith(`/${spec}`));
+    if (repo.known.has(near)) return [near];
+    const hits = repo.files.filter((f) => f === spec || f.endsWith(`/${spec}`));
     if (hits.length <= 1) return hits;
     const sameTop = hits.filter((h) => h.split('/')[0] === from.split('/')[0]);
     return sameTop.length ? sameTop : hits;
@@ -216,16 +232,17 @@ function bySuffix(spec, from, files) {
 const packageOf = (spec) =>
     spec.startsWith('node:') ? null : spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
 
-export function usesOf(file, src, kind, files, known, isIgnored = () => false) {
+/** The local files a file uses, the npm packages it imports, the build outputs it loads and what does not resolve. */
+export function usesOf(file, src, kind, repo) {
     const local = [];
     const packages = [];
     const unresolved = [];
     const built = [];
     const relative = (spec) => {
-        const hit = resolveRelative(file, spec, known);
+        const hit = resolveRelative(file, spec, repo);
         const path = normalize(join(dirname(file), spec.startsWith('/') ? spec.slice(1) : spec));
         if (hit) local.push(hit);
-        else if (isIgnored(path))
+        else if (repo.isIgnored(path))
             built.push(path); // a build output, absent until built
         else unresolved.push(spec);
     };
@@ -251,18 +268,18 @@ export function usesOf(file, src, kind, files, known, isIgnored = () => false) {
             if (/^\.{1,2}\//.test(m[1])) relative(m[1]);
     } else if (kind === 'c') {
         for (const m of src.matchAll(/^[ \t]*#[ \t]*include[ \t]+"([^"]+)"/gm))
-            local.push(...bySuffix(m[1], file, files));
+            local.push(...resolveBySuffix(m[1], file, repo));
     } else if (kind === 'py') {
         for (const mod of pyModules(src)) {
             const path = join(dirname(file), `${mod.replace(/\./g, '/')}.py`);
-            if (known.has(path)) local.push(path);
+            if (repo.known.has(path)) local.push(path);
         }
     } else if (kind === 'cmake') {
         for (const m of src.matchAll(/\b(include|add_subdirectory)\s*\(\s*([^)\s]+)/g)) {
             const arg = m[2].replace(/^"|"$/g, '').replace(/^\$\{[^}]+\}\//, '');
             if (/\$/.test(arg)) continue; // outside the repository (ESP-IDF, CMake modules)
             const target = m[1] === 'add_subdirectory' ? `${arg}/CMakeLists.txt` : arg;
-            if (target.includes('.') || m[1] === 'add_subdirectory') local.push(...bySuffix(target, file, files));
+            if (target.includes('.') || m[1] === 'add_subdirectory') local.push(...resolveBySuffix(target, file, repo));
         }
     }
     return {
@@ -286,16 +303,30 @@ function mentionTargets(files, kinds) {
 function mentionPattern(target, files) {
     const name = basename(target);
     const unique = files.filter((f) => basename(f) === name).length === 1 && name !== 'Dockerfile';
-    const text = (unique ? name : target).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`(^|[^\\w.-])${unique ? '(?:[\\w./-]*/)?' : ''}${text}(?![\\w-])`);
+    return new RegExp(`(^|[^\\w.-])${unique ? '(?:[\\w./-]*/)?' : ''}${escapeRe(unique ? name : target)}(?![\\w-])`);
+}
+
+// The same file name in any folder of the same parent: firmware/boards/*/board_config.h
+function folderKey(path) {
+    const parts = path.split('/');
+    return parts.length > 2 ? `${parts.slice(0, -2).join('/')}/*/${parts.at(-1)}` : path;
+}
+
+/** Paths of the same file in every folder of one parent (each board of firmware/boards), written once with `*`. */
+export function collapse(paths, files = paths) {
+    const groups = new Map();
+    for (const p of paths) groups.set(folderKey(p), [...(groups.get(folderKey(p)) ?? []), p]);
+    // `*` only when the list holds that file of every such folder, not just some of them
+    const everywhere = (key, list) =>
+        list.length > 1 && files.filter((f) => folderKey(f) === key).length === list.length;
+    return [...groups].flatMap(([key, list]) => (everywhere(key, list) ? [key] : list));
 }
 
 // --- Commands -----------------------------------------------------------------------------------------------------
 
 export function miseTasks(toml) {
     const tasks = [];
-    const sections = toml.split(/^(?=\[)/m);
-    for (const section of sections) {
+    for (const section of toml.split(/^(?=\[)/m)) {
         const name = section
             .match(/^\[tasks\.(?:"([^"]+)"|([\w:.-]+))\]/)
             ?.slice(1)
@@ -307,86 +338,79 @@ export function miseTasks(toml) {
             .find((x) => x !== undefined);
         tasks.push({ name, description: description ?? '' });
     }
-    return tasks.toSorted((a, b) => a.name.localeCompare(b.name));
+    return tasks.toSorted((a, b) => byCodeUnit(a.name, b.name));
 }
 
-// --- Reading the staged files -------------------------------------------------------------------------------------
-
-function stagedFiles() {
-    const entries = execFileSync('git', ['ls-files', '-s', '-z'], { encoding: 'utf8', maxBuffer: 1 << 26 })
-        .split('\0')
-        .filter(Boolean)
-        .map((line) => {
-            const [meta, path] = line.split('\t');
-            const [mode, sha] = meta.split(' ');
-            return { mode, sha, path };
-        })
-        .filter((e) => e.mode.startsWith('100') && e.path !== OUT);
-    const out = execFileSync('git', ['cat-file', '--batch'], {
-        input: entries.map((e) => e.sha).join('\n') + '\n',
-        maxBuffer: 1 << 28
-    });
-    const contents = new Map();
-    let at = 0;
-    for (const e of entries) {
-        const eol = out.indexOf(10, at);
-        const size = Number(out.toString('latin1', at, eol).split(' ')[2]);
-        const blob = out.subarray(eol + 1, eol + 1 + size);
-        at = eol + 1 + size + 1;
-        if (!blob.includes(0)) contents.set(e.path, blob.toString('utf8'));
+function commandLines(contents, manifests) {
+    const lines = ['## Commands', ''];
+    const toml = contents.get('mise.toml');
+    if (toml) {
+        lines.push('mise (`mise run <task>`):');
+        for (const t of miseTasks(toml)) lines.push(`- \`${t.name}\`${t.description ? ` — ${t.description}` : ''}`);
+        lines.push('');
     }
-    return contents;
+    for (const m of manifests) {
+        const scripts = Object.entries(JSON.parse(contents.get(m)).scripts ?? {});
+        if (!scripts.length) continue;
+        lines.push(`npm (\`npm run <script>\`${m === 'package.json' ? '' : `, workspace ${dirname(m)}`}):`);
+        for (const [name, cmd] of scripts) lines.push(`- \`${name}\`: \`${cmd}\``);
+        lines.push('');
+    }
+    return lines;
 }
 
-function stagedText(path) {
-    try {
-        return execFileSync('git', ['show', `:${path}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    } catch {
-        return null;
+function packageLines(contents, manifests, all, info) {
+    const importers = new Map();
+    for (const [f, i] of info) for (const p of i.packages) importers.set(p, [...(importers.get(p) ?? []), f]);
+    // Where a package used only as a command or a plugin shows up: npm scripts, tasks, hooks and config files
+    const configText = [
+        ...manifests.map((m) => Object.values(JSON.parse(contents.get(m)).scripts ?? {}).join('\n')),
+        ...all
+            .filter((f) => !manifests.includes(f))
+            .filter(
+                (f) =>
+                    MENTION_SOURCES.test(f) || /\.config\.m?[jt]s$|^\.[^/]*rc[^/]*$|(^|\/)tsconfig[^/]*\.json$/.test(f)
+            )
+            .map((f) => contents.get(f))
+    ].join('\n');
+    const lines = ['## npm packages', ''];
+    for (const m of manifests) {
+        const pkg = JSON.parse(contents.get(m));
+        for (const name of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).toSorted(byCodeUnit)) {
+            const users = importers.get(name) ?? [];
+            const notes = [
+                users.length ? `imported by ${users.length} file${users.length > 1 ? 's' : ''}` : '',
+                new RegExp(`(^|[^\\w@/-])${escapeRe(name)}(?![\\w-])`).test(configText)
+                    ? 'named in scripts or config'
+                    : '',
+                name.startsWith('@types/') ? 'types for TypeScript' : ''
+            ].filter(Boolean);
+            lines.push(`- \`${name}\` (${m}) — ${notes.join(', ') || 'not referenced'}`);
+        }
     }
+    lines.push('');
+    return lines;
 }
 
 // --- The map ------------------------------------------------------------------------------------------------------
 
-/** Paths that differ only by one folder of the same parent (each board of firmware/boards), written once with `*`. */
-export function collapse(paths) {
-    const groups = new Map();
-    for (const p of paths) {
-        const parts = p.split('/');
-        const key = parts.length > 2 ? `${parts.slice(0, -2).join('/')}/*/${parts.at(-1)}` : p;
-        groups.set(key, [...(groups.get(key) ?? []), p]);
-    }
-    return [...groups].flatMap(([key, list]) => (list.length > 1 ? [key] : list));
-}
-
 export function buildMap(contents, isIgnored = () => false) {
-    const all = [...contents.keys()].toSorted();
+    const all = [...contents.keys()].toSorted(byCodeUnit);
     const kinds = new Map(all.map((f) => [f, kindOf(f)]));
     const files = all.filter((f) => kinds.get(f));
-    const known = new Set(files);
+    const repo = repository(files, isIgnored);
     const info = new Map();
     for (const f of files) {
         const src = contents.get(f);
         const kind = kinds.get(f);
         const purpose = purposeOf(src, kind);
         const generated = /^generated\b/i.test(purpose);
-        const exports =
-            generated || kind === 'data'
-                ? []
-                : kind === 'c'
-                  ? cSymbols(src, f.endsWith('.h'))
-                  : kind === 'js'
-                    ? jsExports(src)
-                    : kind === 'py'
-                      ? pySymbols(src)
-                      : [];
         info.set(f, {
             kind,
             lines: src.split('\n').length - (src.endsWith('\n') ? 1 : 0),
             purpose,
-            generated,
-            exports,
-            ...usesOf(f, src, kind, files, known, isIgnored)
+            exports: generated ? [] : symbolsOf(f, src, kind),
+            ...usesOf(f, src, kind, repo)
         });
     }
     // A C source with no comment of its own implements the header of the same name
@@ -409,7 +433,8 @@ export function buildMap(contents, isIgnored = () => false) {
 
     const problems = [];
     for (const [f, i] of info) {
-        for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
+        // A test's fixtures often hold made-up imports, and running the test catches a real one that is missing
+        if (!isTest(f)) for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
         if (!i.purpose && !isTest(f) && i.kind !== 'data')
             problems.push(`${f}: no purpose comment at the top (what the file is for, in one sentence)`);
     }
@@ -426,10 +451,9 @@ export function buildMap(contents, isIgnored = () => false) {
     const groups = new Map();
     for (const f of files) {
         const dir = f.includes('/') ? dirname(f) : '(root)';
-        if (!groups.has(dir)) groups.set(dir, []);
-        groups.get(dir).push(f);
+        groups.set(dir, [...(groups.get(dir) ?? []), f]);
     }
-    for (const [dir, list] of [...groups].toSorted(([a], [b]) => a.localeCompare(b))) {
+    for (const [dir, list] of [...groups].toSorted(([a], [b]) => byCodeUnit(a, b))) {
         lines.push(`## ${dir}`);
         const tests = list.filter(isTest);
         for (const f of list.filter((x) => !isTest(x))) {
@@ -437,67 +461,46 @@ export function buildMap(contents, isIgnored = () => false) {
             const label = i.kind === 'data' ? 'data' : i.purpose;
             lines.push(`- **${basename(f)}** (${i.lines})${label ? ` — ${label}` : ''}`);
             if (i.exports.length) lines.push(`  - exports: ${i.exports.join(', ')}`);
-            if (i.local.length) lines.push(`  - → ${collapse(i.local).join(', ')}`);
+            if (i.local.length) lines.push(`  - → ${collapse(i.local, files).join(', ')}`);
             if (i.built.length) lines.push(`  - → built: ${i.built.join(', ')}`);
             if (i.packages.length) lines.push(`  - packages: ${i.packages.join(', ')}`);
-            const users = [...usedBy.get(f)].filter((u) => !isTest(u)).toSorted();
-            if (users.length) lines.push(`  - ← ${collapse(users).join(', ')}`);
+            const users = [...usedBy.get(f)].filter((u) => !isTest(u)).toSorted(byCodeUnit);
+            if (users.length) lines.push(`  - ← ${collapse(users, files).join(', ')}`);
         }
         if (tests.length) lines.push(`- tests: ${tests.map((t) => basename(t)).join(', ')}`);
         lines.push('');
     }
-
-    lines.push('## Commands', '');
-    const toml = contents.get('mise.toml');
-    if (toml) {
-        lines.push('mise (`mise run <task>`):');
-        for (const t of miseTasks(toml)) lines.push(`- \`${t.name}\`${t.description ? ` — ${t.description}` : ''}`);
-        lines.push('');
-    }
     const manifests = all.filter((f) => /(^|\/)package\.json$/.test(f));
-    for (const m of manifests) {
-        const scripts = Object.entries(JSON.parse(contents.get(m)).scripts ?? {});
-        if (!scripts.length) continue;
-        lines.push(`npm (\`npm run <script>\`${m === 'package.json' ? '' : `, workspace ${dirname(m)}`}):`);
-        for (const [name, cmd] of scripts) lines.push(`- \`${name}\`: \`${cmd}\``);
-        lines.push('');
-    }
-
-    lines.push('## npm packages', '');
-    const importers = new Map();
-    for (const [f, i] of info) for (const p of i.packages) importers.set(p, [...(importers.get(p) ?? []), f]);
-    // Where a package used only as a command or a plugin shows up: npm scripts, tasks, hooks and config files
-    const configText = [
-        ...manifests.map((m) => Object.values(JSON.parse(contents.get(m)).scripts ?? {}).join('\n')),
-        ...all
-            .filter((f) => !manifests.includes(f))
-            .filter(
-                (f) =>
-                    MENTION_SOURCES.test(f) || /\.config\.m?[jt]s$|^\.[^/]*rc[^/]*$|(^|\/)tsconfig[^/]*\.json$/.test(f)
-            )
-            .map((f) => contents.get(f))
-    ].join('\n');
-    for (const m of manifests) {
-        const pkg = JSON.parse(contents.get(m));
-        for (const name of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).toSorted()) {
-            const users = importers.get(name) ?? [];
-            const cli = new RegExp(`(^|[^\\w@/-])${name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\w-])`).test(
-                configText
-            );
-            const where = users.length ? `imported by ${users.length} file${users.length > 1 ? 's' : ''}` : '';
-            const note =
-                [
-                    where,
-                    cli ? 'named in scripts or config' : '',
-                    name.startsWith('@types/') ? 'types for TypeScript' : ''
-                ]
-                    .filter(Boolean)
-                    .join(', ') || 'not referenced';
-            lines.push(`- \`${name}\` (${m}) — ${note}`);
-        }
-    }
-    lines.push('');
+    lines.push(...commandLines(contents, manifests), ...packageLines(contents, manifests, all, info));
     return { text: lines.join('\n'), problems, count: files.length };
+}
+
+// --- Reading the staged files -------------------------------------------------------------------------------------
+
+function stagedFiles() {
+    const entries = execFileSync('git', ['ls-files', '-s', '-z'], { encoding: 'utf8', maxBuffer: 1 << 26 })
+        .split('\0')
+        .filter(Boolean)
+        .map((line) => {
+            const [meta, path] = line.split('\t');
+            const [mode, sha] = meta.split(' ');
+            return { mode, sha, path };
+        })
+        .filter((e) => e.mode.startsWith('100')); // files, not symbolic links or submodules
+    const out = execFileSync('git', ['cat-file', '--batch'], {
+        input: entries.map((e) => e.sha).join('\n') + '\n',
+        maxBuffer: 1 << 28
+    });
+    const contents = new Map();
+    let at = 0;
+    for (const e of entries) {
+        const eol = out.indexOf(10, at);
+        const size = Number(out.toString('latin1', at, eol).split(' ')[2]);
+        const blob = out.subarray(eol + 1, eol + 1 + size);
+        at = eol + 1 + size + 1;
+        if (!blob.includes(0)) contents.set(e.path, blob.toString('utf8')); // binary files have no place in the map
+    }
+    return contents;
 }
 
 function ignoredByGit(path) {
@@ -510,15 +513,21 @@ function ignoredByGit(path) {
 }
 
 function main() {
-    const { text, problems, count } = buildMap(stagedFiles(), ignoredByGit);
+    const staged = stagedFiles();
+    const map = staged.get(OUT);
+    staged.delete(OUT);
+    const { text, problems, count } = buildMap(staged, ignoredByGit);
     if (process.argv.includes('--check')) {
-        if (stagedText(OUT) !== text)
-            problems.unshift(`${OUT}: out of date, run npm run codemap (the pre-commit hook does)`);
+        if (map !== text)
+            problems.unshift(
+                `${OUT}: out of date, run npm run codemap and stage it (the pre-commit hook does both at each commit)`
+            );
         for (const p of problems) console.error(p);
         if (problems.length) process.exit(1);
         console.log(`${OUT}: up to date (${count} files)`);
         return;
     }
+    mkdirSync(dirname(OUT), { recursive: true });
     writeFileSync(OUT, text);
     for (const p of problems) console.error(`warning: ${p}`);
     console.log(`${OUT}: ${count} files`);

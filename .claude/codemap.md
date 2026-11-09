@@ -5,18 +5,18 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 → local files it uses, ← files that use it (including the tasks, hooks and code that run a script or read a data
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
-## .husky
-- **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
-- **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
-- **pre-commit** (10) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
-- **pre-push** (6) — Before each push: the fast checks of CI (npm run check, about 10 s).
-
 ## (root)
 - **.lintstagedrc.mjs** (16) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
 - **playwright.config.mjs** (16) — Browser tests: the parity test renders every reference scene with the prototype and the C engine (WebAssembly) in headless Chromium.
   - exports: default
   - packages: @playwright/test
+
+## .husky
+- **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
+- **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
+- **pre-commit** (10) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
+- **pre-push** (6) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## app
 - **index.html** (13) — Page of the PC app (Vite builds it): the app mounts into #root from src/main.tsx
@@ -335,8 +335,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/device-check.py, scripts/flash-guard.py
-- **codemap.mjs** (527) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
-  - exports: OUT, kindOf, isTest, sentence, purposeOf, cSymbols, withoutComments, pySymbols, pyModules, usesOf, miseTasks, collapse, buildMap
+- **codemap.mjs** (536) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
+  - exports: OUT, kindOf, isTest, withoutComments, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, pySymbols, pyModules, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
@@ -419,7 +419,7 @@ npm (`npm run <script>`):
 - `@types/react` (app/package.json) — types for TypeScript
 - `@types/react-dom` (app/package.json) — types for TypeScript
 - `@vitejs/plugin-react` (app/package.json) — imported by 1 file, named in scripts or config
-- `react` (app/package.json) — imported by 9 files, named in scripts or config
+- `react` (app/package.json) — imported by 10 files, named in scripts or config
 - `react-dom` (app/package.json) — imported by 1 file, named in scripts or config
 - `typescript` (app/package.json) — named in scripts or config
 - `vite` (app/package.json) — named in scripts or config
