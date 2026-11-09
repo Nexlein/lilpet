@@ -49,9 +49,18 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
 {
     const int64_t gap = LOOK_SAVE_GAP_US;
     const lp_look kept = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
+    CHECK(look_same(&kept, &kept));
+    /* Each field makes another look: one that differs in any of them is written */
+    lp_look sclera = kept;
+    lp_look pupil = kept;
+    lp_look left = kept;
     lp_look other = kept;
+    sclera.sclera = 0x7DB5F4u;
+    pupil.pupil = LP_PUPIL_CAT;
+    left.pupil_color[0] = 0x0964E7u;
     other.pupil_color[1] = 0x0964E7u;
-    CHECK(look_same(&kept, &kept) && !look_same(&kept, &other));
+    CHECK(!look_same(&kept, &sclera) && !look_same(&kept, &pupil) && !look_same(&kept, &left));
+    CHECK(!look_same(&kept, &other));
     CHECK(look_save_plan(&kept, &kept, 0, -gap) == LOOK_KEPT);           /* the flash holds it: nothing to write */
     CHECK(look_save_plan(&other, &kept, 0, -gap) == LOOK_SAVE_NOW);      /* the first new look, at once */
     CHECK(look_save_plan(&other, &kept, gap - 1, 0) == LOOK_SAVE_LATER); /* too soon after the last write */
@@ -71,6 +80,8 @@ void test_frame_splits_bands_and_measures_the_redrawn_share(void)
         CHECK(first >= 0 && second - first >= 0 && second - first <= 1);
     }
     CHECK(frame_area_permille((lp_rect){466, 466, 0, 0}, 466) == 0); /* empty: not a whole screen */
+    CHECK(frame_area_permille((lp_rect){0, 466, 466, 0}, 466) == 0); /* empty in y only: nothing, not negative */
+    CHECK(frame_area_permille((lp_rect){466, 0, 0, 466}, 466) == 0); /* empty in x only */
     CHECK(frame_area_permille((lp_rect){0, 0, 466, 466}, 466) == 1000);
     CHECK(frame_area_permille((lp_rect){0, 0, 233, 466}, 466) == 500);
     CHECK(frame_area_permille((lp_rect){0, 0, 64, 128}, 128) == 500);
