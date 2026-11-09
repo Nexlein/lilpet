@@ -97,76 +97,81 @@ const keepLines = (text) => text.replace(/[^\n]/g, '');
 // After these, a `/` starts a regular expression, not a division
 const REGEX_AFTER =
     /[(,=:[!&|?{};+\-*%<>~^]$|(^|[^\w$])(return|typeof|case|do|else|in|of|new|delete|void|throw|yield|await)$|^$/;
+// A string right after these is a module specifier, the only strings the imports need
+const SPECIFIER_AFTER = /((^|[^\w$.])(from|import)|\bimport\s*\(|\bnew\s+URL\s*\()$/;
 
 /**
  * JS or TS read character by character, for its imports and exports: comments out, the contents of template literals
  * and regular expressions out (test fixtures are often templates, a regular expression may hold any quote), strings
- * kept, line breaks kept so that a statement still starts its line.
+ * kept only where a module specifier goes, line breaks kept so that a statement still starts its line. The code of a
+ * `${...}` is read with the same rules, to find where its template ends.
  */
 export function scanJs(src) {
     let out = '';
-    let i = 0;
-    // Skips a template literal from its opening backtick, `${...}` included; returns the index after it
+    // Reads code from `from`, written to `out` unless inside a template; returns where it stops: the end of the
+    // source, or, inside, after the `}` that closes the `${`
+    const code = (from, inside) => {
+        let i = from;
+        let depth = 0;
+        let before = ''; // the end of the code read so far, spaces collapsed: what tells a regex from a division
+        const emit = (text, seen = text) => {
+            if (!inside) out += text;
+            before = (before + seen).replace(/\s+/g, ' ').slice(-32);
+        };
+        while (i < src.length) {
+            const c = src[i];
+            if (src.startsWith('//', i)) {
+                const end = src.indexOf('\n', i);
+                i = end < 0 ? src.length : end;
+            } else if (src.startsWith('/*', i)) {
+                const end = src.indexOf('*/', i + 2);
+                const stop = end < 0 ? src.length : end + 2;
+                if (!inside) out += keepLines(src.slice(i, stop));
+                i = stop;
+            } else if (c === '"' || c === "'") {
+                let j = i + 1;
+                while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+                const literal = src.slice(i, j + 1);
+                emit(SPECIFIER_AFTER.test(before.trimEnd()) ? literal : `${c}${c}${keepLines(literal)}`, '""');
+                i = j + 1;
+            } else if (c === '`') {
+                const end = template(i);
+                emit(`\`\`${keepLines(src.slice(i, end))}`, '``');
+                i = end;
+            } else if (c === '/' && REGEX_AFTER.test(before.trimEnd())) {
+                let j = i + 1;
+                let inClass = false;
+                while (j < src.length && src[j] !== '\n' && (inClass || src[j] !== '/')) {
+                    if (src[j] === '\\') j++;
+                    else if (src[j] === '[') inClass = true;
+                    else if (src[j] === ']') inClass = false;
+                    j++;
+                }
+                emit('/ /', 'x');
+                i = src[j] === '\n' ? j : j + 1; // not closed on its line: a division after all, the line break stays
+            } else {
+                if (c === '{') depth++;
+                else if (c === '}') {
+                    if (inside && depth === 0) return i + 1;
+                    depth--;
+                }
+                emit(c);
+                i++;
+            }
+        }
+        return i;
+    };
+    // Skips a template literal from its opening backtick; returns the index after its closing one
     const template = (from) => {
         let j = from + 1;
         while (j < src.length && src[j] !== '`') {
             if (src[j] === '\\') j += 2;
-            else if (src.startsWith('${', j)) j = expression(j + 2);
+            else if (src.startsWith('${', j)) j = code(j + 2, true);
             else j++;
         }
         return j + 1;
     };
-    // Skips the code of a `${...}`, which may hold strings and templates of its own; returns the index after the `}`
-    const expression = (from) => {
-        let j = from;
-        let depth = 1;
-        while (j < src.length && depth > 0) {
-            const c = src[j];
-            if (c === '`') j = template(j);
-            else if (c === '"' || c === "'") {
-                j++;
-                while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
-                j++;
-            } else {
-                if (c === '{') depth++;
-                else if (c === '}') depth--;
-                j++;
-            }
-        }
-        return j;
-    };
-    while (i < src.length) {
-        const c = src[i];
-        if (src.startsWith('//', i)) {
-            const end = src.indexOf('\n', i);
-            i = end < 0 ? src.length : end;
-        } else if (src.startsWith('/*', i)) {
-            const end = src.indexOf('*/', i + 2);
-            const stop = end < 0 ? src.length : end + 2;
-            out += keepLines(src.slice(i, stop));
-            i = stop;
-        } else if (c === '"' || c === "'") {
-            let j = i + 1;
-            while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
-            out += src.slice(i, j + 1);
-            i = j + 1;
-        } else if (c === '`') {
-            const end = template(i);
-            out += `\`\`${keepLines(src.slice(i, end))}`;
-            i = end;
-        } else if (c === '/' && REGEX_AFTER.test(out.trimEnd())) {
-            let j = i + 1;
-            let inClass = false;
-            while (j < src.length && src[j] !== '\n' && (inClass || src[j] !== '/')) {
-                if (src[j] === '\\') j++;
-                else if (src[j] === '[') inClass = true;
-                else if (src[j] === ']') inClass = false;
-                j++;
-            }
-            out += '/ /';
-            i = src[j] === '\n' ? j : j + 1; // not closed on its line: a division after all, the line break stays
-        } else out += src[i++];
-    }
+    code(0, false);
     return out;
 }
 
@@ -216,7 +221,7 @@ export function cSymbols(src, header) {
         for (const m of code.matchAll(/^[ \t]*#[ \t]*define[ \t]+([A-Z][A-Z0-9_]*)\b/gm))
             if (!/_H_?$/.test(m[1])) names.push(m[1]);
     }
-    const flat = code.replace(/^[ \t]*#.*(?:\\\n.*)*$/gm, ' ');
+    const flat = code.replace(/^[ \t]*#(?:[^\n]*\\\n)*[^\n]*$/gm, ' '); // a line ending in \ goes on
     let depth = 0;
     let statement = ''; // what is written at the top level since the last `;` or `{`
     let beforeBraces = ''; // the statement before the braces just closed, e.g. "typedef struct"
@@ -256,16 +261,19 @@ export function jsExports(src) {
     const code = scanJs(src);
     const names = [];
     for (const m of code.matchAll(
-        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|abstract\s+class)\s+([A-Za-z_$][\w$]*)/gm
+        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|abstract\s+class|class|const\s+enum|const|let|var|interface|type|enum)\s+([A-Za-z_$][\w$]*)/gm
     ))
         names.push(m[1]);
-    for (const m of code.matchAll(/^[ \t]*export\s+(?:type\s+)?\{([^}]*)\}/gm))
+    // export { a, b as c } and export const { a, b: c, d = 1, ...e } = ...
+    for (const m of code.matchAll(/^[ \t]*export\s+(?:type\s+|const\s+|let\s+|var\s+)?\{([^}]*)\}/gm))
         for (const part of m[1].split(',')) {
             const name = part
-                .trim()
-                .split(/\s+as\s+/)
-                .pop();
-            if (name) names.push(name.replace(/^type\s+/, ''));
+                .replace(/^\s*(type\s+|\.\.\.)/, '')
+                .split(/\s+as\s+|:/)
+                .pop()
+                .replace(/=.*$/, '')
+                .trim();
+            if (name) names.push(name);
         }
     if (/^[ \t]*export\s+default\s+(?!(?:async\s+)?(?:function|class)\s+[A-Za-z_$])/m.test(code)) names.push('default');
     return [...new Set(names)];

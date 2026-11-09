@@ -89,6 +89,11 @@ const char *lp_name(void);
 #endif
 #endif`;
     assert.deepEqual(cSymbols(header, true), ['LP_SIZE', 'lp_thing', 'lp_callback', 'lp_kind', 'lp_do', 'lp_name']);
+    // A macro over several lines is not code
+    assert.deepEqual(cSymbols('#define LP_TWICE(x) \\\n    do { x; x; } while (0)\nvoid lp_after(void);\n', true), [
+        'LP_TWICE',
+        'lp_after'
+    ]);
     const source = `#include "x.h"
 static int helper(void) { return 1; }
 void lp_do(lp_thing *t, int n)
@@ -128,6 +133,13 @@ export * from './again';`;
         '../engine/build/wasm/lilpet.mjs'
     ]);
     assert.deepEqual(jsExports('const x = 1;\nexport default x;'), ['default']);
+    assert.deepEqual(jsExports('export const enum Mode { A }\nexport const { p, q: r, s = 1, ...rest } = obj;'), [
+        'Mode',
+        'p',
+        'r',
+        's',
+        'rest'
+    ]);
     assert.deepEqual(jsSpecifiers('const s = "not an import \'./fake\'";\nconsole.log(\'import "./no"\');'), []);
 });
 
@@ -194,6 +206,15 @@ test('reads JS past templates, regular expressions and divisions', () => {
     assert.deepEqual(jsSpecifiers(src), ['./real']);
     assert.deepEqual(jsExports(src), ['after']);
     assert.equal(scanJs(src).split('\n').length, src.split('\n').length, 'every line keeps its place');
+    // A regular expression and a comment inside `${}`, a made-up import in a plain string, a nested template
+    const inner = [
+        'const quoted = `"${s.replace(/"/g, \'\\\\"\')}"`;',
+        "const note = `${/* it's a comment */ x} and ${`deeper ${y}`}`;",
+        'const fixture = "await import(\'./nope.mjs\')";',
+        "import { real2 } from './real2';",
+        "const lazy = await import('./lazy.mjs');"
+    ].join('\n');
+    assert.deepEqual(jsSpecifiers(inner), ['./real2', './lazy.mjs']);
 });
 
 test('reads the visible mise tasks with their description', () => {
