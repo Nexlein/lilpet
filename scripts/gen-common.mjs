@@ -1,6 +1,8 @@
-// What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
+// What the generators of the engine's C files share (the gen-*-table.mjs of scripts/data.mjs)
 import { readFileSync, writeFileSync } from 'node:fs';
 export const emotionEnum = (name) => `LP_EMOTION_${name.toUpperCase()}`;
+export const pupilEnum = (type) => `LP_PUPIL_${type.toUpperCase()}`;
+export const hexColor = (hex) => `0x${hex.slice(1).toUpperCase()}u`; // "#AE0002" as 0xAE0002u
 export const eventEnum = (name) => `LP_EVENT_${name.toUpperCase()}`;
 export const num = (v) => {
     if (!Number.isFinite(v)) throw new Error(`not a finite number: ${v}`);

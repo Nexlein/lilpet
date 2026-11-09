@@ -2,10 +2,8 @@
 // eyes/looks.json), as C tables for the engine's tests and the renderer benchmark (engine/tools/bench.c). Apart from
 // gen-emotions-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Usage: node scripts/gen-scenes-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { SCENES, lookOf, readJson, swatchesById } from './data.mjs';
-import { emotionEnum, num, writeGenerated } from './gen-common.mjs';
-
-const TABLE = 'engine/tests/scenes_table.h';
+import { SCENES, SCENES_TABLE, lookOf, readJson, swatchesById } from './data.mjs';
+import { emotionEnum, hexColor, num, pupilEnum, writeGenerated } from './gen-common.mjs';
 
 const swatches = swatchesById();
 const scenes = readJson(SCENES).scenes;
@@ -13,7 +11,6 @@ const scenes = readJson(SCENES).scenes;
 const lookKey = (scene) => `${scene.swatch} ${scene.pupil}`;
 const firstWearers = scenes.filter((scene, i) => scenes.findIndex((s) => lookKey(s) === lookKey(scene)) === i);
 const lookIndex = new Map(firstWearers.map((scene, i) => [lookKey(scene), i]));
-const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
 
 const lines = [
@@ -29,7 +26,7 @@ const lines = [
 for (const scene of firstWearers) {
     const look = lookOf(swatches, scene);
     lines.push(
-        `    {${hex(look.sclera)}, LP_PUPIL_${look.pupil.toUpperCase()}, {${hex(look.pupilColor[0])}, ${hex(look.pupilColor[1])}}}, /* ${lookKey(scene)} */`
+        `    {${hexColor(look.sclera)}, ${pupilEnum(look.pupil)}, {${hexColor(look.pupilColor[0])}, ${hexColor(look.pupilColor[1])}}}, /* ${lookKey(scene)} */`
     );
 }
 lines.push(
@@ -57,4 +54,4 @@ for (const scene of scenes) {
 }
 lines.push('};', '', '#endif /* LILPET_SCENES_TABLE_H */', '');
 
-writeGenerated(TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${firstWearers.length} looks`);
+writeGenerated(SCENES_TABLE, lines.join('\n'), `${scenes.length} scenes wearing ${firstWearers.length} looks`);

@@ -8,13 +8,11 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
-import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
+import { EMOTIONS, EMOTIONS_TABLE, GENERATORS, LOOKS, LOOKS_TABLE, SCENES, SCENES_TABLE } from './data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
-const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
-const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
-const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
-const SCENES_TABLE = 'engine/tests/scenes_table.h';
+const EMOTIONS_SCRIPT = GENERATORS[EMOTIONS_TABLE];
+const SCENES_SCRIPT = GENERATORS[SCENES_TABLE];
 const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
@@ -27,9 +25,9 @@ async function withCopy(use) {
             'scripts',
             'eyes',
             'engine/wasm/engine.mjs',
+            'engine/include/lilpet/screen.h',
             SCENES,
-            EMOTIONS_TABLE,
-            SCENES_TABLE
+            ...Object.keys(GENERATORS)
         ])
             cpSync(path, join(dir, path), { recursive: true });
         return await use(dir);
@@ -89,6 +87,18 @@ const CASES = [
     [LOOKS, 'HTML in an id', (d) => (d.swatches[0].id = '<img src=x>'), '"id" must match'],
     [LOOKS, 'an id used twice', (d) => (d.swatches[1].id = d.swatches[0].id), 'duplicate id'],
     [LOOKS, 'a swatch that is null', (d) => (d.swatches[0] = null), 'must be an object'],
+    [LOOKS, 'an unknown default swatch', (d) => (d.default.swatch = 'plaid'), '"default.swatch" must be'],
+    [LOOKS, 'an unknown default pupil', (d) => (d.default.pupil = 'star'), '"default.pupil" must be'],
+    [LOOKS, 'no eye shape', (d) => delete d.eye, '"eye.rx" must be'],
+    [LOOKS, 'an eye wider than the screen', (d) => (d.eye.rx = 300), '"eye.rx" must be'],
+    [LOOKS, 'more tilt than measured', (d) => (d.eye.tilt = 0.5), '"eye.tilt" must be'],
+    [LOOKS, 'no pupil lean', (d) => delete d.pupilLean, '"pupilLean" must be'],
+    [LOOKS, 'a pupil type missing', (d) => delete d.pupils.cat, '"pupils.cat" is missing'],
+    [LOOKS, 'an unknown pupil type', (d) => (d.pupils.star = d.pupils.dot), 'pupils.star: must be one of'],
+    [LOOKS, 'a misspelled pupil key', (d) => (d.pupils.dot.rxx = 0.1), 'unknown key "rxx"'],
+    [LOOKS, 'a pupil without a radius', (d) => delete d.pupils.dot.ry, '"ry" must be between'],
+    [LOOKS, 'a circle that is not a disc', (d) => (d.pupils.circle.rx = 0.5), '"rx" is not used'],
+    [LOOKS, 'a pupil resting outside its eye', (d) => (d.pupils.acorn.y = 2), '"y" must be between'],
     [SCENES, 'no scenes', (d) => (d.scenes = []), '"scenes" must be a non-empty array'],
     [SCENES, 'a scene that is null', (d) => (d.scenes[0] = null), 'must be an object'],
     [SCENES, 'a misspelled key', (d) => (d.scenes[0].emotions = 'sad'), 'unknown key "emotions"'],
@@ -168,12 +178,28 @@ describe('the validator refuses', PARALLEL, () => {
 });
 
 describe('the table generators', PARALLEL, () => {
+    test('npm run tables runs every generator, even after one fails', () =>
+        withCopy(async (dir) => {
+            changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5)); // the first generator fails
+            writeFileSync(join(dir, SCENES), 'not JSON'); // and the last one
+            const { status, stderr } = await run(dir, 'scripts/tables.mjs', '--check');
+            assert.equal(status, 1);
+            assert.ok(stderr.includes(`${EMOTIONS_TABLE}: out of date`), stderr);
+            assert.ok(stderr.includes('Unexpected token'), stderr);
+        }));
+
     test('a fault in scenes.json stops the scene table, not the emotion tables', () =>
         withCopy(async (dir) => {
             assert.equal((await run(dir, SCENES_SCRIPT, '--check')).status, 0); // only the fault can stop it
             writeFileSync(join(dir, SCENES), 'not JSON');
             assert.notEqual((await run(dir, SCENES_SCRIPT, '--check')).status, 0);
             assert.deepEqual(await run(dir, EMOTIONS_SCRIPT, '--check'), { status: 0, stderr: '' });
+        }));
+
+    test('an unknown default swatch stops the looks table with a message', () =>
+        withCopy(async (dir) => {
+            changeFile(dir, LOOKS, (d) => (d.default.swatch = 'plaid'));
+            assertRefused(await run(dir, GENERATORS[LOOKS_TABLE], '--check'), 'the default swatch "plaid"');
         }));
 
     test('a changed emotion makes the tables out of date, until generated again', () =>

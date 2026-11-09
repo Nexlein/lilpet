@@ -16,6 +16,7 @@
 #define LP_TESTS(X)                                                                                                    \
     X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
+    X(test_eyes_start_with_the_default_look_and_shape)                                                                 \
     X(test_unknown_emotion_is_rejected)                                                                                \
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
@@ -110,7 +111,8 @@
     X(test_lcd_id_tells_the_two_controllers_apart)                                                                     \
     X(test_imu_axes_give_gravity_on_the_screen)                                                                        \
     X(test_a_look_is_written_at_once_then_at_most_every_gap)                                                           \
-    X(test_frame_splits_bands_and_measures_the_redrawn_share)
+    X(test_frame_splits_bands_and_measures_the_redrawn_share)                                                          \
+    X(test_dcs_range_is_big_endian_first_and_last)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)
@@ -150,11 +152,17 @@ extern int lp_test_failures;
 #define LP_TEST_STEP    (1.0f / 64.0f) /* a time step of the animation, exact in float */
 #define LP_TEST_SETTLED 1e-4f /* what an easing given seconds to settle leaves of its distance, with float rounding */
 
+/* Plays `steps` steps of LP_TEST_STEP */
+static inline void lp_test_steps(lp_eyes *eyes, int steps)
+{
+    for (int i = 0; i < steps; i++)
+        lp_eyes_update(eyes, LP_TEST_STEP);
+}
+
 /* Plays `seconds` of animation, LP_TEST_STEP at a time */
 static inline void lp_test_play(lp_eyes *eyes, float seconds)
 {
-    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++)
-        lp_eyes_update(eyes, LP_TEST_STEP);
+    lp_test_steps(eyes, (int)(seconds / LP_TEST_STEP));
 }
 
 #endif /* LILPET_TEST_H */

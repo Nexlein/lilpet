@@ -8,11 +8,6 @@
 
 #include <string.h>
 
-lp_shape lp_default_shape(void)
-{
-    return (lp_shape){.rx = 93.0f, .ry = 109.0f, .gap = 101.0f, .tilt = 0.37f};
-}
-
 static float rnd(lp_eyes *e)
 {
     return lp_rng_next(&e->rng);
@@ -22,7 +17,7 @@ void lp_eyes_init(lp_eyes *eyes, uint32_t seed)
 {
     memset(eyes, 0, sizeof *eyes);
     lp_rng_seed(&eyes->rng, seed);
-    eyes->look = (lp_look){.sclera = 0x6FF5D0, .pupil = LP_PUPIL_ACORN, .pupil_color = {0x106E54, 0x106E54}};
+    eyes->look = lp_default_look();
     eyes->emotion = LP_EMOTION_NEUTRAL;
     eyes->cur = lp_emotion_get(LP_EMOTION_NEUTRAL)->expr;
     eyes->shape = lp_default_shape();

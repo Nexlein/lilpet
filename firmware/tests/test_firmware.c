@@ -1,7 +1,9 @@
 /* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
- * when a look is written to flash, the band split between the cores and the share of the screen redrawn */
+ * when a look is written to flash, the band split between the cores, the share of the screen redrawn, and the column
+ * and row ranges the display drivers send */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
+#include "../main/dcs.h"
 #include "../main/frame.h"
 #include "../main/imu_axes.h"
 #include "../main/lcd_id.h"
@@ -85,4 +87,13 @@ void test_frame_splits_bands_and_measures_the_redrawn_share(void)
     CHECK(frame_area_permille((lp_rect){0, 0, 466, 466}, 466) == 1000);
     CHECK(frame_area_permille((lp_rect){0, 0, 233, 466}, 466) == 500);
     CHECK(frame_area_permille((lp_rect){0, 0, 64, 128}, 128) == 500);
+}
+
+void test_dcs_range_is_big_endian_first_and_last(void)
+{
+    uint8_t bytes[4];
+    dcs_range(6, 471, bytes); /* the round screen's whole width, past its 6-column offset */
+    CHECK(bytes[0] == 0x00u && bytes[1] == 0x06u && bytes[2] == 0x01u && bytes[3] == 0xD7u);
+    dcs_range(2, 129, bytes); /* the AtomS3R's 128 columns, from 2 */
+    CHECK(bytes[0] == 0x00u && bytes[1] == 0x02u && bytes[2] == 0x00u && bytes[3] == 0x81u);
 }

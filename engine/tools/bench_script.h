@@ -11,7 +11,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-/* The look the benchmark's eyes wear on both, as its pupil type changes what is drawn: cherry with a dot pupil */
+/* The look the benchmark's eyes wear on both, as its pupil type changes what is drawn: cherry with a dot pupil. Its
+ * own, not lp_default_look(): a new default look must not change what the measurements compare. */
 static const lp_look LP_BENCH_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
 
 /* Each pass starts from the same eyes: seed 1 and the benchmark's look */

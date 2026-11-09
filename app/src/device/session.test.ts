@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { findSwatch, makeLook } from '../data/looks';
 import type { PortLike } from './connection';
-import { fakePort, firmware } from './fake-port';
+import { FAKE_INFO, fakePort, firmware } from './fake-port';
+import { HELLO } from './protocol';
 import { DeviceSession } from './session';
 
 const kite = makeLook(findSwatch('kite')!, 'dot');
@@ -18,7 +19,7 @@ describe('device session', () => {
         await session.connect(); // already connected: nothing happens
         expect(session.snapshot().state).toEqual({
             status: 'connected',
-            info: { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' }
+            info: FAKE_INFO
         });
         expect(seen).toContain('connecting');
         expect(await session.send(kite)).toBe('kept');
@@ -136,7 +137,7 @@ describe('device session', () => {
     it('explains a failed send in French', async () => {
         const answer = firmware();
         let reply: string | null = 'err malformed look';
-        const device = fakePort((c) => (c === '> hello' ? answer(c) : reply));
+        const device = fakePort((c) => (c === HELLO ? answer(c) : reply));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         await expect(session.send(kite)).rejects.toThrow('Erreur de lilpet : malformed look');
@@ -154,7 +155,7 @@ describe('device session', () => {
 
     it('explains a busy board in French', async () => {
         const answer = firmware();
-        const device = fakePort((c) => (c === '> hello' ? answer(c) : 'err busy'));
+        const device = fakePort((c) => (c === HELLO ? answer(c) : 'err busy'));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         await expect(session.send(kite)).rejects.toThrow('lilpet est occupé');
@@ -191,10 +192,10 @@ describe('device session', () => {
         session.emotion('happy'); // nothing is connected yet
         session.emotion('sad');
         await session.connect();
-        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
         await session.disconnect();
         await session.connect();
-        await vi.waitFor(() => expect(device.sent.slice(2)).toEqual(['> hello', '> emotion sad']));
+        await vi.waitFor(() => expect(device.sent.slice(2)).toEqual([HELLO, '> emotion sad']));
         await session.disconnect();
     });
 
@@ -203,9 +204,9 @@ describe('device session', () => {
         const session = new DeviceSession(async () => device.port);
         session.emotion('sad');
         await session.connect();
-        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
         device.log('I (250) main_task: Calling app_main()'); // a crash or the watchdog: the port stayed open
-        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad', '> hello', '> emotion sad']));
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']));
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
     });
@@ -215,7 +216,7 @@ describe('device session', () => {
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         device.log('I (250) main_task: Calling app_main()');
-        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> hello']));
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, HELLO]));
         await session.disconnect();
     });
 
@@ -226,17 +227,17 @@ describe('device session', () => {
             if (session.snapshot().state.status === 'connecting') session.emotion('sad');
         });
         await session.connect();
-        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
         await session.disconnect();
     });
 
     it('tells a board no mood until one is picked, and a failed one goes to the log', async () => {
         const answer = firmware();
-        const device = fakePort((c) => (c === '> hello' ? answer(c) : 'err unknown emotion'));
+        const device = fakePort((c) => (c === HELLO ? answer(c) : 'err unknown emotion'));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         await new Promise((r) => setTimeout(r, 10));
-        expect(device.sent).toEqual(['> hello']);
+        expect(device.sent).toEqual([HELLO]);
         session.emotion('furious');
         await vi.waitFor(() =>
             expect(session.snapshot().log).toContain('> emotion furious : Erreur de lilpet : unknown emotion')
@@ -247,7 +248,7 @@ describe('device session', () => {
 
     it('gives up on moods soon, so a silent board does not hold back the look behind them for long', async () => {
         const answer = firmware();
-        const device = fakePort((c) => (c === '> hello' ? answer(c) : null));
+        const device = fakePort((c) => (c === HELLO ? answer(c) : null));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         vi.useFakeTimers();

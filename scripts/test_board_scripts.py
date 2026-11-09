@@ -4,6 +4,7 @@
 # Usage: npm run check:scripts
 import contextlib
 import io
+import json
 import math
 import os
 import re
@@ -15,20 +16,21 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define, pupil_types
+
 SCRIPTS = Path(__file__).resolve().parent
 ROOT = SCRIPTS.parent
 PORT = "/dev/ttyACM0"
 
-COMMANDS_C = (ROOT / "firmware" / "main" / "commands.c").read_text()
+COMMANDS = ROOT / "firmware" / "main" / "commands.c"
+COMMANDS_C = COMMANDS.read_text()
 HELLO = re.search(r'"< (lilpet [^"]*)\\n"', COMMANDS_C).group(1)
-LILPET_H = (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
-LINE_MAX = int(re.search(r"LP_COMMAND_LINE_MAX\s+(\d+)", LILPET_H).group(1))
-LOOK_SAVING_H = (ROOT / "firmware" / "main" / "look_saving.h").read_text()
-SAVE_GAP = int(re.search(r"#define\s+LOOK_SAVE_GAP_US\s+(\d+)", LOOK_SAVING_H).group(1)) / 1e6  # seconds
+LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")
+SAVE_GAP = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6  # seconds
 # Seconds: the firmware may notice that a late look's turn came this much later (read_line in commands.c)
-READ_WAIT = int(re.search(r"#define\s+READ_WAIT_MS\s+(\d+)", COMMANDS_C).group(1)) / 1000
+READ_WAIT = c_define(COMMANDS, "READ_WAIT_MS") / 1000
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
-LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
+LOOK = rf"[0-9A-F]{{6}} [0-9A-F]{{6}} [0-9A-F]{{6}} ({'|'.join(pupil_types())})"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
     "emotion": r"(neutral|happy|love)( [1-9.]+)?",
     "react": r"tap|gesture_like",
@@ -133,13 +135,13 @@ class Board:
         if not text.startswith("> "):
             return None
         if len(text) > LINE_MAX:
-            return "err line too long"
+            return REPLY_TOO_LONG
         if text == "> hello":
             return HELLO % ("0.5.0", "0.13.0", self.name, 0, self.motion)
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
-            return "imu 0.000 1.000 0.000" if self.motion else "err no motion sensor"
+            return "imu 0.000 1.000 0.000" if self.motion else REPLY_NO_MOTION
         word, _, rest = text[2:].partition(" ")
         if word == "look":
             if not re.fullmatch(LOOK, rest):
@@ -154,11 +156,11 @@ class Board:
                 self.late = rest
             return "ok"
         if word not in DRIVES:
-            return "err unknown command"
+            return REPLY_UNKNOWN
         if not re.fullmatch(DRIVES[word], rest):
             return f"err malformed {word}"
         if self.bench:
-            return "err benchmark animation running"
+            return REPLY_BENCH
         if word == "emotion" and " " not in rest:
             self.mood = rest
         return "ok"
@@ -286,6 +288,45 @@ def guard(*boards, **env):
 
 def check_device(board, **env):
     return run("check-device.py", board, **{"BOARD": board.name, **env})
+
+
+class FirmwareFacts(unittest.TestCase):
+    def test_the_replies_the_checks_expect_are_the_firmware_s(self):
+        for reply in (REPLY_BENCH, REPLY_NO_MOTION):
+            self.assertIn(f'printf("< {reply}\\n");', COMMANDS_C)
+        # The engine's errors, which commands.c prints after "err "
+        self.assertIn('printf("< err %s\\n", error);', COMMANDS_C)
+        command_c = (ROOT / "engine" / "src" / "command.c").read_text()
+        for reply in (REPLY_UNKNOWN, REPLY_TOO_LONG):
+            self.assertIn(f'return "{reply.removeprefix("err ")}";', command_c)
+
+    def test_the_report_window_holds_a_round_at_the_lowest_rate(self):
+        # LP_BENCH_FRAMES, from the enum of bench_script.h (sums of products of names and numbers), with the emotion
+        # count of eyes/emotions.json
+        known = {"LP_EMOTION_COUNT": len(json.loads((ROOT / "eyes" / "emotions.json").read_text())["emotions"])}
+
+        def term(word):
+            if word in known:
+                return known[word]
+            if not word.isdigit():
+                self.fail(f"bench_script.h: {word} is neither a number nor a name defined before")
+            return int(word)
+
+        def value(expression):
+            return sum(math.prod(term(word) for word in product.split("*")) for product in expression.split("+"))
+
+        bench = (ROOT / "engine" / "tools" / "bench_script.h").read_text()
+        for name, expression in re.findall(r"^\s*(LP_BENCH_\w+) = ([\w\s+*]+?),", bench, re.M):
+            known[name] = value("".join(expression.split()))  # without spaces or line breaks
+        check = (SCRIPTS / "check-device.py").read_text()
+        rate = int(re.search(r"^MIN_FRAMES_PER_SECOND = (\d+)", check, re.M).group(1))
+        window = int(re.search(r"^REPORT_SECONDS = (\d+)", check, re.M).group(1))
+        self.assertGreater(known["LP_BENCH_FRAMES"], 0)
+        self.assertLessEqual(known["LP_BENCH_FRAMES"] / rate, window)
+
+    def test_c_define_stops_on_a_missing_define(self):
+        with self.assertRaises(SystemExit):
+            c_define(COMMANDS, "NO_SUCH_DEFINE")
 
 
 class HelloFields(unittest.TestCase):

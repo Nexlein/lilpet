@@ -88,7 +88,20 @@ const char *lp_name(void);
 }
 #endif
 #endif`;
-    assert.deepEqual(cSymbols(header, true), ['LP_SIZE', 'lp_thing', 'lp_callback', 'lp_kind', 'lp_do', 'lp_name']);
+    assert.deepEqual(cSymbols(header, true), [
+        'LP_SIZE',
+        'lp_thing',
+        'lp_callback',
+        'lp_kind',
+        'lp_do',
+        'lp_inline',
+        'lp_name'
+    ]);
+    // A table defined in a header is data, not a function
+    assert.deepEqual(
+        cSymbols('static const int lp_table[2] = {1, 2};\nstatic inline int lp_f(void) { return 1; }', true),
+        ['lp_f']
+    );
     // A macro over several lines is not code
     assert.deepEqual(cSymbols('#define LP_TWICE(x) \\\n    do { x; x; } while (0)\nvoid lp_after(void);\n', true), [
         'LP_TWICE',
@@ -167,11 +180,12 @@ import { useState } from 'react';
 import { x } from '@scope/pkg/sub';
 import { readFileSync } from 'node:fs';
 import gone from './gone';
-import wasm from '../../engine/build/wasm/lilpet.mjs';`,
+import wasm from '../../engine/build/wasm/lilpet.mjs';
+import source from '../../engine/src/eyes.c?raw';`,
         'js',
         repo
     );
-    assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json']);
+    assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json', 'engine/src/eyes.c']);
     assert.deepEqual(js.packages, ['react', '@scope/pkg']);
     assert.deepEqual(js.unresolved, ['./gone']);
     assert.deepEqual(js.built, ['engine/build/wasm/lilpet.mjs']);

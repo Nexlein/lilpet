@@ -23,11 +23,12 @@ model that will choose the reactions does not exist yet; what it will send is re
 ## Rules
 
 - Code, comments, commits and this file: English. `docs/` and README: French.
-- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it, and a Python test
-  is `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like JS
-  and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A JS test
-  sits next to its module, `<module>.test.mjs` (Node) or `<module>.test.ts` (Vitest); the app's browser tests are in
-  `app/tests`, the engine's in `engine/tests`, the firmware's pure parts in `firmware/tests` (run with the engine's).
+- File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it, and a Python test is
+  `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like JS and TS
+  files (`gen-scenes-table.mjs`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A JS test sits next
+  to its module, `<module>.test.mjs` (Node) or `<module>.test.ts` (Vitest), or is named after what it checks when that
+  is not a module (`scripts/docs.test.mjs`); the app's browser tests are in `app/tests`, the engine's in `engine/tests`,
+  the firmware's pure parts in `firmware/tests` (run with the engine's).
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets: no direct push, no
   force push, no deletion). The rulesets name the required checks by job name: renaming a CI job or adding a board

@@ -1,10 +1,16 @@
 // A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between,
 // and can fail like a real port (a passing read error, an unplug, a failed write).
 import type { PortLike } from './connection';
+import { HELLO } from './protocol';
+
+// What the fake board answers to hello, in the firmware's format (protocol.test.ts compares it with
+// firmware/main/commands.c); its versions are made up
+export const FAKE_INFO = { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' } as const;
+export const FAKE_HELLO = `lilpet fw=${FAKE_INFO.firmware} engine=${FAKE_INFO.engine} board=${FAKE_INFO.board} camera=0 motion=1`;
 
 export function firmware(): (command: string) => string | null {
     return (command) => {
-        if (command === '> hello') return 'lilpet fw=abc1234 engine=0.6.0 board=atoms3r camera=0 motion=1';
+        if (command === HELLO) return FAKE_HELLO;
         if (/^> (look|emotion|react) /.test(command)) return 'ok';
         return null; // no reply: the request must time out
     };

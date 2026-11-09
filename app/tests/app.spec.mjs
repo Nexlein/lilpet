@@ -3,7 +3,7 @@
 // in CI if the build is missing.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
-import { fakePort } from '../src/device/fake-port.ts';
+import { FAKE_HELLO, FAKE_INFO, fakePort } from '../src/device/fake-port.ts';
 
 const APP = '/dist/index.html'; // served from app/ (playwright.config.mjs)
 
@@ -32,8 +32,8 @@ test.skip(
     'build the app first: npm run app:build'
 );
 
-// What the fake board answers to hello, in the firmware's format (main/commands.c); its versions are made up
-const HELLO = 'lilpet fw=1.2.3 engine=4.5.6 board=atoms3r camera=0 motion=1';
+// The fake board's hello and info, as the status shows them
+const SHOWN_INFO = `${FAKE_INFO.board}, firmware ${FAKE_INFO.firmware}, moteur ${FAKE_INFO.engine}`;
 
 // Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
 function plugBoard(makePort, hello) {
@@ -58,7 +58,7 @@ function plugBoard(makePort, hello) {
     Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => device.port } });
 }
 
-const fakeSerial = `(${plugBoard})(${fakePort}, ${JSON.stringify(HELLO)})`;
+const fakeSerial = `(${plugBoard})(${fakePort}, ${JSON.stringify(FAKE_HELLO)})`;
 
 // Runs in the page: counts the frames drawn on the canvas
 function countFrames() {
@@ -352,7 +352,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toBeFocused();
     await expect(status).toContainText('lilpet est branché');
-    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
+    await expect(status).toContainText(SHOWN_INFO);
     await expect(button).toHaveText('Débrancher');
     await expect(button).toBeFocused();
 
@@ -370,7 +370,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
 
     // Plugged in again: nothing was sent to it
     await plugIn(page);
-    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
+    await expect(status).toContainText(SHOWN_INFO);
     await expect(note(page)).toBeEmpty();
 
     await page.getByRole('button', { name: 'Débrancher' }).click();
@@ -394,7 +394,7 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await expect(status).toHaveText('Connexion à lilpet…');
     await expect(page.getByRole('alert')).toHaveCount(0);
 
-    await page.evaluate((hello) => (window.board.hello = hello), HELLO);
+    await page.evaluate((hello) => (window.board.hello = hello), FAKE_HELLO);
     await expect(status).toContainText('lilpet est branché');
     await expect.poll(async () => (await sent(page)).at(-1)).toBe('> emotion sad');
 });
@@ -488,7 +488,7 @@ test('explains an unplug during hello in French, and can plug in again', async (
     await expect.poll(() => sent(page)).toEqual(['> hello']);
     await page.evaluate(() => window.board.unplug());
     await expect(page.getByRole('alert')).toHaveText('lilpet n’est plus branché.');
-    await page.evaluate((hello) => (window.board.hello = hello), HELLO);
+    await page.evaluate((hello) => (window.board.hello = hello), FAKE_HELLO);
     await plugIn(page);
     await expect(page.getByRole('alert')).toHaveCount(0);
 });

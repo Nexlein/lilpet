@@ -45,12 +45,12 @@ void test_tilt_holds_upside_down_on_noise(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_head_amount(&eyes, 0.0f); /* no idle roll: only the tilt turns the face */
     float max_step = 0.0f;
-    for (int i = 0; i < 640; i++) {
+    for (int i = 0; i < (int)(10.0f / LP_TEST_STEP); i++) {
         lp_eyes_set_gravity(&eyes, true, i % 2 ? 0.02f : -0.02f, -0.5f);
         const float before = eyes.head.roll;
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-        const float step = fabsf(remainderf(eyes.head.roll - before, 6.2831853f));
-        if (i >= 320 && step > max_step)
+        lp_eyes_update(&eyes, LP_TEST_STEP);
+        const float step = fabsf(remainderf(eyes.head.roll - before, FULL_TURN));
+        if (i >= (int)(5.0f / LP_TEST_STEP) && step > max_step) /* once settled */
             max_step = step;
     }
     CHECK(fabsf(eyes.head.roll) > 3.0f); /* level, half a turn from the screen's upright */
@@ -64,16 +64,13 @@ void test_tilt_holds_lying_flat(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_head_amount(&eyes, 0.0f);
     lp_eyes_set_gravity(&eyes, true, 1.0f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
+    lp_test_play(&eyes, 5.0f);
+    CHECK_NEAR(eyes.head.level, -LP_PI / 2.0f, 0.01f);
     lp_eyes_set_gravity(&eyes, true, 0.05f, 0.1f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
+    lp_test_play(&eyes, 5.0f);
+    CHECK_NEAR(eyes.head.level, -LP_PI / 2.0f, 0.01f);
     lp_eyes_set_gravity(&eyes, false, 0.0f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 5.0f);
     CHECK_NEAR(eyes.head.level, 0.0f, 0.01f);
 }
 
@@ -85,8 +82,7 @@ void test_lying_flat_does_not_slide_the_eyes(void)
     lp_eyes_set_head_amount(&eyes, 0.0f);
     lp_eyes_set_pointer(&eyes, true, 0.0f, 0.0f);
     lp_eyes_set_gravity(&eyes, true, 0.2f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 5.0f);
     CHECK_NEAR(eyes.gaze.x, 0.0f, 0.001f);
 }
 
@@ -168,10 +164,10 @@ void test_holding_keeps_a_longer_emotion(void)
 /* Feeds `seconds` of shaking along x, +-amplitude g at 6 Hz; returns how long the detector said "shaken" */
 static float shake_for(lp_shake *shake, float amplitude, float seconds)
 {
-    const float dt = 1.0f / 64.0f;
+    const float dt = LP_TEST_STEP;
     float shaken = 0.0f;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++) {
-        const float x = amplitude * sinf(2.0f * 3.14159265f * 6.0f * (float)i * dt);
+    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++) {
+        const float x = amplitude * sinf(FULL_TURN * 6.0f * (float)i * dt);
         shaken += lp_shake_update(shake, x, 1.0f, 0.0f, dt) ? dt : 0.0f;
     }
     return shaken;
@@ -179,10 +175,10 @@ static float shake_for(lp_shake *shake, float amplitude, float seconds)
 
 void test_shake_is_told_from_tilt_and_knocks(void)
 {
-    const float dt = 1.0f / 64.0f;
+    const float dt = LP_TEST_STEP;
     lp_shake shake = {0};
-    /* At rest, then turned slowly: always 1 g, never shaken */
-    for (int i = 0; i < 640; i++) {
+    /* At rest, then turned slowly for 10 s: always 1 g, never shaken */
+    for (int i = 0; i < (int)(10.0f / dt); i++) {
         const float a = (float)i * 0.01f;
         CHECK(!lp_shake_update(&shake, sinf(a), cosf(a), 0.0f, dt));
     }
@@ -203,8 +199,8 @@ void test_shake_is_told_from_tilt_and_knocks(void)
 static bool steady(lp_shake *shake, float g, float seconds)
 {
     bool shaken = shake->active;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
-        shaken = lp_shake_update(shake, g, 0.0f, 0.0f, 1.0f / 64.0f);
+    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++)
+        shaken = lp_shake_update(shake, g, 0.0f, 0.0f, LP_TEST_STEP);
     return shaken;
 }
 
@@ -222,13 +218,13 @@ void test_shake_limits(void)
 
     /* 3 g away, the energy passes 1.5 g in 6 samples at 8 per second, then counts for 0.3 s: 20 samples more */
     shake = (lp_shake){0};
-    CHECK(!steady(&shake, 4.0f, 24.0f / 64.0f));
-    CHECK(steady(&shake, 4.0f, 1.0f / 64.0f));
+    CHECK(!steady(&shake, 4.0f, 24.0f * LP_TEST_STEP));
+    CHECK(steady(&shake, 4.0f, LP_TEST_STEP));
 }
 
 void test_shake_skips_bad_samples(void)
 {
-    const float dt = 1.0f / 64.0f;
+    const float dt = LP_TEST_STEP;
     lp_shake shake = {0};
     lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, dt);
     const lp_shake before = shake;
@@ -249,15 +245,12 @@ void test_shaking_makes_it_dizzy_until_a_bit_after(void)
     lp_eyes eyes;
     lp_eyes_init(&eyes, 2);
     lp_eyes_set_shaking(&eyes, true);
-    for (int i = 0; i < 4 * 64; i++) /* longer than the reaction itself: renewed while shaken */
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 4.0f); /* longer than the reaction itself: renewed while shaken */
     CHECK(eyes.emotion == LP_EMOTION_DIZZY);
     lp_eyes_set_shaking(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
     CHECK(eyes.emotion == LP_EMOTION_DIZZY); /* a moment after */
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
 }
 
@@ -273,18 +266,17 @@ void test_shake_makes_it_dizzy_then_calm(void)
     float max_x = -1.0f;
     float min_y = 1.0f;
     float max_y = -1.0f;
-    for (int i = 0; i < 64; i++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-        min_x = eyes.gaze.x < min_x ? eyes.gaze.x : min_x;
-        max_x = eyes.gaze.x > max_x ? eyes.gaze.x : max_x;
-        min_y = eyes.gaze.y < min_y ? eyes.gaze.y : min_y;
-        max_y = eyes.gaze.y > max_y ? eyes.gaze.y : max_y;
+    for (int i = 0; i < (int)(1.0f / LP_TEST_STEP); i++) {
+        lp_eyes_update(&eyes, LP_TEST_STEP);
+        min_x = lp_minf(min_x, eyes.gaze.x);
+        max_x = lp_maxf(max_x, eyes.gaze.x);
+        min_y = lp_minf(min_y, eyes.gaze.y);
+        max_y = lp_maxf(max_y, eyes.gaze.y);
     }
     CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
     CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */
     /* Back to its mood when the reaction is over, and the spinning dies down soon after */
-    for (int i = 0; i < 3 * 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 3.0f);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
     CHECK(eyes.cur.spin < 0.5f);
 }

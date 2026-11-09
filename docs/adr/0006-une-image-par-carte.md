@@ -19,7 +19,7 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
   ces dossiers.
 - Chaque en-tête (`display.h`, `imu.h`) est une interface, chaque composant un fichier `.c`, sans table de fonctions :
   tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure (`lcd_id.h`, `imu_axes.h`,
-  `look_saving.h`, `frame.h`), pour que les tests sur PC la voient (`firmware/tests`).
+  `look_saving.h`, `frame.h`, `dcs.h`), pour que les tests sur PC la voient (`firmware/tests`).
 - **Deux gardes contre une mauvaise image.** `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et
   refuse si une autre carte répond, puis donne ce port à esptool ; `FORCE=1` passe outre sans rien demander. Au
   démarrage, `board_init` compare le boîtier de la puce et s'arrête avant de toucher une broche.

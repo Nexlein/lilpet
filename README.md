@@ -68,9 +68,9 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
   (Prettier et ruff ; comme les linters et les commandes qui corrigent, sur les fichiers suivis par git seulement, pour
   ne jamais toucher un fichier local non suivi), linters (oxlint, shellcheck pour les hooks, actionlint pour la CI,
   ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour (`engine/src/emotions_table.h`,
-  `engine/tests/scenes_table.h`), tests Node de `scripts/` et `engine/wasm/` (dont la validation et les générateurs sur
-  des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis types et tests de
-  l'app PC.
+  `engine/src/looks_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` et `engine/wasm/` (dont la
+  validation et les générateurs sur des données cassées), scripts de carte sur un faux port, carte du code
+  (`.claude/codemap.md`), puis types et tests de l'app PC.
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
   clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
   `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
@@ -97,12 +97,8 @@ Tout changement passe par une pull request vers `dev`, la branche par défaut, e
 ## Tester sur un ESP32-S3
 
 Il y a une image de firmware par carte ([pourquoi](docs/adr/0006-une-image-par-carte.md)) : flasher l'image d'une
-autre carte piloterait les mauvaises broches. `BOARD` vaut :
-
-- `atoms3r` : l'AtomS3R de M5Stack, écran de 128 px. Quand on le tourne, le visage reste à l'horizontale, et il réagit :
-  fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
-- `waveshare_132` : l'écran rond 1,32", pas encore essayé sur la vraie carte.
-- `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
+autre carte piloterait les mauvaises broches. `BOARD` est le nom d'un dossier de `firmware/boards` ; les cartes et ce
+que chacune fait sont dans [le tableau des cartes](docs/firmware.md#les-cartes).
 
 La compilation passe par Docker, sans installer ESP-IDF. Une seule commande s'occupe d'un objet : compiler, flasher,
 vérifier.

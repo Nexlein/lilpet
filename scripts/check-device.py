@@ -26,6 +26,7 @@ from board_link import (
     open_port,
     read_reply,
 )
+from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define
 
 # The checks need two looks the board does not wear, so three. The first, kite colors with two pupil colors, is one
 # nobody keeps by chance.
@@ -35,8 +36,7 @@ BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
 REPORT_LINE = r"^(\d+\.\d) frames/s"
 # Catches a dead or crawling drawing loop, not a slow screen: a board reports every LP_BENCH_FRAMES frames
-# (engine/tools/bench_script.h; 1080 today, so 17.3 s at full speed and 54 s at this rate): REPORT_SECONDS covers that,
-# and grows with it
+# (engine/tools/bench_script.h), and REPORT_SECONDS waits for a whole round at this rate (a test checks it)
 MIN_FRAMES_PER_SECOND = 20
 REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
@@ -51,17 +51,9 @@ class Board:
     motion: bool  # has a motion sensor: one that does not answer is a fault
 
 
-def define(header, name):
-    """The number a C header defines under that name"""
-    found = re.search(rf"#define\s+{name}\s+(\d+)\b", header.read_text())
-    if found is None:
-        sys.exit(f"{header} does not define {name}")
-    return int(found.group(1))
-
-
-LINE_MAX = define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
+LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
 # A look sent sooner than this after the last write to flash is written once this time has passed
-SAVE_GAP_SECONDS = define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
+SAVE_GAP_SECONDS = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
 
 
 def check(ok, what, detail=""):
@@ -152,17 +144,17 @@ def run_checks(port, board, test_look, other_look):
     kept = ask(port, "> look?")
     check_reply(kept == f"look {test_look}", "keeps its look after a refused one", kept)
     unknown = ask(port, "> wag")
-    check_reply(unknown == "err unknown command", "rejects an unknown command", unknown)
+    check_reply(unknown == REPLY_UNKNOWN, "rejects an unknown command", unknown)
 
     too_long = ask(port, "> " + "x" * LINE_MAX)
-    check_reply(too_long == "err line too long", "rejects a line too long", too_long)
+    check_reply(too_long == REPLY_TOO_LONG, "rejects a line too long", too_long)
     hello = ask(port, "> hello")
     check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers after a line too long", hello)
     port.write(b"x" * (LINE_MAX + 1) + f"> look {other_look}\n".encode())  # right where the line stops fitting
     kept = ask(port, "> look?")
     check_reply(kept == f"look {test_look}", "does not run the end of a line too long", kept)
 
-    accepted = "err benchmark animation running" if board.bench else "ok"
+    accepted = REPLY_BENCH if board.bench else "ok"
     for command in ["> emotion happy", "> emotion love 1.5", "> react tap", "> react gesture_like", "> face 0.5 -0.25"]:
         reply = ask(port, command)
         check_reply(reply == accepted, f'answers "{command}" as it should', reply)
@@ -196,7 +188,7 @@ def run_checks(port, board, test_look, other_look):
     check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
     imu = ask(port, "> imu?")
-    if imu == "err no motion sensor" and not board.motion:
+    if imu == REPLY_NO_MOTION and not board.motion:
         print("-    no motion sensor on this board")
     else:
         try:
@@ -223,7 +215,7 @@ def put_back(port, board, before):
 
 def check_board(board_name):
     config = BOARDS / board_name / "board_config.h"
-    board = Board(board_name, define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name))
+    board = Board(board_name, c_define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name))
 
     port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")

@@ -1,13 +1,6 @@
 # Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map
-# regenerated from what is staged. The tools come from mise.toml: the hook runs inside mise, also for a Git client
-# started outside a mise shell.
-if [ -z "$LILPET_HOOK_IN_MISE" ]; then
-  if ! command -v mise >/dev/null 2>&1; then
-    echo "pre-commit: mise is needed, it provides the tools of mise.toml (https://mise.jdx.dev)" >&2
-    exit 1
-  fi
-  LILPET_HOOK_IN_MISE=1 exec mise exec -- sh -e "$0" "$@"
-fi
+# regenerated from what is staged. The tools come from mise.toml: the hook runs inside mise (in-mise.sh).
+. .husky/in-mise.sh
 sh .husky/no-secrets.sh
 # One glob after the other: a check of the generated files must not read a file another glob is formatting
 npx lint-staged --concurrent false

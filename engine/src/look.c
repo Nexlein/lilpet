@@ -1,14 +1,30 @@
-/* Looks as text, for the USB protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot" */
+/* Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB
+ * protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot" */
+#include "internal.h"
 #include "lilpet/lilpet.h"
+#include "looks_table.h"
 
 #include <string.h>
 
-static const char *const PUPIL_NAMES[LP_PUPIL_COUNT] = {
-    [LP_PUPIL_DOT] = "dot",
-    [LP_PUPIL_CAT] = "cat",
-    [LP_PUPIL_ACORN] = "acorn",
-    [LP_PUPIL_CIRCLE] = "circle",
-};
+lp_look lp_default_look(void)
+{
+    return DEFAULT_LOOK;
+}
+
+lp_shape lp_default_shape(void)
+{
+    return DEFAULT_SHAPE;
+}
+
+const lp_pupils *lp_pupils_get(void)
+{
+    return &PUPILS;
+}
+
+const char *lp_look_malformed(void)
+{
+    return "malformed look, expected: RRGGBB RRGGBB RRGGBB " LP_PUPIL_LIST;
+}
 
 static bool is_space(char c)
 {
@@ -65,7 +81,8 @@ bool lp_look_parse(const char *text, lp_look *look)
     if (*skip_spaces(s + len) != '\0')
         return false;
     for (int i = 0; i < LP_PUPIL_COUNT; i++) {
-        if (strlen(PUPIL_NAMES[i]) == len && strncmp(s, PUPIL_NAMES[i], len) == 0) {
+        const char *name = PUPILS.types[i].name;
+        if (strlen(name) == len && strncmp(s, name, len) == 0) {
             parsed.pupil = (lp_pupil)i;
             *look = parsed;
             return true;
@@ -94,7 +111,8 @@ int lp_look_format(const lp_look *look, char *out)
     char *p = put_color(out, look->sclera);
     p = put_color(p, look->pupil_color[0]);
     p = put_color(p, look->pupil_color[1]);
-    const size_t name = strlen(PUPIL_NAMES[pupil]);
-    memcpy(p, PUPIL_NAMES[pupil], name + 1);
-    return (int)((size_t)(p - out) + name);
+    const char *name = PUPILS.types[pupil].name;
+    const size_t len = strlen(name);
+    memcpy(p, name, len + 1);
+    return (int)((size_t)(p - out) + len);
 }

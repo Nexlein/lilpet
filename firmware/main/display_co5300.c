@@ -7,6 +7,7 @@
  * (boards/<board>/board_config.h).
  */
 #include "board_config.h"
+#include "dcs.h"
 #include "display.h"
 
 #include "driver/gpio.h"
@@ -26,17 +27,6 @@
 #define OPCODE_WRITE_CMD    0x02u
 #define OPCODE_WRITE_PIXELS 0x32u
 
-#define CMD_NOP          0x00u
-#define CMD_SLEEP_OUT    0x11u
-#define CMD_DISPLAY_ON   0x29u
-#define CMD_COLUMNS      0x2Au
-#define CMD_ROWS         0x2Bu
-#define CMD_WRITE_RAM    0x2Cu
-#define CMD_TE_ON        0x35u
-#define CMD_ORIENTATION  0x36u
-#define CMD_PIXEL_FORMAT 0x3Au
-#define CMD_BRIGHTNESS   0x51u
-
 typedef struct {
     uint8_t cmd;
     uint8_t len;
@@ -47,15 +37,15 @@ typedef struct {
 /* From Waveshare's demo, but for display on, sent after the first frame (display_flush); the full-screen window it
  * also sets is set by every display_draw here */
 static const init_cmd INIT[] = {
-    {0xFEu, 1, {0x00u}, 0},            /* command page 0 */
-    {0xC4u, 1, {0x80u}, 0},            /* vendor command, value from the demo */
-    {CMD_PIXEL_FORMAT, 1, {0x55u}, 0}, /* 16 bits per pixel, RGB565 */
-    {CMD_TE_ON, 1, {0x00u}, 0},        /* TE signal at each vertical blank */
-    {0x53u, 1, {0x20u}, 0},            /* brightness control on */
-    {CMD_BRIGHTNESS, 1, {0xFFu}, 0},   /* brightness */
-    {0x63u, 1, {0xFFu}, 0},            /* vendor command, value from the demo */
-    {CMD_SLEEP_OUT, 0, {0}, 100},      /* leave sleep, then wait */
-    {CMD_ORIENTATION, 1, {0xC0u}, 0},  /* rows and columns reversed: 180 degrees, as the panel is mounted */
+    {0xFEu, 1, {0x00u}, 0},                  /* command page 0 */
+    {0xC4u, 1, {0x80u}, 0},                  /* vendor command, value from the demo */
+    {DCS_PIXEL_FORMAT, 1, {0x55u}, 0},       /* 16 bits per pixel, RGB565 */
+    {DCS_TE_ON, 1, {0x00u}, 0},              /* TE signal at each vertical blank */
+    {DCS_WRITE_CTRL_DISPLAY, 1, {0x20u}, 0}, /* brightness control on */
+    {DCS_BRIGHTNESS, 1, {0xFFu}, 0},         /* brightness */
+    {0x63u, 1, {0xFFu}, 0},                  /* vendor command, value from the demo */
+    {DCS_SLEEP_OUT, 0, {0}, 100},            /* leave sleep, then wait */
+    {DCS_ORIENTATION, 1, {0xC0u}, 0},        /* rows and columns reversed: 180 degrees, as the panel is mounted */
 };
 
 static esp_lcd_panel_io_handle_t io;
@@ -150,21 +140,21 @@ const char *display_init(size_t max_band_bytes)
 void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 {
     const size_t count = (size_t)(x1 - x0) * (size_t)(y1 - y0);
-    const int c0 = x0 + BOARD_LCD_COLUMN_OFFSET;
-    const int c1 = x1 - 1 + BOARD_LCD_COLUMN_OFFSET;
-    const uint8_t columns[4] = {(uint8_t)(c0 >> 8), (uint8_t)c0, (uint8_t)(c1 >> 8), (uint8_t)c1};
-    const uint8_t rows[4] = {(uint8_t)(y0 >> 8), (uint8_t)y0, (uint8_t)((y1 - 1) >> 8), (uint8_t)(y1 - 1)};
-    send(CMD_COLUMNS, columns, sizeof columns); /* waits until the previous band is sent */
-    send(CMD_ROWS, rows, sizeof rows);
-    ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(io, (int)(OPCODE_WRITE_PIXELS << 24 | CMD_WRITE_RAM << 8), pixels,
+    uint8_t columns[4];
+    uint8_t rows[4];
+    dcs_range(x0 + BOARD_LCD_COLUMN_OFFSET, x1 - 1 + BOARD_LCD_COLUMN_OFFSET, columns);
+    dcs_range(y0, y1 - 1, rows);
+    send(DCS_COLUMNS, columns, sizeof columns); /* waits until the previous band is sent */
+    send(DCS_ROWS, rows, sizeof rows);
+    ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(io, (int)(OPCODE_WRITE_PIXELS << 24 | DCS_WRITE_RAM << 8), pixels,
                                               count * sizeof pixels[0]));
 }
 
 void display_flush(void)
 {
-    send(CMD_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
+    send(DCS_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
     if (!panel_on) {
-        send(CMD_DISPLAY_ON, NULL, 0);
+        send(DCS_DISPLAY_ON, NULL, 0);
         panel_on = true;
     }
 }

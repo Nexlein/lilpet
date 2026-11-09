@@ -1,3 +1,4 @@
+/* Runs every test of LP_TESTS (test.h) and fails when one of them does */
 #include "test.h"
 
 int lp_test_failures = 0;

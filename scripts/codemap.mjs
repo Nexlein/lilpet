@@ -209,7 +209,10 @@ export function purposeOf(src, kind) {
 
 // --- Symbols ------------------------------------------------------------------------------------------------------
 
-/** Functions, types and macros a C header declares, or the functions a C source defines (static ones excluded). */
+/**
+ * Functions, types and macros a C header declares, with the static inline functions it defines (every file that
+ * includes it gets them), or the functions a C source defines (static ones excluded).
+ */
 export function cSymbols(src, header) {
     // The extern "C" wrapper for C++ would put every declaration inside braces
     const code = scanC(src, false).replace(
@@ -229,7 +232,8 @@ export function cSymbols(src, header) {
         if (ch === '{') {
             if (depth === 0) {
                 const fn = statement.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/);
-                if (!header && fn && !/\bstatic\b/.test(statement) && !/[=]/.test(statement)) names.push(fn[1]);
+                const exported = header ? /\bstatic\s+inline\b/.test(statement) : !/\bstatic\b/.test(statement);
+                if (fn && exported && !/[=]/.test(statement)) names.push(fn[1]);
                 beforeBraces = statement;
                 statement = '';
             }
@@ -348,8 +352,9 @@ export function usesOf(file, src, kind, repo) {
     const unresolved = [];
     const built = [];
     const relative = (spec) => {
-        const hit = resolveRelative(file, spec, repo);
-        const path = normalize(join(dirname(file), spec.startsWith('/') ? spec.slice(1) : spec));
+        const bare = spec.replace(/\?[^/]*$/, ''); // Vite's queries, as in "x.c?raw", name the same file
+        const hit = resolveRelative(file, bare, repo);
+        const path = normalize(join(dirname(file), bare.startsWith('/') ? bare.slice(1) : bare));
         if (hit) local.push(hit);
         else if (repo.isIgnored(path))
             built.push(path); // a build output, absent until built

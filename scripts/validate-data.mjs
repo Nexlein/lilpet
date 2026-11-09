@@ -1,5 +1,6 @@
 // Checks the data files the renderers read:
-// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
+// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye shape and
+//   pupil types, which the engine's table is generated from
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
 //   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - engine/tests/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
@@ -14,6 +15,16 @@ const HEX = /^#[0-9A-Fa-f]{6}$/;
 const ID = /^[a-z0-9-]+$/; // ends up in a C string and in a file name (engine/tests/goldens)
 const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
+// From the engine's screen.h: the biggest eye radius and gap the drawing is made for, and the particles it shows
+const SCREEN_H = readFileSync('engine/include/lilpet/screen.h', 'utf8');
+function screenDefine(name) {
+    const found = new RegExp(`#define ${name}\\s+(\\d+)`).exec(SCREEN_H);
+    if (!found) throw new Error(`engine/include/lilpet/screen.h: no "#define ${name} <number>"`);
+    return Number(found[1]);
+}
+const HALF_SCREEN = screenDefine('LP_SCREEN_SIZE') / 2;
+const MAX_SPARKLES = screenDefine('LP_MAX_PARTICLES');
+const MEASURED_TILT = 0.37; // radians: the emotions' turns were tuned for it (docs/architecture.md)
 const errors = [];
 const isHex = (v) => typeof v === 'string' && HEX.test(v);
 const isNum = (v, min = -Infinity, max = Infinity) =>
@@ -88,11 +99,32 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 });
 if (Array.isArray(looks?.swatches) && looks.swatches.length !== SWATCH_COUNT)
     errors.push(`${LOOKS}: ${looks.swatches.length} swatches, the catalogue has ${SWATCH_COUNT}`);
+if (!looks?.swatches?.some?.((s) => s?.id === looks?.default?.swatch))
+    errors.push(`${LOOKS}: "default.swatch" must be a swatch id`);
+if (!PUPILS.includes(looks?.default?.pupil))
+    errors.push(`${LOOKS}: "default.pupil" must be one of ${PUPILS.join(', ')}`);
+// The eye shape the drawing is made for
+for (const [k, min, max] of [
+    ['rx', 1, HALF_SCREEN],
+    ['ry', 1, HALF_SCREEN],
+    ['gap', 0, HALF_SCREEN],
+    ['tilt', 0, MEASURED_TILT]
+])
+    if (!isNum(looks?.eye?.[k], min, max)) errors.push(`${LOOKS}: "eye.${k}" must be between ${min} and ${max}`);
+if (!isNum(looks?.pupilLean, 0, 0.5)) errors.push(`${LOOKS}: "pupilLean" must be between 0 and 0.5 radians`);
+// Every pupil type of the engine, in fractions of the eye radii; the renderer draws circle as a disc (r)
+eachRow(LOOKS, looks?.pupils, 'pupils', PUPILS, ['rx', 'ry', 'r', 'x', 'y'], (pupil, fail, id) => {
+    if (!PUPILS.includes(id)) fail(`must be one of ${PUPILS.join(', ')}`);
+    const radii = id === 'circle' ? ['r'] : ['rx', 'ry'];
+    for (const k of ['rx', 'ry', 'r'])
+        if (radii.includes(k) ? !isNum(pupil[k], 0.01, 1.2) : pupil[k] !== undefined)
+            fail(radii.includes(k) ? `"${k}" must be between 0.01 and 1.2` : `"${k}" is not used: ${radii.join(', ')}`);
+    for (const k of ['x', 'y']) if (!isNum(pupil[k], -1, 1)) fail(`"${k}" must be between -1 and 1`);
+});
 
 const emotionData = load(EMOTIONS);
 const emotions = emotionData?.emotions ?? {};
 const EMIT_TYPES = ['heart', 'sparkle'];
-const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
 const HELD = ['shake', 'upside_down']; // they repeat every frame while their cause lasts
 eachRow(
     EMOTIONS,

@@ -28,15 +28,6 @@ _Static_assert(4 * SPARKLE_STEPS <= LP_POLY_MAX, "sparkle too long");
 #define SPARKLE_COLOR 0xFFFFFFu
 #define GLINT_COLOR   0xFFFFFFu
 
-/* Resting pupil position, fractions of the eye radii (x toward the inner corner, y down) */
-static const float PUPIL_REST[LP_PUPIL_COUNT][2] = {
-    [LP_PUPIL_DOT] = {0.57f, 0.12f},
-    [LP_PUPIL_CAT] = {0.35f, 0.11f},
-    [LP_PUPIL_ACORN] = {0.18f, 0.25f},
-    [LP_PUPIL_CIRCLE] = {0.36f, 0.0f},
-};
-#define PUPIL_LEAN 0.09f /* pupils lean a little, top toward the nose (rad) */
-
 static lp_rgb to_rgb(uint32_t color)
 {
     return (lp_rgb){(float)((color >> 16u) & 0xFFu), (float)((color >> 8u) & 0xFFu), (float)(color & 0xFFu)};
@@ -212,34 +203,36 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
 {
     const float ps = e->cur.ps;
     const lp_pupil type = (unsigned)e->look.pupil < LP_PUPIL_COUNT ? e->look.pupil : LP_PUPIL_CIRCLE;
+    const lp_pupils *pupils = lp_pupils_get();
+    const lp_pupil_shape *p = &pupils->types[type];
+    /* The emotion's pupil scale (ps) applies differently to each type */
     float prx;
     float pry;
     switch (type) {
     case LP_PUPIL_DOT:
-        prx = rx * 0.105f * ps;
-        pry = ry * 0.125f * ps;
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry * ps;
         break;
     case LP_PUPIL_CAT:
-        prx = rx * 0.21f * ps;
-        pry = ry * 0.72f;
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry;
         break;
     case LP_PUPIL_ACORN: /* a tall ellipse set low: the bottom of the eye cuts it into its acorn shape */
-        prx = rx * 0.5f * ps;
-        pry = ry * 0.98f * lp_minf(ps, 1.05f);
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry * lp_minf(ps, 1.05f);
         break;
-    case LP_PUPIL_CIRCLE:
+    case LP_PUPIL_CIRCLE: /* a disc: both radii from the eye's rx */
     case LP_PUPIL_COUNT:
-        prx = pry = rx * 0.52f * ps;
+        prx = pry = rx * p->rx * ps;
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
-    const float px =
-        lp_clampf(inner * PUPIL_REST[type][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    const float py = lp_clampf(PUPIL_REST[type][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
+    const float px = lp_clampf(inner * p->x * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    const float py = lp_clampf(p->y * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     /* Lean around the pupil center */
-    lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
+    lp_affine lean = lp_affine_rotate(inner * pupils->lean);
     lean.tx = px - (lean.a * px + lean.b * py);
     lean.ty = py - (lean.c * px + lean.d * py);
     g->inv_pupil = lp_affine_inverse(lp_affine_mul(to_screen, lean));

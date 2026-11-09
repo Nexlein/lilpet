@@ -15,9 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define HZ         400000
-#define TIMEOUT_MS 50
-
 #define REG_CHIP_ID         0x00u
 #define REG_STATUS          0x03u
 #define REG_ACC_X           0x0Cu /* x, y, z: little-endian int16 */
@@ -49,7 +46,7 @@ static bool write_reg(uint8_t reg, const uint8_t *data, size_t len)
         return false;
     bytes[0] = reg;
     memcpy(bytes + 1, data, len);
-    return i2c_master_transmit(dev, bytes, len + 1, TIMEOUT_MS) == ESP_OK;
+    return i2c_master_transmit(dev, bytes, len + 1, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
 }
 
 static bool write_reg8(uint8_t reg, uint8_t value)
@@ -59,7 +56,7 @@ static bool write_reg8(uint8_t reg, uint8_t value)
 
 static bool read_reg(uint8_t reg, uint8_t *data, size_t len)
 {
-    return i2c_master_transmit_receive(dev, &reg, 1, data, len, TIMEOUT_MS) == ESP_OK;
+    return i2c_master_transmit_receive(dev, &reg, 1, data, len, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
 }
 
 static bool upload_config(void)
@@ -114,11 +111,10 @@ static bool start(void)
 bool imu_init(void)
 {
     const i2c_master_bus_handle_t bus = board_i2c();
-    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, TIMEOUT_MS) != ESP_OK)
+    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
         return false;
-    const i2c_device_config_t config = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BOARD_IMU_ADDR, .scl_speed_hz = HZ};
-    if (i2c_master_bus_add_device(bus, &config, &dev) != ESP_OK)
+    dev = board_i2c_device(BOARD_IMU_ADDR);
+    if (!dev)
         return false;
     if (start() || start()) /* a second try from a soft reset */
         return true;

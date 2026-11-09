@@ -1,17 +1,15 @@
 // Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each
 // expression with every field (scripts/expression.mjs gives the ones an emotion leaves out). Apart from
 // gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
-// Run it after changing emotions.json (npm run tables runs both).
+// Run it after changing emotions.json (npm run tables runs every generator).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { EMOTIONS, readJson } from './data.mjs';
+import { EMOTIONS, EMOTIONS_TABLE, readJson } from './data.mjs';
 import { EXPRESSION, withNeutral } from './expression.mjs';
 import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
 const data = readJson(EMOTIONS);
 const emotions = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
 const reactions = data.reactions;
-
-const TABLES = 'engine/src/emotions_table.h';
 
 const particleEnum = (type) => `LP_PARTICLE_${(type ?? 'none').toUpperCase()}`;
 
@@ -58,7 +56,7 @@ for (const [name, r] of Object.entries(reactions))
 tables.push('};', '', '#endif /* LILPET_EMOTIONS_TABLE_H */', '');
 
 writeGenerated(
-    TABLES,
+    EMOTIONS_TABLE,
     tables.join('\n'),
     `${Object.keys(emotions).length} emotions, ${Object.keys(reactions).length} reactions`
 );

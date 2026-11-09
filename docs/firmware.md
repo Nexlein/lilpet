@@ -12,13 +12,18 @@ Le firmware ESP-IDF de la carte écran (`firmware/`) : une image par carte
 | `waveshare_132` | AMOLED rond 466 px en QSPI (`display_co5300.c`) | aucun (`imu_none.c`)    | signal TE de l'écran   |
 | `stamp_s3a`     | aucun : le pilote CO5300 envoie dans le vide    | aucun (`imu_none.c`)    | 62,5 images/s, sans TE |
 
+- `atoms3r` : l'AtomS3R de M5Stack, l'objet d'essai. Quand on le tourne, le visage reste à l'horizontale, et il
+  réagit : fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
+- `waveshare_132` : l'écran rond 1,32" de l'objet final, pas encore essayé sur la vraie carte.
+- `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
+
 Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 images/s : des ticks de 1 ms ne font pas 60.
 
 ## Ce que fait le firmware
 
 - Il affiche les yeux en direct, qui vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi
-  dans l'app PC (`cherry` tant qu'aucun n'a été envoyé). Les commandes de l'app arrivent par le port USB, celles du
-  futur modèle arriveront par l'UART ([protocole](protocole.md)).
+  dans l'app PC (le look par défaut de `eyes/looks.json`, cherry, tant qu'aucun n'a été envoyé). Les commandes de l'app
+  arrivent par le port USB, celles du futur modèle arriveront par l'UART ([protocole](protocole.md)).
 - Toutes les `LP_BENCH_FRAMES` images (la longueur de l'animation de mesure, `engine/tools/bench_script.h`), il écrit
   sur le port USB le nombre d'images par seconde, le temps de dessin, le temps de dessin plus envoi, et la part de
   l'écran redessinée (`mise run firmware:monitor` pour les lire).
@@ -41,11 +46,11 @@ Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 imag
 ## Tests
 
 Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lancés avec ceux du moteur
-(`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S
-n'a jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le
-moment où un look s'écrit en flash (`look_saving.h`) et le calcul d'une image : les bandes partagées entre les deux
-cœurs, la part de l'écran redessinée (`frame.h`).
-Le reste se vérifie sur la carte, avec `firmware:check-device`.
+(`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S n'a
+jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le moment
+où un look s'écrit en flash (`look_saving.h`), le calcul d'une image : les bandes partagées entre les deux cœurs, la
+part de l'écran redessinée (`frame.h`), et les plages de colonnes et de lignes que les deux pilotes d'écran envoient
+(`dcs.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
 ## Pilotes d'écran
 

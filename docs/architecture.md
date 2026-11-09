@@ -9,9 +9,10 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`).
   l'ESP32-S3, en WebAssembly et pour le PC ([décision 1](adr/0001-moteur-c-partage.md)), il dessine ligne par ligne en
   RGB565 ([décision 2](adr/0002-rendu-par-lignes.md)). Ses rendus de référence fixent l'apparence des yeux
   ([décision 3](adr/0003-rendus-de-reference.md)), et ses tests C fixent la logique avec des valeurs écrites en dur.
-- **Données** (`eyes/`) : les 100 couleurs officielles, les émotions et les réactions, en JSON. Les tables C du moteur
-  en sont générées (`npm run tables`), et l'app en lit les noms : les looks et les animations restent des données, que
-  l'app PC éditera.
+- **Données** (`eyes/`) : les 100 couleurs officielles, le look par défaut, la forme de l'œil et des pupilles, les
+  émotions et les réactions, en JSON. Les tables C du moteur en sont générées (`npm run tables`), et l'app y lit les
+  couleurs, les noms, le look par défaut et les formes qu'elle dessine : les looks et les animations restent des
+  données, que l'app PC éditera.
 - **Firmware** (`firmware/`) : ESP-IDF, une image par carte ([décision 6](adr/0006-une-image-par-carte.md)), le rendu
   sur les deux cœurs ([décision 9](adr/0009-rendu-deux-coeurs.md)). Détail et mesures : [firmware.md](firmware.md).
 - **App PC** (`app/`) : une page web qui fait tourner le moteur WebAssembly et parle à l'objet par Web Serial
@@ -77,7 +78,6 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 
 - Le protocole n'a pas d'identifiants : l'app associe une réponse à une demande par ordre d'arrivée.
 - Le WebAssembly garde une seule instance d'yeux, ce que l'éditeur devra changer.
-- `EyeGlyph` recopie les constantes de pupilles du moteur.
 - `lp_eyes_set_shape` accepte toute inclinaison : la rotation des émotions (jusqu'à -1,2 rad) a été réglée pour
   l'inclinaison mesurée (0,37 rad), et au-delà un œil peut tourner de plus d'un quart de tour. L'éditeur des yeux devra
   la borner.
