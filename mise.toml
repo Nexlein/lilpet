@@ -45,15 +45,19 @@ dir = "engine"
 run = "cmake --workflow --preset host-debug"
 
 [tasks."engine:wasm"]
-description = "Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI), check it loads in Node and draws the reference renders of engine/tests/goldens"
+description = "Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node"
 # Docker instead of mise: emsdk installed through mise ships its own clang and node, which shadow the system
 # ones and break ccache. The image is pulled on first use; the Dockerfile comes from stdin (no build context).
 run = [
     "docker build -t lilpet-emsdk - < engine/wasm/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine lilpet-emsdk cmake --workflow --preset wasm',
     "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
-    "node scripts/goldens.mjs --check",
 ]
+
+[tasks."engine:goldens"]
+description = "Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)"
+depends = ["engine:wasm"]
+run = "node scripts/goldens.mjs --check"
 
 [tasks."engine:bench"]
 description = "Time the renderer per reference scene and over an animation (Release build); compare on one machine"
@@ -81,7 +85,7 @@ run = "clang-tidy --quiet -p engine/build/host-debug engine/src/*.c engine/tests
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
-depends = ["engine:format:check", "engine:test", "engine:tidy", "engine:wasm"]
+depends = ["engine:format:check", "engine:test", "engine:tidy", "engine:goldens"]
 
 # --- Firmware (ESP32-S3) ----------------------------------------------------------------------------
 # One image per board: BOARD names a folder of firmware/boards with a board.cmake, with no default, since the wrong

@@ -355,9 +355,10 @@ mise (`mise run <task>`):
 - `engine:check` — Everything CI checks on the engine
 - `engine:format` — Format the C sources
 - `engine:format:check` — Fail if a C source is not formatted
+- `engine:goldens` — Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
 - `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
-- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI), check it loads in Node and draws the reference renders of engine/tests/goldens
+- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)
