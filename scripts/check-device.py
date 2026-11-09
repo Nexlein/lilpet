@@ -27,8 +27,9 @@ from board_link import (
     read_reply,
 )
 
-TEST_LOOK = "7DB5F4 C10787 8F1716 cat"  # kite colors, two pupil colors: a look nobody keeps by chance
-LOOKS = (TEST_LOOK, "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
+# The checks need two looks the board does not wear, so three. The first, kite colors with two pupil colors, is one
+# nobody keeps by chance.
+LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
 BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
