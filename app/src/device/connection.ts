@@ -17,6 +17,7 @@ interface SerialApi {
 // Espressif's USB vendor id: the ESP32-S3 native USB port of every board we use (M5Stamp S3A, AtomS3R, Waveshare).
 // Without it, Linux also lists its built-in ttyS ports, which are never lilpet.
 const ESPRESSIF_USB = 0x303a;
+const encoder = new TextEncoder();
 
 // The browser's port picker (needs a user click), listing Espressif boards only; null without Web Serial
 export function portPicker(): (() => Promise<PortLike>) | null {
@@ -80,7 +81,7 @@ export class Connection {
         this.#writer = port.writable.getWriter();
         this.#reading = this.#readLoop();
         // Ends any half line a previous connection left in the board's input, which would swallow the first command
-        this.#writer.write(new TextEncoder().encode('\n')).catch(() => undefined);
+        this.#writer.write(encoder.encode('\n')).catch(() => undefined);
     }
 
     // Reads lines until closed or unplugged. A passing read error (buffer overrun, framing) gives the port a new
@@ -144,7 +145,7 @@ export class Connection {
                     }
                 };
                 // Once closed or broken, the stream refuses every write: the connection is over, even if reading is not
-                this.#writer.write(new TextEncoder().encode(`${command}\n`)).catch(() => {
+                this.#writer.write(encoder.encode(`${command}\n`)).catch(() => {
                     this.#pending?.reject(new ConnectionClosed());
                     void this.close();
                 });
