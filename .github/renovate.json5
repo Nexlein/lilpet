@@ -8,10 +8,10 @@
     pip_requirements: { managerFilePatterns: ['/^scripts/requirements\\.txt$/'] }, // pyserial
     customManagers: [
         {
-            // The mise version CI installs (MISE_VERSION in ci.yml), from mise's releases
+            // The mise version CI installs (LILPET_MISE_VERSION in ci.yml), from mise's releases
             customType: 'regex',
             managerFilePatterns: ['/^\\.github/workflows/ci\\.yml$/'],
-            matchStrings: ['MISE_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)'],
+            matchStrings: ['LILPET_MISE_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)'],
             depNameTemplate: 'jdx/mise',
             datasourceTemplate: 'github-releases',
             extractVersionTemplate: '^v(?<version>.+)$'
