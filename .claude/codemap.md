@@ -8,7 +8,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## (root)
 - **.lintstagedrc.mjs** (27) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
-- **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium, and the data scripts on broken co...
+- **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium.
   - exports: default
   - packages: @playwright/test
 
@@ -342,10 +342,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
-- tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
+- tests: codemap.test.mjs, data.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
 
 ## tests
-- tests: app.spec.mjs, data.spec.mjs, page-errors.mjs
+- tests: app.spec.mjs, page-errors.mjs
 
 ## Commands
 
@@ -407,7 +407,7 @@ npm (`npm run <script>`):
 - `typescript` (app/package.json) — named in scripts or config
 - `vite` (app/package.json) — named in scripts or config
 - `vitest` (app/package.json) — imported by 5 files, named in scripts or config
-- `@playwright/test` (package.json) — imported by 3 files, named in scripts or config
+- `@playwright/test` (package.json) — imported by 2 files, named in scripts or config
 - `husky` (package.json) — named in scripts or config
 - `lint-staged` (package.json) — named in scripts or config
 - `oxlint` (package.json) — named in scripts or config

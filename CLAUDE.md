@@ -129,9 +129,10 @@ open only the files it points to. Below, the parts and how they fit.
   same commands, as parallel jobs. Firmware changes add `mise run firmware:build-all`.
 - `npm run check` — the fast part (about 10 s, also the pre-push hook): Prettier (tracked files only) and ruff format,
   linters (oxlint, shellcheck for the hooks, actionlint for CI, ruff), data validation, generated files up to date, the
-  Node tests of `scripts/` (`node --test`), the board scripts on a fake port (`scripts/test_board_scripts.py`, through
-  `uv`), the code map up to date
-  (`check:codemap`), app types and Vitest tests.
+  Node tests of `scripts/` (`node --test`: the validator and the table generators on broken copies of the data, the
+  reference renders' comparison, PNG files, the code map), the board scripts on a fake port
+  (`scripts/test_board_scripts.py`, through `uv`), the code map up to date (`check:codemap`), app types and Vitest
+  tests.
 - `npm run codemap` — rewrites `.claude/codemap.md` from what git has staged; the pre-commit hook runs it, after
   lint-staged (`.lintstagedrc.mjs`: lint and format the staged files, and `check:data` + `check:tables` when their
   sources are staged). `--check` fails on a stale map, a local import that does not resolve or a source file without a
@@ -140,8 +141,8 @@ open only the files it points to. Below, the parts and how they fit.
   `app:test` for Vitest.
 - `npm run format` / `npm run lint:fix` — auto-fix (Prettier on tracked files only, so local untracked files are left
   alone).
-- `npm run test:playwright` — Playwright tests: the data scripts on broken copies of the data, and the built app,
-  built first, with a fake board, served on their own port 8468, which must be free: two runs at once collide (needs
+- `npm run test:playwright` — Playwright tests: the built app, built first, with a fake board, served on their own
+  port 8468, which must be free: two runs at once collide (needs
   `mise run engine:wasm`; first time: `npx playwright install --only-shell chromium`).
 - `mise run engine:check` — C side, same as CI: clang-format check, tests with sanitizers, clang-tidy, WebAssembly
   build and its reference renders. Single steps: `engine:format:check`, `engine:test`, `engine:tidy`, `engine:wasm`,
