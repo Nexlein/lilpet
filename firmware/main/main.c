@@ -228,7 +228,8 @@ void app_main(void)
             report(now - report_start);
             if (bench)
                 start_bench_round(bands); /* between two rounds, out of any frame's time */
-            report_start = esp_timer_get_time();
+            /* Outside the benchmark, the report's own time counts in the next one */
+            report_start = bench ? esp_timer_get_time() : now;
         }
     }
 }
