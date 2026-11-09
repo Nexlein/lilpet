@@ -268,3 +268,22 @@ void test_love_sends_hearts_at_its_rate_until_they_fade(void)
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
     CHECK(eyes.particle_count == 0);
 }
+
+void test_particles_owed_by_one_emitter_are_not_owed_by_another(void)
+{
+    /* 0.3 s of love owes 0.9 of a heart; sleepy sends sparkles, 0.4 a second: its first one comes 2.5 s later, not
+     * 0.25 s later with the hearts' debt carried over */
+    const lp_emotion_def *love = lp_emotion_get(LP_EMOTION_LOVE);
+    const lp_emotion_def *sleepy = lp_emotion_get(LP_EMOTION_SLEEPY);
+    CHECK(love->emit == LP_PARTICLE_HEART && sleepy->emit == LP_PARTICLE_SPARKLE);
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    lp_test_play(&eyes, 0.3f);
+    CHECK(eyes.particle_count == 0 && eyes.emit_debt > 0.5f);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_SLEEPY, 0.0f);
+    lp_test_play(&eyes, 0.9f / sleepy->emit_rate);
+    CHECK(eyes.particle_count == 0);
+    lp_test_play(&eyes, 0.2f / sleepy->emit_rate);
+    CHECK(eyes.particle_count == 1); /* on time */
+}

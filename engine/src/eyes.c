@@ -40,6 +40,8 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 {
     if ((unsigned)emotion >= LP_EMOTION_COUNT || !isfinite(duration))
         return;
+    if (lp_emotion_get(emotion)->emit != lp_emotion_get(eyes->emotion)->emit)
+        eyes->emit_debt = 0.0f; /* what one emitter owed is not owed by another */
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
     if (duration <= 0.0f)
