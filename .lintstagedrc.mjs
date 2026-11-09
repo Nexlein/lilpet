@@ -2,6 +2,10 @@
 // files generated from it when one of them is staged (with no unstaged change left in them), then lint and format each
 // file.
 import { EMOTIONS, GENERATORS, LOOKS, SCENES } from './scripts/data.mjs';
+import { GROUPS } from './scripts/files.mjs';
+
+// One lint-staged glob for several (scripts/files.mjs)
+const anyOf = (globs) => `{${globs.join(',')}}`;
 
 // The data files, the tables generated from them and their generators (scripts/data.mjs), and the scripts they use. The
 // validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs).
@@ -30,13 +34,10 @@ export default {
         'npm run check:tables',
         `git diff --exit-code --stat -- ${DATA.join(' ')}`
     ],
-    '*.{js,mjs,ts,tsx}': ['oxlint --fix --deny-warnings', 'prettier --write'],
-    // firmware/third_party keeps others' files as they are: only our headers there are formatted
-    '{engine,firmware/main,firmware/boards,firmware/tests}/**/*.{c,h}': 'clang-format -i',
-    'firmware/third_party/**/*.h': 'clang-format -i',
-    '*.py': ['ruff check --fix', 'ruff format'],
-    // the git hooks: every file of .husky is a shell script
-    '.husky/*': 'shellcheck',
-    '.github/workflows/*.{yml,yaml}': 'actionlint',
+    [anyOf(GROUPS.js)]: ['oxlint --fix --deny-warnings', 'prettier --write'],
+    [anyOf(GROUPS.c)]: 'clang-format -i',
+    [anyOf(GROUPS.python)]: ['ruff check --fix', 'ruff format'],
+    [anyOf(GROUPS.hooks)]: 'shellcheck',
+    [anyOf(GROUPS.workflows)]: 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write'
 };

@@ -6,9 +6,9 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (42) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
+- **.lintstagedrc.mjs** (43) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
-  - → scripts/data.mjs
+  - → scripts/data.mjs, scripts/files.mjs
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
@@ -355,6 +355,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+- **files.mjs** (48) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
+  - exports: GROUPS, trackedFiles
+  - ← .lintstagedrc.mjs, mise.toml, package.json
 - **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
   - exports: c_define, pupil_types
   - ← scripts/check-device.py
@@ -387,7 +390,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (204) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: codemap.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 
@@ -417,13 +420,13 @@ npm (`npm run <script>`, workspace app):
 
 npm (`npm run <script>`):
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
-- `lint:js`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --deny-warnings`
-- `lint:shell`: `git ls-files -z .husky | xargs -0 shellcheck`
-- `lint:actions`: `git ls-files -z -- '.github/workflows/*.yml' '.github/workflows/*.yaml' | xargs -0 -r actionlint`
-- `lint:python`: `git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check`
-- `lint:fix`: `git ls-files -z -- '*.js' '*.mjs' '*.ts' '*.tsx' | xargs -0 -r oxlint --fix && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff check --fix`
-- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format`
-- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format --check`
+- `lint:js`: `node scripts/files.mjs js | xargs -0 -r oxlint --deny-warnings`
+- `lint:shell`: `node scripts/files.mjs hooks | xargs -0 -r shellcheck`
+- `lint:actions`: `node scripts/files.mjs workflows | xargs -0 -r actionlint`
+- `lint:python`: `node scripts/files.mjs python | xargs -0 -r ruff check`
+- `lint:fix`: `node scripts/files.mjs js | xargs -0 -r oxlint --fix && node scripts/files.mjs python | xargs -0 -r ruff check --fix`
+- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.mjs python | xargs -0 -r ruff format`
+- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.mjs python | xargs -0 -r ruff format --check`
 - `check:data`: `node scripts/validate-data.mjs`
 - `check:tables`: `node scripts/tables.mjs --check`
 - `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
