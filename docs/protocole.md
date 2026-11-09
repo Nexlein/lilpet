@@ -12,8 +12,9 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>`. Le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un
   nouveau look est écrit en flash tout de suite, puis au plus toutes les 2 s, pour ne pas l'user : un look qui arrive
-  plus tôt répond `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là. Le dernier envoyé est
-  donc celui que la carte garde, au plus 2 s plus tard.
+  plus tôt répond `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là : le dernier envoyé
+  est celui que la carte garde, un peu plus de 2 s plus tard au pire. Si cette écriture-là échoue, seul le journal de la
+  carte le dit, et un look envoyé juste avant de débrancher la carte peut se perdre.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
