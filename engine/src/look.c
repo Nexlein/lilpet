@@ -21,6 +21,11 @@ const lp_pupils *lp_pupils_get(void)
     return &PUPILS;
 }
 
+const char *lp_look_malformed(void)
+{
+    return "malformed look, expected: RRGGBB RRGGBB RRGGBB " LP_PUPIL_LIST;
+}
+
 static bool is_space(char c)
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';

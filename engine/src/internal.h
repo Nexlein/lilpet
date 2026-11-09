@@ -70,6 +70,8 @@ typedef struct {
 
 /* The pupil types of eyes/looks.json (look.c) */
 const lp_pupils *lp_pupils_get(void);
+/* The error of a look text that does not parse, with the syntax and the pupil types it expects (look.c) */
+const char *lp_look_malformed(void);
 
 /* Spring-like smoothing toward target, frame-rate independent */
 static inline float lp_approach(float v, float target, float k, float dt)
