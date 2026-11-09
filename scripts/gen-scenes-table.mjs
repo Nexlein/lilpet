@@ -9,9 +9,9 @@ const TABLE = 'engine/tests/scenes_table.h';
 
 const swatches = swatchesById();
 const scenes = readJson(SCENES).scenes;
-// The looks the scenes wear, each once, in the order they first appear
+// The looks the scenes wear, each once, in the order they first appear: the first scene that wears each one
 const lookKey = (scene) => `${scene.swatch} ${scene.pupil}`;
-const firstWearers = [...new Map(scenes.map((scene) => [lookKey(scene), scene])).values()];
+const firstWearers = scenes.filter((scene, i) => scenes.findIndex((s) => lookKey(s) === lookKey(scene)) === i);
 const lookIndex = new Map(firstWearers.map((scene, i) => [lookKey(scene), i]));
 const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
