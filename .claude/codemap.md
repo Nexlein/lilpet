@@ -122,7 +122,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: PUPIL_LABELS, EMOTION_LABELS, FAMILY_LABELS, FAMILY_COLORS
   - → eyes/emotions.json, app/src/data/looks.ts
   - ← app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx
-- **styles.css** (557) — lilpet app.
+- **styles.css** (556) — lilpet app.
   - ← app/src/main.tsx
 
 ## app/tests

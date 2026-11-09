@@ -11,6 +11,8 @@
     --radius-s: 10px;
     --radius-m: 18px;
     --pill: 999px;
+    --page-width: 1280px; /* the header, the layout and the log line up */
+    --page-gutter: 40px;
     color-scheme: dark;
     font-family: 'Bricolage Grotesque Variable', system-ui, sans-serif;
     font-size: 15px;
@@ -62,9 +64,9 @@ button {
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    max-width: 1280px;
+    max-width: var(--page-width);
     margin: 0 auto;
-    padding: 20px 40px 8px;
+    padding: 20px var(--page-gutter) 8px;
 }
 
 .wordmark {
@@ -79,9 +81,9 @@ button {
     display: grid;
     grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
     gap: 64px;
-    max-width: 1280px;
+    max-width: var(--page-width);
     margin: 0 auto;
-    padding: 24px 40px 64px;
+    padding: 24px var(--page-gutter) 64px;
 }
 
 /* --- Device connection (header) ------------------------------------------------------------------------------ */
@@ -496,9 +498,9 @@ button {
 /* --- Device log --------------------------------------------------------------------------------------------------- */
 
 .log {
-    max-width: 1280px;
+    max-width: var(--page-width);
     margin: 0 auto;
-    padding: 0 40px 40px;
+    padding: 0 var(--page-gutter) 40px;
     color: var(--haze);
 }
 
@@ -519,11 +521,8 @@ button {
 /* --- Small screens ------------------------------------------------------------------------------------------------ */
 
 @media (max-width: 900px) {
-    .top,
-    .layout,
-    .log {
-        padding-left: 20px;
-        padding-right: 20px;
+    :root {
+        --page-gutter: 20px;
     }
 
     .layout {
