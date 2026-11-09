@@ -219,7 +219,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **engine.d.mts** (41) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Engine, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
+- **engine.mjs** (80) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
@@ -316,7 +316,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py
-- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+- **check-device.py** (257) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
   - ← mise.toml
