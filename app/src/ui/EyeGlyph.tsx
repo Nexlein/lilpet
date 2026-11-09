@@ -47,15 +47,17 @@ export function EyeGlyph({ colors, pupil }: Props) {
                             fill={colors.sclera}
                             transform={`rotate(${side * TILT} ${cx} 30)`}
                         />
-                        <ellipse
-                            cx={px}
-                            cy={py}
-                            rx={pupilRadii.rx}
-                            ry={pupilRadii.ry}
-                            fill={colors.pupilColor[side < 0 ? 0 : 1]}
-                            transform={`rotate(${inner * LEAN} ${px} ${py})`}
-                            clipPath={`url(#${eye}-clip)`}
-                        />
+                        {/* Clipped in the eye's space: on the pupil itself, the clip would turn with its lean */}
+                        <g clipPath={`url(#${eye}-clip)`}>
+                            <ellipse
+                                cx={px}
+                                cy={py}
+                                rx={pupilRadii.rx}
+                                ry={pupilRadii.ry}
+                                fill={colors.pupilColor[side < 0 ? 0 : 1]}
+                                transform={`rotate(${inner * LEAN} ${px} ${py})`}
+                            />
+                        </g>
                     </g>
                 );
             })}
