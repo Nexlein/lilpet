@@ -233,7 +233,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
 - **looks.json** (122) — data
-  - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/gen-looks-table.mjs
+  - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/firmware_facts.py, scripts/gen-looks-table.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -336,9 +336,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py
-- **check-device.py** (263) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
-  - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
-  - → scripts/board_link.py
+- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+  - exports: Board, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
+  - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
 - **codemap.mjs** (648) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
@@ -349,6 +349,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+- **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
+  - exports: c_define, pupil_types
+  - ← scripts/check-device.py
 - **flash-guard.py** (48) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
   - exports: running_board, before_flash
   - → scripts/board_link.py
