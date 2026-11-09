@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { compare } from './goldens.mjs';
+import { compare, strict } from './goldens.mjs';
 import { decodePng, encodePng } from './png.mjs';
 
 const SIZE = 2;
@@ -135,3 +135,28 @@ test('npm run goldens rewrites only what changed and removes what nothing draws'
         assert.deepEqual(contents(dir), before);
         assert.deepEqual(files(failed), []);
     }));
+
+test('npm run goldens leaves alone what is not a reference render', () =>
+    withReferences((dir, failed) => {
+        writeFileSync(join(dir, 'notes.txt'), 'mine');
+        assert.deepEqual(compare(drawn(), { dir, failed, check: false }), { problems: [], rewritten: 0 });
+        assert.equal(readFileSync(join(dir, 'notes.txt'), 'utf8'), 'mine');
+        assert.deepEqual(compare(drawn(), { dir, failed, check: true }).problems, [
+            `${dir}/notes.txt: not a reference render`
+        ]);
+    }));
+
+test('the animation refuses an emotion or an event the engine does not know, which it would ignore', () => {
+    const called = [];
+    const engine = strict(
+        { emotions: ['sad'], setEmotion: (name) => called.push(name), react: (event) => called.push(event), size: 2 },
+        ['tap']
+    );
+    engine.setEmotion('sad');
+    engine.react('tap');
+    assert.deepEqual(called, ['sad', 'tap']);
+    assert.equal(engine.size, 2);
+    assert.throws(() => engine.setEmotion('glad'), /unknown emotion: "glad"/);
+    assert.throws(() => engine.react('gesture_dislik'), /unknown event: "gesture_dislik"/);
+    assert.deepEqual(called, ['sad', 'tap']);
+});
