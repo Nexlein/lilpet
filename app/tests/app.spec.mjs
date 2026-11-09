@@ -32,8 +32,8 @@ test.skip(
     'build the app first: npm run app:build'
 );
 
-// What the fake board answers to hello, as the firmware does (main/commands.c)
-const HELLO = 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1';
+// What the fake board answers to hello, in the firmware's format (main/commands.c); its versions are made up
+const HELLO = 'lilpet fw=1.2.3 engine=4.5.6 board=atoms3r camera=0 motion=1';
 
 // Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
 function plugBoard(makePort, hello) {
@@ -338,7 +338,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toBeFocused();
     await expect(status).toContainText('lilpet est branché');
-    await expect(status).toContainText('atoms3r, firmware 0.5.0, moteur 0.13.0');
+    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
     await expect(button).toHaveText('Débrancher');
     await expect(button).toBeFocused();
 
@@ -356,7 +356,7 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
 
     // Plugged in again: nothing was sent to it
     await plugIn(page);
-    await expect(status).toContainText('atoms3r, firmware 0.5.0, moteur 0.13.0');
+    await expect(status).toContainText('atoms3r, firmware 1.2.3, moteur 4.5.6');
     await expect(note(page)).toBeEmpty();
 
     await page.getByRole('button', { name: 'Débrancher' }).click();
