@@ -19,11 +19,14 @@ SCRIPTS = Path(__file__).resolve().parent
 ROOT = SCRIPTS.parent
 PORT = "/dev/ttyACM0"
 
-HELLO = re.search(r'"< (lilpet [^"]*)\\n"', (ROOT / "firmware" / "main" / "commands.c").read_text()).group(1)
+COMMANDS_C = (ROOT / "firmware" / "main" / "commands.c").read_text()
+HELLO = re.search(r'"< (lilpet [^"]*)\\n"', COMMANDS_C).group(1)
 LILPET_H = (ROOT / "engine" / "include" / "lilpet" / "lilpet.h").read_text()
 LINE_MAX = int(re.search(r"LP_COMMAND_LINE_MAX\s+(\d+)", LILPET_H).group(1))
 LOOK_SAVING_H = (ROOT / "firmware" / "main" / "look_saving.h").read_text()
 SAVE_GAP = int(re.search(r"#define\s+LOOK_SAVE_GAP_US\s+(\d+)", LOOK_SAVING_H).group(1)) / 1e6  # seconds
+# Seconds: the firmware may notice that a late look's turn came this much later (read_line in commands.c)
+READ_WAIT = int(re.search(r"#define\s+READ_WAIT_MS\s+(\d+)", COMMANDS_C).group(1)) / 1000
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = r"[0-9A-F]{6} [0-9A-F]{6} [0-9A-F]{6} (dot|cat|acorn|circle)"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -65,7 +68,7 @@ class Board:
         monitor_open=False,  # a program holds the port with the exclusive lock of pyserial
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
         cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
-        drops_late_looks=False,  # a look sent within SAVE_GAP of the last write answers ok but is never written
+        drops_late_looks=False,  # a look that waits for its turn answers ok but is never written
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -74,7 +77,8 @@ class Board:
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
         self.cut, self.drops_late_looks = cut, drops_late_looks
         self.look = "AE0002 FF5252 FF5252 dot"
-        self.kept, self.saved_at = self.look, -SAVE_GAP  # what the flash holds, and when it was written
+        # What the flash holds, when it was written, and a look waiting for its turn (firmware/main/look_saving.h)
+        self.kept, self.saved_at, self.late = self.look, -SAVE_GAP, None
         self.mood = "neutral"
         self.in_reset = False
         self.input = b""
@@ -82,13 +86,23 @@ class Board:
 
     def boot(self):
         self.look, self.mood = self.kept, "neutral"
+        self.saved_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
         self.reads_from = clock.now + 1
         for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
         if self.report:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
 
+    def write_late_look(self):
+        """What the firmware does while it runs: a look waiting for its turn is written once its turn comes, at the
+        latest when its read gives up waiting for a byte"""
+        if self.late and clock.now - self.saved_at >= SAVE_GAP + READ_WAIT and not self.drops_late_looks:
+            self.kept, self.saved_at, self.late = self.late, self.saved_at + SAVE_GAP + READ_WAIT, None
+
     def set_reset(self, held):
+        if held and not self.in_reset:
+            self.write_late_look()
+            self.late = None  # not written by then: lost
         if self.in_reset and not held:
             self.boot()
         self.in_reset = held
@@ -124,8 +138,13 @@ class Board:
             if not re.fullmatch(LOOK, rest):
                 return "err malformed look"
             self.look = rest
-            if not (self.drops_late_looks and clock.now - self.saved_at < SAVE_GAP):
-                self.kept, self.saved_at = rest, clock.now
+            self.write_late_look()
+            if rest == self.kept:
+                self.late = None
+            elif clock.now - self.saved_at >= SAVE_GAP:
+                self.kept, self.saved_at, self.late = rest, clock.now, None
+            else:
+                self.late = rest
             return "ok"
         if word not in DRIVES:
             return "err unknown command"
