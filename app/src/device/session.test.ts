@@ -197,6 +197,27 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('gives the mood again to a board that restarted with the port open', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        session.emotion('sad');
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad']));
+        device.log('I (250) main_task: Calling app_main()'); // a crash or the watchdog: the port stayed open
+        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> emotion sad', '> hello', '> emotion sad']));
+        expect(session.snapshot().state.status).toBe('connected');
+        await session.disconnect();
+    });
+
+    it('asks only hello of a board that restarted before any mood was picked', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        device.log('I (250) main_task: Calling app_main()');
+        await vi.waitFor(() => expect(device.sent).toEqual(['> hello', '> hello']));
+        await session.disconnect();
+    });
+
     it('sends a mood picked while connecting, once', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
