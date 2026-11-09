@@ -2,17 +2,10 @@
 
 Statut : choix arrêté le 2026-10-27, rien n'est encore commandé. Prix et stocks relevés à cette date.
 
-## Architecture : deux cartes reliées en UART
+## Deux cartes reliées en UART
 
-Aucune carte trouvée ne combine un écran rond AMOLED et une caméra (recherche d'octobre 2026 chez Waveshare, Spotpear,
-Seeed, LilyGO, M5Stack, Viewe et Tailor Pixels). On garde donc deux cartes :
-
-1. **Carte écran** : rendu des yeux et animations, batterie, bouton marche/arrêt.
-2. **Carte vision** : caméra, détection du visage, des gestes et des expressions. Elle envoie ce qu'elle voit à la carte
-   écran par UART (`> react gesture_like`, `> face 0.2 -0.1`… : protocole dans [app.md](app.md)).
-
-Chaque puce garde toute sa puissance pour une seule tâche. Partager les deux sur une carte n'est pas possible : la carte
-écran n'a pas assez de broches libres pour une caméra (il en faut une douzaine).
+Aucune carte ne combine un écran rond AMOLED et une caméra : une carte écran et une carte vision, reliées en UART
+([décision 7](adr/0007-deux-cartes-uart.md)).
 
 ## Carte écran : Waveshare ESP32-S3-Touch-AMOLED-1.32
 
@@ -62,7 +55,7 @@ Ce qu'on perd :
 
 - **Le premier affichage** : le pilote de l'écran a été écrit d'après la démo Waveshare, sans la carte. Vérifier le
   sens de l'image, le décalage de colonnes, les couleurs et l'absence de déchirure (voir
-  [architecture.md](architecture.md)).
+  [firmware.md](firmware.md)).
 - **La puce de charge et son courant de charge** : non publiés. Il faut les connaître avant de choisir définitivement la
   batterie (voir plus bas).
 - **Le brochage du connecteur d'extension SH1.0 12 broches** (câble fourni) : non publié en texte. D'après le tableau
@@ -71,7 +64,7 @@ Ce qu'on perd :
 
 Les démos ESP-IDF de Waveshare pour cette carte utilisent le pilote `esp_lcd_sh8601` et une horloge QSPI de 40 MHz
 ([démo LVGL 9](https://raw.githubusercontent.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)),
-l'hypothèse déjà prise dans [architecture.md](architecture.md).
+l'hypothèse déjà prise par le pilote de l'écran rond ([firmware.md](firmware.md)).
 
 ## Carte vision : Seeed XIAO ESP32S3 Sense
 
