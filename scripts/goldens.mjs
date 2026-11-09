@@ -35,7 +35,7 @@ const PARTS = [
     ['upside down, angry', 128, (e) => e.setGravity({ x: 0.1, y: -0.99 })],
     ['shaken, dizzy', 96, (e) => (e.setGravity(null), e.setShaking(true))],
     ['calming down', 64, (e) => e.setShaking(false)],
-    ['sad, the gaze lower behind blinks', 256, (e) => e.setEmotion('sad')],
+    ['sad, the gaze lower behind blinks', 512, (e) => e.setEmotion('sad')],
     ['love, with hearts', 320, (e) => e.setEmotion('love')],
     ['petting, with sparkles', 64, (e) => e.react('tap')],
     ['frowning at someone', 96, (e) => e.react('expression_angry')],
@@ -45,11 +45,18 @@ const PARTS = [
     ['sleepy', 640, (e) => e.setEmotion('sleepy')]
 ];
 
+for (const [label, steps] of PARTS)
+    if (steps % SAMPLE !== 0) throw new Error(`part "${label}": ${steps} steps, not a multiple of ${SAMPLE}`);
+
 const hash = (rgb) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
 const pixelsDiffer = (n) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
 
-/** What the engine draws: { size, images: [{ name, label, height, rgb }], hashes: text, frames: Map(line → rgb) } */
-export async function renders(modulePath = MODULE) {
+/**
+ * What the engine draws: { size, images: [{ name, label, height, rgb }], hashes: the text of animation.txt,
+ * firstDifferent: the first frame whose line is not the one of `expected` at its place, { line, rgb } }. Only that
+ * frame is kept, not the hundreds of others.
+ */
+export async function renders(modulePath = MODULE, expected = []) {
     const engine = await loadEngine(pathToFileURL(resolve(modulePath)).href);
     const swatches = swatchesById();
     const images = [];
@@ -61,7 +68,8 @@ export async function renders(modulePath = MODULE) {
         '# Frame hashes of the scripted animation of scripts/goldens.mjs (npm run goldens): do not edit.',
         '# run | part | steps into the part: first 16 hex digits of the SHA-256 of the RGB pixels'
     ];
-    const frames = new Map();
+    let firstDifferent = null;
+    let sample = 0;
     const ends = [];
     for (const [r, run] of RUNS.entries()) {
         engine.init(run.seed);
@@ -75,7 +83,8 @@ export async function renders(modulePath = MODULE) {
                 const rgb = rgbOf(engine.renderView());
                 const line = `${name} | ${p + 1} ${label} | ${s}`;
                 lines.push(`${line}: ${hash(rgb)}`);
-                frames.set(line, rgb);
+                if (!firstDifferent && expected[sample] !== lines.at(-1)) firstDifferent = { line, rgb };
+                sample++;
                 if (r === 0 && s === steps) ends.push(rgb);
             }
         }
@@ -87,7 +96,7 @@ export async function renders(modulePath = MODULE) {
         height: engine.size * ends.length,
         rgb: Buffer.concat(ends)
     });
-    return { size: engine.size, images, hashes: `${lines.join('\n')}\n`, frames };
+    return { size: engine.size, images, hashes: `${lines.join('\n')}\n`, firstDifferent };
 }
 
 function readText(path) {
@@ -108,7 +117,9 @@ function readImage(path) {
 
 function main() {
     const check = process.argv.includes('--check');
-    return renders().then(({ size, images, hashes, frames }) => {
+    const kept = readText(`${DIR}/${HASHES}`);
+    const expected = (kept ?? '').split('\n').filter((line) => line && !line.startsWith('#'));
+    return renders(MODULE, expected).then(({ size, images, hashes, firstDifferent }) => {
         const problems = [];
         let rewritten = 0;
         mkdirSync(DIR, { recursive: true });
@@ -117,12 +128,13 @@ function main() {
             writeFileSync(`${FAILED}/${name}`, data);
             problems.push(message);
         };
+        const clear = (name) => check && rmSync(`${FAILED}/${name}`, { force: true }); // left by an earlier failure
         for (const image of images) {
             const path = `${DIR}/${image.name}.png`;
-            const kept = readImage(path);
-            const sameSize = kept && kept.width === size && kept.height === image.height;
-            if (sameSize && kept.rgb.equals(image.rgb)) {
-                if (check) rmSync(`${FAILED}/${image.name}.png`, { force: true }); // left by an earlier failure
+            const reference = readImage(path);
+            const sameSize = reference && reference.width === size && reference.height === image.height;
+            if (sameSize && reference.rgb.equals(image.rgb)) {
+                clear(`${image.name}.png`);
                 continue;
             }
             const png = encodePng(size, image.height, image.rgb);
@@ -131,30 +143,28 @@ function main() {
                 rewritten++;
                 continue;
             }
-            const what = sameSize ? pixelsDiffer(differingPixels(kept.rgb, image.rgb)) : 'no reference of this size';
+            const what = !reference
+                ? 'missing or unreadable'
+                : sameSize
+                  ? pixelsDiffer(differingPixels(reference.rgb, image.rgb))
+                  : 'the reference has another size';
             fail(`${image.name}.png`, png, `${path}: ${image.label}: ${what} (now: ${FAILED}/${image.name}.png)`);
         }
-        const kept = readText(`${DIR}/${HASHES}`);
-        if (kept !== hashes) {
-            if (!check) {
-                writeFileSync(`${DIR}/${HASHES}`, hashes);
-                rewritten++;
-            } else {
-                // The first frame that differs, as an image, and the whole list as drawn now
-                const before = new Set((kept ?? '').split('\n'));
-                const first = hashes.split('\n').find((l) => l && !l.startsWith('#') && !before.has(l));
-                const line = first?.slice(0, first.lastIndexOf(':'));
-                if (line && frames.has(line)) {
-                    mkdirSync(FAILED, { recursive: true });
-                    writeFileSync(`${FAILED}/animation-first-difference.png`, encodePng(size, size, frames.get(line)));
-                }
-                fail(
-                    HASHES,
-                    hashes,
-                    `${DIR}/${HASHES}: the animation differs from "${line ?? 'its start'}" on (now: ${FAILED}/${HASHES}, ` +
-                        `its first different frame: ${FAILED}/animation-first-difference.png)`
-                );
-            }
+        const FIRST = 'animation-first-difference.png';
+        if (kept === hashes) {
+            clear(HASHES);
+            clear(FIRST);
+        } else if (!check) {
+            writeFileSync(`${DIR}/${HASHES}`, hashes);
+            rewritten++;
+        } else {
+            let what = 'is missing';
+            if (kept !== null && firstDifferent) {
+                mkdirSync(FAILED, { recursive: true });
+                writeFileSync(`${FAILED}/${FIRST}`, encodePng(size, size, firstDifferent.rgb));
+                what = `differs from "${firstDifferent.line}" on (that frame: ${FAILED}/${FIRST})`;
+            } else if (kept !== null) what = 'has the same frames, with lines added, removed or out of order';
+            fail(HASHES, hashes, `${DIR}/${HASHES} ${what} (now: ${FAILED}/${HASHES})`);
         }
         const wanted = new Set([...images.map((i) => `${i.name}.png`), HASHES]);
         for (const file of readdirSync(DIR).filter((f) => !wanted.has(f))) {
@@ -168,7 +178,8 @@ function main() {
             );
             process.exit(1);
         }
-        const what = `${images.length} images and ${frames.size} animation frames`;
+        const frames = hashes.split('\n').filter((line) => line && !line.startsWith('#')).length;
+        const what = `${images.length} images and ${frames} animation frames`;
         console.log(`${DIR}: ${what} ${check ? 'match' : `up to date (${rewritten} files rewritten)`}`);
     });
 }
