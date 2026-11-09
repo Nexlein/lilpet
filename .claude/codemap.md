@@ -336,7 +336,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/device-check.py, scripts/flash-guard.py
 - **codemap.mjs** (645) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
-  - exports: OUT, kindOf, isTest, scanJs, withoutComments, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, pySymbols, pyModules, repository, usesOf, collapse, miseTasks, buildMap
+  - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
