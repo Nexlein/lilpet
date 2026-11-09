@@ -1,6 +1,7 @@
 // PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for
-// the reference renders of scripts/goldens.mjs: written and read back with node:zlib only, no dependency. Only what
-// encodePng writes is read: another filter or an interlaced file is refused rather than misread.
+// the reference renders of scripts/goldens.mjs: written and read back with node:zlib only, no dependency. Only files
+// like those encodePng writes are read (8-bit RGB, not interlaced, rows filtered with None or Sub, all there): anything
+// else is refused rather than misread.
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -49,12 +50,14 @@ export function decodePng(file) {
         if (type === 'IHDR') {
             width = body.readUInt32BE(0);
             height = body.readUInt32BE(4);
-            if (body[8] !== 8 || body[9] !== 2 || body[12] !== 0) throw new Error('only 8-bit RGB, not interlaced');
+            if (body[8] !== 8 || body[9] !== 2 || body[10] !== 0 || body[11] !== 0 || body[12] !== 0)
+                throw new Error('only 8-bit RGB, deflate, standard filters, not interlaced');
         } else if (type === 'IDAT') data.push(body);
         at += 12 + length;
     }
     const raw = inflateSync(Buffer.concat(data));
     const stride = width * 3;
+    if (raw.length !== (stride + 1) * height) throw new Error(`${raw.length} bytes of rows for ${width} × ${height}`);
     const rgb = Buffer.alloc(stride * height);
     for (let y = 0; y < height; y++) {
         const filter = raw[y * (stride + 1)];

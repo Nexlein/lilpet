@@ -2,8 +2,9 @@
 // multiply-add, its own libm), unlike a host build: every reference scene as a PNG file, the end of each part of a
 // scripted animation as one PNG to look at, and the whole animation (4 runs, a frame every 16 steps, inputs changing in
 // the middle of movements) as a list of frame hashes, all in engine/tests/goldens/ and compared exactly.
-// Usage: npm run goldens rewrites what changed, on purpose, when the eyes change; with --check (mise run engine:wasm, CI)
-// nothing is written there: a difference fails, and what was drawn instead goes to engine/build/goldens/.
+// Usage: npm run goldens rewrites what changed, on purpose, when the eyes change; with --check (mise run
+// engine:goldens, CI) nothing is written there: a difference fails, and what was drawn instead goes to
+// engine/build/goldens/.
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -16,6 +17,7 @@ const MODULE = 'engine/build/wasm/lilpet.mjs';
 const DIR = 'engine/tests/goldens';
 const FAILED = 'engine/build/goldens';
 const HASHES = 'animation.txt';
+const FIRST = 'animation-first-difference.png'; // the first frame of the animation that differs
 const STEP = 1 / 64; // exact in float, as the engine's tests step
 const SAMPLE = 16; // steps between two hashed frames
 
@@ -50,14 +52,16 @@ for (const [label, steps] of PARTS)
 
 const hash = (rgb) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
 const pixelsDiffer = (n) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
+/** The frame lines of the text of animation.txt, without its comments */
+const framesOf = (text) => text.split('\n').filter((line) => line && !line.startsWith('#'));
 
 /**
  * What the engine draws: { size, images: [{ name, label, height, rgb }], hashes: the text of animation.txt,
  * firstDifferent: the first frame whose line is not the one of `expected` at its place, { line, rgb } }. Only that
  * frame is kept, not the hundreds of others.
  */
-export async function renders(modulePath = MODULE, expected = []) {
-    const engine = await loadEngine(pathToFileURL(resolve(modulePath)).href);
+async function renders(expected) {
+    const engine = await loadEngine(pathToFileURL(resolve(MODULE)).href);
     const swatches = swatchesById();
     const images = [];
     for (const scene of readJson(SCENES).scenes) {
@@ -115,73 +119,88 @@ function readImage(path) {
     }
 }
 
-function main() {
-    const check = process.argv.includes('--check');
-    const kept = readText(`${DIR}/${HASHES}`);
-    const expected = (kept ?? '').split('\n').filter((line) => line && !line.startsWith('#'));
-    return renders(MODULE, expected).then(({ size, images, hashes, firstDifferent }) => {
-        const problems = [];
-        let rewritten = 0;
-        mkdirSync(DIR, { recursive: true });
-        const fail = (name, data, message) => {
-            mkdirSync(FAILED, { recursive: true });
-            writeFileSync(`${FAILED}/${name}`, data);
-            problems.push(message);
-        };
-        const clear = (name) => check && rmSync(`${FAILED}/${name}`, { force: true }); // left by an earlier failure
-        for (const image of images) {
-            const path = `${DIR}/${image.name}.png`;
-            const reference = readImage(path);
-            const sameSize = reference && reference.width === size && reference.height === image.height;
-            if (sameSize && reference.rgb.equals(image.rgb)) {
-                clear(`${image.name}.png`);
-                continue;
-            }
-            const png = encodePng(size, image.height, image.rgb);
-            if (!check) {
-                writeFileSync(path, png);
-                rewritten++;
-                continue;
-            }
-            const what = !reference
-                ? 'missing or unreadable'
-                : sameSize
-                  ? pixelsDiffer(differingPixels(reference.rgb, image.rgb))
-                  : 'the reference has another size';
-            fail(`${image.name}.png`, png, `${path}: ${image.label}: ${what} (now: ${FAILED}/${image.name}.png)`);
+/**
+ * Compares what was drawn (as renders gives it) with the references of `dir`. A check writes nothing there: what
+ * differs goes to `failed`, where what an earlier failure left for a reference that matches again is removed. Otherwise
+ * the references that differ are rewritten and those that nothing draws any more are removed.
+ * Returns { problems: what a check found, rewritten: how many files were written otherwise }.
+ */
+export function compare({ size, images, hashes, firstDifferent }, { dir, failed, check }) {
+    const problems = [];
+    let rewritten = 0;
+    mkdirSync(dir, { recursive: true });
+    const put = (name, data) => {
+        mkdirSync(failed, { recursive: true });
+        writeFileSync(`${failed}/${name}`, data);
+    };
+    const fail = (name, data, message) => {
+        put(name, data);
+        problems.push(message);
+    };
+    const clear = (name) => check && rmSync(`${failed}/${name}`, { force: true }); // left by an earlier failure
+    for (const image of images) {
+        const path = `${dir}/${image.name}.png`;
+        const reference = readImage(path);
+        const sameSize = reference && reference.width === size && reference.height === image.height;
+        if (sameSize && reference.rgb.equals(image.rgb)) {
+            clear(`${image.name}.png`);
+            continue;
         }
-        const FIRST = 'animation-first-difference.png';
-        if (kept === hashes) {
-            clear(HASHES);
-            clear(FIRST);
-        } else if (!check) {
-            writeFileSync(`${DIR}/${HASHES}`, hashes);
+        const png = encodePng(size, image.height, image.rgb);
+        if (!check) {
+            writeFileSync(path, png);
             rewritten++;
-        } else {
-            let what = 'is missing';
-            if (kept !== null && firstDifferent) {
-                mkdirSync(FAILED, { recursive: true });
-                writeFileSync(`${FAILED}/${FIRST}`, encodePng(size, size, firstDifferent.rgb));
-                what = `differs from "${firstDifferent.line}" on (that frame: ${FAILED}/${FIRST})`;
-            } else if (kept !== null) what = 'has the same frames, with lines added, removed or out of order';
-            fail(HASHES, hashes, `${DIR}/${HASHES} ${what} (now: ${FAILED}/${HASHES})`);
+            continue;
         }
-        const wanted = new Set([...images.map((i) => `${i.name}.png`), HASHES]);
-        for (const file of readdirSync(DIR).filter((f) => !wanted.has(f))) {
-            if (check) problems.push(`${DIR}/${file}: nothing draws it any more`);
-            else rmSync(`${DIR}/${file}`);
+        const what = !reference
+            ? 'missing or unreadable'
+            : sameSize
+              ? pixelsDiffer(differingPixels(reference.rgb, image.rgb))
+              : 'the reference has another size';
+        fail(`${image.name}.png`, png, `${path}: ${image.label}: ${what} (now: ${failed}/${image.name}.png)`);
+    }
+    const kept = readText(`${dir}/${HASHES}`);
+    if (kept === hashes) {
+        clear(HASHES);
+        clear(FIRST);
+    } else if (!check) {
+        writeFileSync(`${dir}/${HASHES}`, hashes);
+        rewritten++;
+    } else {
+        let what = 'is missing';
+        clear(FIRST);
+        if (kept !== null && firstDifferent) {
+            put(FIRST, encodePng(size, size, firstDifferent.rgb));
+            what = `differs from "${firstDifferent.line}" on (that frame: ${failed}/${FIRST})`;
+        } else if (kept !== null) {
+            // Every frame drawn is the one kept at its place: the kept file has more, or other comments
+            const extra = framesOf(kept).length - framesOf(hashes).length;
+            what =
+                extra > 0
+                    ? `ends with ${extra === 1 ? '1 frame that is' : `${extra} frames that are`} not drawn any more`
+                    : 'differs only in its comment or blank lines';
         }
-        if (problems.length) {
-            for (const p of problems) console.error(p);
-            console.error(
-                'Reference renders differ: if the eyes changed on purpose, run npm run goldens and look at them'
-            );
-            process.exit(1);
-        }
-        const frames = hashes.split('\n').filter((line) => line && !line.startsWith('#')).length;
-        const what = `${images.length} images and ${frames} animation frames`;
-        console.log(`${DIR}: ${what} ${check ? 'match' : `up to date (${rewritten} files rewritten)`}`);
-    });
+        fail(HASHES, hashes, `${dir}/${HASHES} ${what} (now: ${failed}/${HASHES})`);
+    }
+    const wanted = new Set([...images.map((i) => `${i.name}.png`), HASHES]);
+    for (const file of readdirSync(dir).filter((f) => !wanted.has(f))) {
+        if (check) problems.push(`${dir}/${file}: nothing draws it any more`);
+        else rmSync(`${dir}/${file}`);
+    }
+    return { problems, rewritten };
+}
+
+async function main() {
+    const check = process.argv.includes('--check');
+    const drawn = await renders(framesOf(readText(`${DIR}/${HASHES}`) ?? ''));
+    const { problems, rewritten } = compare(drawn, { dir: DIR, failed: FAILED, check });
+    if (problems.length) {
+        for (const p of problems) console.error(p);
+        console.error('Reference renders differ: if the eyes changed on purpose, run npm run goldens and look at them');
+        process.exit(1);
+    }
+    const what = `${drawn.images.length} images and ${framesOf(drawn.hashes).length} animation frames`;
+    console.log(`${DIR}: ${what} ${check ? 'match' : `up to date (${rewritten} files rewritten)`}`);
 }
 
 if (import.meta.main) await main();

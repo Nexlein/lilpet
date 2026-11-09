@@ -1,19 +1,20 @@
-/* Behavior of the eyes with literal expectations: mood, reactions, bad input, random numbers, gaze, tilt, particles */
+/* Behavior of the eyes with literal values: mood, reactions, bad input, random numbers, gaze, tilt, blink, particles */
 #include "../src/internal.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
 
 #include <math.h>
 
-#define FULL_TURN   6.2831853f
+#define STEP        (1.0f / 64.0f) /* exact in float */
+#define FULL_TURN   (2.0f * LP_PI)
 #define TOL_SETTLED 1e-4f /* an easing given seconds to settle: what is left of the distance, and float rounding */
 #define TOL_ANGLE   1e-3f /* the face after a long turn: rounding summed over hundreds of frames */
 
-/* Plays `seconds` of animation at 64 frames/s */
+/* Plays `seconds` of animation, a STEP at a time */
 static void play(lp_eyes *eyes, float seconds)
 {
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
-        lp_eyes_update(eyes, 1.0f / 64.0f);
+    for (int i = 0; i < (int)(seconds / STEP); i++)
+        lp_eyes_update(eyes, STEP);
 }
 
 void test_emotion_without_a_positive_duration_is_the_mood(void)
@@ -139,12 +140,12 @@ void test_turning_keeps_the_face_level_across_the_wrap(void)
     float a = 0.0f;
     float turned = 0.0f;
     float max_step = 0.0f;
-    for (int i = 0; i < 12 * 64; i++) {
-        if (i < 8 * 64)
-            a = 2.0f * (float)(i + 1) / 64.0f;
+    for (int i = 0; i < (int)(12.0f / STEP); i++) {
+        if (i < (int)(8.0f / STEP))
+            a = 2.0f * (float)(i + 1) * STEP;
         lp_eyes_set_gravity(&eyes, true, sinf(a), cosf(a));
         const float before = eyes.head.roll;
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, STEP);
         const float step = remainderf(eyes.head.roll - before, FULL_TURN);
         turned += step;
         max_step = fmaxf(max_step, fabsf(step));
@@ -184,6 +185,9 @@ void test_tilt_slides_the_eyes_toward_the_low_side(void)
     }
 }
 
+/* Each field of lp_expression is checked below: a new one must be added there */
+_Static_assert(sizeof(lp_expression) == 11 * sizeof(float), "check every field of lp_expression");
+
 void test_every_emotion_settles_on_its_expression(void)
 {
     for (int i = 0; i < LP_EMOTION_COUNT; i++) {
@@ -208,6 +212,35 @@ void test_every_emotion_settles_on_its_expression(void)
         CHECK_NEAR(cur->spin, want->spin, TOL_SETTLED);
         if (lp_test_failures != before)
             fprintf(stderr, "  in %s\n", def->name);
+    }
+}
+
+void test_blink_pose_stops_at_the_end_of_its_phase(void)
+{
+    /* A scene may freeze a phase past its length: the lid and the eye's scale stay at the end of the phase */
+    const struct {
+        lp_blink_phase phase;
+        float t, lid, sx, sy;
+        bool closed;
+    } poses[] = {
+        {LP_BLINK_ANTICIP, 0.5f * LP_BLINK_ANTICIP_TIME, 0.05f, 1.025f, 0.985f, false}, /* halfway */
+        {LP_BLINK_ANTICIP, 1.0f, 0.1f, 1.05f, 0.97f, false},
+        {LP_BLINK_CLOSE, 1.0f, 1.0f, 1.05f, 0.97f, false},
+        {LP_BLINK_CLOSED, 1.0f, 1.0f, 1.04f, 1.0f, true},
+        {LP_BLINK_OPEN, 1.0f, 0.0f, 1.0f, 1.0f, false},
+        {LP_BLINK_NONE, 1.0f, 0.0f, 1.0f, 1.0f, false},
+    };
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    for (size_t i = 0; i < sizeof poses / sizeof poses[0]; i++) {
+        eyes.blink.phase = poses[i].phase;
+        eyes.blink.t = poses[i].t;
+        eyes.blink.open = 0.2f;
+        const lp_blink_pose pose = lp_eyes_blink_pose(&eyes);
+        CHECK_NEAR(pose.lid, poses[i].lid, 1e-6f);
+        CHECK_NEAR(pose.sx, poses[i].sx, 1e-6f);
+        CHECK_NEAR(pose.sy, poses[i].sy, 1e-6f);
+        CHECK(pose.closed == poses[i].closed);
     }
 }
 

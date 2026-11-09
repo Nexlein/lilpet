@@ -3,13 +3,13 @@
 // gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Run it after changing emotions.json (npm run tables runs both).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { EMOTIONS as EMOTIONS_FILE, readJson } from './data.mjs';
+import { EMOTIONS, readJson } from './data.mjs';
 import { EXPRESSION, withNeutral } from './expression.mjs';
 import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
-const data = readJson(EMOTIONS_FILE);
-const EMOTIONS = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
-const REACTIONS = data.reactions;
+const data = readJson(EMOTIONS);
+const emotions = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
+const reactions = data.reactions;
 
 const TABLES = 'engine/src/emotions_table.h';
 
@@ -28,10 +28,10 @@ const tables = [
     '',
     '#include "lilpet/lilpet.h"',
     '',
-    countCheck(Object.keys(EMOTIONS).length, 'LP_EMOTION_COUNT', 'lp_emotion'),
+    countCheck(Object.keys(emotions).length, 'LP_EMOTION_COUNT', 'lp_emotion'),
     'static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {'
 ];
-for (const [name, e] of Object.entries(EMOTIONS))
+for (const [name, e] of Object.entries(emotions))
     tables.push(
         `    [${emotionEnum(name)}] = {${note(e)}`,
         `        .name = "${name}",`,
@@ -45,10 +45,10 @@ for (const [name, e] of Object.entries(EMOTIONS))
 tables.push(
     '};',
     '',
-    countCheck(Object.keys(REACTIONS).length, 'LP_EVENT_COUNT', 'lp_event'),
+    countCheck(Object.keys(reactions).length, 'LP_EVENT_COUNT', 'lp_event'),
     'static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {'
 );
-for (const [name, r] of Object.entries(REACTIONS))
+for (const [name, r] of Object.entries(reactions))
     tables.push(
         `    [${eventEnum(name)}] = {.name = "${name}", .emotion = ${emotionEnum(r.emotion)}, ` +
             `.duration = ${num(r.duration)}, .sparkles = ${r.sparkles}},${note(r)}`
@@ -58,5 +58,5 @@ tables.push('};', '', '#endif /* LILPET_EMOTIONS_TABLE_H */', '');
 writeGenerated(
     TABLES,
     tables.join('\n'),
-    `${Object.keys(EMOTIONS).length} emotions, ${Object.keys(REACTIONS).length} reactions`
+    `${Object.keys(emotions).length} emotions, ${Object.keys(reactions).length} reactions`
 );

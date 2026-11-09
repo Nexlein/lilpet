@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (17) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
+- **.lintstagedrc.mjs** (27) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
 - **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium, and the data scripts on broken co...
   - exports: default
@@ -195,7 +195,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **bench.c** (143) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).
   - exports: main
   - → engine/tests/scenes_table.h, engine/tools/bench_script.h, engine/include/lilpet/lilpet.h
-- **bench_script.h** (36) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
+- **bench_script.h** (39) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
   - → engine/include/lilpet/lilpet.h
   - ← engine/tools/bench.c, firmware/main/main.c
 
@@ -214,7 +214,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **smoke.mjs** (51) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
+- **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 
 ## eyes
@@ -318,7 +318,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← mise.toml
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
-  - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
+  - ← scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **flash-guard.py** (41) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
   - exports: running_board, before_flash
   - → scripts/board_link.py
@@ -332,17 +332,17 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-scenes-table.mjs** (59) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
-- **goldens.mjs** (187) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
-  - exports: renders
+- **goldens.mjs** (206) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+  - exports: compare
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
   - ← mise.toml, package.json
-- **png.mjs** (82) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
+- **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
   - exports: encodePng, decodePng, rgbOf, differingPixels
   - ← scripts/goldens.mjs
 - **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
-- tests: codemap.test.mjs, png.test.mjs, test_board_scripts.py
+- tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
 
 ## tests
 - tests: app.spec.mjs, data.spec.mjs, page-errors.mjs
@@ -355,9 +355,10 @@ mise (`mise run <task>`):
 - `engine:check` — Everything CI checks on the engine
 - `engine:format` — Format the C sources
 - `engine:format:check` — Fail if a C source is not formatted
+- `engine:goldens` — Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
 - `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
-- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI), check it loads in Node and draws the reference renders of engine/tests/goldens
+- `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)

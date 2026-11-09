@@ -65,6 +65,7 @@
     X(test_gaze_reaches_a_held_pointer)                                                                                \
     X(test_tilt_slides_the_eyes_toward_the_low_side)                                                                   \
     X(test_every_emotion_settles_on_its_expression)                                                                    \
+    X(test_blink_pose_stops_at_the_end_of_its_phase)                                                                   \
     X(test_love_sends_hearts_at_its_rate_until_they_fade)                                                              \
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \

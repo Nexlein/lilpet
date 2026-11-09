@@ -8,9 +8,9 @@ import { expect, test } from '@playwright/test';
 import { EMOTIONS, LOOKS, SCENES } from '../scripts/data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
-const TABLES_SCRIPT = 'scripts/gen-emotions-table.mjs';
+const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
-const TABLES = 'engine/src/emotions_table.h';
+const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
 const SCENES_TABLE = 'engine/tests/scenes_table.h';
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
@@ -18,7 +18,15 @@ const SCENES_TABLE = 'engine/tests/scenes_table.h';
 function withCopy(use) {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
-        for (const path of ['package.json', 'scripts', 'eyes', 'engine/wasm/engine.mjs', SCENES, TABLES, SCENES_TABLE])
+        for (const path of [
+            'package.json',
+            'scripts',
+            'eyes',
+            'engine/wasm/engine.mjs',
+            SCENES,
+            EMOTIONS_TABLE,
+            SCENES_TABLE
+        ])
             cpSync(path, join(dir, path), { recursive: true });
         return use(dir);
     } finally {
@@ -160,18 +168,18 @@ test('a fault in scenes.json stops the scene table, not the emotion tables', () 
         expect(run(dir, SCENES_SCRIPT, '--check').status).toBe(0); // only the fault can stop it
         writeFileSync(join(dir, SCENES), 'not JSON');
         expect(run(dir, SCENES_SCRIPT, '--check').status).not.toBe(0);
-        expect(run(dir, TABLES_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
+        expect(run(dir, EMOTIONS_SCRIPT, '--check')).toEqual({ status: 0, stderr: '' });
     });
 });
 
 test('a changed emotion makes the tables out of date, until generated again', () => {
     withCopy((dir) => {
         changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5));
-        const stale = run(dir, TABLES_SCRIPT, '--check');
+        const stale = run(dir, EMOTIONS_SCRIPT, '--check');
         expect(stale.status).toBe(1);
-        expect(stale.stderr).toContain(`${TABLES}: out of date, run npm run tables`);
+        expect(stale.stderr).toContain(`${EMOTIONS_TABLE}: out of date, run npm run tables`);
 
-        run(dir, TABLES_SCRIPT);
-        expect(run(dir, TABLES_SCRIPT, '--check').status).toBe(0);
+        run(dir, EMOTIONS_SCRIPT);
+        expect(run(dir, EMOTIONS_SCRIPT, '--check').status).toBe(0);
     });
 });

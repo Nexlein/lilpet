@@ -83,7 +83,7 @@ static void bench_scenes(void)
     printf("| --- | ---: | ---: | ---: |\n");
     const int count = (int)(sizeof SCENES / sizeof SCENES[0]);
     for (int i = 0; i < count; i++) {
-        lp_eyes_set_scene(&eyes, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look_index]);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, SCENES[i].look);
         int64_t whole[RUNS];
         int64_t still[RUNS];
         lp_rect region = {0, 0, 0, 0};
@@ -108,7 +108,7 @@ static void bench_animation(void)
 {
     for (int pass = 0; pass < PASSES; pass++) {
         lp_eyes_init(&eyes, 1);
-        lp_eyes_set_look(&eyes, &SCENE_LOOKS[0]);
+        lp_eyes_set_look(&eyes, &LP_BENCH_LOOK);
         lp_renderer_init(&renderer);
         lp_render(&renderer, &eyes, frame); /* the first frame clears the whole screen: not counted */
         for (int f = 0; f < ANIM_FRAMES; f++) {

@@ -52,7 +52,7 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_look(uint32_t sclera, int pupil, uint32_t left
 
 EMSCRIPTEN_KEEPALIVE void lpw_set_emotion(int emotion)
 {
-    lp_eyes_set_emotion(&eyes, (lp_emotion)emotion, 0.0f); /* for good: the pages and the app set moods */
+    lp_eyes_set_emotion(&eyes, (lp_emotion)emotion, 0.0f); /* for good: the app sets moods */
 }
 
 EMSCRIPTEN_KEEPALIVE void lpw_blink(void)
