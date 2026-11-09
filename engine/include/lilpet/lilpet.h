@@ -51,6 +51,8 @@ typedef struct {
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
 #define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
+/* The look worn until one is chosen (eyes/looks.json), the one lp_eyes_init sets */
+lp_look lp_default_look(void);
 /* Writes the text into `out`, LP_LOOK_TEXT_SIZE bytes; returns its length without the NUL, or -1 for an unknown pupil
  * type */
 int lp_look_format(const lp_look *look, char *out);
@@ -206,7 +208,7 @@ typedef struct {
     float emit_debt; /* fractional particles owed by the current emitter */
 } lp_eyes;
 
-/* Default shape, measured on the original (see docs/yeux.md) */
+/* Default shape, measured on the original (see docs/yeux.md), from eyes/looks.json */
 lp_shape lp_default_shape(void);
 
 void lp_eyes_init(lp_eyes *eyes, uint32_t seed);

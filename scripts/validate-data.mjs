@@ -1,5 +1,6 @@
 // Checks the data files the renderers read:
-// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors
+// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye shape and
+//   pupil types, which the engine's table is generated from
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
 //   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - engine/tests/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
@@ -88,6 +89,29 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 });
 if (Array.isArray(looks?.swatches) && looks.swatches.length !== SWATCH_COUNT)
     errors.push(`${LOOKS}: ${looks.swatches.length} swatches, the catalogue has ${SWATCH_COUNT}`);
+if (!looks?.swatches?.some?.((s) => s?.id === looks?.default?.swatch))
+    errors.push(`${LOOKS}: "default.swatch" must be a swatch id`);
+if (!PUPILS.includes(looks?.default?.pupil))
+    errors.push(`${LOOKS}: "default.pupil" must be one of ${PUPILS.join(', ')}`);
+// The eye shape the drawing is made for: radii up to half the screen, no more tilt than the measured one (the emotions'
+// turns were tuned for it, docs/architecture.md)
+for (const [k, min, max] of [
+    ['rx', 1, 233],
+    ['ry', 1, 233],
+    ['gap', 0, 233],
+    ['tilt', 0, 0.37]
+])
+    if (!isNum(looks?.eye?.[k], min, max)) errors.push(`${LOOKS}: "eye.${k}" must be between ${min} and ${max}`);
+if (!isNum(looks?.pupilLean, 0, 0.5)) errors.push(`${LOOKS}: "pupilLean" must be between 0 and 0.5 radians`);
+// Every pupil type of the engine, in fractions of the eye radii; the renderer draws circle as a disc (r)
+eachRow(LOOKS, looks?.pupils, 'pupils', PUPILS, ['rx', 'ry', 'r', 'x', 'y'], (pupil, fail, id) => {
+    if (!PUPILS.includes(id)) fail(`must be one of ${PUPILS.join(', ')}`);
+    const radii = id === 'circle' ? ['r'] : ['rx', 'ry'];
+    for (const k of ['rx', 'ry', 'r'])
+        if (radii.includes(k) ? !isNum(pupil[k], 0.01, 1.2) : pupil[k] !== undefined)
+            fail(radii.includes(k) ? `"${k}" must be between 0.01 and 1.2` : `"${k}" is not used: ${radii.join(', ')}`);
+    for (const k of ['x', 'y']) if (!isNum(pupil[k], -1, 1)) fail(`"${k}" must be between -1 and 1`);
+});
 
 const emotionData = load(EMOTIONS);
 const emotions = emotionData?.emotions ?? {};

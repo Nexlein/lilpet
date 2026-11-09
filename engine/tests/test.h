@@ -16,6 +16,7 @@
 #define LP_TESTS(X)                                                                                                    \
     X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
+    X(test_eyes_start_with_the_default_look_and_shape)                                                                 \
     X(test_unknown_emotion_is_rejected)                                                                                \
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \

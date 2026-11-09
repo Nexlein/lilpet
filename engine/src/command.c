@@ -1,5 +1,6 @@
 /* Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link */
 #include "lilpet/lilpet.h"
+#include "looks_table.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -104,7 +105,7 @@ const char *lp_command_parse(const lp_command_line *line, lp_command *out)
     } else if (strcmp(name, "look") == 0) {
         out->type = LP_COMMAND_LOOK;
         if (!lp_look_parse(args, &out->look))
-            return "malformed look, expected: RRGGBB RRGGBB RRGGBB dot|cat|acorn|circle";
+            return "malformed look, expected: RRGGBB RRGGBB RRGGBB " LP_PUPIL_LIST;
     } else {
         char *words[MAX_WORDS];
         const int count = split(args, words);

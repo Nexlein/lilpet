@@ -17,8 +17,8 @@ Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 imag
 ## Ce que fait le firmware
 
 - Il affiche les yeux en direct, qui vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi
-  dans l'app PC (`cherry` tant qu'aucun n'a été envoyé). Les commandes de l'app arrivent par le port USB, celles du
-  futur modèle arriveront par l'UART ([protocole](protocole.md)).
+  dans l'app PC (le look par défaut de `eyes/looks.json`, cherry, tant qu'aucun n'a été envoyé). Les commandes de l'app
+  arrivent par le port USB, celles du futur modèle arriveront par l'UART ([protocole](protocole.md)).
 - Toutes les `LP_BENCH_FRAMES` images (la longueur de l'animation de mesure, `engine/tools/bench_script.h`), il écrit
   sur le port USB le nombre d'images par seconde, le temps de dessin, le temps de dessin plus envoi, et la part de
   l'écran redessinée (`mise run firmware:monitor` pour les lire).

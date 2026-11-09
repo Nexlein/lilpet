@@ -6,6 +6,7 @@ const DATA = [
     'eyes/*.json',
     'engine/tests/scenes.json',
     'engine/src/emotions_table.h',
+    'engine/src/looks_table.h',
     'engine/tests/scenes_table.h',
     'scripts/gen-*.mjs',
     'scripts/expression.mjs',

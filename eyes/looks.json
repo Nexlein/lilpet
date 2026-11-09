@@ -2,7 +2,20 @@
     "schema": {
         "id": "official swatch name, see docs/yeux.md (Catalogue officiel)",
         "sclera": "eye color (hex), the same for both eyes",
-        "pupilColor": "[left, right] pupil colors (hex), may differ"
+        "pupilColor": "[left, right] pupil colors (hex), may differ",
+        "default": "the look worn until one is chosen: a swatch id and a pupil type (the engine, the firmware and the PC app)",
+        "eye": "the eye shape: radii and gap in pixels of the 466 px screen, tilt in radians (top of each eye outward)",
+        "pupilLean": "how much each pupil leans, top toward the nose (radians)",
+        "pupils": "per pupil type, in fractions of the eye radii: radii rx and ry, or r for a disc (a fraction of rx), and resting position x (toward the nose) and y (down). The engine scales them with the emotion (engine/src/render.c)"
+    },
+    "default": { "swatch": "cherry", "pupil": "dot" },
+    "eye": { "rx": 93, "ry": 109, "gap": 101, "tilt": 0.37 },
+    "pupilLean": 0.09,
+    "pupils": {
+        "dot": { "rx": 0.105, "ry": 0.125, "x": 0.57, "y": 0.12 },
+        "cat": { "rx": 0.21, "ry": 0.72, "x": 0.35, "y": 0.11 },
+        "acorn": { "rx": 0.5, "ry": 0.98, "x": 0.18, "y": 0.25 },
+        "circle": { "r": 0.52, "x": 0.36, "y": 0 }
     },
     "swatches": [
         { "id": "avocado", "sclera": "#8BD67C", "pupilColor": ["#230606", "#230606"] },

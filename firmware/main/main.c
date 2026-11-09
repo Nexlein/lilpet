@@ -37,9 +37,6 @@
 #define BAND_ROWS  30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
 #define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
-/* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
-static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
-
 #if CONFIG_FREERTOS_UNICORE
 #error "the eyes are drawn on both cores: a board cannot set CONFIG_FREERTOS_UNICORE"
 #endif
@@ -181,7 +178,7 @@ void app_main(void)
     }
 
     look_store_init();
-    lp_look look = DEFAULT_LOOK;
+    lp_look look = lp_default_look(); /* until the PC app sends one */
     look_store_load(&look);
     commands_start(&look, motion);
 

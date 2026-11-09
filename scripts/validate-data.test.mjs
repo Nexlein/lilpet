@@ -14,6 +14,7 @@ const SCRIPT = 'scripts/validate-data.mjs';
 const EMOTIONS_SCRIPT = 'scripts/gen-emotions-table.mjs';
 const SCENES_SCRIPT = 'scripts/gen-scenes-table.mjs';
 const EMOTIONS_TABLE = 'engine/src/emotions_table.h';
+const LOOKS_TABLE = 'engine/src/looks_table.h';
 const SCENES_TABLE = 'engine/tests/scenes_table.h';
 const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
@@ -29,6 +30,7 @@ async function withCopy(use) {
             'engine/wasm/engine.mjs',
             SCENES,
             EMOTIONS_TABLE,
+            LOOKS_TABLE,
             SCENES_TABLE
         ])
             cpSync(path, join(dir, path), { recursive: true });
@@ -89,6 +91,18 @@ const CASES = [
     [LOOKS, 'HTML in an id', (d) => (d.swatches[0].id = '<img src=x>'), '"id" must match'],
     [LOOKS, 'an id used twice', (d) => (d.swatches[1].id = d.swatches[0].id), 'duplicate id'],
     [LOOKS, 'a swatch that is null', (d) => (d.swatches[0] = null), 'must be an object'],
+    [LOOKS, 'an unknown default swatch', (d) => (d.default.swatch = 'plaid'), '"default.swatch" must be'],
+    [LOOKS, 'an unknown default pupil', (d) => (d.default.pupil = 'star'), '"default.pupil" must be'],
+    [LOOKS, 'no eye shape', (d) => delete d.eye, '"eye.rx" must be'],
+    [LOOKS, 'an eye wider than the screen', (d) => (d.eye.rx = 300), '"eye.rx" must be'],
+    [LOOKS, 'more tilt than measured', (d) => (d.eye.tilt = 0.5), '"eye.tilt" must be'],
+    [LOOKS, 'no pupil lean', (d) => delete d.pupilLean, '"pupilLean" must be'],
+    [LOOKS, 'a pupil type missing', (d) => delete d.pupils.cat, '"pupils.cat" is missing'],
+    [LOOKS, 'an unknown pupil type', (d) => (d.pupils.star = d.pupils.dot), 'pupils.star: must be one of'],
+    [LOOKS, 'a misspelled pupil key', (d) => (d.pupils.dot.rxx = 0.1), 'unknown key "rxx"'],
+    [LOOKS, 'a pupil without a radius', (d) => delete d.pupils.dot.ry, '"ry" must be between'],
+    [LOOKS, 'a circle that is not a disc', (d) => (d.pupils.circle.rx = 0.5), '"rx" is not used'],
+    [LOOKS, 'a pupil resting outside its eye', (d) => (d.pupils.acorn.y = 2), '"y" must be between'],
     [SCENES, 'no scenes', (d) => (d.scenes = []), '"scenes" must be a non-empty array'],
     [SCENES, 'a scene that is null', (d) => (d.scenes[0] = null), 'must be an object'],
     [SCENES, 'a misspelled key', (d) => (d.scenes[0].emotions = 'sad'), 'unknown key "emotions"'],

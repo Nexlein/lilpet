@@ -157,8 +157,10 @@ fraction des demi-axes de l'œil RX et RY ; x vers le nez, y vers le bas, depuis
   près. Pas d'œuf dessiné à la main.
 - Les pupilles penchent d'environ 5°, le haut vers le nez (mesuré sur `cat` et `acorn`, aux deux yeux), à l'inverse
   de l'inclinaison de l'œil.
-- Le moteur suit ces valeurs (`PUPIL_REST`, `PUPIL_LEAN` et `setup_pupil` dans `engine/src/render.c`). Notre
-  rendu, mesuré de la même façon que la page officielle, tombe à 0,011 largeur d'œil près au pire (largeur du `dot`).
+- Ces valeurs sont dans `eyes/looks.json` (`pupils`, `pupilLean`, et la forme de l'œil dans `eye`) : le moteur en
+  tire sa table (`engine/src/looks_table.h`, dessinée par `setup_pupil` dans `engine/src/render.c`), et la galerie de
+  l'app les lit aussi. Notre rendu, mesuré de la même façon que la page officielle, tombe à 0,011 largeur d'œil près au
+  pire (largeur du `dot`).
 - Looks : repris tels quels dans `eyes/looks.json`, sans reflet (le reflet ne vient qu'avec certaines émotions).
 
 ### Les 100 couleurs

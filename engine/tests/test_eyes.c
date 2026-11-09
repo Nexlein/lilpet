@@ -34,6 +34,19 @@ static bool same_motion(const lp_eyes *a, const lp_eyes *b)
     return same;
 }
 
+void test_eyes_start_with_the_default_look_and_shape(void)
+{
+    /* The firmware and the PC app show the same look until one is chosen: cherry with a dot pupil (eyes/looks.json) */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    const lp_look look = lp_default_look();
+    CHECK(look.sclera == 0xAE0002u && look.pupil == LP_PUPIL_DOT && look.pupil_color[0] == 0xFF5252u);
+    CHECK(eyes.look.sclera == look.sclera && eyes.look.pupil == look.pupil);
+    CHECK(eyes.look.pupil_color[0] == look.pupil_color[0] && eyes.look.pupil_color[1] == look.pupil_color[1]);
+    const lp_shape shape = lp_default_shape();
+    CHECK(eyes.shape.rx == shape.rx && eyes.shape.ry == shape.ry && eyes.shape.tilt == shape.tilt);
+}
+
 void test_unknown_emotion_is_rejected(void)
 {
     CHECK(lp_emotion_from_name("furious") == LP_EMOTION_COUNT);

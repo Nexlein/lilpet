@@ -16,6 +16,24 @@
 /* Emitter debt often sums to exactly 1, which rounding can leave just below: the margin still emits on time */
 #define LP_EMIT_EPSILON 1e-4f
 
+/* A pupil type's name and shape before the emotion scales it (render.c), in fractions of the eye's radii: radii, and
+ * resting position, x toward the nose and y down. From eyes/looks.json (looks_table.h). */
+typedef struct {
+    const char *name;
+    float rx;
+    float ry;
+    float x;
+    float y;
+} lp_pupil_shape;
+
+typedef struct {
+    float lean; /* each pupil's tilt, top toward the nose (rad) */
+    lp_pupil_shape types[LP_PUPIL_COUNT];
+} lp_pupils;
+
+/* The pupil types of eyes/looks.json (look.c) */
+const lp_pupils *lp_pupils_get(void);
+
 /* Spring-like smoothing toward target, frame-rate independent */
 static inline float lp_approach(float v, float target, float k, float dt)
 {

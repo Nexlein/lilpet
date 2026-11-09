@@ -1,20 +1,21 @@
 // A small drawing of a pair of eyes, for the gallery and the pupil picker. Same proportions as the engine: eyes tilted
 // outward, pupils upright, set toward the nose and leaning a little (docs/yeux.md).
 import { useId } from 'react';
-import type { LookColors, PupilType } from '../data/looks';
+import { EYE_SHAPE, PUPIL_LEAN, PUPIL_SHAPES, type LookColors, type PupilType } from '../data/looks';
 
-const RX = 17;
+// The engine's shape (eyes/looks.json), scaled to the 100 x 60 drawing
 const RY = 20;
-const TILT = 21; // degrees, top of each eye outward
-const LEAN = 5; // degrees, top of each pupil toward the nose
+const RX = (RY * EYE_SHAPE.rx) / EYE_SHAPE.ry;
+const GAP = (RX * EYE_SHAPE.gap) / EYE_SHAPE.rx; // from the middle to each eye's center
+const degrees = (rad: number) => (rad * 180) / Math.PI;
+const TILT = degrees(EYE_SHAPE.tilt); // top of each eye outward
+const LEAN = degrees(PUPIL_LEAN); // top of each pupil toward the nose
 
-// Pupil size and resting position, in fractions of RX and RY (same values as PUPIL_REST in the engine)
-const PUPILS: Record<PupilType, { rx: number; ry: number; x: number; y: number }> = {
-    dot: { rx: 0.105, ry: 0.125, x: 0.57, y: 0.12 },
-    cat: { rx: 0.21, ry: 0.72, x: 0.35, y: 0.11 },
-    acorn: { rx: 0.5, ry: 0.98, x: 0.18, y: 0.25 },
-    circle: { rx: 0.52, ry: (0.52 * RX) / RY, x: 0.36, y: 0 } // a disc: both radii are 0.52 RX
-};
+// A pupil's radii, in fractions of RX and RY: a disc's radius is a fraction of RX for both
+function radii(pupil: PupilType): { rx: number; ry: number } {
+    const p = PUPIL_SHAPES[pupil];
+    return 'r' in p ? { rx: p.r, ry: (p.r * RX) / RY } : { rx: p.rx, ry: p.ry };
+}
 
 interface Props {
     colors: LookColors;
@@ -23,11 +24,12 @@ interface Props {
 
 export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
-    const p = PUPILS[pupil];
+    const p = PUPIL_SHAPES[pupil];
+    const r = radii(pupil);
     return (
         <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
-                const cx = 50 + side * 19;
+                const cx = 50 + side * GAP;
                 const inner = -side;
                 const clip = `${id}-${side}`;
                 const px = cx + inner * p.x * RX;
@@ -48,8 +50,8 @@ export function EyeGlyph({ colors, pupil }: Props) {
                         <ellipse
                             cx={px}
                             cy={py}
-                            rx={p.rx * RX}
-                            ry={p.ry * RY}
+                            rx={r.rx * RX}
+                            ry={r.ry * RY}
                             fill={colors.pupilColor[side < 0 ? 0 : 1]}
                             transform={`rotate(${inner * LEAN} ${px} ${py})`}
                             clipPath={`url(#${clip})`}

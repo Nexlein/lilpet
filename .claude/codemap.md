@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (37) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
+- **.lintstagedrc.mjs** (38) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
 
 ## .husky
@@ -37,8 +37,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: KeyValueStore, browserStore, LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
   - → app/src/data/looks.ts
   - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
-- **looks.ts** (103) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
-  - exports: LookColors, Swatch, SWATCHES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, Family, FAMILIES, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
+- **looks.ts** (113) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
+  - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, Family, FAMILIES, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
   - → eyes/looks.json, engine/wasm/engine.mjs
   - ← app/src/data/favorites.ts, app/src/device/device.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/ui/App.tsx, app/src/ui/EyeGlyph.tsx, app/src/ui/Gallery.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/labels.ts
 - tests: looks.test.ts
@@ -86,7 +86,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceLog
   - packages: react
   - ← app/src/ui/App.tsx
-- **EyeGlyph.tsx** (62) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
+- **EyeGlyph.tsx** (64) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
   - exports: EyeGlyph
   - → app/src/data/looks.ts
   - packages: react
@@ -133,10 +133,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
 
 ## engine/include/lilpet
-- **lilpet.h** (407) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
-  - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_rng_seed, lp_rng_next, lp_pupil, lp_look, lp_look_parse, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_emotion_from_name, lp_event, lp_reaction, lp_reaction_get, lp_event_from_name, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_spawn, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_shake_update, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
+- **lilpet.h** (409) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
+  - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_rng_seed, lp_rng_next, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_emotion_from_name, lp_event, lp_reaction, lp_reaction_get, lp_event_from_name, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_spawn, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_shake_update, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -146,25 +146,28 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/include/lilpet/lilpet.h, engine/include/lilpet/render_state.h
 
 ## engine/src
-- **command.c** (120) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
+- **command.c** (121) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
   - exports: lp_command_line_add, lp_command_parse
-  - → engine/include/lilpet/lilpet.h
+  - → engine/include/lilpet/lilpet.h, engine/src/looks_table.h
 - **emotions.c** (35) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)
   - exports: lp_reaction_get, lp_emotion_get, lp_emotion_from_name, lp_event_from_name
   - → engine/src/emotions_table.h, engine/include/lilpet/lilpet.h
 - **emotions_table.h** (90) — Generated by scripts/gen-emotions-table.mjs from eyes/emotions.json: do not edit.
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/emotions.c
-- **eyes.c** (439) — State and animation of the eyes: emotions, gaze, head, blink, particles.
-  - exports: lp_default_shape, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
+- **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
+  - exports: lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **internal.h** (54) — Helpers shared by the engine sources.
-  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON
+- **internal.h** (72) — Helpers shared by the engine sources.
+  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_pupil_shape, lp_pupils, lp_pupils_get
   - → engine/include/lilpet/lilpet.h
-  - ← engine/src/eyes.c, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
-- **look.c** (100) — Looks as text, for the USB protocol with the PC app (docs/protocole.md): "AE0002 FF5252 FF5252 dot"
-  - exports: lp_look_parse, lp_look_format
-  - → engine/include/lilpet/lilpet.h
+  - ← engine/src/eyes.c, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
+- **look.c** (113) — Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB protocol with the PC app (doc...
+  - exports: lp_default_look, lp_default_shape, lp_pupils_get, lp_look_parse, lp_look_format
+  - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/looks_table.h
+- **looks_table.h** (25) — Generated by scripts/gen-looks-table.mjs from eyes/looks.json: do not edit.
+  - → engine/src/internal.h, engine/include/lilpet/lilpet.h
+  - ← engine/src/command.c, engine/src/look.c
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
   - exports: lp_shake_update
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
@@ -178,7 +181,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
-- **render.c** (598) — Renderer: draws the eyes row by row into an RGB565 frame.
+- **render.c** (591) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
 - **rng.c** (22) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c)
@@ -203,7 +206,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **bench.c** (142) — Renderer benchmark on the host, to spot performance regressions: mise run engine:bench (Release build).
   - exports: main
   - → engine/tests/scenes_table.h, engine/tools/bench_script.h, engine/include/lilpet/lilpet.h
-- **bench_script.h** (46) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
+- **bench_script.h** (47) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
   - → engine/include/lilpet/lilpet.h
   - ← engine/tools/bench.c, firmware/main/main.c
 
@@ -229,8 +232,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## eyes
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
-- **looks.json** (109) — data
-  - ← app/src/data/looks.ts, scripts/data.mjs
+- **looks.json** (122) — data
+  - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/gen-looks-table.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -315,7 +318,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (235) — Firmware entry point: the eyes, live on the display.
+- **main.c** (232) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 
@@ -342,7 +345,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← .husky/pre-commit, package.json
 - **data.mjs** (18) — Where the data files are, and the look a scene wears: shared by the scripts that read them (the validator, the table generators, the reference rend...
   - exports: LOOKS, EMOTIONS, SCENES, readJson, swatchesById, lookOf
-  - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
+  - ← scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
@@ -352,9 +355,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← mise.toml
 - **gen-common.mjs** (28) — What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
   - exports: emotionEnum, eventEnum, num, writeGenerated
-  - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs
+  - ← scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs
 - **gen-emotions-table.mjs** (64) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
   - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
+  - ← package.json
+- **gen-looks-table.mjs** (55) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
+  - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
 - **gen-scenes-table.mjs** (60) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
@@ -366,7 +372,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
   - exports: encodePng, decodePng, rgbOf, differingPixels
   - ← scripts/goldens.mjs
-- **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
+- **validate-data.mjs** (204) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
 - tests: codemap.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
@@ -407,12 +413,12 @@ npm (`npm run <script>`):
 - `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format`
 - `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && git ls-files -z -- 'scripts/*.py' | xargs -0 -r ruff format --check`
 - `check:data`: `node scripts/validate-data.mjs`
-- `check:tables`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-scenes-table.mjs --check`
+- `check:tables`: `node scripts/gen-emotions-table.mjs --check && node scripts/gen-looks-table.mjs --check && node scripts/gen-scenes-table.mjs --check`
 - `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
 - `check:codemap`: `node scripts/codemap.mjs --check`
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`
-- `tables`: `node scripts/gen-emotions-table.mjs && node scripts/gen-scenes-table.mjs`
+- `tables`: `node scripts/gen-emotions-table.mjs && node scripts/gen-looks-table.mjs && node scripts/gen-scenes-table.mjs`
 - `test:playwright`: `npm run app:build && npm run test:playwright -w app`
 - `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:tables && npm run check:scripts && npm run check:codemap && npm run check:app`
 - `prepare`: `husky`
