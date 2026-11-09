@@ -356,7 +356,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
-- **files.mjs** (48) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
+- **files.mjs** (49) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
   - exports: GROUPS, trackedFiles
   - ← .lintstagedrc.mjs, mise.toml, package.json
 - **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...

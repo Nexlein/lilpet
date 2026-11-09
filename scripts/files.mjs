@@ -25,8 +25,9 @@ export const GROUPS = {
     hooks: ['.husky/*'] // every file there is a shell script
 };
 
-// As a git pathspec: a name alone is looked for in every folder, as lint-staged does
-const pathspec = (glob) => `:(glob)${glob.includes('/') ? '' : '**/'}${glob}`;
+// As a git pathspec from the top of the repository, wherever it runs: a name alone is looked for in every folder, as
+// lint-staged does
+const pathspec = (glob) => `:(top,glob)${glob.includes('/') ? '' : '**/'}${glob}`;
 
 /** The tracked files of a group */
 export function trackedFiles(group) {
