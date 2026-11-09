@@ -18,7 +18,7 @@ function theme({ sclera }: LookColors): CSSProperties {
 export function App() {
     const engine = useEngine();
     const device = useDevice();
-    const [choice, setChoice] = useStored((s) => loadCurrent(s) ?? DEFAULT, saveCurrent);
+    const [choice, setChoice] = useStored(() => loadCurrent() ?? DEFAULT, saveCurrent);
     const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites, true); // other tabs may add some
     const { swatch, pupil } = choice;
     const key = lookKey(swatch.id, pupil);

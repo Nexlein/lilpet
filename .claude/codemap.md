@@ -35,10 +35,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/index.html
 
 ## app/src/data
-- **favorites.ts** (70) — Favorite looks and the last chosen look, kept in the browser (localStorage)
-  - exports: KeyValueStore, browserStore, LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
+- **favorites.ts** (57) — Favorite looks and the last chosen look, kept in the browser (localStorage)
+  - exports: LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
   - → app/src/data/looks.ts
-  - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
+  - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
 - **looks.ts** (114) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
   - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, FAMILIES, Family, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
   - → eyes/looks.json, engine/wasm/engine.mjs
@@ -113,9 +113,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (63) — React state around the engine, the device connection and the browser
+- **hooks.ts** (58) — React state around the engine, the device connection and the browser
   - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
-  - → app/src/data/favorites.ts, app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
+  - → app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react
   - ← app/src/ui/App.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
 - **labels.ts** (32) — French names shown in the interface

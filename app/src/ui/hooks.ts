@@ -1,6 +1,5 @@
 // React state around the engine, the device connection and the browser
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { browserStore, type KeyValueStore } from '../data/favorites';
 import { portPicker } from '../device/connection';
 import { DeviceSession } from '../device/session';
 import { loadEyeEngine, type Engine } from '../engine/preview';
@@ -32,21 +31,17 @@ export function useDevice() {
 
 // A value kept in the browser: read once, written on every change. shared: read again when another tab writes it, so
 // that a change here starts from theirs
-export function useStored<T>(
-    read: (store: KeyValueStore) => T,
-    write: (store: KeyValueStore, value: T) => void,
-    shared = false
-) {
-    const [value, setValue] = useState<T>(() => read(browserStore));
+export function useStored<T>(read: () => T, write: (value: T) => void, shared = false) {
+    const [value, setValue] = useState<T>(read);
     useEffect(() => {
         if (!shared) return;
-        const reload = () => setValue(read(browserStore));
+        const reload = () => setValue(read());
         addEventListener('storage', reload); // fired in the other tabs, never in the one that wrote
         return () => removeEventListener('storage', reload);
     }, [read, shared]);
     const update = (next: T) => {
         setValue(next);
-        write(browserStore, next);
+        write(next);
     };
     return [value, update] as const;
 }
