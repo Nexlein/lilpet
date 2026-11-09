@@ -73,9 +73,10 @@ qu'un PC.
 
 - **M5Stamp S3A, 466 px** (`BOARD=stamp_s3a mise run firmware:deploy`), même processeur que le Waveshare : sans écran
   ni PSRAM, ses bandes de 466 px partent sur des broches non branchées, donc les temps restent réalistes. Elle joue en
-  boucle l'animation de mesure, avec le même look (cherry), la même graine et le même pas fixe de 1/60 s que sur PC,
-  pour dessiner les mêmes images que `mise run engine:bench` : la part redessinée se compare, mais son temps de dessin
-  est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, pour 51 % de l'écran redessiné en
+  boucle l'animation de mesure, avec le même look (cherry), la même graine et le même pas fixe de 1/60 s que sur PC, et
+  chaque tour repart de zéro comme chaque passe sur PC, pour dessiner les mêmes images que `mise run engine:bench`. Sa
+  première image, qui redessine ce que la dernière du tour précédent a laissé, n'est pas comptée. La part redessinée se
+  compare, mais son temps de dessin est celui des deux cœurs, contre un seul sur PC. Mesuré le 8 novembre 2026, pour 51 % de l'écran redessiné en
   moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s ;
   sur les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à
   52 images/s.

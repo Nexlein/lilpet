@@ -33,9 +33,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
-#define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
-#define REPORT_FRAMES LP_BENCH_FRAMES /* a whole round of the benchmark: every report covers the same frames */
+#define BAND_ROWS  30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
+#define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
 /* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
 static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
@@ -163,8 +162,13 @@ void app_main(void)
         const float elapsed = (float)(start - last) * 1e-6f;
         const float dt = elapsed < 0.05f ? elapsed : 0.05f;
         last = start;
-        if (bench)
+        if (bench) {
+            if (f == 0) { /* each round starts over, as each pass of tools/bench.c does: their frames are the same */
+                lp_eyes_init(&eyes, 1);
+                lp_eyes_set_look(&eyes, &LP_BENCH_LOOK);
+            }
             lp_bench_script(&eyes, f);
+        }
         float g[3];
         lp_senses_update(&senses, &eyes, imu_gravity(g) ? g : NULL, board_button_pressed(), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
@@ -189,14 +193,17 @@ void app_main(void)
         display_flush();
         const int64_t frame = esp_timer_get_time() - start;
 
-        stats.frames++;
-        stats.render += render;
-        stats.render_max = render > stats.render_max ? render : stats.render_max;
-        stats.frame += frame;
-        stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
-        stats.area +=
-            (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (BOARD_DISPLAY_SIZE * BOARD_DISPLAY_SIZE);
-        if (stats.frames == REPORT_FRAMES) {
+        /* The first frame of a benchmark round redraws what the last one of the round before left: not the host's */
+        if (!(bench && f == 0)) {
+            stats.frames++;
+            stats.render += render;
+            stats.render_max = render > stats.render_max ? render : stats.render_max;
+            stats.frame += frame;
+            stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
+            if (width > 0 && dirty.y1 > dirty.y0) /* an empty region is {size, size, 0, 0} */
+                stats.area += (int64_t)width * (dirty.y1 - dirty.y0) * 1000 / (BOARD_DISPLAY_SIZE * BOARD_DISPLAY_SIZE);
+        }
+        if (f == LP_BENCH_FRAMES - 1) { /* a whole round of the benchmark: every report covers the same frames */
             const int64_t now = esp_timer_get_time();
             report(now - report_start);
             report_start = now;
