@@ -27,7 +27,7 @@ model that will choose the reactions does not exist yet; what it will send is re
   is `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like JS
   and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A JS test
   sits next to its module, `<module>.test.mjs` (Node) or `<module>.test.ts` (Vitest); the app's browser tests are in
-  `app/tests`, the engine's in `engine/tests`.
+  `app/tests`, the engine's in `engine/tests`, the firmware's pure parts in `firmware/tests` (run with the engine's).
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets: no direct push, no
   force push, no deletion). The rulesets name the required checks by job name: renaming a CI job or adding a board
@@ -49,8 +49,10 @@ model that will choose the reactions does not exist yet; what it will send is re
   silently skips every hook.
 - Never install emsdk through mise: its clang and node shadow the system ones and send ccache into a loop. The
   WebAssembly build runs in the image of `engine/wasm/Dockerfile`, ESP-IDF in the one of `firmware/Dockerfile`.
-- Prettier runs on the files git tracks only (`npm run format`, `format:check`), so the owner's untracked local notes
-  are never touched: keep it that way.
+- The commands that format or fix files (`npm run format`, `lint:fix`, `engine:format`) and the linters run on the
+  files git tracks only, so the owner's untracked local notes are never touched: keep it that way.
+- The pre-commit hook refuses a commit while a data file, a generated table or a script that reads them holds unstaged
+  changes: its checks read the disk. Stage them too, or stash them.
 - The reference renders come from the WebAssembly build: a host build may use FMA and differ by a few pixels. The host
   build uses the system clang and refuses one older than CI's (21).
 - The engine is not thread-safe: the firmware queues the commands for its drawing loop.

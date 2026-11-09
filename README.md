@@ -65,12 +65,12 @@ Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les c
 référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
 - `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
-  (Prettier sur les fichiers suivis par git seulement, pour ne jamais toucher un fichier local non suivi ; ruff pour le
-  Python), linters (oxlint, shellcheck pour les hooks, actionlint
-  pour la CI, ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour
-  (`engine/src/emotions_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` (dont la validation et les
-  générateurs sur des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis
-  types et tests de l'app PC.
+  (Prettier et ruff ; comme les linters et les commandes qui corrigent, sur les fichiers suivis par git seulement, pour
+  ne jamais toucher un fichier local non suivi), linters (oxlint, shellcheck pour les hooks, actionlint pour la CI,
+  ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour (`engine/src/emotions_table.h`,
+  `engine/tests/scenes_table.h`), tests Node de `scripts/` et `engine/wasm/` (dont la validation et les générateurs sur
+  des données cassées), scripts de carte sur un faux port, carte du code (`.claude/codemap.md`), puis types et tests de
+  l'app PC.
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
   clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
   `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
@@ -79,8 +79,9 @@ référence, et les tests Playwright. Pour un changement du firmware, ajouter `m
 - `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
 Avant chaque commit, le hook cherche des secrets dans ce qui est indexé, formate les fichiers indexés, vérifie les
-fichiers générés quand leurs sources changent et régénère la carte du code (`npm run codemap`), qui liste chaque fichier
-avec son rôle, ce qu'il exporte, ce qu'il utilise et qui l'utilise.
+fichiers générés quand leurs sources changent (et refuse ceux qui gardent des changements non indexés) et régénère la
+carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il utilise et qui
+l'utilise.
 
 Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
 
@@ -88,7 +89,8 @@ Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même mac
 mise run engine:bench
 ```
 
-La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte.
+La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte
+et une recherche de secrets dans tout l'historique (le hook ne voit que ce qu'on commite avec lui).
 Tout changement passe par une pull request vers `dev`, la branche par défaut, et n'est mergé qu'avec la CI verte ;
 `main` ne reçoit que des merges de `dev`.
 
@@ -112,7 +114,8 @@ BOARD=atoms3r mise run firmware:deploy
 Elle prend la seule carte branchée, ou celle de `PORT`. Elle refuse une carte qui répond sous un autre nom (`FORCE=1`
 pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche.
 Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
-la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look et son humeur à la fin.
+la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look et son
+humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
 (`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]) :
