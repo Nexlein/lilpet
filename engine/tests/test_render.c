@@ -433,19 +433,19 @@ void test_unknown_pupil_renders_as_a_circle(void)
 
 void test_eyes_off_the_screen_render_nothing(void)
 {
-    /* Half past the edge, all the way past it, too far for an int, wider than the screen; open and closed. The
-     * sanitizers catch any write outside the buffers. */
+    /* Half past the edge, all the way past it, too far for an int, wider than the screen, too big for an int, smaller
+     * than a pixel (lp_eyes_set_shape takes any positive radius); open and closed. The sanitizers catch any write
+     * outside the buffers. */
     const lp_shape deflt = lp_default_shape();
     const lp_shape shapes[] = {
-        {deflt.rx, deflt.ry, 300.0f, deflt.tilt},
-        {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
-        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},
-        {600.0f, 600.0f, deflt.gap, deflt.tilt},
+        {deflt.rx, deflt.ry, 300.0f, deflt.tilt}, {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
+        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},  {600.0f, 600.0f, deflt.gap, deflt.tilt},
+        {1e30f, 1e30f, deflt.gap, deflt.tilt},    {1e-30f, 1e-30f, deflt.gap, deflt.tilt},
     };
     const char *scenes[] = {"look-cherry", "blink-closed"};
     const int sizes[] = {SIZE, 128};
     for (int s = 0; s < 2; s++) {
-        for (int k = 0; k < 4; k++) {
+        for (int k = 0; k < (int)(sizeof shapes / sizeof shapes[0]); k++) {
             for (int i = 0; i < 2; i++) {
                 set_scene(&eyes, scenes[s]);
                 lp_eyes_set_shape(&eyes, &shapes[k]);
