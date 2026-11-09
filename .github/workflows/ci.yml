@@ -56,6 +56,15 @@ jobs:
       - name: Check the engine
         run: mise run engine:check
 
+      # What the engine drew instead of a reference render (scripts/goldens.mjs), to look at
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: goldens-drawn-instead
+          path: engine/build/goldens
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Timings go to the job summary, to follow from commit to commit. Not a pass/fail check: shared runners are
       # too noisy for a time limit. Also runs the tests on the optimized build.
       - name: Benchmark the renderer

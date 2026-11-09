@@ -221,7 +221,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
 - **looks.json** (109) — data
-  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/data.mjs, scripts/goldens.mjs
+  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/data.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -311,7 +311,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← .husky/pre-commit, package.json
 - **data.mjs** (18) — Where the data files are, and the look a scene wears: shared by the scripts that read them (the validator, the table generators, the reference rend...
   - exports: LOOKS, EMOTIONS, SCENES, readJson, swatchesById, lookOf
-  - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/validate-data.mjs
+  - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 - **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
   - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py
@@ -332,14 +332,17 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-scenes-table.mjs** (59) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← package.json
-- **goldens.mjs** (200) — Reference renders of the eyes: the WebAssembly engine draws every reference scene and a short scripted animation, kept as PNG files in engine/tests...
-  - exports: encodePng, decodePng, rgbOf, differingPixels, renders
-  - → engine/wasm/engine.mjs
+- **goldens.mjs** (176) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+  - exports: renders
+  - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
   - ← mise.toml, package.json
+- **png.mjs** (82) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
+  - exports: encodePng, decodePng, rgbOf, differingPixels
+  - ← scripts/goldens.mjs
 - **validate-data.mjs** (180) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors - eyes/emotions.json: em...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← package.json
-- tests: codemap.test.mjs, goldens.test.mjs, test_board_scripts.py
+- tests: codemap.test.mjs, png.test.mjs, test_board_scripts.py
 
 ## tests
 - tests: app.spec.mjs, data.spec.mjs, page-errors.mjs
