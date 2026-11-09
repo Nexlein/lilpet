@@ -160,7 +160,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
 - **internal.h** (72) — Helpers shared by the engine sources.
-  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_pupil_shape, lp_pupils, lp_pupils_get
+  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_pupil_shape, lp_pupils, lp_pupils_get, lp_approach, lp_ease_in, lp_ease_out, lp_minf, lp_maxf, lp_clampf
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/eyes.c, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/senses.c
 - **look.c** (113) — Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB protocol with the PC app (doc...
@@ -179,7 +179,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/src/raster.h
 - **raster.h** (63) — Scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
-  - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
+  - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_line_at, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
 - **render.c** (591) — Renderer: draws the eyes row by row into an RGB565 frame.
@@ -208,6 +208,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: main
   - → engine/tests/scenes_table.h, engine/tools/bench_script.h, engine/include/lilpet/lilpet.h
 - **bench_script.h** (47) — Animation played by the renderer benchmarks, on the host (tools/bench.c) and on the chip (firmware/main/main.c), so their timings compare: one seco...
+  - exports: lp_bench_start, lp_bench_script
   - → engine/include/lilpet/lilpet.h
   - ← engine/tools/bench.c, firmware/main/main.c
 
@@ -279,7 +280,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
 - **dcs.h** (34) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
-  - exports: DCS_NOP, DCS_READ_ID, DCS_SLEEP_OUT, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS
+  - exports: DCS_NOP, DCS_READ_ID, DCS_SLEEP_OUT, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
@@ -294,13 +295,14 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: display_wait_frame
   - → firmware/main/display.h
 - **frame.h** (26) — The arithmetic of a frame on the board (main.c): which rows of a band each core draws, and the share of the screen a frame redraws, for the timing ...
+  - exports: frame_band_half, frame_area_permille
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
 - **imu.h** (16) — Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (board.cmake)
   - exports: imu_init, imu_gravity
   - ← firmware/main/commands.c, firmware/main/imu_bmi270.c, firmware/main/imu_none.c, firmware/main/main.c
 - **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
-  - exports: imu_axis
+  - exports: imu_axis, imu_axes_to_screen
   - ← firmware/main/imu_bmi270.c
 - **imu_bmi270.c** (133) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
@@ -309,10 +311,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
-  - exports: LCD_ID_ANSWER, lcd_id
+  - exports: LCD_ID_ANSWER, lcd_id, lcd_id_match
   - ← firmware/main/display_atoms3r.c
 - **look_saving.h** (43) — When a look just shown is written to flash: at once, then at most every LOOK_SAVE_GAP_US, so that a sender streaming looks (an editor's slider) doe...
-  - exports: LOOK_SAVE_GAP_US, look_save
+  - exports: LOOK_SAVE_GAP_US, look_save, look_same, look_save_plan, look_save_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
@@ -344,7 +346,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: Board, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
-- **codemap.mjs** (648) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
+- **codemap.mjs** (652) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
 - **data.mjs** (28) — Where the data files and the C tables generated from them are, and the look a scene wears: shared by the scripts that read them (the validator, the...

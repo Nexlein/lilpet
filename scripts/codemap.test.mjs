@@ -88,7 +88,20 @@ const char *lp_name(void);
 }
 #endif
 #endif`;
-    assert.deepEqual(cSymbols(header, true), ['LP_SIZE', 'lp_thing', 'lp_callback', 'lp_kind', 'lp_do', 'lp_name']);
+    assert.deepEqual(cSymbols(header, true), [
+        'LP_SIZE',
+        'lp_thing',
+        'lp_callback',
+        'lp_kind',
+        'lp_do',
+        'lp_inline',
+        'lp_name'
+    ]);
+    // A table defined in a header is data, not a function
+    assert.deepEqual(
+        cSymbols('static const int lp_table[2] = {1, 2};\nstatic inline int lp_f(void) { return 1; }', true),
+        ['lp_f']
+    );
     // A macro over several lines is not code
     assert.deepEqual(cSymbols('#define LP_TWICE(x) \\\n    do { x; x; } while (0)\nvoid lp_after(void);\n', true), [
         'LP_TWICE',
