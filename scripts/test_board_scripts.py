@@ -301,11 +301,18 @@ class FirmwareFacts(unittest.TestCase):
             self.assertIn(f'return "{reply.removeprefix("err ")}";', command_c)
 
     def test_the_report_window_holds_a_round_at_the_lowest_rate(self):
-        # LP_BENCH_FRAMES, from the enum of bench_script.h, with the emotion count of eyes/emotions.json
+        # LP_BENCH_FRAMES, from the enum of bench_script.h (sums of products of names and numbers), with the emotion
+        # count of eyes/emotions.json
         known = {"LP_EMOTION_COUNT": len(json.loads((ROOT / "eyes" / "emotions.json").read_text())["emotions"])}
+
+        def value(expression):
+            return sum(
+                math.prod(known[w] if w in known else int(w) for w in t.split("*")) for t in expression.split("+")
+            )
+
         bench = (ROOT / "engine" / "tools" / "bench_script.h").read_text()
-        for name, value in re.findall(r"^\s*(LP_BENCH_\w+) = ([\w\s+*]+?),", bench, re.M):
-            known[name] = eval(value, {"__builtins__": {}}, known)  # names, numbers, + and * only
+        for name, expression in re.findall(r"^\s*(LP_BENCH_\w+) = ([\w\s+*]+?),", bench, re.M):
+            known[name] = value(expression.replace(" ", ""))
         check = (SCRIPTS / "check-device.py").read_text()
         rate = int(re.search(r"^MIN_FRAMES_PER_SECOND = (\d+)", check, re.M).group(1))
         window = int(re.search(r"^REPORT_SECONDS = (\d+)", check, re.M).group(1))
