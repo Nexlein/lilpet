@@ -6,14 +6,14 @@ import { EYE_SHAPE, PUPIL_LEAN, PUPIL_SHAPES, type LookColors, type PupilShape, 
 // The engine's shape (eyes/looks.json), scaled to the 100 x 60 drawing
 const RY = 20;
 const RX = (RY * EYE_SHAPE.rx) / EYE_SHAPE.ry;
-const GAP = (RX * EYE_SHAPE.gap) / EYE_SHAPE.rx; // from the middle to each eye's center
+const GAP = (RY * EYE_SHAPE.gap) / EYE_SHAPE.ry; // from the middle to each eye's center
 const degrees = (rad: number) => (rad * 180) / Math.PI;
 const TILT = degrees(EYE_SHAPE.tilt); // top of each eye outward
 const LEAN = degrees(PUPIL_LEAN); // top of each pupil toward the nose
 
-// A pupil's radii, in fractions of RX and RY: a disc's radius is a fraction of RX for both
-function radii(p: PupilShape): { rx: number; ry: number } {
-    return 'r' in p ? { rx: p.r, ry: (p.r * RX) / RY } : { rx: p.rx, ry: p.ry };
+// A pupil's radii in the drawing: a disc's radius is a fraction of the eye's rx for both
+function radii(p: PupilShape): [number, number] {
+    return 'r' in p ? [p.r * RX, p.r * RX] : [p.rx * RX, p.ry * RY];
 }
 
 interface Props {
@@ -24,21 +24,22 @@ interface Props {
 export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
     const p = PUPIL_SHAPES[pupil];
-    const r = radii(p);
+    const [prx, pry] = radii(p);
     return (
         <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
                 const cx = 50 + side * GAP;
                 const inner = -side;
-                const clip = `${id}-${side}`;
+                const eye = `${id}-eye${side}`;
                 const px = cx + inner * p.x * RX;
                 const py = 30 + p.y * RY;
                 return (
                     <g key={side}>
-                        <clipPath id={clip}>
-                            <ellipse cx={cx} cy={30} rx={RX} ry={RY} transform={`rotate(${side * TILT} ${cx} 30)`} />
+                        <clipPath id={`${eye}-clip`}>
+                            <use href={`#${eye}`} />
                         </clipPath>
                         <ellipse
+                            id={eye}
                             cx={cx}
                             cy={30}
                             rx={RX}
@@ -49,11 +50,11 @@ export function EyeGlyph({ colors, pupil }: Props) {
                         <ellipse
                             cx={px}
                             cy={py}
-                            rx={r.rx * RX}
-                            ry={r.ry * RY}
+                            rx={prx}
+                            ry={pry}
                             fill={colors.pupilColor[side < 0 ? 0 : 1]}
                             transform={`rotate(${inner * LEAN} ${px} ${py})`}
-                            clipPath={`url(#${clip})`}
+                            clipPath={`url(#${eye}-clip)`}
                         />
                     </g>
                 );
