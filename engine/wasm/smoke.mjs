@@ -48,4 +48,23 @@ engine.render();
 engine.setShape({ gap: 400 });
 engine.render();
 
+// The settings kept for the app's future eye editor reach the module: without following, a pointer changes nothing;
+// with the head held still, a pointer moves the eyes but not the face
+const after = (setup) => {
+    engine.init(1);
+    engine.setLook(look);
+    setup();
+    for (let i = 0; i < 64; i++) engine.update(1 / 64);
+    return engine.render();
+};
+const same = (a, b) => a.every((v, i) => v === b[i]);
+const pointer = { x: 1, y: 0 };
+const idle = after(() => {});
+const following = after(() => engine.setPointer(pointer));
+const notFollowing = after(() => (engine.setFollow(false), engine.setPointer(pointer)));
+const headStill = after(() => (engine.setHeadAmount(0), engine.setPointer(pointer)));
+if (same(following, idle)) fail('a pointer does not move the eyes');
+if (!same(notFollowing, idle)) fail('setFollow(false) still follows the pointer');
+if (same(headStill, following) || same(headStill, idle)) fail('setHeadAmount(0) does not hold only the head');
+
 console.log(`WebAssembly engine ${engine.version} OK (${(share * 100).toFixed(1)}% of the frame is eye)`);

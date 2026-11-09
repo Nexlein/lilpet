@@ -4,6 +4,35 @@
 
 #include <math.h>
 
+/* Whether two eyes are at the same point of their animation: every member an update can change, one by one (floats
+ * and padding make a byte comparison unreliable) */
+static bool same_motion(const lp_eyes *a, const lp_eyes *b)
+{
+    bool same = a->rng.state == b->rng.state && a->time == b->time && a->emotion == b->emotion && a->mood == b->mood &&
+                a->emotion_timer == b->emotion_timer && a->burst_wait == b->burst_wait &&
+                a->upside_down == b->upside_down && a->next_saccade == b->next_saccade &&
+                a->next_roll == b->next_roll && a->spin_phase == b->spin_phase && a->next_blink == b->next_blink;
+    same = same && a->cur.tl == b->cur.tl && a->cur.ts == b->cur.ts && a->cur.bl == b->cur.bl &&
+           a->cur.sq == b->cur.sq && a->cur.cr == b->cur.cr && a->cur.rot == b->cur.rot && a->cur.hl == b->cur.hl &&
+           a->cur.ps == b->cur.ps && a->cur.es == b->cur.es && a->cur.gy == b->cur.gy && a->cur.spin == b->cur.spin;
+    same = same && a->gaze.x == b->gaze.x && a->gaze.y == b->gaze.y && a->gaze.tx == b->gaze.tx &&
+           a->gaze.ty == b->gaze.ty && a->gaze.vx == b->gaze.vx && a->gaze.vy == b->gaze.vy &&
+           a->pending_gaze.active == b->pending_gaze.active && a->pending_gaze.x == b->pending_gaze.x &&
+           a->pending_gaze.y == b->pending_gaze.y;
+    same = same && a->head.yaw == b->head.yaw && a->head.pitch == b->head.pitch && a->head.roll == b->head.roll &&
+           a->head.roll_target == b->head.roll_target && a->head.level == b->head.level &&
+           a->blink.phase == b->blink.phase && a->blink.t == b->blink.t && a->blink.hold == b->blink.hold &&
+           a->blink.open == b->blink.open && a->blink.twice == b->blink.twice;
+    same = same && a->particle_count == b->particle_count && a->emit_debt == b->emit_debt;
+    for (int i = 0; same && i < a->particle_count; i++) {
+        const lp_particle *p = &a->particles[i];
+        const lp_particle *q = &b->particles[i];
+        same = p->type == q->type && p->x == q->x && p->y == q->y && p->vy == q->vy && p->sway == q->sway &&
+               p->size == q->size && p->spin == q->spin && p->age == q->age && p->life == q->life;
+    }
+    return same;
+}
+
 void test_unknown_emotion_is_rejected(void)
 {
     CHECK(lp_emotion_from_name("furious") == LP_EMOTION_COUNT);
@@ -225,12 +254,13 @@ void test_bad_input_is_ignored(void)
         }
     }
 
-    const float time = eyes.time;
+    /* A step that is not positive and finite changes nothing at all, not even the random numbers */
+    const lp_eyes before = eyes;
     lp_eyes_update(&eyes, 0.0f);
     lp_eyes_update(&eyes, NAN);
     lp_eyes_update(&eyes, INFINITY);
     lp_eyes_update(&eyes, -1.0f);
-    CHECK(eyes.time == time);
+    CHECK(same_motion(&eyes, &before));
     for (int i = 0; i < 64; i++)
         lp_eyes_update(&eyes, 1.0f / 64.0f);
     CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
@@ -322,9 +352,12 @@ void test_long_step_counts_as_one_second(void)
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    lp_eyes second = eyes;
     lp_eyes_update(&eyes, 1e4f);
+    lp_eyes_update(&second, 1.0f);
     CHECK(eyes.time == 1.0f);
-    CHECK(eyes.particle_count <= 3);
+    CHECK(eyes.particle_count > 0);     /* hearts were owed */
+    CHECK(same_motion(&eyes, &second)); /* the very same as one second */
 }
 
 void test_tap_makes_it_happy_for_a_moment(void)

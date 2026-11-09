@@ -214,7 +214,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **smoke.mjs** (51) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
+- **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 
 ## eyes
