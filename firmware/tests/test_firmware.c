@@ -2,6 +2,7 @@
  */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
+#include "../main/frame.h"
 #include "../main/imu_axes.h"
 #include "../main/lcd_id.h"
 #include "../main/look_saving.h"
@@ -59,4 +60,18 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     CHECK(!look_save_due(true, 1999999, 0, gap));
     CHECK(look_save_due(true, 2000000, 0, gap));
     CHECK(!look_save_due(false, 9000000, 0, gap));
+}
+
+void test_frame_splits_bands_and_measures_the_redrawn_share(void)
+{
+    /* Each core draws half of a band, the second core the row left over when they are odd */
+    for (int rows = 1; rows <= 30; rows++) {
+        const int first = frame_band_half(100, 100 + rows) - 100;
+        const int second = rows - first;
+        CHECK(first >= 0 && second - first >= 0 && second - first <= 1);
+    }
+    CHECK(frame_area_permille((lp_rect){466, 466, 0, 0}, 466) == 0); /* empty: not a whole screen */
+    CHECK(frame_area_permille((lp_rect){0, 0, 466, 466}, 466) == 1000);
+    CHECK(frame_area_permille((lp_rect){0, 0, 233, 466}, 466) == 500);
+    CHECK(frame_area_permille((lp_rect){0, 0, 64, 128}, 128) == 500);
 }

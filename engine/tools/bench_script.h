@@ -14,6 +14,13 @@
 /* The look the benchmark's eyes wear on both, as its pupil type changes what is drawn: cherry with a dot pupil */
 static const lp_look LP_BENCH_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
 
+/* Each pass starts from the same eyes: seed 1 and the benchmark's look */
+static inline void lp_bench_start(lp_eyes *eyes)
+{
+    lp_eyes_init(eyes, 1);
+    lp_eyes_set_look(eyes, &LP_BENCH_LOOK);
+}
+
 enum {
     LP_BENCH_FPS = 60,
     LP_BENCH_LOVE = LP_EMOTION_COUNT * LP_BENCH_FPS,  /* first frame of love held */
