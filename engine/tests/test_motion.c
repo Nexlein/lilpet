@@ -45,12 +45,12 @@ void test_tilt_holds_upside_down_on_noise(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_head_amount(&eyes, 0.0f); /* no idle roll: only the tilt turns the face */
     float max_step = 0.0f;
-    for (int i = 0; i < 640; i++) {
+    for (int i = 0; i < (int)(10.0f / LP_TEST_STEP); i++) {
         lp_eyes_set_gravity(&eyes, true, i % 2 ? 0.02f : -0.02f, -0.5f);
         const float before = eyes.head.roll;
         lp_eyes_update(&eyes, LP_TEST_STEP);
         const float step = fabsf(remainderf(eyes.head.roll - before, FULL_TURN));
-        if (i >= 320 && step > max_step)
+        if (i >= (int)(5.0f / LP_TEST_STEP) && step > max_step) /* once settled */
             max_step = step;
     }
     CHECK(fabsf(eyes.head.roll) > 3.0f); /* level, half a turn from the screen's upright */
@@ -177,8 +177,8 @@ void test_shake_is_told_from_tilt_and_knocks(void)
 {
     const float dt = LP_TEST_STEP;
     lp_shake shake = {0};
-    /* At rest, then turned slowly: always 1 g, never shaken */
-    for (int i = 0; i < 640; i++) {
+    /* At rest, then turned slowly for 10 s: always 1 g, never shaken */
+    for (int i = 0; i < (int)(10.0f / dt); i++) {
         const float a = (float)i * 0.01f;
         CHECK(!lp_shake_update(&shake, sinf(a), cosf(a), 0.0f, dt));
     }
@@ -266,12 +266,12 @@ void test_shake_makes_it_dizzy_then_calm(void)
     float max_x = -1.0f;
     float min_y = 1.0f;
     float max_y = -1.0f;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < (int)(1.0f / LP_TEST_STEP); i++) {
         lp_eyes_update(&eyes, LP_TEST_STEP);
-        min_x = eyes.gaze.x < min_x ? eyes.gaze.x : min_x;
-        max_x = eyes.gaze.x > max_x ? eyes.gaze.x : max_x;
-        min_y = eyes.gaze.y < min_y ? eyes.gaze.y : min_y;
-        max_y = eyes.gaze.y > max_y ? eyes.gaze.y : max_y;
+        min_x = lp_minf(min_x, eyes.gaze.x);
+        max_x = lp_maxf(max_x, eyes.gaze.x);
+        min_y = lp_minf(min_y, eyes.gaze.y);
+        max_y = lp_maxf(max_y, eyes.gaze.y);
     }
     CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
     CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */

@@ -317,18 +317,18 @@ void test_scene_starts_over(void)
 void test_clock_keeps_running_for_days(void)
 {
     /* A float clock left growing stops after about 6 days at 60 frames/s: the engine winds it back, with its deadlines.
-     * 20 minutes at 64 frames/s cross the wrap; the eyes keep blinking at their usual rate after it. */
+     * 20 minutes of LP_TEST_STEP steps cross the wrap; the eyes keep blinking at their usual rate after it. */
     lp_eyes eyes;
     lp_eyes_init(&eyes, 4);
     int blinks = 0;
     float wound_back = 0.0f;
-    for (int i = 0; i < 20 * 60 * 64; i++) {
+    for (int i = 0; i < (int)(20.0f * 60.0f / LP_TEST_STEP); i++) {
         const bool open = eyes.blink.phase == LP_BLINK_NONE;
         const float before = eyes.time;
         lp_eyes_update(&eyes, LP_TEST_STEP);
         if (eyes.time < before)
             wound_back = before + LP_TEST_STEP - eyes.time;
-        if (i >= 19 * 60 * 64 && open && eyes.blink.phase != LP_BLINK_NONE)
+        if (i >= (int)(19.0f * 60.0f / LP_TEST_STEP) && open && eyes.blink.phase != LP_BLINK_NONE)
             blinks++;
     }
     CHECK(eyes.time < 600.0f); /* wound back once */

@@ -1,3 +1,4 @@
+/* Senses: the motion sensor's samples, the button and the face a camera sees, turned into what the eyes do */
 #include "lilpet/lilpet.h"
 #include "test.h"
 
