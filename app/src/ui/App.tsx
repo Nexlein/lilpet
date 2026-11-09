@@ -1,6 +1,6 @@
 // lilpet PC app: pick the eyes, see them live, send them to the device
 import type { CSSProperties } from 'react';
-import { DEFAULT_LOOK, findSwatch, inkOn, type LookColors, type PupilType } from '../data/looks';
+import { DEFAULT_LOOK, findSwatch, inkOn, type LookColors } from '../data/looks';
 import { loadCurrent, loadFavorites, lookKey, saveCurrent, saveFavorites, type LookChoice } from '../data/favorites';
 import { DeviceBar } from './DeviceBar';
 import { DeviceLog } from './DeviceLog';
@@ -39,18 +39,13 @@ export function App() {
                     choice={choice}
                     favorite={favorites.includes(key)}
                     device={device.state}
-                    onPupil={(p: PupilType) => setChoice({ swatch, pupil: p })}
+                    onPupil={(p) => setChoice({ swatch, pupil: p })}
                     onFavorite={toggleFavorite}
                     onSend={device.send}
                     onEmotion={device.emotion}
                     onPet={() => device.react('tap')}
                 />
-                <Gallery
-                    swatch={swatch}
-                    pupil={pupil}
-                    favorites={favorites}
-                    onPick={(s, p) => setChoice({ swatch: s, pupil: p ?? pupil })}
-                />
+                <Gallery swatch={swatch} pupil={pupil} favorites={favorites} onPick={setChoice} />
             </main>
 
             {(device.state.status === 'connected' || device.log.length > 0) && <DeviceLog lines={device.log} />}

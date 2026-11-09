@@ -75,7 +75,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: preview.test.ts
 
 ## app/src/ui
-- **App.tsx** (59) — lilpet PC app: pick the eyes, see them live, send them to the device
+- **App.tsx** (54) — lilpet PC app: pick the eyes, see them live, send them to the device
   - exports: App
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
