@@ -1,6 +1,7 @@
 /* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses; the reference scenes */
 #include "lilpet/render_state.h" /* first: it compiles on its own */
 
+#include "../src/internal.h"
 #include "../src/raster.h"
 #include "lilpet/lilpet.h"
 #include "scenes_table.h"

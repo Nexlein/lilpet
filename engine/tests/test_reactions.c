@@ -1,4 +1,5 @@
 /* Emotions and reactions: the mood, emotions for a while, reactions and their bursts of sparkles, particles */
+#include "../src/internal.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
 

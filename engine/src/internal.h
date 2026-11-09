@@ -16,6 +16,43 @@
 /* Emitter debt often sums to exactly 1, which rounding can leave just below: the margin still emits on time */
 #define LP_EMIT_EPSILON 1e-4f
 
+/* --- Shared by the engine's sources and tests, not by its users (lilpet.h is what they see) ------------------ */
+
+void lp_rng_seed(lp_rng *rng, uint32_t seed);
+/* Uniform in [0, 1), 24-bit resolution: exact in float, the same values on every platform */
+float lp_rng_next(lp_rng *rng);
+
+/* Emotion from its name; LP_EMOTION_COUNT when unknown */
+lp_emotion lp_emotion_from_name(const char *name);
+/* Event from its name; LP_EVENT_COUNT when unknown */
+lp_event lp_event_from_name(const char *name);
+
+/* Default shape, measured on the original (see docs/yeux.md), from eyes/looks.json */
+lp_shape lp_default_shape(void);
+
+/* Adds one particle; dropped when the pool is full (random numbers are still drawn, to keep the sequence) */
+void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
+
+/* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
+bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
+
+/* Derived geometry, used by the renderer */
+typedef struct {
+    float lid;    /* blink lid closure, 0 open, 1 shut */
+    float sx, sy; /* eye scale */
+    bool closed;  /* draw the closed-eye stroke instead of the eye */
+} lp_blink_pose;
+
+typedef struct {
+    float x, y;   /* eye center on screen */
+    float persp;  /* perspective scale, 1 at rest */
+    float fx, fy; /* foreshortening */
+} lp_eye_pose;
+
+lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes);
+/* side: -1 left eye, +1 right eye */
+lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
+
 /* A pupil type's name and shape before the emotion scales it (render.c), in fractions of the eye's radii: radii, and
  * resting position, x toward the nose and y down. From eyes/looks.json (looks_table.h). */
 typedef struct {

@@ -32,10 +32,6 @@ typedef struct {
     uint32_t state;
 } lp_rng;
 
-void lp_rng_seed(lp_rng *rng, uint32_t seed);
-/* Uniform in [0, 1), 24-bit resolution: exact in float, the same values on every platform */
-float lp_rng_next(lp_rng *rng);
-
 /* --- Looks -------------------------------------------------------------------------------------- */
 
 /* Official pupil names (docs/yeux.md) */
@@ -94,8 +90,6 @@ typedef struct {
 
 /* Definition of an emotion; NULL when out of range */
 const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
-/* Emotion from its name; LP_EMOTION_COUNT when unknown */
-lp_emotion lp_emotion_from_name(const char *name);
 
 /* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (docs/materiel.md) */
 typedef enum {
@@ -125,8 +119,6 @@ typedef struct {
 
 /* Reaction to an event; NULL when the event is unknown */
 const lp_reaction *lp_reaction_get(lp_event event);
-/* Event from its name; LP_EVENT_COUNT when unknown */
-lp_event lp_event_from_name(const char *name);
 
 /* --- Eyes state --------------------------------------------------------------------------------- */
 
@@ -208,9 +200,6 @@ typedef struct {
     float emit_debt; /* fractional particles owed by the current emitter */
 } lp_eyes;
 
-/* Default shape, measured on the original (see docs/yeux.md), from eyes/looks.json */
-lp_shape lp_default_shape(void);
-
 void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
 void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look);
 /* duration > 0: back to the mood after that many seconds; 0: the new mood */
@@ -221,8 +210,6 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration);
 void lp_eyes_react(lp_eyes *eyes, lp_event event);
 /* Starts a blink, unless one is running */
 void lp_eyes_blink(lp_eyes *eyes);
-/* Adds one particle; dropped when the pool is full (random numbers are still drawn, to keep the sequence) */
-void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
 /* Pointer (face position) in -1..1, or inactive */
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
 /* Gravity from an accelerometer, in the screen plane (x right, y down, in g), or inactive without one */
@@ -248,9 +235,6 @@ typedef struct {
     float strong; /* seconds of strong motion, before it counts as a shake */
     bool active;  /* being shaken */
 } lp_shake;
-
-/* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
-bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
 /* --- What the object senses ----------------------------------------------------------------------- */
 
@@ -342,24 +326,6 @@ typedef struct {
  * particles replayed from their seed. A scene with an unknown emotion or blink phase, a value that is not finite, or
  * a particle_time outside 0 to 60 seconds, is ignored. */
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look);
-
-/* --- Derived geometry, used by the renderer ----------------------------------------------------- */
-
-typedef struct {
-    float lid;    /* blink lid closure, 0 open, 1 shut */
-    float sx, sy; /* eye scale */
-    bool closed;  /* draw the closed-eye stroke instead of the eye */
-} lp_blink_pose;
-
-typedef struct {
-    float x, y;   /* eye center on screen */
-    float persp;  /* perspective scale, 1 at rest */
-    float fx, fy; /* foreshortening */
-} lp_eye_pose;
-
-lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes);
-/* side: -1 left eye, +1 right eye */
-lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
 
 /* --- Rendering into an RGB565 frame ------------------------------------------------------------- */
 

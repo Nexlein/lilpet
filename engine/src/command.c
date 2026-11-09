@@ -1,4 +1,5 @@
 /* Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link */
+#include "internal.h"
 #include "lilpet/lilpet.h"
 #include "looks_table.h"
 
