@@ -83,7 +83,7 @@ static void bench_scenes(void)
     printf("| --- | ---: | ---: | ---: |\n");
     const int count = (int)(sizeof SCENES / sizeof SCENES[0]);
     for (int i = 0; i < count; i++) {
-        lp_eyes_set_scene(&eyes, &SCENES[i].scene, &SCENE_LOOKS[SCENES[i].look_index]);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, SCENES[i].look);
         int64_t whole[RUNS];
         int64_t still[RUNS];
         lp_rect region = {0, 0, 0, 0};

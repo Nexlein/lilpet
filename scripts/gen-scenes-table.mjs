@@ -35,7 +35,7 @@ for (const scene of firstWearers) {
 lines.push(
     '};',
     '',
-    'typedef struct { const char *id; int look_index; lp_scene scene; } reference_scene; /* look_index: in SCENE_LOOKS */',
+    'typedef struct { const char *id; const lp_look *look; lp_scene scene; } reference_scene; /* look: in SCENE_LOOKS */',
     `static const reference_scene SCENES[${scenes.length}] = {`
 );
 for (const scene of scenes) {
@@ -52,7 +52,7 @@ for (const scene of scenes) {
         `${scene.particles?.seed ?? 0}u`,
         num(scene.particles?.time ?? 0)
     ];
-    lines.push(`    {"${scene.id}", ${lookIndex.get(lookKey(scene))}, {${fields.join(', ')}}},`);
+    lines.push(`    {"${scene.id}", &SCENE_LOOKS[${lookIndex.get(lookKey(scene))}], {${fields.join(', ')}}},`);
 }
 lines.push('};', '', '#endif /* LILPET_SCENES_TABLE_H */', '');
 
