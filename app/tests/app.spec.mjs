@@ -239,6 +239,7 @@ test("two tabs keep each other's favorites", async ({ page, context }) => {
     await other.goto(APP);
     await chip(page, 'socks').click();
     await page.locator('.favorite').click();
+    await expect(other.locator('.favorites .chip')).toHaveText(['socks point']); // told by the first tab
     await chip(other, 'kite').click();
     await other.locator('.favorite').click();
     await page.reload();
