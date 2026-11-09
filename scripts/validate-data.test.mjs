@@ -25,6 +25,7 @@ async function withCopy(use) {
             'scripts',
             'eyes',
             'engine/wasm/engine.mjs',
+            'engine/include/lilpet/screen.h',
             SCENES,
             ...Object.keys(GENERATORS)
         ])

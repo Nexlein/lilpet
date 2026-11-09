@@ -15,7 +15,11 @@ const HEX = /^#[0-9A-Fa-f]{6}$/;
 const ID = /^[a-z0-9-]+$/; // ends up in a C string and in a file name (engine/tests/goldens)
 const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
-const HALF_SCREEN = 233; // LP_SCREEN_SIZE / 2: the biggest eye radius and gap the drawing is made for
+// From the engine's screen.h: the biggest eye radius and gap the drawing is made for, and the particles it shows
+const SCREEN_H = readFileSync('engine/include/lilpet/screen.h', 'utf8');
+const screenDefine = (name) => Number(new RegExp(`#define ${name}\\s+(\\d+)`).exec(SCREEN_H)[1]);
+const HALF_SCREEN = screenDefine('LP_SCREEN_SIZE') / 2;
+const MAX_SPARKLES = screenDefine('LP_MAX_PARTICLES');
 const MEASURED_TILT = 0.37; // radians: the emotions' turns were tuned for it (docs/architecture.md)
 const errors = [];
 const isHex = (v) => typeof v === 'string' && HEX.test(v);
@@ -117,7 +121,6 @@ eachRow(LOOKS, looks?.pupils, 'pupils', PUPILS, ['rx', 'ry', 'r', 'x', 'y'], (pu
 const emotionData = load(EMOTIONS);
 const emotions = emotionData?.emotions ?? {};
 const EMIT_TYPES = ['heart', 'sparkle'];
-const MAX_SPARKLES = 32; // LP_MAX_PARTICLES
 const HELD = ['shake', 'upside_down']; // they repeat every frame while their cause lasts
 eachRow(
     EMOTIONS,

@@ -6,7 +6,7 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (43) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
+- **.lintstagedrc.mjs** (45) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
   - exports: default
   - → scripts/data.mjs, scripts/files.mjs
 
@@ -388,7 +388,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **tables.mjs** (11) — Runs every table generator of scripts/data.mjs (npm run tables), each in its own process, so that a fault in one data file never stops the tables o...
   - → scripts/data.mjs
   - ← .lintstagedrc.mjs, package.json
-- **validate-data.mjs** (205) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
+- **validate-data.mjs** (208) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
 - tests: codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs

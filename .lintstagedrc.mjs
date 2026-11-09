@@ -8,7 +8,8 @@ import { GROUPS } from './scripts/files.mjs';
 const anyOf = (globs) => (globs.length === 1 ? globs[0] : `{${globs.join(',')}}`);
 
 // The data files, the tables generated from them and their generators (scripts/data.mjs), and the scripts they use. The
-// validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs).
+// validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs) and its screen limits
+// (screen.h).
 const DATA = [
     LOOKS,
     EMOTIONS,
@@ -20,7 +21,8 @@ const DATA = [
     'scripts/expression.mjs',
     'scripts/data.mjs',
     'scripts/validate-data.mjs',
-    'engine/wasm/engine.mjs'
+    'engine/wasm/engine.mjs',
+    'engine/include/lilpet/screen.h'
 ];
 
 export default {
