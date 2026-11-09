@@ -267,11 +267,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **board.c** (110) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
+- **board.c** (81) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h
-- **board.h** (32) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
+- **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 - **commands.c** (167) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
@@ -286,7 +286,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (211) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (238) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
 - **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.

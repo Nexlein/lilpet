@@ -1,8 +1,9 @@
 /*
  * Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack
  * changed it in 2026), told apart by their ID. Init sequences, offsets, orientation and color inversion come from
- * M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes), like the board's pins and backlight
- * (boards/atoms3r/board_config.h, board.c). No TE signal: display_paced.c paces the frames.
+ * M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes), like the board's pins
+ * (boards/atoms3r/board_config.h) and the backlight, driven here over I2C. No TE signal: display_paced.c paces the
+ * frames.
  */
 #include "board.h"
 #include "board_config.h"
@@ -100,6 +101,7 @@ static const panel GC9107 = {"AtomS3R LCD (GC9107)", 0, 32, 0x08u, false, STEPS(
 
 static const panel *chip = &GC9107;
 static esp_lcd_panel_io_handle_t io;
+static i2c_master_dev_handle_t backlight;
 
 static void send(uint8_t cmd, const uint8_t *params, size_t len)
 {
@@ -140,6 +142,31 @@ static const panel *detect(char *raw, size_t raw_size)
     default:
         return NULL;
     }
+}
+
+#define BRIGHTNESS 160u /* out of 255 */
+
+static void set_backlight(uint8_t reg, uint8_t value)
+{
+    const uint8_t bytes[2] = {reg, value};
+    if (backlight && i2c_master_transmit(backlight, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
+        printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
+}
+
+/* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
+static void backlight_on(void)
+{
+    backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR); /* the bus is shared with the motion sensor */
+    if (!backlight) {
+        printf("backlight: cannot reach its driver on the I2C bus\n");
+        return;
+    }
+    /* Register writes of M5GFX's Light_M5StackAtomS3R */
+    set_backlight(0x00u, 0x40u); /* chip enabled */
+    vTaskDelay(pdMS_TO_TICKS(1));
+    set_backlight(0x08u, 0x01u); /* internal clock */
+    set_backlight(0x70u, 0x00u); /* outputs driven by the brightness registers */
+    set_backlight(0x0Eu, BRIGHTNESS);
 }
 
 const char *display_init(size_t max_band_bytes)
@@ -189,7 +216,7 @@ const char *display_init(size_t max_band_bytes)
     send(chip->invert ? DCS_INVERT_ON : DCS_INVERT_OFF, NULL, 0);
     send(DCS_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
     send(DCS_ORIENTATION, &chip->orientation, 1);
-    board_backlight_on();
+    backlight_on();
     return chip->name;
 }
 
