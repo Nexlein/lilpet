@@ -129,12 +129,11 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 ## Arborescence
 
-| Dossier     | Contenu                                                                                  |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| `notes/`    | Notes de recherche, matériel, architecture, yeux                                         |
-| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                    |
-| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
-| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
-| `app/`      | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB       |
-| `scripts/`  | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
-| `tests/`    | Tests Playwright de l'app PC                                                             |
+| Dossier     | Contenu                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `notes/`    | Notes de recherche, matériel, architecture, yeux                                                          |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                                     |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                                  |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures                  |
+| `app/`      | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB ; ses tests Playwright |
+| `scripts/`  | Validation des données, fichiers générés, contrôle d'une carte branchée                                   |

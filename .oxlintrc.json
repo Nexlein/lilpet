@@ -15,7 +15,13 @@
     },
     "overrides": [
         {
-            "files": ["scripts/**", "engine/**/*.mjs", "tests/**", "playwright.config.mjs", "app/vite.config.mjs"],
+            "files": [
+                "scripts/**",
+                "engine/**/*.mjs",
+                "app/tests/**",
+                "app/playwright.config.mjs",
+                "app/vite.config.mjs"
+            ],
             "env": {
                 "node": true
             }

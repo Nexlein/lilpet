@@ -10,7 +10,7 @@ export function firmware(): (command: string) => string | null {
     };
 }
 
-// Stands alone, using nothing from around it: tests/app.spec.mjs sends its text to the page, for the browser tests
+// Stands alone, using nothing from around it: app/tests/app.spec.mjs sends its text to the page, for the browser tests
 // atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
 export function fakePort(
     answer: (command: string) => string | null,

@@ -159,7 +159,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --only-shell chromium
 
-      # Builds the PC app first: it ships the engine it was built with, and tests/app.spec.mjs opens this build
+      # Builds the PC app first: it ships the engine it was built with, and app/tests/app.spec.mjs opens this build
       - name: Open the PC app with a fake board
         run: npm run test:playwright
 
@@ -167,5 +167,5 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: playwright-report
+          path: app/playwright-report
           retention-days: 7

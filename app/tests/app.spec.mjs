@@ -3,9 +3,9 @@
 // in CI if the build is missing.
 import { existsSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
-import { fakePort } from '../app/src/device/fake-port.ts';
+import { fakePort } from '../src/device/fake-port.ts';
 
-const APP = '/app/dist/index.html';
+const APP = '/dist/index.html'; // served from app/ (playwright.config.mjs)
 
 // What a page reports as an error: tests end by expecting none
 function collectErrors(page) {
@@ -27,7 +27,10 @@ const test = base.extend({
     ]
 });
 
-test.skip(!existsSync('app/dist/index.html') && !process.env.CI, 'build the app first: npm run app:build');
+test.skip(
+    !existsSync(new URL('../dist/index.html', import.meta.url)) && !process.env.CI,
+    'build the app first: npm run app:build'
+);
 
 // What the fake board answers to hello, as the firmware does (main/commands.c)
 const HELLO = 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1';

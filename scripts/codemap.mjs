@@ -401,7 +401,7 @@ export function usesOf(file, src, kind, repo) {
 
 // Files that run or read other files by naming them: scripts in tasks and hooks, data read by the code
 const MENTION_SOURCES =
-    /^(package\.json|app\/package\.json|mise\.toml|\.lintstagedrc[^/]*|playwright\.config\.mjs)$|^\.github\/workflows\/|^\.husky\/[^/.]+$/;
+    /^(package\.json|app\/package\.json|mise\.toml|\.lintstagedrc[^/]*|app\/playwright\.config\.mjs)$|^\.github\/workflows\/|^\.husky\/[^/.]+$/;
 
 function mentionTargets(files, kinds) {
     return files.filter(

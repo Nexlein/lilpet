@@ -8,9 +8,6 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## (root)
 - **.lintstagedrc.mjs** (28) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
-- **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium.
-  - exports: default
-  - packages: @playwright/test
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
@@ -21,6 +18,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## app
 - **index.html** (13) — Page of the PC app (Vite builds it): the app mounts into #root from src/main.tsx
   - → app/src/main.tsx
+- **playwright.config.mjs** (16) — Browser tests of the PC app: its build (npm run app:build) with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium.
+  - exports: default
+  - packages: @playwright/test
 - **vite.config.mjs** (42) — PC app: React + Vite.
   - exports: default
   - → built: engine/build/wasm/
@@ -123,6 +123,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **styles.css** (557) — lilpet app.
   - ← app/src/main.tsx
 
+## app/tests
+- tests: app.spec.mjs
+
 ## engine
 - **CMakeLists.txt** (52) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
   - → engine/sources.cmake
@@ -221,7 +224,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
 - **looks.json** (109) — data
-  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/data.mjs
+  - ← app/src/data/looks.ts, scripts/data.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -346,9 +349,6 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← package.json
 - tests: codemap.test.mjs, data.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py
 
-## tests
-- tests: app.spec.mjs
-
 ## Commands
 
 mise (`mise run <task>`):
@@ -373,6 +373,7 @@ npm (`npm run <script>`, workspace app):
 - `dev`: `vite`
 - `build`: `tsc && vite build`
 - `test`: `vitest run`
+- `test:playwright`: `playwright test`
 
 npm (`npm run <script>`):
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
@@ -390,7 +391,7 @@ npm (`npm run <script>`):
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`
 - `tables`: `node scripts/gen-emotions-table.mjs && node scripts/gen-scenes-table.mjs`
-- `test:playwright`: `npm run app:build && playwright test`
+- `test:playwright`: `npm run app:build && npm run test:playwright -w app`
 - `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:tables && npm run check:scripts && npm run check:codemap && npm run check:app`
 - `prepare`: `husky`
 - `app:dev`: `npm run dev -w app`
@@ -401,6 +402,7 @@ npm (`npm run <script>`):
 ## npm packages
 
 - `@fontsource-variable/bricolage-grotesque` (app/package.json) — imported by 1 file
+- `@playwright/test` (app/package.json) — imported by 2 files, named in scripts or config
 - `@types/react` (app/package.json) — types for TypeScript
 - `@types/react-dom` (app/package.json) — types for TypeScript
 - `@vitejs/plugin-react` (app/package.json) — imported by 1 file, named in scripts or config
@@ -409,7 +411,6 @@ npm (`npm run <script>`):
 - `typescript` (app/package.json) — named in scripts or config
 - `vite` (app/package.json) — named in scripts or config
 - `vitest` (app/package.json) — imported by 5 files, named in scripts or config
-- `@playwright/test` (package.json) — imported by 2 files, named in scripts or config
 - `husky` (package.json) — named in scripts or config
 - `lint-staged` (package.json) — named in scripts or config
 - `oxlint` (package.json) — named in scripts or config

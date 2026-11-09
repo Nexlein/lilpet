@@ -70,13 +70,14 @@ open only the files it points to. Below, the parts and how they fit.
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
   connection and text protocol of `notes/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
   `protocol.ts` reads a reply once into a typed result (`parseReply`); `session.ts` is the connect / send / unplug state
-  machine, tested with the fake board of `fake-port.ts`, which stands alone: `tests/app.spec.mjs` sends its text to the
-  page),
+  machine, tested with the fake board of `fake-port.ts`, which stands alone: `app/tests/app.spec.mjs` sends its text
+  to the page),
   `src/engine` (live preview with the WebAssembly engine), `src/ui` (React; only this part and `main.tsx` may import it,
   a lint rule checks it; `SendPanel` owns the state of a send). Picking a mood or petting also reaches the board, and
   the last mood goes again after `hello`. The
   engine build is served and bundled from `engine/build/wasm` by a plugin in `vite.config.mjs`. Vitest tests next to
-  the code (`*.test.ts`); `tests/app.spec.mjs` opens the built app in Playwright, with a fake `navigator.serial`.
+  the code (`*.test.ts`); `app/tests/app.spec.mjs` opens the built app in Playwright (`app/playwright.config.mjs`), with a
+  fake `navigator.serial`.
 - `firmware/` — ESP-IDF app for the ESP32-S3, one image per board (`atoms3r`, `waveshare_132`, `stamp_s3a`), chosen at
   build time. A board is one folder, nothing else to touch: `boards/<board>/board.cmake` lists its parts and
   `board_config.h` its pins, mounting, display size and chip package, an optional `sdkconfig.defaults` its own ESP-IDF
