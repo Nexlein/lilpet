@@ -101,7 +101,6 @@ static const panel GC9107 = {"AtomS3R LCD (GC9107)", 0, 32, 0x08u, false, STEPS(
 
 static const panel *chip;
 static esp_lcd_panel_io_handle_t io;
-static i2c_master_dev_handle_t backlight;
 
 static void send(uint8_t cmd, const uint8_t *params, size_t len)
 {
@@ -147,27 +146,28 @@ static const panel *detect(void)
 
 #define BRIGHTNESS 160u /* out of 255 */
 
-static void set_backlight(uint8_t reg, uint8_t value)
+static void set_backlight(i2c_master_dev_handle_t backlight, uint8_t reg, uint8_t value)
 {
     const uint8_t bytes[2] = {reg, value};
-    if (backlight && i2c_master_transmit(backlight, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
+    if (i2c_master_transmit(backlight, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
         printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
 }
 
 /* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
 static void backlight_on(void)
 {
-    backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR); /* the bus is shared with the motion sensor */
+    /* On the I2C bus it shares with the motion sensor */
+    const i2c_master_dev_handle_t backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR);
     if (!backlight) {
         printf("backlight: cannot reach its driver on the I2C bus\n");
         return;
     }
     /* Register writes of M5GFX's Light_M5StackAtomS3R */
-    set_backlight(0x00u, 0x40u); /* chip enabled */
+    set_backlight(backlight, 0x00u, 0x40u); /* chip enabled */
     vTaskDelay(pdMS_TO_TICKS(1));
-    set_backlight(0x08u, 0x01u); /* internal clock */
-    set_backlight(0x70u, 0x00u); /* outputs driven by the brightness registers */
-    set_backlight(0x0Eu, BRIGHTNESS);
+    set_backlight(backlight, 0x08u, 0x01u); /* internal clock */
+    set_backlight(backlight, 0x70u, 0x00u); /* outputs driven by the brightness registers */
+    set_backlight(backlight, 0x0Eu, BRIGHTNESS);
 }
 
 const char *display_init(size_t max_band_bytes)
