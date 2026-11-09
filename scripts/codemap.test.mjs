@@ -20,6 +20,7 @@ import {
     miseTasks,
     purposeOf,
     repository,
+    scanJs,
     usesOf
 } from './codemap.mjs';
 
@@ -94,9 +95,11 @@ void lp_do(lp_thing *t, int n)
 {
     if (n) { helper(); }
 }
-const char *lp_name(void) { return "a{b"; }
+const char *lp_name(void) { return "a{b // not a comment /* nor this"; }
+/* it's a comment: void fake(void) { } */
+char lp_quote(void) { return '}'; }
 static const int TABLE[] = {1, 2};`;
-    assert.deepEqual(cSymbols(source, false), ['lp_do', 'lp_name']);
+    assert.deepEqual(cSymbols(source, false), ['lp_do', 'lp_name', 'lp_quote']);
 });
 
 test('lists the exports and the imports of a JS or TS module', () => {
@@ -162,7 +165,7 @@ import wasm from '../../engine/build/wasm/lilpet.mjs';`,
     assert.deepEqual(js.built, ['engine/build/wasm/lilpet.mjs']);
     const c = usesOf(
         'firmware/main/main.c',
-        '#include "lilpet/lilpet.h"\n#include "board_config.h"\n#include "esp_timer.h"\n#include <stdio.h>',
+        '#include "lilpet/lilpet.h"\n#include "board_config.h"\n#include "esp_timer.h"\n#include <stdio.h>\n/*\n#include "engine/src/eyes.c"\n*/',
         'c',
         repo
     );
@@ -175,6 +178,21 @@ import wasm from '../../engine/build/wasm/lilpet.mjs';`,
     // Two boards out of three: no `*`, which would claim every board
     const three = [...files, 'firmware/boards/three/board_config.h'];
     assert.deepEqual(collapse(c.local, three), c.local);
+});
+
+test('reads JS past templates, regular expressions and divisions', () => {
+    const src = [
+        'const fixture = `',
+        "import { fake } from './fixture-only';",
+        "${`nested ${'}'} template`}`;",
+        'const re = /[`\'"]\\/x/g; // a backtick and quotes in a regular expression',
+        'const half = total / 2 / 1;',
+        "import { real } from './real';",
+        'export const after = 1;'
+    ].join('\n');
+    assert.deepEqual(jsSpecifiers(src), ['./real']);
+    assert.deepEqual(jsExports(src), ['after']);
+    assert.equal(scanJs(src).split('\n').length, src.split('\n').length, 'every line keeps its place');
 });
 
 test('reads the visible mise tasks with their description', () => {

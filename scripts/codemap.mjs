@@ -64,10 +64,117 @@ function leadingComments(src, kind) {
     }
 }
 
+/**
+ * C read character by character: comments become spaces (line breaks kept), and with `strings` false the contents of
+ * string and character literals go too, so that neither a `//` in a string nor a quote in a comment misleads.
+ */
+function scanC(src, strings) {
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+        const two = src.slice(i, i + 2);
+        if (two === '/*') {
+            const end = src.indexOf('*/', i + 2);
+            const stop = end < 0 ? src.length : end + 2;
+            out += src.slice(i, stop).replace(/[^\n]/g, ' ');
+            i = stop;
+        } else if (two === '//') {
+            const end = src.indexOf('\n', i);
+            i = end < 0 ? src.length : end;
+        } else if (src[i] === '"' || src[i] === "'") {
+            let j = i + 1;
+            while (j < src.length && src[j] !== src[i] && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+            out += strings ? src.slice(i, j + 1) : src[i] + src[i];
+            i = src[j] === '\n' ? j : j + 1; // an unclosed literal ends with its line
+        } else out += src[i++];
+    }
+    return out;
+}
+
+// What is left of skipped text: its line breaks, so that the lines after it keep their number
+const keepLines = (text) => text.replace(/[^\n]/g, '');
+
+// After these, a `/` starts a regular expression, not a division
+const REGEX_AFTER =
+    /[(,=:[!&|?{};+\-*%<>~^]$|(^|[^\w$])(return|typeof|case|do|else|in|of|new|delete|void|throw|yield|await)$|^$/;
+
+/**
+ * JS or TS read character by character, for its imports and exports: comments out, the contents of template literals
+ * and regular expressions out (test fixtures are often templates, a regular expression may hold any quote), strings
+ * kept, line breaks kept so that a statement still starts its line.
+ */
+export function scanJs(src) {
+    let out = '';
+    let i = 0;
+    // Skips a template literal from its opening backtick, `${...}` included; returns the index after it
+    const template = (from) => {
+        let j = from + 1;
+        while (j < src.length && src[j] !== '`') {
+            if (src[j] === '\\') j += 2;
+            else if (src.startsWith('${', j)) j = expression(j + 2);
+            else j++;
+        }
+        return j + 1;
+    };
+    // Skips the code of a `${...}`, which may hold strings and templates of its own; returns the index after the `}`
+    const expression = (from) => {
+        let j = from;
+        let depth = 1;
+        while (j < src.length && depth > 0) {
+            const c = src[j];
+            if (c === '`') j = template(j);
+            else if (c === '"' || c === "'") {
+                j++;
+                while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+                j++;
+            } else {
+                if (c === '{') depth++;
+                else if (c === '}') depth--;
+                j++;
+            }
+        }
+        return j;
+    };
+    while (i < src.length) {
+        const c = src[i];
+        if (src.startsWith('//', i)) {
+            const end = src.indexOf('\n', i);
+            i = end < 0 ? src.length : end;
+        } else if (src.startsWith('/*', i)) {
+            const end = src.indexOf('*/', i + 2);
+            const stop = end < 0 ? src.length : end + 2;
+            out += keepLines(src.slice(i, stop));
+            i = stop;
+        } else if (c === '"' || c === "'") {
+            let j = i + 1;
+            while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+            out += src.slice(i, j + 1);
+            i = j + 1;
+        } else if (c === '`') {
+            const end = template(i);
+            out += `\`\`${keepLines(src.slice(i, end))}`;
+            i = end;
+        } else if (c === '/' && REGEX_AFTER.test(out.trimEnd())) {
+            let j = i + 1;
+            let inClass = false;
+            while (j < src.length && src[j] !== '\n' && (inClass || src[j] !== '/')) {
+                if (src[j] === '\\') j++;
+                else if (src[j] === '[') inClass = true;
+                else if (src[j] === ']') inClass = false;
+                j++;
+            }
+            out += '/ /';
+            i = j + 1;
+        } else out += src[i++];
+    }
+    return out;
+}
+
 /** The text of a file without its comments, strings kept: what the code itself names. */
 export function withoutComments(src, kind) {
-    if (kind === 'c' || kind === 'js' || kind === 'css')
-        return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+    if (kind === 'c') return scanC(src, true);
+    if (kind === 'css') return src.replace(/\/\*[\s\S]*?\*\//g, '');
+    if (kind === 'js') return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
     if (kind === 'py' || kind === 'sh' || kind === 'cmake') return src.replace(/^[ \t]*#.*$/gm, '');
     if (kind === 'html') return src.replace(/<!--[\s\S]*?-->/g, '');
     return src;
@@ -97,19 +204,13 @@ export function purposeOf(src, kind) {
 
 // --- Symbols ------------------------------------------------------------------------------------------------------
 
-function stripC(src) {
-    // Comments and string contents out, line breaks kept
-    return src
-        .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
-        .replace(/\/\/.*$/gm, '')
-        .replace(/"(?:\\.|[^"\\\n])*"/g, '""')
-        .replace(/'(?:\\.|[^'\\\n])*'/g, "''");
-}
-
 /** Functions, types and macros a C header declares, or the functions a C source defines (static ones excluded). */
 export function cSymbols(src, header) {
     // The extern "C" wrapper for C++ would put every declaration inside braces
-    const code = stripC(src).replace(/^[ \t]*#[ \t]*ifdef[ \t]+__cplusplus\b[\s\S]*?^[ \t]*#[ \t]*endif.*$/gm, '');
+    const code = scanC(src, false).replace(
+        /^[ \t]*#[ \t]*ifdef[ \t]+__cplusplus\b[\s\S]*?^[ \t]*#[ \t]*endif.*$/gm,
+        ''
+    );
     const names = [];
     if (header) {
         for (const m of code.matchAll(/^[ \t]*#[ \t]*define[ \t]+([A-Z][A-Z0-9_]*)\b/gm))
@@ -152,7 +253,7 @@ export function cSymbols(src, header) {
 }
 
 export function jsExports(src) {
-    const code = withoutComments(src, 'js');
+    const code = scanJs(src);
     const names = [];
     for (const m of code.matchAll(
         /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|abstract\s+class)\s+([A-Za-z_$][\w$]*)/gm
@@ -172,7 +273,7 @@ export function jsExports(src) {
 
 /** Every module specifier a JS or TS file loads, static or dynamic. */
 export function jsSpecifiers(src) {
-    const code = withoutComments(src, 'js');
+    const code = scanJs(src);
     const res = [
         // Static imports and re-exports start a line (Prettier keeps them so); a string that only looks like one does not
         /^[ \t]*(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/gm,
@@ -267,7 +368,7 @@ export function usesOf(file, src, kind, repo) {
         for (const m of src.matchAll(/@import\s+(?:url\()?\s*['"]?([^'")\s;]+)/g))
             if (/^\.{1,2}\//.test(m[1])) relative(m[1]);
     } else if (kind === 'c') {
-        for (const m of src.matchAll(/^[ \t]*#[ \t]*include[ \t]+"([^"]+)"/gm))
+        for (const m of withoutComments(src, 'c').matchAll(/^[ \t]*#[ \t]*include[ \t]+"([^"]+)"/gm))
             local.push(...resolveBySuffix(m[1], file, repo));
     } else if (kind === 'py') {
         for (const mod of pyModules(src)) {
@@ -275,7 +376,7 @@ export function usesOf(file, src, kind, repo) {
             if (repo.known.has(path)) local.push(path);
         }
     } else if (kind === 'cmake') {
-        for (const m of src.matchAll(/\b(include|add_subdirectory)\s*\(\s*([^)\s]+)/g)) {
+        for (const m of withoutComments(src, 'cmake').matchAll(/\b(include|add_subdirectory)\s*\(\s*([^)\s]+)/g)) {
             const arg = m[2].replace(/^"|"$/g, '').replace(/^\$\{[^}]+\}\//, '');
             if (/\$/.test(arg)) continue; // outside the repository (ESP-IDF, CMake modules)
             const target = m[1] === 'add_subdirectory' ? `${arg}/CMakeLists.txt` : arg;
@@ -433,8 +534,7 @@ export function buildMap(contents, isIgnored = () => false) {
 
     const problems = [];
     for (const [f, i] of info) {
-        // A test's fixtures often hold made-up imports, and running the test catches a real one that is missing
-        if (!isTest(f)) for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
+        for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
         if (!i.purpose && !isTest(f) && i.kind !== 'data')
             problems.push(`${f}: no purpose comment at the top (what the file is for, in one sentence)`);
     }
