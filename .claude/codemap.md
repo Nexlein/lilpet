@@ -8,7 +8,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## (root)
 - **.lintstagedrc.mjs** (17) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): lint and format each file, then check the files generate...
   - exports: default
-- **playwright.config.mjs** (16) — Browser tests: the parity test renders every reference scene with the prototype and the C engine (WebAssembly) in headless Chromium.
+- **playwright.config.mjs** (16) — Browser tests: the built PC app with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium, and the data scripts on broken co...
   - exports: default
   - packages: @playwright/test
 
@@ -213,7 +213,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → eyes/emotions.json
 - **engine.mjs** (79) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the same scene and look objects as t...
   - exports: PUPILS, loadEngine
-  - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, prototype/reference.js, prototype/ui.js, scripts/goldens.mjs
+  - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs
 - **smoke.mjs** (51) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 
@@ -221,7 +221,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.json** (67) — data
   - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, prototype/eyes.js, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
 - **looks.json** (109) — data
-  - ← app/src/data/looks.ts, prototype/reference.js, prototype/ui.js, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
+  - ← app/src/data/looks.ts, playwright.config.mjs, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -306,30 +306,13 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **draw.js** (208) — Draws the eyes of the design prototype on a canvas, from the state of an Eyes object (eyes.js): what render.c does in the C engine.
   - exports: PUPIL_TYPES, setupCanvas, drawEyes
   - → prototype/eyes.js
-  - ← prototype/parity.js, prototype/reference.js, prototype/ui.js, scripts/validate-data.mjs
+  - ← scripts/validate-data.mjs
 - **eyes.js** (462) — Eyes of the design prototype: state and animation, no DOM access, so that Node can import them (draw.js draws them).
   - exports: SIZE, BLINK_PHASES, makeLook, BASE, EMOTIONS, REACTIONS, createRng, clamp, Eyes
   - → eyes/emotions.json
-  - ← prototype/draw.js, prototype/parity.js, prototype/reference.js, prototype/ui.js, scripts/gen-common.mjs, scripts/gen-emotions-table.mjs, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
-- **index.html** (226) — Interactive page of the prototype (ui.js): pick a look, an emotion and a reaction, move the gaze and the head, and watch the prototype, the C engin...
-  - → prototype/ui.js, prototype/style.css
-- **parity.js** (57) — Parity rule (notes/architecture.md): how far the C engine's image may be from the prototype's.
-  - exports: ENGINE_URL, fetchJson, PARITY, compare, compareFrame
-  - → prototype/draw.js, prototype/eyes.js
-  - → built: engine/build/wasm/lilpet.mjs
-  - ← prototype/reference.js, prototype/ui.js
-- **reference.html** (109) — Reference scenes (scenes.json) drawn side by side by the prototype and the C engine, with a score per scene (reference.js); tests/parity.spec.mjs f...
-  - → prototype/reference.js, prototype/style.css
-- **reference.js** (89) — Renders every scene of scenes.json with the prototype (JS) and with the C engine (WebAssembly), side by side, and scores the difference.
-  - → prototype/draw.js, prototype/eyes.js, engine/wasm/engine.mjs, prototype/parity.js
-  - ← prototype/reference.html
+  - ← prototype/draw.js, scripts/gen-common.mjs, scripts/gen-emotions-table.mjs, scripts/gen-engine-vectors.mjs, scripts/validate-data.mjs
 - **scenes.json** (129) — data
-  - ← .lintstagedrc.mjs, prototype/reference.html, prototype/reference.js, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **style.css** (21) — What the two pages of the prototype share
-  - ← prototype/index.html, prototype/reference.html
-- **ui.js** (353) — Controls of the interactive page: looks, emotions, shape sliders, pointer and keyboard.
-  - → prototype/draw.js, prototype/eyes.js, engine/wasm/engine.mjs, prototype/parity.js
-  - ← prototype/index.html
+  - ← .lintstagedrc.mjs, scripts/gen-engine-vectors.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
 
 ## scripts
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).
@@ -366,12 +349,12 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: codemap.test.mjs, goldens.test.mjs, test_board_scripts.py
 
 ## tests
-- tests: app.spec.mjs, data.spec.mjs, eyes.spec.mjs, live.spec.mjs, page-errors.mjs, parity.spec.mjs
+- tests: app.spec.mjs, data.spec.mjs, page-errors.mjs
 
 ## Commands
 
 mise (`mise run <task>`):
-- `check` — Everything a change must pass: npm run check, the engine checks, the parity tests (Docker for the WebAssembly build); firmware changes add firmware:build-all
+- `check` — Everything a change must pass: npm run check, the engine checks with the reference renders, the PC app in a browser (Docker for the WebAssembly build); firmware changes add firmware:build-all
 - `engine:bench` — Time the renderer per reference scene and over an animation (Release build); compare on one machine
 - `engine:check` — Everything CI checks on the engine
 - `engine:format` — Format the C sources
@@ -393,7 +376,6 @@ npm (`npm run <script>`, workspace app):
 - `test`: `vitest run`
 
 npm (`npm run <script>`):
-- `serve`: `python3 -m http.server 8466 --bind 127.0.0.1`
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
 - `lint:js`: `oxlint --deny-warnings`
 - `lint:shell`: `git ls-files -z .husky | xargs -0 shellcheck`
@@ -409,7 +391,7 @@ npm (`npm run <script>`):
 - `codemap`: `node scripts/codemap.mjs`
 - `goldens`: `node scripts/goldens.mjs`
 - `vectors`: `node scripts/gen-emotions-table.mjs && node scripts/gen-engine-vectors.mjs`
-- `test:parity`: `npm run app:build && playwright test`
+- `test:playwright`: `npm run app:build && playwright test`
 - `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:vectors && npm run check:scripts && npm run check:codemap && npm run check:app`
 - `prepare`: `husky`
 - `app:dev`: `npm run dev -w app`
@@ -428,7 +410,7 @@ npm (`npm run <script>`):
 - `typescript` (app/package.json) — named in scripts or config
 - `vite` (app/package.json) — named in scripts or config
 - `vitest` (app/package.json) — imported by 5 files, named in scripts or config
-- `@playwright/test` (package.json) — imported by 6 files, named in scripts or config
+- `@playwright/test` (package.json) — imported by 3 files, named in scripts or config
 - `husky` (package.json) — named in scripts or config
 - `lint-staged` (package.json) — named in scripts or config
 - `oxlint` (package.json) — named in scripts or config

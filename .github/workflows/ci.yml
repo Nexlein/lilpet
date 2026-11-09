@@ -17,7 +17,7 @@ env:
   # named MISE_*: mise reads its own settings from that prefix.
   LILPET_MISE_VERSION: 2026.11.4
 
-# The check, engine and parity jobs are the three parts of `mise run check` (mise.toml), run in parallel: a part added
+# The check, engine and playwright jobs are the three parts of `mise run check` (mise.toml), run in parallel: a part added
 # there goes here too. The firmware jobs are `mise run firmware:build-all`, one board each.
 jobs:
   check:
@@ -127,8 +127,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  parity:
-    name: Parity, C engine vs prototype, PC app (Playwright)
+  playwright:
+    name: PC app and data (Playwright)
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
@@ -151,8 +151,8 @@ jobs:
         run: npx playwright install --only-shell chromium
 
       # Builds the PC app first: it ships the engine it was built with, and tests/app.spec.mjs opens this build
-      - name: Compare every reference scene, open the PC app
-        run: npm run test:parity
+      - name: Open the PC app with a fake board, check the data scripts
+        run: npm run test:playwright
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()

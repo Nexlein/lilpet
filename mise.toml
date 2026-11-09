@@ -31,8 +31,8 @@ description = "Prepare a new clone or worktree: the tools of this file, the npm 
 run = ["mise install", "npm ci", "npx playwright install --only-shell chromium"]
 
 [tasks.check]
-description = "Everything a change must pass: npm run check, the engine checks, the parity tests (Docker for the WebAssembly build); firmware changes add firmware:build-all"
-run = ["npm run check", { task = "engine:check" }, "npm run test:parity"]
+description = "Everything a change must pass: npm run check, the engine checks with the reference renders, the PC app in a browser (Docker for the WebAssembly build); firmware changes add firmware:build-all"
+run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
 [vars]
