@@ -34,7 +34,7 @@ describe('protocol', () => {
     });
 
     it('reads the device info', () => {
-        expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toEqual({ firmware: '2e62a96', engine: '0.6.0' });
+        expect(parseHello('lilpet fw=2e62a96 engine=0.6.0'), 'firmware older than its board name').toBeNull();
         expect(parseHello('lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1')).toEqual({
             firmware: '0.5.0',
             engine: '0.13.0',

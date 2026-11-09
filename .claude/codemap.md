@@ -78,7 +78,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
   - ← app/src/main.tsx
-- **DeviceBar.tsx** (40) — Connection to the device, in the header
+- **DeviceBar.tsx** (39) — Connection to the device, in the header
   - exports: DeviceBar
   - → app/src/device/session.ts
   - ← app/src/ui/App.tsx

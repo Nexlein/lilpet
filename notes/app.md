@@ -68,8 +68,7 @@ lignes par UART :
 - les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal ; chaque réponse part
   sur une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas) ; une ligne fait au plus 94
   caractères : au-delà, `< err line too long`, et le reste est jeté ;
-- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>` ; l'app accepte aussi
-  une carte sans les trois derniers champs ;
+- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>` ;
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok` ou `< err <raison>` ; le
   look s'affiche même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`) ;
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`BOARD=<carte> mise run firmware:check-device` ;

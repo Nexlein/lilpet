@@ -6,8 +6,7 @@ import type { Look } from '../data/looks';
 export interface DeviceInfo {
     firmware: string;
     engine: string;
-    // Not given by older firmware
-    board?: string;
+    board: string;
 }
 
 type Line = { kind: 'reply'; text: string } | { kind: 'log'; text: string };
@@ -31,15 +30,16 @@ export function classify(line: string): Line {
     return line.startsWith('< ') ? { kind: 'reply', text: line.slice(2) } : { kind: 'log', text: line };
 }
 
-// "lilpet fw=2e62a96 engine=0.6.0 board=atoms3r camera=0 motion=1"; older firmware stops after the engine
+// "lilpet fw=0.6.0 engine=0.14.0 board=atoms3r camera=0 motion=1"
 export function parseHello(reply: string): DeviceInfo | null {
     const words = reply.trim().split(/\s+/);
     if (words[0] !== 'lilpet') return null;
     const fields = new Map(words.slice(1).map((w) => w.split('=') as [string, string]));
     const firmware = fields.get('fw');
     const engine = fields.get('engine');
-    if (!firmware || !engine) return null;
-    return { firmware, engine, board: fields.get('board') };
+    const board = fields.get('board');
+    if (!firmware || !engine || !board) return null;
+    return { firmware, engine, board };
 }
 
 // A reply to a command, read once here: the rest of the app never looks at its text

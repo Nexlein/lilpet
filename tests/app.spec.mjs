@@ -341,11 +341,9 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
     await expect(button).toHaveText('Brancher lilpet');
     await expect(note(page)).toHaveText('Branche lilpet en USB pour lui envoyer ce look.');
 
-    // Plugged in again, here a board with older firmware: nothing was sent to it
-    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.3.0 engine=0.10.0'));
+    // Plugged in again: nothing was sent to it
     await plugIn(page);
-    await expect(status).toContainText('firmware 0.3.0, moteur 0.10.0');
-    await expect(status).not.toContainText('undefined');
+    await expect(status).toContainText('atoms3r, firmware 0.5.0, moteur 0.13.0');
     await expect(note(page)).toBeEmpty();
 
     await page.getByRole('button', { name: 'Débrancher' }).click();
@@ -369,7 +367,7 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await expect(status).toHaveText('Connexion à lilpet…');
     await expect(page.getByRole('alert')).toHaveCount(0);
 
-    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.5.0 engine=0.13.0'));
+    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1'));
     await expect(status).toContainText('lilpet est branché');
     await expect.poll(async () => (await sent(page)).at(-1)).toBe('> emotion sad');
 });
@@ -463,7 +461,7 @@ test('explains an unplug during hello in French, and can plug in again', async (
     await expect.poll(() => sent(page)).toEqual(['> hello']);
     await page.evaluate(() => window.board.unplug());
     await expect(page.getByRole('alert')).toHaveText('lilpet n’est plus branché.');
-    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.5.0 engine=0.13.0'));
+    await page.evaluate(() => (window.board.hello = 'lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1'));
     await plugIn(page);
     await expect(page.getByRole('alert')).toHaveCount(0);
 });
