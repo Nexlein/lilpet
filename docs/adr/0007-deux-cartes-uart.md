@@ -19,12 +19,12 @@ une douzaine).
   ([décision 5](0005-protocole-texte.md)) : une réaction par son nom (`> react gesture_like`), dont
   `eyes/emotions.json` donne les valeurs, ou une émotion et sa durée (`> emotion happy 2`), et où regarder
   (`> face 0.2 -0.1`).
-- **Le modèle décide, le moteur exécute.** La carte vision a son propre projet, `vision/`, créé à l'achat de la XIAO :
-  elle n'a pas besoin du moteur, et ses broches de caméra sont celles de l'écran sur l'autre carte.
+- **Le modèle décide, le moteur exécute.** La carte vision a son propre projet ESP-IDF, `vision/`, créé à l'achat de la
+  XIAO : elle n'a pas besoin du moteur, et ses broches de caméra sont celles de l'écran sur l'autre carte.
 
 ## Conséquences
 
-- Changer de modèle ne touche pas au moteur, et l'aperçu web, l'AtomS3R et l'objet final jouent les mêmes réactions.
-- Le moteur protège l'écran d'un modèle bavard : les étincelles partent au plus toutes les 0,5 s, et un visage sans
-  nouvelle position est lâché.
-- Le firmware de la carte écran aura une seconde tâche pour l'UART, qui répondra sur son propre flux.
+- Changer de modèle ne touche pas au moteur, et l'aperçu web, l'AtomS3R et l'objet final jouent les mêmes réactions,
+  quelle que soit leur source.
+- Le moteur doit tenir face à un modèle bavard ou qui se tait : c'est lui qui limite les étincelles et lâche un visage
+  qui n'est plus signalé ([protocole](../protocole.md)).

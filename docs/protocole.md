@@ -1,7 +1,7 @@
 # Protocole avec l'objet
 
 Des lignes de texte, les mêmes sur le port USB de l'ESP32-S3 (celui du journal et des mesures) et, à l'arrivée de la
-carte caméra, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-protocole-texte.md).
+carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-protocole-texte.md).
 
 ## Les lignes
 
@@ -26,23 +26,23 @@ carte caméra, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-p
   comme nouveau et déclenche `face_seen`. `> face off` dit qu'il est parti.
 
 Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` si la boucle de dessin
-ne suit plus. Sur la carte qui joue le benchmark, elles sont refusées.
+ne suit plus. Sur la carte qui joue l'animation de mesure (`stamp_s3a`), elles sont refusées.
 
 ## Qui s'en sert
 
 - **L'app PC** n'utilise que `hello`, `look`, `emotion` sans durée et `react`, et ne lit de `hello` que les versions et
   `board`. Elle attend 2 s la réponse à un look, 500 ms pour le reste, et 1 s pour `hello`, qu'elle pose trois fois
   avant de conclure que ce n'est pas lilpet. Une écriture refusée ferme la connexion. Elle associe une réponse à une
-  demande par ordre d'arrivée : le protocole n'a pas d'identifiants.
-- **Le modèle de la carte caméra** enverra `react`, `emotion` et `face` ([décision 7](adr/0007-deux-cartes-uart.md)).
+  demande par ordre d'arrivée ([limites connues](architecture.md#limites-connues-à-reprendre-quand-elles-gêneront)).
+- **Le modèle de la carte vision** enverra `react`, `emotion` et `face` ([décision 7](adr/0007-deux-cartes-uart.md)).
   Sans cette carte, les mêmes commandes se testent depuis le PC, sur le port USB de l'AtomS3R.
-- **Les scripts de carte** : `firmware:flash` pose `hello` pour refuser une carte qui répond sous un autre nom, et
-  `firmware:check-device` essaie toutes les commandes.
+- **Les scripts de carte** : `firmware:flash` vérifie la carte par `hello` avant de la flasher
+  ([décision 6](adr/0006-une-image-par-carte.md)), `firmware:check-device` essaie toutes les commandes.
 
 ## Côté firmware
 
 `lp_command_parse` (moteur, testé sur PC) lit les lignes et ignore tout ce qui ne commence pas par `> `, donc aussi le
 journal de démarrage de l'autre puce sur la liaison UART. `firmware/main/commands.c` les met en file pour la boucle de
 dessin, le moteur n'étant pas fait pour plusieurs tâches. Le look reçu est appliqué et gardé dans la mémoire flash (NVS
-d'ESP-IDF), puis rechargé au démarrage. À l'arrivée de la XIAO, il faudra une seconde tâche, qui donne ses lignes au
-même analyseur et réponde sur son propre flux.
+d'ESP-IDF), puis rechargé au démarrage. À l'arrivée de la XIAO, une seconde tâche donnera les lignes de l'UART au même
+analyseur et répondra sur son propre flux, avec un verrou autour du look courant.

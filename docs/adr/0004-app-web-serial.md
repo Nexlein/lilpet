@@ -14,8 +14,8 @@ l'objet par USB. Elle doit montrer les yeux tels que l'objet les dessine.
   tard. Elle fait tourner le moteur WebAssembly ([décision 1](0001-moteur-c-partage.md)) et servira d'éditeur.
 - **React + TypeScript strict + Vite.** Vitest pour la logique, Playwright pour l'app compilée.
 - **Communication avec l'objet par Web Serial.** Marche sous Chrome et Edge, pas sous Safari, Firefox incertain
-  ([support navigateurs](https://www.testmuai.com/learning-hub/web-serial-api-browser-support/)). Espressif s'en sert
-  déjà pour flasher depuis le navigateur ([esptool-js](https://iotjournal.net/web-serial-api-flash-esp32-in-browser/)).
+  ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API)). Espressif s'en sert déjà pour flasher
+  depuis le navigateur ([esptool-js](https://github.com/espressif/esptool-js)).
 - Les looks et les animations restent des **données** (JSON côté PC), envoyées à l'objet.
 
 ## Conséquences

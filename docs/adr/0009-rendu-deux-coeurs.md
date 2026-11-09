@@ -5,8 +5,9 @@
 
 ## Contexte
 
-Sur un seul cœur, l'ESP32-S3 dessine l'écran de 466 px à environ 30 images/s (mesures dans
-[firmware.md](../firmware.md)), loin des 60 visées. La puce a deux cœurs, et un cache d'instructions de 16 Ko.
+Sur un seul cœur, l'ESP32-S3 dessine l'écran de 466 px à environ 30 images/s, loin des 60 visées. La puce a deux
+cœurs, qui partagent un cache d'instructions de 16 Ko, ou de 32 Ko au prix de 16 Ko de mémoire
+([réglage d'ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/kconfig-reference.html#config-esp32s3-instruction-cache-size)).
 
 ## Décision
 
@@ -23,6 +24,6 @@ Sur un seul cœur, l'ESP32-S3 dessine l'écran de 466 px à environ 30 images/s 
 
 ## Conséquences
 
-- Sur la M5Stamp S3A, à 466 px : de 30,7 à 51-52 images/s.
+- Sur la M5Stamp S3A, à 466 px, le dessin passe d'environ 30 à 51 images/s ([mesures](../firmware.md#sur-la-puce)).
 - Un test du moteur vérifie que deux brouillons qui se partagent les lignes donnent la même image.
 - Un cache d'instructions de 32 Ko n'apporte que 1,5 % de plus : écarté.

@@ -35,4 +35,3 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
 - Un échec en CI se reproduit en local avec la même commande.
 - La compilation du firmware passe par ccache, gardé dans `firmware/.ccache` et entre deux runs en CI : une
   recompilation complète passe d'environ 1 min à 26 s en local.
-- Un nouveau worktree passe par `mise run setup`, sinon git n'y lance aucun hook.

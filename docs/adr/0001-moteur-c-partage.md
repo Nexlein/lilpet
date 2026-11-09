@@ -10,6 +10,8 @@ sur PC et dans l'app PC qui change les yeux et les animations. Le premier protot
 suffisait pour explorer le design, mais ne pouvait pas tourner sur l'ESP32 : tout ce qui y était ajouté aurait dû être
 réécrit en C pour l'objet.
 
+## Options étudiées
+
 | Option                                            | Pour                                                          | Contre                                                                              |
 | ------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Rester en JS, réécrire en C au moment du firmware | Rien à changer maintenant                                     | Deux rendus à maintenir, écarts visuels, réécriture de plus en plus longue          |
@@ -32,5 +34,4 @@ Un projet partage déjà un moteur de rendu C entre ESP32 AMOLED et navigateur :
 
 - Un seul rendu à maintenir, le même sur l'objet et dans le navigateur.
 - Le dessin est écrit à la main ([décision 2](0002-rendu-par-lignes.md)).
-- Le prototype JS a été retiré en novembre 2026, une fois tout repris par le moteur ; les rendus de référence ont pris
-  sa place de référence ([décision 3](0003-rendus-de-reference.md)).
+- Le prototype JS a fini par faire double emploi ([décision 3](0003-rendus-de-reference.md)).
