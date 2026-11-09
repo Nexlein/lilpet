@@ -55,6 +55,7 @@
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
+    X(test_shape_and_head_amount_stay_in_their_ranges)                                                                 \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
     X(test_emotion_without_a_positive_duration_is_the_mood)                                                            \
     X(test_duration_that_is_not_finite_leaves_the_mood)                                                                \
