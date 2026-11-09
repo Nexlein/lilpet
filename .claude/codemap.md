@@ -88,7 +88,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceLog
   - packages: react
   - ← app/src/ui/App.tsx
-- **EyeGlyph.tsx** (64) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
+- **EyeGlyph.tsx** (63) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
   - exports: EyeGlyph
   - → app/src/data/looks.ts
   - packages: react

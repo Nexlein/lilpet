@@ -1,7 +1,7 @@
 // A small drawing of a pair of eyes, for the gallery and the pupil picker. Same proportions as the engine: eyes tilted
 // outward, pupils upright, set toward the nose and leaning a little (docs/yeux.md).
 import { useId } from 'react';
-import { EYE_SHAPE, PUPIL_LEAN, PUPIL_SHAPES, type LookColors, type PupilType } from '../data/looks';
+import { EYE_SHAPE, PUPIL_LEAN, PUPIL_SHAPES, type LookColors, type PupilShape, type PupilType } from '../data/looks';
 
 // The engine's shape (eyes/looks.json), scaled to the 100 x 60 drawing
 const RY = 20;
@@ -12,8 +12,7 @@ const TILT = degrees(EYE_SHAPE.tilt); // top of each eye outward
 const LEAN = degrees(PUPIL_LEAN); // top of each pupil toward the nose
 
 // A pupil's radii, in fractions of RX and RY: a disc's radius is a fraction of RX for both
-function radii(pupil: PupilType): { rx: number; ry: number } {
-    const p = PUPIL_SHAPES[pupil];
+function radii(p: PupilShape): { rx: number; ry: number } {
     return 'r' in p ? { rx: p.r, ry: (p.r * RX) / RY } : { rx: p.rx, ry: p.ry };
 }
 
@@ -25,7 +24,7 @@ interface Props {
 export function EyeGlyph({ colors, pupil }: Props) {
     const id = useId();
     const p = PUPIL_SHAPES[pupil];
-    const r = radii(pupil);
+    const r = radii(p);
     return (
         <svg viewBox="0 0 100 60" aria-hidden="true">
             {([-1, 1] as const).map((side) => {
