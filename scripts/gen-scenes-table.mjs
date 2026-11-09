@@ -39,19 +39,20 @@ lines.push(
     `static const reference_scene SCENES[${scenes.length}] = {`
 );
 for (const scene of scenes) {
-    const fields = [
-        emotionEnum(scene.emotion ?? 'neutral'),
-        phaseEnum(scene.blink?.phase),
-        num(scene.blink?.t ?? 0),
-        num(scene.head?.yaw ?? 0),
-        num(scene.head?.pitch ?? 0),
-        num(scene.head?.roll ?? 0),
-        num(scene.gaze?.x ?? 0),
-        num(scene.gaze?.y ?? 0),
-        String(Boolean(scene.particles)),
-        `${scene.particles?.seed ?? 0}u`,
-        num(scene.particles?.time ?? 0)
-    ];
+    // By name: lp_scene holds several floats in a row, which a field moved in lilpet.h would silently swap
+    const fields = Object.entries({
+        emotion: emotionEnum(scene.emotion ?? 'neutral'),
+        blink_phase: phaseEnum(scene.blink?.phase),
+        blink_t: num(scene.blink?.t ?? 0),
+        yaw: num(scene.head?.yaw ?? 0),
+        pitch: num(scene.head?.pitch ?? 0),
+        roll: num(scene.head?.roll ?? 0),
+        gaze_x: num(scene.gaze?.x ?? 0),
+        gaze_y: num(scene.gaze?.y ?? 0),
+        has_particles: String(Boolean(scene.particles)),
+        particle_seed: `${scene.particles?.seed ?? 0}u`,
+        particle_time: num(scene.particles?.time ?? 0)
+    }).map(([field, value]) => `.${field} = ${value}`);
     lines.push(`    {"${scene.id}", &SCENE_LOOKS[${lookIndex.get(lookKey(scene))}], {${fields.join(', ')}}},`);
 }
 lines.push('};', '', '#endif /* LILPET_SCENES_TABLE_H */', '');

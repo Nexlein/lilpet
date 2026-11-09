@@ -6,6 +6,7 @@
 #include "lilpet/lilpet.h"
 
 _Static_assert(LP_EMOTION_COUNT == 10, "lp_emotion in lilpet.h and in eyes/emotions.json differ");
+_Static_assert(sizeof(lp_expression) == 11 * sizeof(float), "lp_expression in lilpet.h and scripts/expression.mjs differ");
 static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
     [LP_EMOTION_NEUTRAL] = {
         .name = "neutral",
