@@ -270,7 +270,6 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
     g->sclera = to_rgb(e->look.sclera);
     g->pupil_color = to_rgb(e->look.pupil_color[side < 0 ? 0 : 1]);
-    g->glint_color = to_rgb(GLINT_COLOR);
     g->closed = bp.closed;
 
     if (bp.closed) {
@@ -478,7 +477,7 @@ static void draw_eye_row(lp_row_scratch *s, const lp_eye_geometry *g, int y)
     /* Layer after layer: most rows of an eye have no pupil or glint, and a pixel only sees its own layers in order */
     layer_blend(&sclera, s->line, g->sclera);
     layer_blend(&pupil, s->line, g->pupil_color);
-    layer_blend(&glint, s->line, g->glint_color);
+    layer_blend(&glint, s->line, to_rgb(GLINT_COLOR)); /* a constant once compiled */
 }
 
 /* --- Public API ------------------------------------------------------------------------------------- */
