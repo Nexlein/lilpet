@@ -23,6 +23,13 @@ export default {
     '.husky/*': 'shellcheck',
     '.github/workflows/*.yml': 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write',
-    // The data, the tables generated from it (npm run tables) and the scripts that read it: the whole check, not per file
-    [`{${DATA.join(',')}}`]: () => ['npm run check:data', 'npm run check:tables']
+    // The data, the tables generated from it (npm run tables) and the scripts that read it: the whole check, not per
+    // file. These checks read the files on disk, and lint-staged hides only the unstaged changes of the files it is
+    // given: a table regenerated but left unstaged would pass while the commit carries the old one. So none of these
+    // files may hold unstaged changes (git diff lists them): stage them too, or stash them.
+    [`{${DATA.join(',')}}`]: () => [
+        'npm run check:data',
+        'npm run check:tables',
+        `git diff --exit-code --stat -- ${DATA.join(' ')}`
+    ]
 };
