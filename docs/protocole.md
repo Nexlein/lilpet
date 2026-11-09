@@ -34,7 +34,7 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse, ou `< err busy` tout de suite si la file
 de la boucle de dessin est pleine (32 commandes entre deux images) : le firmware n'attend pas, sinon le port USB
 jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure
-(`stamp_s3a`), elles sont refusées.
+(`stamp_s3a`), elles sont refusées, et un look y est gardé sans s'afficher.
 
 ## Qui s'en sert
 

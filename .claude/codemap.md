@@ -273,10 +273,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (168) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.c** (168) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.h** (20) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
@@ -325,7 +325,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (232) — Firmware entry point: the eyes, live on the display.
+- **main.c** (224) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 
