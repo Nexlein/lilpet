@@ -45,7 +45,7 @@
             "emotion": "dizzy",
             "duration": 1.5,
             "sparkles": 0,
-            "note": "renewed while shaken (told by the device: lp_shake_update)"
+            "note": "renewed while shaken (told by the device: lp_senses_update)"
         },
         "upside_down": {
             "emotion": "angry",

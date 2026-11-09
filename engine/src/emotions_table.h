@@ -73,7 +73,7 @@ static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
 _Static_assert(LP_EVENT_COUNT == 13, "lp_event in lilpet.h and in eyes/emotions.json differ");
 static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {
     [LP_EVENT_TAP] = {.name = "tap", .emotion = LP_EMOTION_HAPPY, .duration = 1.8f, .sparkles = 4}, /* pressed, or petted */
-    [LP_EVENT_SHAKE] = {.name = "shake", .emotion = LP_EMOTION_DIZZY, .duration = 1.5f, .sparkles = 0}, /* renewed while shaken (told by the device: lp_shake_update) */
+    [LP_EVENT_SHAKE] = {.name = "shake", .emotion = LP_EMOTION_DIZZY, .duration = 1.5f, .sparkles = 0}, /* renewed while shaken (told by the device: lp_senses_update) */
     [LP_EVENT_UPSIDE_DOWN] = {.name = "upside_down", .emotion = LP_EMOTION_ANGRY, .duration = 0.5f, .sparkles = 0}, /* renewed while the object stays upside down */
     [LP_EVENT_FACE_SEEN] = {.name = "face_seen", .emotion = LP_EMOTION_SURPRISED, .duration = 0.8f, .sparkles = 0}, /* someone comes into view */
     [LP_EVENT_GESTURE_LIKE] = {.name = "gesture_like", .emotion = LP_EMOTION_HAPPY, .duration = 2.5f, .sparkles = 4},
