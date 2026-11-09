@@ -45,7 +45,7 @@ const LEADING_COMMENT = {
     c: SLASH_COMMENT,
     js: SLASH_COMMENT,
     css: /^\s*\/\*([\s\S]*?)\*\//,
-    py: /^\s*(?:"""([\s\S]*?)"""|((?:[ \t]*#.*\n?)+))/,
+    py: /^\s*(?:"""([\s\S]*?)"""|'''([\s\S]*?)'''|((?:[ \t]*#.*\n?)+))/,
     cmake: HASH_COMMENT,
     sh: HASH_COMMENT
 };
@@ -59,7 +59,7 @@ function leadingComments(src, kind) {
     for (;;) {
         const m = s.match(LEADING_COMMENT[kind]);
         if (!m) return comments;
-        comments.push(m[1] ?? m[2] ?? '');
+        comments.push(m.slice(1).find((g) => g !== undefined) ?? '');
         s = s.slice(m[0].length);
     }
 }
@@ -482,11 +482,12 @@ function stagedFiles() {
         .split('\0')
         .filter(Boolean)
         .map((line) => {
-            const [meta, path] = line.split('\t');
-            const [mode, sha] = meta.split(' ');
-            return { mode, sha, path };
+            const tab = line.indexOf('\t'); // a path may hold a tab, the fields before it never do
+            const [mode, sha, stage] = line.slice(0, tab).split(' ');
+            return { mode, sha, stage, path: line.slice(tab + 1) };
         })
-        .filter((e) => e.mode.startsWith('100')); // files, not symbolic links or submodules
+        // Files, not symbolic links or submodules; during a merge, only what is resolved (stage 0)
+        .filter((e) => e.mode.startsWith('100') && e.stage === '0');
     const out = execFileSync('git', ['cat-file', '--batch'], {
         input: entries.map((e) => e.sha).join('\n') + '\n',
         maxBuffer: 1 << 28

@@ -50,6 +50,7 @@ test('takes the first sentence of the first comment, after a licence', () => {
     );
     assert.equal(purposeOf('#!/usr/bin/env node\n// One line\n// and more.\nimport x;', 'js'), 'One line and more.');
     assert.equal(purposeOf('#!/usr/bin/env python3\n"""Docstring here."""\n', 'py'), 'Docstring here.');
+    assert.equal(purposeOf("'''Single-quoted docstring.'''\nimport os", 'py'), 'Single-quoted docstring.');
     assert.equal(
         purposeOf('# /// script\n# dependencies = []\n# ///\n# After the block\nimport os', 'py'),
         'After the block'
@@ -242,7 +243,15 @@ const SCRIPT = new URL('./codemap.mjs', import.meta.url).pathname;
 const repoDir = mkdtempSync(join(tmpdir(), 'lilpet-codemap-'));
 after(() => rmSync(repoDir, { recursive: true, force: true }));
 
-const git = (...args) => execFileSync('git', args, { cwd: repoDir, encoding: 'utf8' });
+// A throwaway identity for the commits of the test repository, as CI has none
+const IDENTITY = {
+    GIT_AUTHOR_NAME: 'test',
+    GIT_AUTHOR_EMAIL: 'test@example.com',
+    GIT_COMMITTER_NAME: 'test',
+    GIT_COMMITTER_EMAIL: 'test@example.com'
+};
+const git = (...args) =>
+    execFileSync('git', args, { cwd: repoDir, encoding: 'utf8', env: { ...process.env, ...IDENTITY }, stdio: 'pipe' });
 const codemap = (...args) => spawnSync('node', [SCRIPT, ...args], { cwd: repoDir, encoding: 'utf8' });
 const put = (path, text) => {
     mkdirSync(join(repoDir, path, '..'), { recursive: true });
@@ -278,4 +287,23 @@ test('writes the map from what is staged and checks it against the staged map', 
     const broken = codemap('--check');
     assert.equal(broken.status, 1);
     assert.match(broken.stderr, /src\/c\.mjs: local import "\.\/d\.mjs" not found/);
+});
+
+test('reads a path with a tab, and only resolved files during a merge', () => {
+    put('src/odd\tname.mjs', '// A name with a tab in it\nexport const odd = 1;\n');
+    git('add', 'src');
+    git('commit', '-q', '-m', 'base');
+    git('checkout', '-q', '-b', 'other');
+    put('src/b.mjs', '// Gives b, the other way\nexport const b = 3;\n');
+    git('commit', '-q', '-am', 'other');
+    git('checkout', '-q', '-');
+    put('src/b.mjs', '// Gives b, this way\nexport const b = 4;\n');
+    git('commit', '-q', '-am', 'this');
+    assert.throws(() => git('merge', '-q', 'other'), 'the two changes of src/b.mjs conflict');
+
+    assert.equal(codemap().status, 0);
+    const map = readFileSync(join(repoDir, '.claude/codemap.md'), 'utf8');
+    assert.match(map, /\*\*odd\tname\.mjs\*\* \(2\) — A name with a tab in it/);
+    assert.doesNotMatch(map, /\*\*b\.mjs\*\*/, 'a file in conflict waits for its resolution');
+    git('merge', '--abort');
 });
