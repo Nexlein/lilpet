@@ -69,13 +69,16 @@ class Board:
         stop_at=None,  # Ctrl+C when the board gets this line, or at "rts" when RTS is asserted
         cut=None,  # bytes: each line reaches readline in two parts, cut there (its timeout ended in the middle)
         drops_late_looks=False,  # a look that waits for its turn answers ok but is never written
+        comes_back=True,  # starts again after a reset
+        lost_at=None,  # the port goes away when the board gets this line (unplugged)
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
         self.reads_from = clock.now + reads_after
         self.output = [(clock.now, line) for line in stale]  # when each line reaches the port, and the line
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
-        self.cut, self.drops_late_looks = cut, drops_late_looks
+        self.cut, self.drops_late_looks, self.comes_back, self.lost_at = cut, drops_late_looks, comes_back, lost_at
+        self.lost = False
         self.look = "AE0002 FF5252 FF5252 dot"
         # What the flash holds, when it was written, and a look waiting for its turn (firmware/main/look_saving.h)
         self.kept, self.saved_at, self.late = self.look, -SAVE_GAP, None
@@ -104,7 +107,10 @@ class Board:
             self.write_late_look()
             self.late = None  # not written by then: lost
         if self.in_reset and not held:
-            self.boot()
+            if self.comes_back:
+                self.boot()
+            else:
+                self.reads_from = math.inf
         self.in_reset = held
 
     def receive(self, data):
@@ -116,6 +122,7 @@ class Board:
             if reply:
                 self.output.append((clock.now, f"< {reply}"))
             self.stop_if(line.decode())
+            self.lost = self.lost or line.decode() == self.lost_at
 
     def stop_if(self, event):
         if event == self.stop_at:
@@ -221,10 +228,14 @@ class Serial:
             self.board.stop_if("rts")
 
     def write(self, data):
+        if self.board.lost:
+            raise OSError("device disconnected")
         clock.now += 0.001
         self.board.receive(data)
 
     def readline(self):
+        if self.board.lost:
+            raise OSError("device disconnected")
         if self._rest:
             rest, self._rest = self._rest, b""
             return rest
@@ -454,6 +465,17 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(Board("atoms3r", drops_late_looks=True))
         self.assertEqual(status, 1)
         self.assertIn("FAIL still has the last look after the reboot", out)
+
+    def test_fails_a_board_that_does_not_come_back_after_the_reboot(self):
+        status, out, _ = check_device(Board("atoms3r", comes_back=False))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL reboots on request", out)
+
+    def test_a_port_lost_midway_says_how_to_give_the_look_back(self):
+        status, out, _ = check_device(Board("atoms3r", lost_at="> react tap"))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL runs to the end (port lost: device disconnected)", out)
+        self.assertIn("FAIL gets its own look back (port lost, send it again: > look AE0002 FF5252 FF5252 dot)", out)
 
     def test_keeps_a_monitor_off_the_port(self):
         status, _, _ = check_device(Board("atoms3r", monitor_open=True))
