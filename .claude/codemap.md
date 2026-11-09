@@ -12,9 +12,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
+- **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
 - **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
-- **pre-commit** (15) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
-- **pre-push** (14) — Before each push: the fast checks of CI (npm run check, about 10 s).
+- **pre-commit** (8) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
+- **pre-push** (8) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## app
 - **index.html** (13) — Page of the PC app (Vite builds it): the app mounts into #root from src/main.tsx
@@ -421,7 +422,7 @@ npm (`npm run <script>`, workspace app):
 npm (`npm run <script>`):
 - `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
 - `lint:js`: `node scripts/files.mjs js | xargs -0 -r oxlint --deny-warnings`
-- `lint:shell`: `node scripts/files.mjs hooks | xargs -0 -r shellcheck`
+- `lint:shell`: `node scripts/files.mjs hooks | xargs -0 -r shellcheck -x`
 - `lint:actions`: `node scripts/files.mjs workflows | xargs -0 -r actionlint`
 - `lint:python`: `node scripts/files.mjs python | xargs -0 -r ruff check`
 - `lint:fix`: `node scripts/files.mjs js | xargs -0 -r oxlint --fix && node scripts/files.mjs python | xargs -0 -r ruff check --fix`

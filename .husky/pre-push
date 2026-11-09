@@ -1,12 +1,6 @@
 # Before each push: the fast checks of CI (npm run check, about 10 s). The engine, Playwright and firmware checks, which
-# need Docker, run in CI. The tools come from mise.toml: the hook runs inside mise.
-if [ -z "$LILPET_HOOK_IN_MISE" ]; then
-  if ! command -v mise >/dev/null 2>&1; then
-    echo "pre-push: mise is needed, it provides the tools of mise.toml (https://mise.jdx.dev)" >&2
-    exit 1
-  fi
-  LILPET_HOOK_IN_MISE=1 exec mise exec -- sh -e "$0" "$@"
-fi
+# need Docker, run in CI. The tools come from mise.toml: the hook runs inside mise (in-mise.sh).
+. .husky/in-mise.sh
 # The check reads the working tree and the index: say so when they hold more than the commits being pushed
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "pre-push: uncommitted changes in tracked files, checked along with the commits (commit or stash them if it fails on them)" >&2

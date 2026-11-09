@@ -37,7 +37,7 @@ export default {
     [anyOf(GROUPS.js)]: ['oxlint --fix --deny-warnings', 'prettier --write'],
     [anyOf(GROUPS.c)]: 'clang-format -i',
     [anyOf(GROUPS.python)]: ['ruff check --fix', 'ruff format'],
-    [anyOf(GROUPS.hooks)]: 'shellcheck',
+    [anyOf(GROUPS.hooks)]: 'shellcheck -x', // -x: follows in-mise.sh, which the hooks source
     [anyOf(GROUPS.workflows)]: 'actionlint',
     '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write'
 };
