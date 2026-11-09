@@ -35,9 +35,6 @@ description = "Everything a change must pass: npm run check, the engine checks w
 run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
-# The files each command formats or checks: the groups of scripts/files.mjs, the ones git tracks, so that an untracked
-# file is never touched
-
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"
 dir = "engine"
@@ -69,6 +66,8 @@ run = [
     'cat build/host-release/bench.md; cat build/host-release/bench.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"',
 ]
 
+# The files the format and tidy tasks work on: the groups of scripts/files.mjs, the ones git tracks, so that an untracked
+# file is never touched
 [tasks."engine:format"]
 description = "Format the C sources"
 run = "node scripts/files.mjs c | xargs -0 -r clang-format -i"

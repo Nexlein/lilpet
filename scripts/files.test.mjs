@@ -27,5 +27,5 @@ test("a group takes dotfiles, and others' sources stay out", () => {
 test('an unknown group stops with the list of groups', () => {
     const { status, stderr } = spawnSync(process.execPath, ['scripts/files.mjs', 'jss'], { encoding: 'utf8' });
     assert.equal(status, 2);
-    assert.ok(stderr.includes('js|python|c|tidy|workflows|hooks'), stderr);
+    assert.ok(stderr.includes(Object.keys(GROUPS).join('|')), stderr);
 });

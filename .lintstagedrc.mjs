@@ -5,7 +5,7 @@ import { EMOTIONS, GENERATORS, LOOKS, SCENES } from './scripts/data.mjs';
 import { GROUPS } from './scripts/files.mjs';
 
 // One lint-staged glob for several (scripts/files.mjs)
-const anyOf = (globs) => `{${globs.join(',')}}`;
+const anyOf = (globs) => (globs.length === 1 ? globs[0] : `{${globs.join(',')}}`);
 
 // The data files, the tables generated from them and their generators (scripts/data.mjs), and the scripts they use. The
 // validator also reads the engine's names of pupils and blink phases (engine/wasm/engine.mjs).
