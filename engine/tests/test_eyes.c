@@ -102,12 +102,11 @@ void test_follow_off_ignores_the_pointer(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_pointer(&eyes, true, 0.9f, 0.0f);
     lp_eyes_set_follow(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
     CHECK(eyes.gaze.tx != 0.9f);
 
     lp_eyes_set_follow(&eyes, true);
-    lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_eyes_update(&eyes, LP_TEST_STEP);
     CHECK(eyes.gaze.tx == 0.9f);
 }
 
@@ -117,8 +116,7 @@ void test_head_amount_zero_keeps_the_head_still(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_head_amount(&eyes, 0.0f);
     lp_eyes_set_pointer(&eyes, true, 0.9f, 0.5f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 5.0f);
     CHECK(eyes.head.yaw == 0.0f && eyes.head.pitch == 0.0f && eyes.head.roll == 0.0f);
 }
 
@@ -201,8 +199,7 @@ void test_bad_input_is_ignored(void)
     lp_eyes_update(&eyes, INFINITY);
     lp_eyes_update(&eyes, -1.0f);
     CHECK(same_motion(&eyes, &before));
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
     CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
 
     /* A scene with an unknown emotion or blink phase leaves the eyes as they were */
@@ -298,8 +295,7 @@ void test_scene_starts_over(void)
     lp_eyes_set_shaking(&eyes, true);
     lp_eyes_set_head_amount(&eyes, 0.0f);
     lp_eyes_set_follow(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
 
     const lp_look look = {0x123456u, LP_PUPIL_CAT, {0x111111u, 0x222222u}};
     lp_eyes_set_look(&eyes, &look);
@@ -329,16 +325,16 @@ void test_clock_keeps_running_for_days(void)
     for (int i = 0; i < 20 * 60 * 64; i++) {
         const bool open = eyes.blink.phase == LP_BLINK_NONE;
         const float before = eyes.time;
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         if (eyes.time < before)
-            wound_back = before + 1.0f / 64.0f - eyes.time;
+            wound_back = before + LP_TEST_STEP - eyes.time;
         if (i >= 19 * 60 * 64 && open && eyes.blink.phase != LP_BLINK_NONE)
             blinks++;
     }
     CHECK(eyes.time < 600.0f); /* wound back once */
     /* By whole breaths (render.c: sin(time * 2.1)): the breathing does not hiccup */
     CHECK(wound_back > 0.0f);
-    CHECK_NEAR(remainderf(wound_back * 2.1f, 6.2831853f), 0.0f, 0.01f);
+    CHECK_NEAR(remainderf(wound_back * 2.1f, 2.0f * LP_PI), 0.0f, 0.01f);
     CHECK(blinks >= 10 && blinks <= 40);
     /* Deadlines wound back with it: each is a few seconds ahead at most */
     CHECK(eyes.next_blink - eyes.time < 8.0f);

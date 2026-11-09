@@ -204,7 +204,7 @@ void test_lid_level_with_the_rows(void)
     level.tilt = 0.0f;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_shape(&eyes, &level);
-    const float both_eyes = 2.0f * 3.14159265f * level.rx * level.ry;
+    const float both_eyes = 2.0f * LP_PI * level.rx * level.ry;
     const float edge = 0.02f * both_eyes; /* partly covered pixels count as lit */
     CHECK_NEAR((float)lit_pixels(), both_eyes, edge);
 
@@ -281,7 +281,7 @@ static lp_rect check_bands(int size)
     memset(frame, 0, sizeof frame);
     lp_rect dirty = {0, 0, 0, 0};
     for (int f = 0; f < 90; f++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect whole = lp_render(&renderer, &eyes, reference);
         dirty = lp_render_begin(&other, &eyes);
         CHECK(dirty.x0 == whole.x0 && dirty.y0 == whole.y0 && dirty.x1 == whole.x1 && dirty.y1 == whole.y1);
@@ -350,7 +350,7 @@ void test_big_endian_swaps_the_bytes_of_every_pixel(void)
         memset(reference, 0, sizeof reference);
         memset(frame, 0, sizeof frame);
         for (int f = 0; f < 60; f++) {
-            lp_eyes_update(&eyes, 1.0f / 64.0f);
+            lp_eyes_update(&eyes, LP_TEST_STEP);
             lp_render(&renderer, &eyes, reference);
             if (f % 2) {
                 lp_render(&other, &eyes, frame);
@@ -381,7 +381,7 @@ void test_dirty_region_has_even_coordinates(void)
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts move the region every frame */
     lp_renderer_init(&renderer);
     for (int f = 0; f < 120; f++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect d = lp_render_begin(&renderer, &eyes);
         CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
         CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SIZE && d.y1 <= SIZE);
@@ -548,23 +548,12 @@ void test_line_too_far_misses_an_ellipse(void)
 
 enum { SMALL = 128 };
 
-static float minf(float a, float b)
-{
-    return a < b ? a : b;
-}
-
-static float maxf(float a, float b)
-{
-    return a > b ? a : b;
-}
-
 /* Channel c (0 red, 1 green, 2 blue) of an RGB565 pixel, 0-255 */
 static float channel565(uint16_t px, int c)
 {
     static const unsigned SHIFT[3] = {11u, 5u, 0u};
     static const unsigned MAX[3] = {31u, 63u, 31u};
-    const unsigned v = ((unsigned)px >> SHIFT[c]) & MAX[c];
-    return (float)v * 255.0f / (float)MAX[c];
+    return (float)channel(px, SHIFT[c], MAX[c]) * 255.0f / (float)MAX[c];
 }
 
 /* Mean of the full-size frame over the area one small pixel covers, for channel c */
@@ -576,9 +565,9 @@ static float area_mean(const uint16_t *big, int sx, int sy, int c)
     float sum = 0.0f;
     float weight = 0.0f;
     for (int y = (int)y0; (float)y < y0 + k && y < SIZE; y++) {
-        const float wy = minf((float)y + 1.0f, y0 + k) - maxf((float)y, y0);
+        const float wy = lp_minf((float)y + 1.0f, y0 + k) - lp_maxf((float)y, y0);
         for (int x = (int)x0; (float)x < x0 + k && x < SIZE; x++) {
-            const float w = wy * (minf((float)x + 1.0f, x0 + k) - maxf((float)x, x0));
+            const float w = wy * (lp_minf((float)x + 1.0f, x0 + k) - lp_maxf((float)x, x0));
             sum += w * channel565(big[y * SIZE + x], c);
             weight += w;
         }
@@ -643,7 +632,7 @@ void test_small_output_regions_stay_inside(void)
     lp_render(&renderer, &eyes, small);
     for (int f = 0; f < 200; f++) {
         lp_eyes_set_pointer(&eyes, true, f % 2 ? 1.0f : -1.0f, 0.5f);
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect d = lp_render(&renderer, &eyes, small);
         CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SMALL && d.y1 <= SMALL);
         CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);

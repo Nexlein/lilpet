@@ -152,11 +152,17 @@ extern int lp_test_failures;
 #define LP_TEST_STEP    (1.0f / 64.0f) /* a time step of the animation, exact in float */
 #define LP_TEST_SETTLED 1e-4f /* what an easing given seconds to settle leaves of its distance, with float rounding */
 
+/* Plays `steps` steps of LP_TEST_STEP */
+static inline void lp_test_steps(lp_eyes *eyes, int steps)
+{
+    for (int i = 0; i < steps; i++)
+        lp_eyes_update(eyes, LP_TEST_STEP);
+}
+
 /* Plays `seconds` of animation, LP_TEST_STEP at a time */
 static inline void lp_test_play(lp_eyes *eyes, float seconds)
 {
-    for (int i = 0; i < (int)(seconds / LP_TEST_STEP); i++)
-        lp_eyes_update(eyes, LP_TEST_STEP);
+    lp_test_steps(eyes, (int)(seconds / LP_TEST_STEP));
 }
 
 #endif /* LILPET_TEST_H */
