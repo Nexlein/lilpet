@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.25)
 project(lilpet LANGUAGES C) # version: LP_VERSION_* in include/lilpet/lilpet.h
 
 # The host builds use the system clang (CMakePresets.json): CI tests the clang of its runner image, so an older one is
-# untested. Emscripten brings its own, newer clang.
+# untested. Raise the minimum with that image (runs-on in .github/workflows/ci.yml). Emscripten brings its own clang.
 set(LILPET_MIN_CLANG 21)
 if(NOT EMSCRIPTEN AND CMAKE_C_COMPILER_ID STREQUAL "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_LESS LILPET_MIN_CLANG)
     message(FATAL_ERROR "clang ${CMAKE_C_COMPILER_VERSION} found, the host build needs clang ${LILPET_MIN_CLANG} or newer")

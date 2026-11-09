@@ -131,11 +131,12 @@ comme en `double`.
   ne sait pas lire, Dependabot pour npm, les images Docker et les actions, toutes épinglées par
   commit.
 
-## Outillage du dépôt (étape 1 du nettoyage, novembre 2026)
+## Outillage du dépôt (novembre 2026)
 
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
-  `engine:check`, la parité). La CI appelle les mêmes commandes, en jobs parallèles, au lieu de les recopier : une étape
-  ajoutée au contrôle ne peut plus manquer en CI. `npm run check` reste la partie rapide (environ 10 s), lancée avant
+  `engine:check`, la parité). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au lieu de
+  recopier les étapes de `npm run check` : une étape ajoutée au contrôle rapide ne peut plus manquer en CI. Une
+  quatrième partie de `mise run check` devrait aussi devenir un job (commentaire en tête des jobs de `ci.yml`). `npm run check` reste la partie rapide (environ 10 s), lancée avant
   chaque push ; ce qui demande Docker reste à la CI.
 - **Versions figées partout** : mise lui-même (`min_version`, et la version de la CI, tenue à jour par Renovate),
   l'image `ubuntu-26.04` de la CI, Python (par mise, et uv l'utilise au lieu d'en télécharger un), et les linters du
