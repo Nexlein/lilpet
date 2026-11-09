@@ -80,11 +80,15 @@ Exemple d'un projet qui partage déjà un moteur de rendu C entre ESP32 AMOLED e
 
 Le moteur C est la seule référence des yeux. `scripts/goldens.mjs` fait dessiner par le moteur compilé en WebAssembly
 chaque scène de `engine/tests/scenes.json` (look, émotion, phase du clignement, pose de la tête, regard, particules à
-graine) et une courte animation scriptée (repos, suivi du pointeur, objet tourné, à l'envers, secoué, cœurs, caresse,
-réactions à la caméra, endormi), à partir d'une graine fixe et par pas de 1/64 s. Les images sont gardées en PNG dans
-`engine/tests/goldens/` et comparées pixel pour pixel par `mise run engine:wasm`, donc par `engine:check`,
-`mise run check` et le job du moteur C en CI. Une image qui diffère fait échouer le contrôle : elle est écrite dans
-`engine/build/goldens/`, avec le nombre de pixels qui changent.
+graine), gardée en PNG dans `engine/tests/goldens/`, et une animation scriptée (repos, suivi du pointeur, objet tourné,
+presque à plat, à l'envers, secoué, triste, cœurs, caresse, réactions à la caméra, plissé, endormi), jouée par pas de
+1/64 s depuis quatre graines et quatre looks. Une image sur 16 de l'animation est gardée sous forme d'empreinte dans
+`animation.txt` : les entrées changent au milieu des mouvements, donc une vitesse ou une rampe modifiée se voit, ce
+qu'une image prise à la fin de chaque partie ne montrerait pas (la review du retrait du prototype l'a prouvé en
+modifiant trois lignes du moteur). Un PNG des fins de partie du premier passage reste pour l'œil. Tout est comparé
+exactement par `mise run engine:wasm`, donc par `engine:check`, `mise run check` et le job du moteur C en CI. Ce qui
+diffère fait échouer le contrôle et va dans `engine/build/goldens/` : l'image dessinée, avec le nombre de pixels qui
+changent, ou la première image de l'animation qui diffère. La CI le garde comme artefact.
 
 Les rendus viennent du build WebAssembly parce qu'il donne les mêmes pixels sur toutes les machines : pas de
 multiplication-addition fusionnée (FMA), et sa propre libm. Un build natif peut utiliser FMA, ce qui change quelques
