@@ -40,7 +40,7 @@ const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 function createEyes(seed) {
     const prev = eyes;
     eyes = new Eyes(seed);
-    window.eyes = eyes; // drive the renderer from the browser console when debugging
+    window.eyes = eyes; // for the browser console, and read by tests/live.spec.mjs
     eyes.onEmotion = highlightEmotion;
     if (prev) {
         eyes.shape = { ...prev.shape };
