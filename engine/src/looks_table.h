@@ -10,7 +10,7 @@ static const lp_look DEFAULT_LOOK = {.sclera = 0xAE0002u, .pupil = LP_PUPIL_DOT,
 static const lp_shape DEFAULT_SHAPE = {.rx = 93.0f, .ry = 109.0f, .gap = 101.0f, .tilt = 0.37f};
 
 _Static_assert(LP_PUPIL_COUNT == 4, "lp_pupil in lilpet.h and the pupils of eyes/looks.json differ");
-#define LP_PUPIL_LIST "dot|cat|acorn|circle" /* for the messages that list them */
+#define LP_PUPIL_LIST "dot|cat|acorn|circle" /* for the message of a malformed look */
 static const lp_pupils PUPILS = {
     .lean = 0.09f,
     .types = {

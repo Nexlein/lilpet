@@ -8,7 +8,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
-import { EMOTIONS, EMOTIONS_TABLE, GENERATORS, LOOKS, SCENES, SCENES_TABLE } from './data.mjs';
+import { EMOTIONS, EMOTIONS_TABLE, GENERATORS, LOOKS, LOOKS_TABLE, SCENES, SCENES_TABLE } from './data.mjs';
 
 const SCRIPT = 'scripts/validate-data.mjs';
 const EMOTIONS_SCRIPT = GENERATORS[EMOTIONS_TABLE];
@@ -193,6 +193,12 @@ describe('the table generators', PARALLEL, () => {
             writeFileSync(join(dir, SCENES), 'not JSON');
             assert.notEqual((await run(dir, SCENES_SCRIPT, '--check')).status, 0);
             assert.deepEqual(await run(dir, EMOTIONS_SCRIPT, '--check'), { status: 0, stderr: '' });
+        }));
+
+    test('an unknown default swatch stops the looks table with a message', () =>
+        withCopy(async (dir) => {
+            changeFile(dir, LOOKS, (d) => (d.default.swatch = 'plaid'));
+            assertRefused(await run(dir, GENERATORS[LOOKS_TABLE], '--check'), 'the default swatch "plaid"');
         }));
 
     test('a changed emotion makes the tables out of date, until generated again', () =>

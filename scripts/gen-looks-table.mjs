@@ -10,6 +10,10 @@ const data = readJson(LOOKS);
 const pupilEnum = (type) => `LP_PUPIL_${type.toUpperCase()}`;
 const color = (hex) => `0x${hex.slice(1).toUpperCase()}u`;
 const swatch = data.swatches.find((s) => s.id === data.default.swatch);
+if (!swatch) {
+    console.error(`${LOOKS}: the default swatch "${data.default.swatch}" is not one of its swatches`);
+    process.exit(1);
+}
 const pupils = Object.entries(data.pupils);
 
 const lines = [
@@ -27,14 +31,14 @@ const lines = [
         `.gap = ${num(data.eye.gap)}, .tilt = ${num(data.eye.tilt)}};`,
     '',
     `_Static_assert(LP_PUPIL_COUNT == ${pupils.length}, "lp_pupil in lilpet.h and the pupils of eyes/looks.json differ");`,
-    `#define LP_PUPIL_LIST "${pupils.map(([type]) => type).join('|')}" /* for the messages that list them */`,
+    `#define LP_PUPIL_LIST "${pupils.map(([type]) => type).join('|')}" /* for the message of a malformed look */`,
     'static const lp_pupils PUPILS = {',
     `    .lean = ${num(data.pupilLean)},`,
     '    .types = {'
 ];
 for (const [type, p] of pupils) {
-    const [rx, ry] =
-        p.r === undefined ? [p.rx, p.ry] : [p.r, p.r]; /* a disc: the renderer takes both from the eye's rx */
+    // A disc: the renderer takes both radii from the eye's rx
+    const [rx, ry] = p.r === undefined ? [p.rx, p.ry] : [p.r, p.r];
     lines.push(
         `        [${pupilEnum(type)}] = {.name = "${type}", .rx = ${num(rx)}, .ry = ${num(ry)}, .x = ${num(p.x)}, ` +
             `.y = ${num(p.y)}},`
