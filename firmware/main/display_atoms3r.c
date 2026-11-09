@@ -99,7 +99,7 @@ static const panel ST7735S = {"AtomS3R LCD (ST7735S)", 2, 3, 0xDCu, true, STEPS(
 /* GC9107: 128x128 visible in a 128x160 memory, from row 32 */
 static const panel GC9107 = {"AtomS3R LCD (GC9107)", 0, 32, 0x08u, false, STEPS(GC9107_INIT)};
 
-static const panel *chip = &GC9107;
+static const panel *chip;
 static esp_lcd_panel_io_handle_t io;
 static i2c_master_dev_handle_t backlight;
 
@@ -108,8 +108,9 @@ static void send(uint8_t cmd, const uint8_t *params, size_t len)
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(io, cmd, params, len));
 }
 
-/* Reads the controller ID (command 0x04) on the data wire, at a low clock, and tells the controller (lcd_id.h) */
-static const panel *detect(char *raw, size_t raw_size)
+/* Reads the controller ID (command 0x04) on the data wire, at a low clock, and tells the controller (lcd_id.h); the
+ * GC9107 settings for an ID it does not know */
+static const panel *detect(void)
 {
     spi_device_handle_t dev;
     const spi_device_interface_config_t config = {
@@ -131,17 +132,17 @@ static const panel *detect(char *raw, size_t raw_size)
     spi_device_release_bus(dev);
     ESP_ERROR_CHECK(spi_bus_remove_device(dev));
 
-    snprintf(raw, raw_size, "%02X %02X %02X %02X %02X %02X", answer[0], answer[1], answer[2], answer[3], answer[4],
-             answer[5]);
     switch (lcd_id_match(answer)) {
     case LCD_ID_ST7735S:
         return &ST7735S;
     case LCD_ID_GC9107:
         return &GC9107;
     case LCD_ID_UNKNOWN:
-    default:
-        return NULL;
+        break;
     }
+    printf("display ID not recognized (%02X %02X %02X %02X %02X %02X): trying the GC9107 settings\n", answer[0],
+           answer[1], answer[2], answer[3], answer[4], answer[5]);
+    return &GC9107;
 }
 
 #define BRIGHTNESS 160u /* out of 255 */
@@ -188,12 +189,7 @@ const char *display_init(size_t max_band_bytes)
         .max_transfer_sz = (int)max_band_bytes,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &bus, SPI_DMA_CH_AUTO));
-    char raw[24];
-    const panel *found = detect(raw, sizeof raw);
-    if (found)
-        chip = found;
-    else
-        printf("display ID not recognized (%s): trying the GC9107 settings\n", raw);
+    chip = detect();
 
     const esp_lcd_panel_io_spi_config_t io_config = {
         .cs_gpio_num = BOARD_LCD_CS,
