@@ -15,6 +15,8 @@ const HEX = /^#[0-9A-Fa-f]{6}$/;
 const ID = /^[a-z0-9-]+$/; // ends up in a C string and in a file name (engine/tests/goldens)
 const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
+const HALF_SCREEN = 233; // LP_SCREEN_SIZE / 2: the biggest eye radius and gap the drawing is made for
+const MEASURED_TILT = 0.37; // radians: the emotions' turns were tuned for it (docs/architecture.md)
 const errors = [];
 const isHex = (v) => typeof v === 'string' && HEX.test(v);
 const isNum = (v, min = -Infinity, max = Infinity) =>
@@ -93,13 +95,12 @@ if (!looks?.swatches?.some?.((s) => s?.id === looks?.default?.swatch))
     errors.push(`${LOOKS}: "default.swatch" must be a swatch id`);
 if (!PUPILS.includes(looks?.default?.pupil))
     errors.push(`${LOOKS}: "default.pupil" must be one of ${PUPILS.join(', ')}`);
-// The eye shape the drawing is made for: radii up to half the screen, no more tilt than the measured one (the emotions'
-// turns were tuned for it, docs/architecture.md)
+// The eye shape the drawing is made for
 for (const [k, min, max] of [
-    ['rx', 1, 233],
-    ['ry', 1, 233],
-    ['gap', 0, 233],
-    ['tilt', 0, 0.37]
+    ['rx', 1, HALF_SCREEN],
+    ['ry', 1, HALF_SCREEN],
+    ['gap', 0, HALF_SCREEN],
+    ['tilt', 0, MEASURED_TILT]
 ])
     if (!isNum(looks?.eye?.[k], min, max)) errors.push(`${LOOKS}: "eye.${k}" must be between ${min} and ${max}`);
 if (!isNum(looks?.pupilLean, 0, 0.5)) errors.push(`${LOOKS}: "pupilLean" must be between 0 and 0.5 radians`);
