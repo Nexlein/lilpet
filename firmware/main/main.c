@@ -142,7 +142,7 @@ void app_main(void)
 
     lp_eyes_init(&eyes, 1);
     /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
-    lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
+    lp_eyes_set_look(&eyes, bench ? &LP_BENCH_LOOK : &look);
     lp_renderer_init(&renderer);
     lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
     lp_renderer_set_big_endian(&renderer, true);
