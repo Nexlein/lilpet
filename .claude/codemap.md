@@ -264,11 +264,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **board.c** (99) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
+- **board.c** (110) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
   - → firmware/main/board.h, firmware/boards/*/board_config.h
-- **board.h** (26) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_button_pressed, board_i2c, board_backlight_on
+- **board.h** (32) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 - **commands.c** (176) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
   - exports: commands_start, commands_next
@@ -301,7 +301,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
   - exports: imu_axis
   - ← firmware/main/imu_bmi270.c
-- **imu_bmi270.c** (137) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
+- **imu_bmi270.c** (133) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_axes.h
 - **imu_none.c** (13) — Boards without a motion sensor
