@@ -3,7 +3,7 @@
 // gen-emotions-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
 // Usage: node scripts/gen-scenes-table.mjs [--check]   (--check: fail if the committed file is out of date)
 import { SCENES, SCENES_TABLE, lookOf, readJson, swatchesById } from './data.mjs';
-import { emotionEnum, num, writeGenerated } from './gen-common.mjs';
+import { emotionEnum, hexColor, num, pupilEnum, writeGenerated } from './gen-common.mjs';
 
 const swatches = swatchesById();
 const scenes = readJson(SCENES).scenes;
@@ -11,7 +11,6 @@ const scenes = readJson(SCENES).scenes;
 const lookKey = (scene) => `${scene.swatch} ${scene.pupil}`;
 const firstWearers = scenes.filter((scene, i) => scenes.findIndex((s) => lookKey(s) === lookKey(scene)) === i);
 const lookIndex = new Map(firstWearers.map((scene, i) => [lookKey(scene), i]));
-const hex = (c) => `0x${c.slice(1).toUpperCase()}u`;
 const phaseEnum = (phase) => `LP_BLINK_${(phase ?? 'none').toUpperCase()}`;
 
 const lines = [
@@ -27,7 +26,7 @@ const lines = [
 for (const scene of firstWearers) {
     const look = lookOf(swatches, scene);
     lines.push(
-        `    {${hex(look.sclera)}, LP_PUPIL_${look.pupil.toUpperCase()}, {${hex(look.pupilColor[0])}, ${hex(look.pupilColor[1])}}}, /* ${lookKey(scene)} */`
+        `    {${hexColor(look.sclera)}, ${pupilEnum(look.pupil)}, {${hexColor(look.pupilColor[0])}, ${hexColor(look.pupilColor[1])}}}, /* ${lookKey(scene)} */`
     );
 }
 lines.push(

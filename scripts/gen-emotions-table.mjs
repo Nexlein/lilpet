@@ -1,7 +1,7 @@
 // Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each
 // expression with every field (scripts/expression.mjs gives the ones an emotion leaves out). Apart from
 // gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
-// Run it after changing emotions.json (npm run tables runs both).
+// Run it after changing emotions.json (npm run tables runs every generator).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
 import { EMOTIONS, EMOTIONS_TABLE, readJson } from './data.mjs';
 import { EXPRESSION, withNeutral } from './expression.mjs';

@@ -3,12 +3,10 @@
 // needs the catalogue. Run it after changing looks.json (npm run tables runs every generator).
 // Usage: node scripts/gen-looks-table.mjs [--check]   (--check: fail if the committed file is out of date)
 import { LOOKS, LOOKS_TABLE, readJson } from './data.mjs';
-import { num, writeGenerated } from './gen-common.mjs';
+import { hexColor, num, pupilEnum, writeGenerated } from './gen-common.mjs';
 
 const data = readJson(LOOKS);
 
-const pupilEnum = (type) => `LP_PUPIL_${type.toUpperCase()}`;
-const color = (hex) => `0x${hex.slice(1).toUpperCase()}u`;
 const swatch = data.swatches.find((s) => s.id === data.default.swatch);
 if (!swatch) {
     console.error(`${LOOKS}: the default swatch "${data.default.swatch}" is not one of its swatches`);
@@ -25,8 +23,8 @@ const lines = [
     '#include "internal.h"',
     '#include "lilpet/lilpet.h"',
     '',
-    `static const lp_look DEFAULT_LOOK = {.sclera = ${color(swatch.sclera)}, .pupil = ${pupilEnum(data.default.pupil)}, ` +
-        `.pupil_color = {${swatch.pupilColor.map(color).join(', ')}}}; /* ${swatch.id} */`,
+    `static const lp_look DEFAULT_LOOK = {.sclera = ${hexColor(swatch.sclera)}, .pupil = ${pupilEnum(data.default.pupil)}, ` +
+        `.pupil_color = {${swatch.pupilColor.map(hexColor).join(', ')}}}; /* ${swatch.id} */`,
     `static const lp_shape DEFAULT_SHAPE = {.rx = ${num(data.eye.rx)}, .ry = ${num(data.eye.ry)}, ` +
         `.gap = ${num(data.eye.gap)}, .tilt = ${num(data.eye.tilt)}};`,
     '',

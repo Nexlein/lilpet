@@ -366,16 +366,16 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: running_board, before_flash
   - → scripts/board_link.py
   - ← mise.toml
-- **gen-common.mjs** (28) — What the generators of the engine's C files share (gen-emotions-table.mjs, gen-scenes-table.mjs)
-  - exports: emotionEnum, eventEnum, num, writeGenerated
+- **gen-common.mjs** (30) — What the generators of the engine's C files share (the gen-*-table.mjs of scripts/data.mjs)
+  - exports: emotionEnum, pupilEnum, hexColor, eventEnum, num, writeGenerated
   - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs
 - **gen-emotions-table.mjs** (62) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
   - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
   - ← scripts/data.mjs
-- **gen-looks-table.mjs** (62) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
+- **gen-looks-table.mjs** (60) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← scripts/data.mjs
-- **gen-scenes-table.mjs** (58) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
+- **gen-scenes-table.mjs** (57) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json and the looks they wear (from eyes/looks.json), as C tables...
   - → scripts/data.mjs, scripts/gen-common.mjs
   - ← scripts/data.mjs
 - **goldens.mjs** (229) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
