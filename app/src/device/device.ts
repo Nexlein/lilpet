@@ -4,6 +4,7 @@ import { ConnectionClosed, type Connection } from './connection';
 import { HELLO, lookCommand, parseHello, parseReply, type DeviceInfo } from './protocol';
 
 const HELLO_ATTEMPTS = 3;
+const HELLO_TIMEOUT_MS = 1000;
 // A command told in passing waits less than a look: a silent board would hold back the look queued behind ten moods
 const COMMAND_TIMEOUT_MS = 500;
 
@@ -28,7 +29,7 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
     for (let i = 0; i < HELLO_ATTEMPTS; i++) {
         // oxlint-disable-next-line no-await-in-loop -- each attempt waits for the previous one to time out
         reply = await connection
-            .request(HELLO, 1000)
+            .request(HELLO, HELLO_TIMEOUT_MS)
             .catch((err: unknown) =>
                 err instanceof ConnectionClosed || i === HELLO_ATTEMPTS - 1 ? Promise.reject(err) : null
             );

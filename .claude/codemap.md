@@ -50,7 +50,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
-- **device.ts** (60) — What the app asks the device, on top of a connection
+- **device.ts** (61) — What the app asks the device, on top of a connection
   - exports: BoardBusy, NotLilpet, hello, command, LookSent, sendLook
   - → app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/protocol.ts
   - ← app/src/device/session.ts, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
@@ -391,7 +391,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (204) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: codemap.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 
