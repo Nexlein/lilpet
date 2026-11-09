@@ -102,7 +102,7 @@
     X(test_cutting_spans)                                                                                              \
     X(test_polygon_edges_reach_every_sub_row)                                                                          \
     X(test_line_too_far_misses_an_ellipse)                                                                             \
-    X(test_eyes_off_the_screen_render_nothing)                                                                         \
+    X(test_extreme_shapes_stay_in_the_buffers)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
     X(test_small_output_regions_stay_inside)                                                                           \

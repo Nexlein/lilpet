@@ -431,24 +431,28 @@ void test_unknown_pupil_renders_as_a_circle(void)
     CHECK(memcmp(frame, reference, sizeof frame) == 0);
 }
 
-void test_eyes_off_the_screen_render_nothing(void)
+void test_extreme_shapes_stay_in_the_buffers(void)
 {
-    /* Half past the edge, all the way past it, too far for an int, wider than the screen, too big for an int, smaller
-     * than a pixel (lp_eyes_set_shape takes any positive radius); open and closed. The sanitizers catch any write
-     * outside the buffers. */
+    /* Eyes past the edge, wider than the screen, or with radii too big for an int or smaller than a pixel
+     * (lp_eyes_set_shape takes any positive radius); open and closed, on both screen sizes. The sanitizers catch any
+     * write outside the buffers. */
     const lp_shape deflt = lp_default_shape();
     const lp_shape shapes[] = {
-        {deflt.rx, deflt.ry, 300.0f, deflt.tilt}, {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
-        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},  {600.0f, 600.0f, deflt.gap, deflt.tilt},
-        {1e30f, 1e30f, deflt.gap, deflt.tilt},    {1e-30f, 1e-30f, deflt.gap, deflt.tilt},
+        {deflt.rx, deflt.ry, 300.0f, deflt.tilt}, /* half past the edge */
+        {deflt.rx, deflt.ry, 400.0f, deflt.tilt}, /* all the way past it */
+        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},  /* too far for an int */
+        {600.0f, 600.0f, deflt.gap, deflt.tilt},  /* wider than the screen */
+        {1e30f, 1e30f, deflt.gap, deflt.tilt},    /* radii too big for an int */
+        {1e-30f, 1e-30f, deflt.gap, deflt.tilt},  /* smaller than a pixel */
     };
     const char *scenes[] = {"look-cherry", "blink-closed"};
     const int sizes[] = {SIZE, 128};
     for (int s = 0; s < 2; s++) {
-        for (int k = 0; k < (int)(sizeof shapes / sizeof shapes[0]); k++) {
+        for (size_t k = 0; k < sizeof shapes / sizeof shapes[0]; k++) {
             for (int i = 0; i < 2; i++) {
                 set_scene(&eyes, scenes[s]);
                 lp_eyes_set_shape(&eyes, &shapes[k]);
+                CHECK(eyes.shape.rx == shapes[k].rx && eyes.shape.gap == shapes[k].gap); /* taken, not refused */
                 lp_renderer_init(&renderer);
                 lp_renderer_set_size(&renderer, sizes[i]);
                 lp_render(&renderer, &eyes, frame);
@@ -627,6 +631,10 @@ void test_small_output_regions_stay_inside(void)
     CHECK(renderer.size == SIZE);
     lp_renderer_set_size(&renderer, 7);
     CHECK(renderer.size == 6);
+    lp_renderer_set_size(&renderer, 0);
+    CHECK(renderer.size == 2); /* the smallest even size */
+    lp_renderer_set_size(&renderer, -5);
+    CHECK(renderer.size == 2);
 
     set_scene(&eyes, "head-turn-right");
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts start below the bottom edge of the small screen */
