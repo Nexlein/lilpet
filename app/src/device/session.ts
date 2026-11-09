@@ -66,8 +66,7 @@ export class DeviceSession {
             });
             const info = await hello(opened);
             this.#connection = opened;
-            this.#set({ state: { status: 'connected', info } });
-            if (this.#mood) this.#tell(emotionCommand(this.#mood));
+            this.#greeted(info);
         } catch (err) {
             await opened?.close();
             // Closing the port picker without choosing is not an error
@@ -103,12 +102,16 @@ export class DeviceSession {
     async #restarted(connection: Connection): Promise<void> {
         try {
             const info = await hello(connection);
-            if (this.#connection !== connection) return; // unplugged meanwhile
-            this.#set({ state: { status: 'connected', info } });
-            if (this.#mood) this.#tell(emotionCommand(this.#mood));
+            if (this.#connection === connection) this.#greeted(info); // unless unplugged meanwhile
         } catch (err) {
             this.#log(`> hello : ${describe(err)}`);
         }
+    }
+
+    // A board that answered hello: connected, and told the mood picked, if any
+    #greeted(info: DeviceInfo): void {
+        this.#set({ state: { status: 'connected', info } });
+        if (this.#mood) this.#tell(emotionCommand(this.#mood));
     }
 
     // Tells the board something in passing, if it is there: same queue as the looks, and a failure only goes to the log
