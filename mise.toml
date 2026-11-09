@@ -128,7 +128,7 @@ run = 'port=$(uv run --with-requirements scripts/requirements.txt scripts/flash-
 description = "Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)"
 depends = ["firmware:board"]
 # The only part CI cannot test (no hardware). Puts the board's own look back at the end.
-run = "uv run --with-requirements scripts/requirements.txt scripts/device-check.py"
+run = "uv run --with-requirements scripts/requirements.txt scripts/check-device.py"
 
 [tasks."firmware:deploy"]
 description = "Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)"

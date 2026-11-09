@@ -160,7 +160,7 @@ open only the files it points to. Below, the parts and how they fit.
   `firmware:build` into `firmware/build/<board>/` (`flash_args` and its three images, plus `merged-binary.bin` for a
   blank board, which also erases the stored look), in the ESP-IDF image pinned in `firmware/Dockerfile` (latest release;
   Dependabot proposes new ones); `firmware:flash` writes the bootloader, partition table and app only, so the look kept
-  in NVS survives; `firmware:check-device` (`scripts/device-check.py`, through `uv`: no reboot on opening, hello and its
+  in NVS survives; `firmware:check-device` (`scripts/check-device.py`, through `uv`: no reboot on opening, hello and its
   board, a look kept across a reboot, no screen fault in the boot log, at least 20 frames/s, emotion, react, face, bad
   commands and lines too long rejected, about 1 g from a motion sensor; puts the board's look and mood back, the one
   check CI cannot run). `PORT` picks the board, otherwise the only

@@ -239,7 +239,7 @@ def guard(*boards, **env):
 
 
 def check_device(board, **env):
-    return run("device-check.py", board, **{"BOARD": board.name, **env})
+    return run("check-device.py", board, **{"BOARD": board.name, **env})
 
 
 class HelloFields(unittest.TestCase):

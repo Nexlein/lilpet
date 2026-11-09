@@ -305,17 +305,17 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## scripts
 - **board_link.py** (93) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in notes/app.md).
   - exports: board_from_env, has_motion_sensor, read_reply, ask, ask_hello, find_port, open_port, hello_fields
-  - ← scripts/device-check.py, scripts/flash-guard.py
+  - ← scripts/check-device.py, scripts/flash-guard.py
+- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
+  - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
+  - → scripts/board_link.py
+  - ← mise.toml
 - **codemap.mjs** (645) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
 - **data.mjs** (18) — Where the data files are, and the look a scene wears: shared by the scripts that read them (the validator, the table generators, the reference rend...
   - exports: LOOKS, EMOTIONS, SCENES, readJson, swatchesById, lookOf
   - ← scripts/gen-emotions-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **device-check.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md): opening the port does not reboot...
-  - exports: Board, define, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
-  - → scripts/board_link.py
-  - ← mise.toml
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
