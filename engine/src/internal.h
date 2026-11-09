@@ -9,7 +9,7 @@
 #define LP_PI     3.14159265f
 #define LP_CENTER ((float)LP_SCREEN_SIZE / 2.0f)
 
-/* Blink phase durations measured on the official footage (see notes/yeux.md) */
+/* Blink phase durations measured on the official footage (see docs/yeux.md) */
 #define LP_BLINK_ANTICIP_TIME 0.06f
 #define LP_BLINK_CLOSE_TIME   0.1f
 

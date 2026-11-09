@@ -3,16 +3,16 @@
 Personal, non-commercial keychain "digital pet" inspired by the Starboy (lilguy / CREATURE): a round screen with
 expressive eyes that react to what a camera sees: gestures, faces and the person's expressions (no voice). Stage: eye
 engine in C done (host, WebAssembly, ESP32-S3); PC app v1 (pick the eyes, send them over USB); hardware chosen in
-`notes/materiel.md` (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; until
+`docs/materiel.md` (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART), not bought yet; until
 then the eyes run on an M5Stack AtomS3R (128 px LCD, no camera). The goal is an AI model inside the object that processes what
 the camera sees and chooses the reactions; it does not exist yet, what it will send is ready (`> react`, `> emotion`,
-`> face` in `notes/app.md`).
+`> face` in `docs/app.md`).
 No rarity or random eye draw: the owner picks. Long-term, a small PC app edits the eyes and animations and sends
 them to the device, so keep looks (and later animations) as data, not code.
 
 ## Architecture
 
-Decided in `notes/architecture.md` (read it before structural work): one eye engine in C17 (`engine/`),
+Decided in `docs/architecture.md` (read it before structural work): one eye engine in C17 (`engine/`),
 compiled for the ESP32-S3 with ESP-IDF and to WebAssembly with Emscripten; custom scanline renderer, RGB565, dirty
 regions, `float` never `double`; PC app in TypeScript + Vite with Web Serial (`app/`). The engine is the one reference
 of the eyes: reference renders of its WebAssembly build pin how they look (`engine/tests/goldens/`).
@@ -67,9 +67,9 @@ open only the files it points to. Below, the parts and how they fit.
   `setShape`, `setFollow` and `setHeadAmount` wait for the app's future eye editor;
   `engine.d.mts` types what the app uses of it, with `EyeEvent` read from `eyes/emotions.json`. `src/look.c` reads
   and writes a look as text (`lp_look_parse`, `lp_look_format`), the USB format.
-- `app/` — PC app v1 (spec and protocol in `notes/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
+- `app/` — PC app v1 (spec and protocol in `docs/app.md`), an npm workspace: React 19 + TypeScript strict + Vite,
   font Bricolage Grotesque. `src/data` (swatches, looks, favorites in localStorage), `src/device` (Web Serial
-  connection and text protocol of `notes/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
+  connection and text protocol of `docs/app.md`: `hello`, `look`, `emotion`, `react`; replies start with `< `;
   `protocol.ts` reads a reply once into a typed result (`parseReply`); `session.ts` is the connect / send / unplug state
   machine, tested with the fake board of `fake-port.ts`, which stands alone: `app/tests/app.spec.mjs` sends its text
   to the page),
@@ -112,16 +112,16 @@ open only the files it points to. Below, the parts and how they fit.
   in the app happy, and the gestures and expressions a camera sends each have their own.
 - `eyes/emotions.json` — emotions (French label, expression, particles) and reactions, by event name: the one source
   for the C tables and the app's labels.
-- `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `notes/yeux.md`).
+- `eyes/looks.json` — the 100 official swatches (sclera color, left/right pupil colors; catalogue in `docs/yeux.md`).
   A look is a swatch worn with a pupil type `dot | cat | acorn | circle` (`makeLook` in `app/src/data/looks.ts`);
   scenes name both. Looks carry no glint: only emotions add one.
 - `scripts/validate-data.mjs` — validates `looks.json`, `emotions.json` and `scenes.json` (ids, colors, exactly 100
   swatches, known pupil types and emotions, the names the code asks for, ranges, no sparkles on the held reactions
   `shake` and `upside_down`, particle times in steps of 0.25 s, no comment marks in a `note`); the blink phases and
   pupils come from `engine/wasm/engine.mjs`. That each scene with particles shows some is an engine test.
-- `notes/` — research, hardware, architecture and eye analysis, in French. `notes/yeux.md` holds the measured style
+- `docs/` — research, hardware, architecture and eye analysis, in French. `docs/yeux.md` holds the measured style
   of the originals (proportions, blink timing, emotions): read it before changing how the eyes look or move.
-- `references/` — frame sheets extracted from third-party videos, behind `notes/yeux.md`: local only, ignored by git,
+- `references/` — frame sheets extracted from third-party videos, behind `docs/yeux.md`: local only, ignored by git,
   never published.
 
 ## Commands
@@ -154,7 +154,7 @@ open only the files it points to. Below, the parts and how they fit.
 - `npm run tables` — rewrites the generated C tables; `npm run goldens` rewrites the reference renders of
   `engine/tests/goldens/` and the hashes of the animation on purpose (needs the module of `mise run engine:wasm`;
   `engine:goldens` fails on them until then).
-- `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `notes/architecture.md`.
+- `mise run engine:bench` — renderer timings (compare runs on the same machine only); see `docs/architecture.md`.
 - The WebAssembly build runs in the Emscripten image pinned in `engine/wasm/Dockerfile` (latest release; Dependabot
   proposes new ones). Do not install emsdk through mise: its clang and node shadow the system ones and send ccache into
   a loop.
@@ -172,7 +172,7 @@ open only the files it points to. Below, the parts and how they fit.
 
 ## Conventions
 
-- Code, comments, commits: English. Notes and README: French.
+- Code, comments, commits: English. Docs (`docs/`) and README: French.
 - File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it), but scripts that
   are only run in kebab-case (`check-device.py`), like JS and TS files (`gen-scenes-table.mjs`, `fake-port.ts`); React
   components in PascalCase (`SendPanel.tsx`). A JS test sits next to its module, `<module>.test.mjs` (Node) or
@@ -187,7 +187,7 @@ open only the files it points to. Below, the parts and how they fit.
   `ubuntu-26.04` image (the Python library of the scripts: `scripts/requirements.txt`);
   Renovate proposes each new release as a pull request (`.github/renovate.json5`), Dependabot the rest
   (`.github/dependabot.yml`: npm, Docker images, Actions).
-- Eye style comes from measurements of the originals (see `notes/yeux.md`); recreate the style, never copy their
+- Eye style comes from measurements of the originals (see `docs/yeux.md`); recreate the style, never copy their
   assets.
 - A visual change to the eyes goes with a scene in `engine/tests/scenes.json` that shows it, and new reference renders.
 - After changing `eyes/looks.json`, `eyes/emotions.json`, `engine/tests/scenes.json` or `scripts/expression.mjs`:

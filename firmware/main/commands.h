@@ -1,4 +1,4 @@
-/* Commands from the PC app over the USB serial port, one per line (protocol in notes/app.md, read by lp_command_parse):
+/* Commands from the PC app over the USB serial port, one per line (protocol in docs/app.md, read by lp_command_parse):
  *   "> hello"       ->  "< lilpet fw=<version> engine=<version> board=<board> camera=<0|1> motion=<0|1>"
  *   "> look <text>" ->  "< ok" once the look is saved, or "< err <reason>"
  *   "> look?"       ->  "< look <text>", the current look

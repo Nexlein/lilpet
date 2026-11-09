@@ -1,5 +1,5 @@
 // A small drawing of a pair of eyes, for the gallery and the pupil picker. Same proportions as the engine: eyes tilted
-// outward, pupils upright, set toward the nose and leaning a little (notes/yeux.md).
+// outward, pupils upright, set toward the nose and leaning a little (docs/yeux.md).
 import { useId } from 'react';
 import type { LookColors, PupilType } from '../data/looks';
 

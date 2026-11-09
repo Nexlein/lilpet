@@ -1,4 +1,4 @@
-# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in notes/app.md):
+# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (protocol in docs/app.md):
 # opening the port does not reboot it, it answers hello and tells its board, keeps a look it is sent, keeps it across a
 # reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad commands
 # and lines too long, which change nothing.

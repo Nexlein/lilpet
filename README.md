@@ -15,20 +15,20 @@ Projet strictement personnel, non commercial.
 
 ## Où on en est
 
-- [x] Recherche sur le Starboy → [notes/recherche.md](notes/recherche.md)
-- [x] Analyse des yeux → [notes/yeux.md](notes/yeux.md)
+- [x] Recherche sur le Starboy → [docs/recherche.md](docs/recherche.md)
+- [x] Analyse des yeux → [docs/yeux.md](docs/yeux.md)
 - [x] Prototype des yeux dans le navigateur, référence de design jusqu'à ce que le moteur C reprenne tout (retiré en
       novembre 2026)
-- [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
+- [x] Architecture choisie → [docs/architecture.md](docs/architecture.md)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
-- [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
+- [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
 - [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
       écran rond à tester sur la carte
 - [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
       recevoir
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
-- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
+- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
 - [ ] App PC : looks perso, réglages, animations
 
 ## Installer
@@ -132,7 +132,7 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 | Dossier     | Contenu                                                                                    |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| `notes/`    | Notes de recherche, matériel, architecture, yeux                                           |
+| `docs/`     | Documentation : architecture, décisions, protocole, app, yeux, matériel, recherche         |
 | `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
 | `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
 | `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |
