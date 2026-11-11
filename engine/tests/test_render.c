@@ -639,7 +639,8 @@ void test_small_output_regions_stay_inside(void)
     }
 }
 
-/* Each reference scene with particles shows some at its time: the data validator cannot tell without a simulation */
+/* Each reference scene with particles shows some at its time, in its frame: the data validator cannot tell without a
+ * simulation */
 void test_reference_scenes_with_particles_show_some(void)
 {
     for (int i = 0; i < (int)(sizeof SCENES / sizeof SCENES[0]); i++) {
@@ -649,6 +650,15 @@ void test_reference_scenes_with_particles_show_some(void)
         lp_eyes_set_scene(&eyes, &SCENES[i].scene, SCENES[i].look);
         if (eyes.particle_count == 0)
             LP_FAIL("scene %s: no particle is alive at its time", SCENES[i].id);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, frame);
+        lp_scene without = SCENES[i].scene;
+        without.has_particles = false;
+        lp_eyes_set_scene(&eyes, &without, SCENES[i].look);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, reference);
+        if (memcmp(frame, reference, sizeof frame) == 0)
+            LP_FAIL("scene %s: its particles do not reach the frame", SCENES[i].id);
     }
 }
 
