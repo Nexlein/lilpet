@@ -13,10 +13,15 @@ function stage() {
         size: SIZE,
         update: vi.fn(),
         renderView: vi.fn(() => pixels),
-        renderScene: vi.fn(() => pixels)
+        renderScene: vi.fn(() => pixels),
+        dirty: vi.fn(() => ({ x: 1, y: 0, width: 1, height: 2 })) // the right column
     };
     const drawn = vi.fn();
-    const canvas = { getContext: () => ({ putImageData: drawn }) } as unknown as HTMLCanvasElement;
+    const listeners = new Map<string, () => void>();
+    const canvas = {
+        getContext: () => ({ putImageData: drawn }),
+        addEventListener: (type: string, listener: () => void) => listeners.set(type, listener)
+    } as unknown as HTMLCanvasElement;
     const preview = new Preview(engine as unknown as Engine, canvas);
     let frame: FrameRequestCallback | null = null;
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -25,7 +30,8 @@ function stage() {
     });
     vi.stubGlobal('cancelAnimationFrame', () => (frame = null));
     const tick = (now: number) => frame?.(now);
-    return { engine, drawn, preview, tick };
+    const clear = () => listeners.get('contextrestored')?.(); // the browser gives back a blank canvas
+    return { engine, drawn, preview, tick, clear };
 }
 
 describe('preview', () => {
@@ -51,6 +57,31 @@ describe('preview', () => {
         expect(drawn).toHaveBeenCalledOnce();
     });
 
+    it('puts the whole first frame, then only the region the engine changed', () => {
+        const { drawn, preview, tick } = stage();
+        preview.start();
+        tick(1000 / 64);
+        tick(2000 / 64);
+        expect(drawn.mock.calls.map((call) => call.slice(1))).toEqual([
+            [0, 0, 0, 0, SIZE, SIZE],
+            [0, 0, 1, 0, 1, 2]
+        ]);
+    });
+
+    it('puts the whole frame again, at once, on a canvas the browser cleared', () => {
+        const { drawn, preview, tick, clear } = stage();
+        preview.start();
+        tick(1000 / 64);
+        clear();
+        expect(drawn).toHaveBeenCalledTimes(2); // a still frame does not wait for the next step
+        tick(2000 / 64);
+        expect(drawn.mock.calls.map((call) => call.slice(1))).toEqual([
+            [0, 0, 0, 0, SIZE, SIZE],
+            [0, 0, 0, 0, SIZE, SIZE],
+            [0, 0, 1, 0, 1, 2]
+        ]);
+    });
+
     it('does not catch up an hour spent in a hidden tab', () => {
         const { engine, preview, tick } = stage();
         preview.start();
@@ -73,6 +104,11 @@ describe('preview', () => {
         expect(engine.renderScene).toHaveBeenCalledExactlyOnceWith({ emotion: 'sad' }, look);
         expect(engine.update).not.toHaveBeenCalled();
         expect(drawn).toHaveBeenCalledOnce();
+        preview.still({ emotion: 'sad' }, look); // a new picture, not the one before with a region changed
+        expect(drawn.mock.calls.map((call) => call.slice(1))).toEqual([
+            [0, 0, 0, 0, SIZE, SIZE],
+            [0, 0, 0, 0, SIZE, SIZE]
+        ]);
     });
 });
 

@@ -68,7 +68,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
-- **preview.ts** (76) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
+- **preview.ts** (82) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
   - exports: loadEyeEngine, Preview, pointerIn, Engine
   - → engine/wasm/engine.mjs
   - ← app/src/ui/Screen.tsx, app/src/ui/hooks.ts
