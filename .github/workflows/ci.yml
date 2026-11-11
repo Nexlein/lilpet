@@ -8,11 +8,12 @@ on:
 permissions:
   contents: read
 
-# A newer push to a pull request replaces its run; a push to dev or main keeps its own, so that every merge commit
-# gets a whole result
+# A newer push to a pull request replaces its run. Each push to dev or main has a group of its own, so that every merge
+# commit gets a whole result: in a shared group, the next run cancels the one running, or without cancel-in-progress,
+# the one waiting behind it. No other run joins a push's group, so cancel-in-progress cancels only pull request runs.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'latest' || github.sha }}
+  cancel-in-progress: true
 
 env:
   # The mise every job installs (min_version in mise.toml is the oldest that works); Renovate keeps it current. Not
