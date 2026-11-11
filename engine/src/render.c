@@ -381,24 +381,30 @@ typedef struct {
     int x0, x1;
 } column_range;
 
-/* A layer of a shape on one row: its coverage over the shape's box, and the columns touched, none while lo >= hi */
+/*
+ * A layer of a shape on one row: its coverage over the shape's box, cleared at its first span (most rows of an eye
+ * have no pupil or glint), and the columns touched, none while lo >= hi
+ */
 typedef struct {
     float *cov;
     int x0, width;
+    bool cleared;
     float lo, hi;
 } layer;
 
 static layer layer_start(float *cov, lp_rect box)
 {
-    const int width = box.x1 - box.x0;
-    memset(cov, 0, (size_t)(width + 1) * sizeof *cov);
-    return (layer){.cov = cov, .x0 = box.x0, .width = width, .lo = (float)box.x1, .hi = (float)box.x0};
+    return (layer){.cov = cov, .x0 = box.x0, .width = box.x1 - box.x0, .lo = (float)box.x1, .hi = (float)box.x0};
 }
 
 static void layer_add(layer *l, const lp_spans *s, float w)
 {
     if (s->n == 0)
         return;
+    if (!l->cleared) {
+        memset(l->cov, 0, (size_t)(l->width + 1) * sizeof *l->cov);
+        l->cleared = true;
+    }
     lp_coverage_add(l->cov, l->x0, l->width, s, w);
     l->lo = lp_minf(l->lo, s->a[0]);
     l->hi = lp_maxf(l->hi, s->b[s->n - 1]);
@@ -454,7 +460,8 @@ static column_range draw_eye_row(lp_row_scratch *s, const lp_eye_geometry *g, in
     const float w = 1.0f / (float)LP_SUBROWS;
     layer sclera = layer_start(s->cov[0], g->box);
     layer pupil = layer_start(s->cov[1], g->box);
-    layer glint = g->glint ? layer_start(s->cov[2], g->box) : (layer){0};
+    /* drawn only with a glint; a layer costs nothing until its first span */
+    layer glint = layer_start(s->cov[2], g->box);
 
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
