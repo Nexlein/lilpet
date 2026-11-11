@@ -119,8 +119,10 @@ mise run firmware:monitor
 ```
 
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
-`board_config.h`. La CI la compile d'elle-même ; pour que cette compilation soit exigée avant un merge, ajouter son job
-(« ESP32-S3 firmware build (<carte>) ») aux checks requis des règles GitHub de `main` et `dev`.
+`board_config.h`, puis ajouter son nom à la liste des cartes de `.github/workflows/ci.yml` (un test de `npm run check`
+compare cette liste aux dossiers). Pour que sa compilation soit exigée avant un merge, ajouter son job (« ESP32-S3
+firmware build (<carte>) ») aux checks requis des règles GitHub de `main` et `dev`. De même pour renommer ou retirer une
+carte : un check requis dont le job n'existe plus reste en attente et bloque chaque pull request.
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis

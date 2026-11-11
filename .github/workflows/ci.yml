@@ -8,8 +8,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its run. Each push to dev or main has a group of its own, so that every merge
+# commit gets a whole result: in a shared group, the next run cancels the one running, or without cancel-in-progress,
+# the one waiting behind it. No other run joins a push's group, so cancel-in-progress cancels only pull request runs.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'latest' || github.sha }}
   cancel-in-progress: true
 
 env:
@@ -29,12 +32,14 @@ jobs:
         with:
           fetch-depth: 0 # the whole history, for the secret scan
 
-      # Installs the tools from mise.toml, same as local development (only those `npm run check` uses). Actions are
-      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      # Installs the tools from mise.toml, same as local development and as the engine and playwright jobs, with no
+      # list here to keep in step with mise.toml. No cache: mise installs the 11 tools in about 4 s, and restoring the
+      # 281 MB entry took as long. Actions are pinned by commit, since a tag can be moved; Dependabot updates the pin
+      # and its comment.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
-          install_args: node uv python shellcheck actionlint ruff gitleaks
+          cache: false
 
       # The pre-commit hook scans what is staged, but a commit can skip it (--no-verify, a worktree without its hooks)
       - name: Scan the history for secrets
@@ -58,6 +63,7 @@ jobs:
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
+          cache: false # as in the check job
 
       - name: Check the engine
         run: mise run engine:check
@@ -76,28 +82,17 @@ jobs:
       - name: Benchmark the renderer
         run: mise run engine:bench
 
-  boards:
-    name: List the firmware boards
-    runs-on: ubuntu-26.04
-    timeout-minutes: 2
-    outputs:
-      list: ${{ steps.folders.outputs.list }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # A board is a folder of firmware/boards with a board.cmake: a new one is built with no change here
-      - id: folders
-        run: echo "list=$(printf '%s\n' firmware/boards/*/board.cmake | cut -d/ -f3 | jq -Rcs 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
-
   esp32:
     name: ESP32-S3 firmware build (${{ matrix.board }})
-    needs: boards
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        board: ${{ fromJSON(needs.boards.outputs.list) }}
+        # The folders of firmware/boards that hold a board.cmake, which scripts/ci.test.mjs checks: a board added there
+        # goes here too, and its job into the required checks of both rulesets. Written here rather than listed by a
+        # job, which the firmware jobs waited for, 6 to 10 s.
+        board: [atoms3r, stamp_s3a, waveshare_132]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -106,10 +101,14 @@ jobs:
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           install: false
+          cache: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # A new entry per board and commit, starting from the latest one of the same board, ESP-IDF image and options.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Each push run of dev saves a new entry per board, read from then on by the runs that start from the latest one
+      # of the same board, ESP-IDF image and options. Pull requests and main read dev's entries and save none: main's
+      # own, older ones would come first for its next runs.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: ccache
         with:
           path: firmware/.ccache
           key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-${{ github.sha }}
@@ -122,6 +121,13 @@ jobs:
         env:
           BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
+
+      # Not when the exact entry was found: a re-run of the same commit
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: github.ref == 'refs/heads/dev' && steps.ccache.outputs.cache-hit != 'true'
+        with:
+          path: firmware/.ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       # The licence of the BMI270 file asks for its notice to go with the binaries
       - name: Add the notices
@@ -153,6 +159,7 @@ jobs:
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
+          cache: false # as in the check job
 
       - run: npm ci
 
