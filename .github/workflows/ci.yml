@@ -31,13 +31,13 @@ jobs:
         with:
           fetch-depth: 0 # the whole history, for the secret scan
 
-      # Installs the tools from mise.toml, same as local development (only those `npm run check` uses). Actions are
-      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment. Caches are saved by
-      # push runs only: a pull request reads dev's, so its own copies do not fill the 10 GB GitHub keeps per repository.
+      # Installs the tools from mise.toml, same as local development, and as the engine and playwright jobs: one cache
+      # for the three, and no list here to keep in step with mise.toml. Actions are pinned by commit, since a tag can be
+      # moved; Dependabot updates the pin and its comment. Caches are saved by push runs only: a pull request reads
+      # dev's, so its own copies do not fill the 10 GB GitHub keeps per repository.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
-          install_args: node uv python shellcheck actionlint ruff gitleaks
           cache_save: ${{ github.event_name == 'push' }}
 
       # The pre-commit hook scans what is staged, but a commit can skip it (--no-verify, a worktree without its hooks)
