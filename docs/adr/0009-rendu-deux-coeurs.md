@@ -11,7 +11,10 @@ cœurs, qui partagent un cache d'instructions de 16 Ko, ou de 32 Ko au prix de 1
 
 ## Décision
 
-- **Chaque bande est coupée en deux** : le cœur 0 dessine le haut, une tâche épinglée sur le cœur 1 dessine le bas. Les
+- **Les deux cœurs se partagent chaque bande, une ligne sur deux** : le cœur 0 dessine les lignes paires, une tâche
+  épinglée sur le cœur 1 les impaires, donc chacun a la moitié de chaque forme. Jusqu'au 11 novembre 2026, le cœur 0
+  dessinait le haut de la bande et le cœur 1 le bas, deux moitiés de coût inégal : la bande attendait la plus lente
+  (1,87 fois la vitesse d'un seul cœur, contre 1,98 une ligne sur deux, en simulation d'après les temps par ligne). Les
   deux lisent la même image, préparée une fois (`lp_render_begin`), et chacun compose ses lignes dans son propre
   brouillon (`lp_row_scratch`, 12 Ko ; `lp_render_rows_with` pour le second cœur), au lieu d'un second moteur de rendu
   entier (31 Ko).

@@ -17,7 +17,7 @@
 static lp_eyes eyes;
 static lp_renderer renderer;
 static lp_renderer other;
-static lp_row_scratch second; /* draws half of each band of `other`, as the second core of the firmware does */
+static lp_row_scratch second; /* draws the odd rows of each band of `other`, as the second core of the firmware does */
 static uint16_t frame[PIXELS];
 static uint16_t reference[PIXELS];
 
@@ -288,9 +288,11 @@ static lp_rect check_bands(int size)
         const int width = dirty.x1 - dirty.x0;
         for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
             const int y1 = y0 + BAND_ROWS < dirty.y1 ? y0 + BAND_ROWS : dirty.y1;
-            const int half = y0 + (y1 - y0) / 2; /* split as the firmware does, the last band too */
-            lp_render_rows(&other, y0, half, band);
-            lp_render_rows_with(&other, &second, half, y1, &band[(half - y0) * width]);
+            for (int y = y0; y < y1; y++) /* every other row on each scratch, as the firmware's two cores */
+                if ((y - y0) % 2 == 0)
+                    lp_render_rows(&other, y, y + 1, &band[(y - y0) * width]);
+                else
+                    lp_render_rows_with(&other, &second, y, y + 1, &band[(y - y0) * width]);
             for (int y = y0; y < y1; y++)
                 memcpy(&frame[y * size + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
         }

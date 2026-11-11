@@ -1,5 +1,5 @@
 /* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
- * when a look is written to flash, the band split between the cores, the share of the screen redrawn, and the column
+ * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, and the column
  * and row ranges the display drivers send */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
@@ -69,14 +69,52 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     CHECK(look_save_due(&other, &kept, gap, 0));
 }
 
-void test_frame_splits_bands_and_measures_the_redrawn_share(void)
+/* Each core draws its rows of a band and leaves the other's alone (the cores draw at once): together, the frame drawn
+ * whole */
+void test_frame_cores_share_the_rows_of_each_band(void)
 {
-    /* Each core draws half of a band, the second core the row left over when they are odd */
-    for (int rows = 1; rows <= 30; rows++) {
-        const int first = frame_band_half(100, 100 + rows) - 100;
-        const int second = rows - first;
-        CHECK(first >= 0 && second - first >= 0 && second - first <= 1);
+    enum { SIZE = 128, ROWS = 7 }; /* the AtomS3R's screen; bands that do not divide the region, the last is partial */
+    static lp_eyes eyes;
+    static lp_renderer whole;
+    static lp_renderer banded;
+    static lp_row_scratch second;
+    static uint16_t reference[SIZE * SIZE];
+    static uint16_t frame[SIZE * SIZE];
+    static uint16_t band[2][SIZE * ROWS]; /* what each core writes */
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts too */
+    lp_renderer_init(&whole);
+    lp_renderer_init(&banded);
+    lp_renderer_set_size(&whole, SIZE);
+    lp_renderer_set_size(&banded, SIZE);
+    for (int f = 0; f < 60; f++) {
+        lp_eyes_update(&eyes, 1.0f / 60.0f);
+        lp_render(&whole, &eyes, reference);
+        const lp_rect d = lp_render_begin(&banded, &eyes);
+        const int width = d.x1 - d.x0;
+        for (int y0 = d.y0; y0 < d.y1; y0 += ROWS) {
+            const int y1 = y0 + ROWS < d.y1 ? y0 + ROWS : d.y1;
+            for (int i = 0; i < SIZE * ROWS; i++)
+                band[0][i] = band[1][i] = 0xABCDu; /* a row a core does not draw keeps it */
+            const frame_band b[2] = {{y0, y1, width, band[0]}, {y0, y1, width, band[1]}};
+            frame_draw_core_rows(&banded, 0, NULL, &b[0]);
+            frame_draw_core_rows(&banded, 1, &second, &b[1]);
+            for (int y = y0; y < y1; y++) {
+                const int core = (y - y0) % 2;
+                const uint16_t *other = &band[1 - core][(y - y0) * width];
+                for (int x = 0; x < width; x++)
+                    if (other[x] != 0xABCDu)
+                        LP_FAIL("frame %d: both cores drew row %d", f, y);
+                memcpy(&frame[y * SIZE + d.x0], &band[core][(y - y0) * width], (size_t)width * sizeof band[0][0]);
+            }
+        }
+        if (memcmp(frame, reference, sizeof frame) != 0)
+            LP_FAIL("frame %d: the two cores' rows differ from the frame drawn whole", f);
     }
+}
+
+void test_frame_measures_the_redrawn_share(void)
+{
     CHECK(frame_area_permille((lp_rect){466, 466, 0, 0}, 466) == 0); /* empty: not a whole screen */
     CHECK(frame_area_permille((lp_rect){0, 466, 466, 0}, 466) == 0); /* empty in y only: nothing, not negative */
     CHECK(frame_area_permille((lp_rect){466, 0, 0, 466}, 466) == 0); /* empty in x only */

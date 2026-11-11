@@ -295,8 +295,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
   - exports: display_wait_frame
   - → firmware/main/display.h
-- **frame.h** (26) — The arithmetic of a frame on the board (main.c): which rows of a band each core draws, and the share of the screen a frame redraws, for the timing ...
-  - exports: frame_band_half, frame_area_permille
+- **frame.h** (42) — A frame on the board (main.c): the rows of a band each core draws, and the share of the screen a frame redraws, for the timing reports.
+  - exports: frame_band, frame_draw_core_rows, frame_area_permille
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
 - **imu.h** (16) — Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (board.cmake)
@@ -325,7 +325,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (224) — Firmware entry point: the eyes, live on the display.
+- **main.c** (220) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 
