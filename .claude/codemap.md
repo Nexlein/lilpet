@@ -139,7 +139,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lilpet.h** (375) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_event, lp_reaction, lp_reaction_get, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -217,19 +217,20 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## engine/wasm
 - **Dockerfile** (3) — Emscripten used to build the WebAssembly module, locally and in CI (mise run engine:wasm): the latest release, pinned here only.
   - ← mise.toml
-- **bindings.c** (144) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
-  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render
+- **bindings.c** (156) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/wasm/bindings.h, engine/include/lilpet/lilpet.h
-- **bindings.h** (37) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
-  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render
+- **bindings.h** (41) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
+  - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (41) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
-  - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Engine, loadEngine
+- **engine.d.mts** (51) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
+  - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (80) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
+- **engine.mjs** (89) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
+- **smoke.mjs** (94) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 - tests: engine.test.mjs
 

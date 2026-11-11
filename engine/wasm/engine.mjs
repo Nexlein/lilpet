@@ -31,6 +31,14 @@ export async function loadEngine(moduleUrl) {
     // The same, as a copy to keep
     const render = () => renderView().slice();
 
+    // The region the last render changed, in pixels; the rest of the frame is the one before
+    const dirty = () => {
+        const [x0, y0, x1, y1] = new Int32Array(m.HEAPU8.buffer, m._lpw_dirty(), 4); // lp_rect: x0, y0, x1, y1
+        return x0 < x1 && y0 < y1
+            ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+            : { x: 0, y: 0, width: 0, height: 0 };
+    };
+
     return {
         version: m.UTF8ToString(m._lp_version()),
         size,
@@ -75,6 +83,7 @@ export async function loadEngine(moduleUrl) {
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render,
-        renderView
+        renderView,
+        dirty
     };
 }

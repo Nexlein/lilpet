@@ -5,6 +5,8 @@
 #ifndef LILPET_WASM_BINDINGS_H
 #define LILPET_WASM_BINDINGS_H
 
+#include "lilpet/lilpet.h"
+
 #include <stdint.h>
 
 int lpw_screen_size(void);
@@ -33,5 +35,7 @@ void lpw_set_scene(int emotion, int blink_phase, float blink_t, float yaw, float
 /* Renders and returns the frame as RGBA bytes (LP_SCREEN_SIZE x LP_SCREEN_SIZE x 4); only the dirty region is converted
  */
 const uint8_t *lpw_render(void);
+/* The region the last lpw_render changed (empty: x0 >= x1); the rest of the frame is the one before */
+const lp_rect *lpw_dirty(void);
 
 #endif /* LILPET_WASM_BINDINGS_H */
