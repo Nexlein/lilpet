@@ -63,14 +63,10 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     other.pupil_color[1] = 0x0964E7u;
     CHECK(!look_same(&kept, &sclera) && !look_same(&kept, &pupil) && !look_same(&kept, &left));
     CHECK(!look_same(&kept, &other));
-    CHECK(look_save_plan(&kept, &kept, 0, -gap) == LOOK_KEPT);           /* the flash holds it: nothing to write */
-    CHECK(look_save_plan(&other, &kept, 0, -gap) == LOOK_SAVE_NOW);      /* the first new look, at once */
-    CHECK(look_save_plan(&other, &kept, gap - 1, 0) == LOOK_SAVE_LATER); /* too soon after the last write */
-    CHECK(look_save_plan(&other, &kept, gap, 0) == LOOK_SAVE_NOW);
-    /* The one left for later is written once its turn comes, the last one sent */
-    CHECK(!look_save_due(true, gap - 1, 0));
-    CHECK(look_save_due(true, gap, 0));
-    CHECK(!look_save_due(false, 9 * gap, 0));
+    CHECK(!look_save_due(&kept, &kept, 9 * gap, 0));  /* the flash holds it: nothing to write, ever */
+    CHECK(look_save_due(&other, &kept, 0, -gap));     /* the first new look, at once */
+    CHECK(!look_save_due(&other, &kept, gap - 1, 0)); /* too soon after the last write or try: in its turn */
+    CHECK(look_save_due(&other, &kept, gap, 0));
 }
 
 void test_frame_splits_bands_and_measures_the_redrawn_share(void)

@@ -79,17 +79,6 @@ static inline float lp_approach(float v, float target, float k, float dt)
     return v + (target - v) * (1.0f - expf(-k * dt));
 }
 
-static inline float lp_ease_in(float p)
-{
-    return p * p;
-}
-
-static inline float lp_ease_out(float p)
-{
-    const float q = 1.0f - p;
-    return 1.0f - q * q * q;
-}
-
 static inline float lp_minf(float a, float b)
 {
     return a < b ? a : b;

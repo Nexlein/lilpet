@@ -64,13 +64,10 @@ mise run check
 Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les contrôles du moteur C avec ses rendus de
 référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
-- `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage
-  (Prettier et ruff ; comme les linters et les commandes qui corrigent, sur les fichiers suivis par git seulement, pour
-  ne jamais toucher un fichier local non suivi), linters (oxlint, shellcheck pour les hooks, actionlint pour la CI,
-  ruff), données (`eyes/` et `engine/tests/scenes.json`), fichiers générés à jour (`engine/src/emotions_table.h`,
-  `engine/src/looks_table.h`, `engine/tests/scenes_table.h`), tests Node de `scripts/` et `engine/wasm/` (dont la
-  validation et les générateurs sur des données cassées), scripts de carte sur un faux port, carte du code
-  (`.claude/codemap.md`), puis types et tests de l'app PC.
+- `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage,
+  linters, données et tables générées, tests des scripts et de l'app, carte du code (la liste est le script `check` de
+  `package.json`). Comme les commandes qui corrigent, il ne lit que les fichiers suivis par git : un fichier local non
+  suivi n'est jamais touché.
 - `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
   clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
   `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16

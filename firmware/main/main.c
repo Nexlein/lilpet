@@ -1,17 +1,9 @@
 /*
- * Firmware entry point: the eyes, live on the display. Each frame starts when the display is ready for it, draws its
- * dirty region band by band into two small buffers in internal RAM, each band drawn half by one core and half by the
- * other, and sends each band by DMA while drawing the next one: no whole frame in memory, so it also runs on boards
- * without PSRAM. The eyes idle on their own (saccades, blinks, the head following the gaze), with the look chosen in
- * the PC app (kept in flash, cherry until one is sent). Without a display, they play the benchmark animation instead
- * (engine/tools/bench_script.h), in a loop, with the host's frames: the redrawn area compares with the host's, the
- * drawing time is that of both cores (the host draws on one). Commands from the app and the timings, printed once per
- * round of that animation, share the USB serial port (mise run firmware:monitor).
- *
- * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
- * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
- * low side, and the eyes react (REACTIONS in the engine): angry held upside down, dizzy when shaken, happy when the
- * button (the AtomS3R's screen) is pressed. lp_senses turns what the hardware reports into all of that.
+ * Firmware entry point: the eyes, live on the display. Each frame draws its dirty region band by band into two small
+ * buffers in internal RAM, each band half on each core, and sends a band by DMA while the next one is drawn: no whole
+ * frame in memory, so it runs without PSRAM. Without a display, the eyes play the benchmark animation instead
+ * (engine/tools/bench_script.h). What the firmware does, board by board: docs/firmware.md; why both cores:
+ * docs/adr/0009-rendu-deux-coeurs.md.
  */
 #include "../../engine/tools/bench_script.h"
 #include "board.h"

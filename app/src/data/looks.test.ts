@@ -12,15 +12,7 @@ import {
     makeLook,
     type SwatchFilter
 } from './looks';
-import {
-    browserStore,
-    loadCurrent,
-    loadFavorites,
-    lookKey,
-    parseLookKey,
-    saveCurrent,
-    saveFavorites
-} from './favorites';
+import { loadCurrent, loadFavorites, lookKey, parseLookKey, saveCurrent, saveFavorites } from './favorites';
 
 // In-memory stand-in for localStorage
 function memory() {
@@ -97,45 +89,38 @@ describe('gallery filter', () => {
 });
 
 describe('favorites and current look', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
     it('round-trips favorites and drops unknown entries', () => {
-        const store = memory();
-        saveFavorites(store, [lookKey('cherry', 'dot'), lookKey('socks', 'acorn')]);
-        expect(loadFavorites(store)).toEqual(['cherry/dot', 'socks/acorn']);
-        store.setItem('lilpet.favorites', JSON.stringify(['cherry/dot', 'nope/dot', 'cherry/slit', 42]));
-        expect(loadFavorites(store)).toEqual(['cherry/dot']);
-        store.setItem('lilpet.favorites', '{broken');
-        expect(loadFavorites(store)).toEqual([]);
+        vi.stubGlobal('localStorage', memory());
+        saveFavorites([lookKey('cherry', 'dot'), lookKey('socks', 'acorn')]);
+        expect(loadFavorites()).toEqual(['cherry/dot', 'socks/acorn']);
+        localStorage.setItem('lilpet.favorites', JSON.stringify(['cherry/dot', 'nope/dot', 'cherry/slit', 42]));
+        expect(loadFavorites()).toEqual(['cherry/dot']);
+        localStorage.setItem('lilpet.favorites', '{broken');
+        expect(loadFavorites()).toEqual([]);
     });
 
     it('drops favorites that could not be taken off the list', () => {
-        const store = memory();
-        store.setItem('lilpet.favorites', JSON.stringify(['cherry/dot/extra', 'cherry/cat', 'cherry/cat']));
-        expect(loadFavorites(store)).toEqual(['cherry/cat']);
+        vi.stubGlobal('localStorage', memory());
+        localStorage.setItem('lilpet.favorites', JSON.stringify(['cherry/dot/extra', 'cherry/cat', 'cherry/cat']));
+        expect(loadFavorites()).toEqual(['cherry/cat']);
     });
 
     it('remembers the current look', () => {
-        const store = memory();
-        expect(loadCurrent(store)).toBeNull();
-        saveCurrent(store, parseLookKey('kite/circle')!);
-        expect(loadCurrent(store)?.swatch.id).toBe('kite');
-        expect(loadCurrent(store)?.pupil).toBe('circle');
-    });
-});
-
-describe('browser storage', () => {
-    afterEach(() => vi.unstubAllGlobals());
-
-    it('reads and writes localStorage', () => {
         vi.stubGlobal('localStorage', memory());
-        browserStore.setItem('key', 'value');
-        expect(browserStore.getItem('key')).toBe('value');
+        expect(loadCurrent()).toBeNull();
+        saveCurrent(parseLookKey('kite/circle')!);
+        expect(loadCurrent()?.swatch.id).toBe('kite');
+        expect(loadCurrent()?.pupil).toBe('circle');
     });
 
     it('goes on when the browser blocks or fills the storage', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         vi.stubGlobal('localStorage', { getItem: refuse, setItem: refuse });
-        expect(browserStore.getItem('key')).toBeNull();
-        expect(() => browserStore.setItem('key', 'value')).not.toThrow();
+        expect(loadFavorites()).toEqual([]);
+        expect(loadCurrent()).toBeNull();
+        expect(() => saveFavorites(['cherry/dot'])).not.toThrow();
         expect(warn).toHaveBeenCalledOnce();
         warn.mockRestore();
     });

@@ -1,8 +1,9 @@
 /*
  * Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack
  * changed it in 2026), told apart by their ID. Init sequences, offsets, orientation and color inversion come from
- * M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes), like the board's pins and backlight
- * (boards/atoms3r/board_config.h, board.c). No TE signal: display_paced.c paces the frames.
+ * M5Stack's library (M5GFX, src/M5GFX.cpp, board_M5AtomS3R, and its panel classes), like the board's pins
+ * (boards/atoms3r/board_config.h) and the backlight, driven here over I2C. No TE signal: display_paced.c paces the
+ * frames.
  */
 #include "board.h"
 #include "board_config.h"
@@ -98,7 +99,7 @@ static const panel ST7735S = {"AtomS3R LCD (ST7735S)", 2, 3, 0xDCu, true, STEPS(
 /* GC9107: 128x128 visible in a 128x160 memory, from row 32 */
 static const panel GC9107 = {"AtomS3R LCD (GC9107)", 0, 32, 0x08u, false, STEPS(GC9107_INIT)};
 
-static const panel *chip = &GC9107;
+static const panel *chip;
 static esp_lcd_panel_io_handle_t io;
 
 static void send(uint8_t cmd, const uint8_t *params, size_t len)
@@ -106,8 +107,9 @@ static void send(uint8_t cmd, const uint8_t *params, size_t len)
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(io, cmd, params, len));
 }
 
-/* Reads the controller ID (command 0x04) on the data wire, at a low clock, and tells the controller (lcd_id.h) */
-static const panel *detect(char *raw, size_t raw_size)
+/* Reads the controller ID (command 0x04) on the data wire, at a low clock, and tells the controller (lcd_id.h); the
+ * GC9107 settings for an ID it does not know */
+static const panel *detect(void)
 {
     spi_device_handle_t dev;
     const spi_device_interface_config_t config = {
@@ -129,17 +131,43 @@ static const panel *detect(char *raw, size_t raw_size)
     spi_device_release_bus(dev);
     ESP_ERROR_CHECK(spi_bus_remove_device(dev));
 
-    snprintf(raw, raw_size, "%02X %02X %02X %02X %02X %02X", answer[0], answer[1], answer[2], answer[3], answer[4],
-             answer[5]);
     switch (lcd_id_match(answer)) {
     case LCD_ID_ST7735S:
         return &ST7735S;
     case LCD_ID_GC9107:
         return &GC9107;
     case LCD_ID_UNKNOWN:
-    default:
-        return NULL;
+        break;
     }
+    printf("display ID not recognized (%02X %02X %02X %02X %02X %02X): trying the GC9107 settings\n", answer[0],
+           answer[1], answer[2], answer[3], answer[4], answer[5]);
+    return &GC9107;
+}
+
+#define BRIGHTNESS 160u /* out of 255 */
+
+static void set_backlight(i2c_master_dev_handle_t backlight, uint8_t reg, uint8_t value)
+{
+    const uint8_t bytes[2] = {reg, value};
+    if (i2c_master_transmit(backlight, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
+        printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
+}
+
+/* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
+static void backlight_on(void)
+{
+    /* On the I2C bus it shares with the motion sensor */
+    const i2c_master_dev_handle_t backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR);
+    if (!backlight) {
+        printf("backlight: cannot reach its driver on the I2C bus\n");
+        return;
+    }
+    /* Register writes of M5GFX's Light_M5StackAtomS3R */
+    set_backlight(backlight, 0x00u, 0x40u); /* chip enabled */
+    vTaskDelay(pdMS_TO_TICKS(1));
+    set_backlight(backlight, 0x08u, 0x01u); /* internal clock */
+    set_backlight(backlight, 0x70u, 0x00u); /* outputs driven by the brightness registers */
+    set_backlight(backlight, 0x0Eu, BRIGHTNESS);
 }
 
 const char *display_init(size_t max_band_bytes)
@@ -161,12 +189,7 @@ const char *display_init(size_t max_band_bytes)
         .max_transfer_sz = (int)max_band_bytes,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &bus, SPI_DMA_CH_AUTO));
-    char raw[24];
-    const panel *found = detect(raw, sizeof raw);
-    if (found)
-        chip = found;
-    else
-        printf("display ID not recognized (%s): trying the GC9107 settings\n", raw);
+    chip = detect();
 
     const esp_lcd_panel_io_spi_config_t io_config = {
         .cs_gpio_num = BOARD_LCD_CS,
@@ -189,7 +212,7 @@ const char *display_init(size_t max_band_bytes)
     send(chip->invert ? DCS_INVERT_ON : DCS_INVERT_OFF, NULL, 0);
     send(DCS_PIXEL_FORMAT, (const uint8_t[]){0x55u}, 1); /* 16 bits per pixel, RGB565 */
     send(DCS_ORIENTATION, &chip->orientation, 1);
-    board_backlight_on();
+    backlight_on();
     return chip->name;
 }
 

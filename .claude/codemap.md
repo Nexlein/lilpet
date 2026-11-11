@@ -13,7 +13,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
-- **no-secrets.sh** (28) — Blocks commits that stage .env files or secrets.
+- **no-secrets.sh** (20) — Blocks commits that stage .env files or secrets (gitleaks, from mise.toml: the hook runs inside mise, and refuses the commit if gitleaks is still m...
 - **pre-commit** (8) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
 - **pre-push** (8) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
@@ -35,10 +35,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/index.html
 
 ## app/src/data
-- **favorites.ts** (70) — Favorite looks and the last chosen look, kept in the browser (localStorage)
-  - exports: KeyValueStore, browserStore, LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
+- **favorites.ts** (57) — Favorite looks and the last chosen look, kept in the browser (localStorage)
+  - exports: LookChoice, lookKey, parseLookKey, loadFavorites, saveFavorites, loadCurrent, saveCurrent
   - → app/src/data/looks.ts
-  - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
+  - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
 - **looks.ts** (114) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
   - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, FAMILIES, Family, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
   - → eyes/looks.json, engine/wasm/engine.mjs
@@ -46,7 +46,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: looks.test.ts
 
 ## app/src/device
-- **connection.ts** (163) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
+- **connection.ts** (164) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
@@ -75,7 +75,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: preview.test.ts
 
 ## app/src/ui
-- **App.tsx** (59) — lilpet PC app: pick the eyes, see them live, send them to the device
+- **App.tsx** (54) — lilpet PC app: pick the eyes, see them live, send them to the device
   - exports: App
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
@@ -88,7 +88,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceLog
   - packages: react
   - ← app/src/ui/App.tsx
-- **EyeGlyph.tsx** (63) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
+- **EyeGlyph.tsx** (66) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
   - exports: EyeGlyph
   - → app/src/data/looks.ts
   - packages: react
@@ -113,9 +113,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (63) — React state around the engine, the device connection and the browser
+- **hooks.ts** (58) — React state around the engine, the device connection and the browser
   - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
-  - → app/src/data/favorites.ts, app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
+  - → app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react
   - ← app/src/ui/App.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
 - **labels.ts** (32) — French names shown in the interface
@@ -160,8 +160,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
   - exports: lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_set_pointer, lp_eyes_react, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_blink, lp_eyes_spawn, lp_eyes_update, lp_eyes_set_scene
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **internal.h** (111) — Helpers shared by the engine sources.
-  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_rng_seed, lp_rng_next, lp_emotion_from_name, lp_event_from_name, lp_default_shape, lp_eyes_spawn, lp_shake_update, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_pupil_shape, lp_pupils, lp_pupils_get, lp_look_malformed, lp_approach, lp_ease_in, lp_ease_out, lp_minf, lp_maxf, lp_clampf
+- **internal.h** (100) — Helpers shared by the engine sources.
+  - exports: LP_PI, LP_CENTER, LP_BLINK_ANTICIP_TIME, LP_BLINK_CLOSE_TIME, LP_EMIT_EPSILON, lp_rng_seed, lp_rng_next, lp_emotion_from_name, lp_event_from_name, lp_default_shape, lp_eyes_spawn, lp_shake_update, lp_blink_pose, lp_eye_pose, lp_eyes_blink_pose, lp_eyes_eye_pose, lp_pupil_shape, lp_pupils, lp_pupils_get, lp_look_malformed, lp_approach, lp_minf, lp_maxf, lp_clampf
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/command.c, engine/src/emotions.c, engine/src/eyes.c, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/render.c, engine/src/rng.c, engine/src/senses.c
 - **look.c** (118) — Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB protocol with the PC app (doc...
@@ -173,7 +173,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
   - exports: lp_shake_update
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **pose.c** (72) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
+- **pose.c** (83) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
   - exports: lp_eyes_blink_pose, lp_eyes_eye_pose
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
 - **raster.c** (233) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
@@ -183,7 +183,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_line_at, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
-- **render.c** (591) — Renderer: draws the eyes row by row into an RGB565 frame.
+- **render.c** (590) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
 - **rng.c** (23) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c)
@@ -245,20 +245,20 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/atoms3r
 - **board.cmake** (3) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party).
-- **board_config.h** (33) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CAMERA, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
+- **board_config.h** (32) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
   - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main.
-- **board_config.h** (22) — M5Stamp S3A, bare: no screen.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CAMERA, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
+- **board_config.h** (21) — M5Stamp S3A, bare: no screen.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
   - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (22) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CAMERA, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
+- **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
   - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
@@ -267,16 +267,16 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **board.c** (110) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
+- **board.c** (81) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h
-- **board.h** (32) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device, board_backlight_on
+- **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (176) — Implements commands.h: commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.c** (168) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (29) — Commands from the PC app over the USB serial port, one per line (docs/protocole.md, read by lp_command_parse): "> hello" -> "< lilpet fw=<version> ...
+- **commands.h** (20) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
   - exports: commands_start, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
@@ -286,7 +286,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display.h** (30) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (211) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (234) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
 - **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
@@ -314,8 +314,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id, lcd_id_match
   - ← firmware/main/display_atoms3r.c
-- **look_saving.h** (43) — When a look just shown is written to flash: at once, then at most every LOOK_SAVE_GAP_US, so that a sender streaming looks (an editor's slider) doe...
-  - exports: LOOK_SAVE_GAP_US, look_save, look_same, look_save_plan, look_save_due
+- **look_saving.h** (30) — When the look shown is written to flash: once it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last write or try.
+  - exports: LOOK_SAVE_GAP_US, look_same, look_save_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
@@ -325,7 +325,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (232) — Firmware entry point: the eyes, live on the display.
+- **main.c** (224) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 

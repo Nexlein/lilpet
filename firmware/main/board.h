@@ -26,7 +26,4 @@ i2c_master_bus_handle_t board_i2c(void);
 /* A device of that bus at its 7-bit address, at the bus's one speed; NULL when there is no bus or it cannot be added */
 i2c_master_dev_handle_t board_i2c_device(uint16_t address);
 
-/* Turns the backlight on, once the panel is ready to show something; only on boards with a backlight driver */
-void board_backlight_on(void);
-
 #endif

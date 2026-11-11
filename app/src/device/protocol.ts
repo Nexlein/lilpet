@@ -45,7 +45,7 @@ export function parseHello(reply: string): DeviceInfo | null {
 // A reply to a command, read once here: the rest of the app never looks at its text
 type Reply =
     | { kind: 'ok' }
-    | { kind: 'shown' } // the look is on screen, but the flash refused it
+    | { kind: 'shown' } // the look is on screen, but the flash refused it for now: the device tries again
     | { kind: 'busy' }
     | { kind: 'refused'; reason: string };
 

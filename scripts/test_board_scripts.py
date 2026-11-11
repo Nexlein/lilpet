@@ -82,8 +82,8 @@ class Board:
         self.cut, self.drops_late_looks, self.comes_back, self.lost_at = cut, drops_late_looks, comes_back, lost_at
         self.lost = False
         self.look = "AE0002 FF5252 FF5252 dot"
-        # What the flash holds, when it was written, and a look waiting for its turn (firmware/main/look_saving.h)
-        self.kept, self.saved_at, self.late = self.look, -SAVE_GAP, None
+        # What the flash holds, and when it was last written (firmware/main/look_saving.h)
+        self.kept, self.tried_at = self.look, -SAVE_GAP
         self.mood = "neutral"
         self.in_reset = False
         self.input = b""
@@ -91,7 +91,7 @@ class Board:
 
     def boot(self):
         self.look, self.mood = self.kept, "neutral"
-        self.saved_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
+        self.tried_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
         self.reads_from = clock.now + 1
         for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
@@ -99,15 +99,15 @@ class Board:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
 
     def write_late_look(self):
-        """What the firmware does while it runs: a look waiting for its turn is written once its turn comes, at the
-        latest when its read gives up waiting for a byte"""
-        if self.late and clock.now - self.saved_at >= SAVE_GAP + READ_WAIT and not self.drops_late_looks:
-            self.kept, self.saved_at, self.late = self.late, self.saved_at + SAVE_GAP + READ_WAIT, None
+        """What the firmware does while it runs, by its one rule: the shown look is written once it is not the kept one
+        and the gap has passed since the last write, at the latest when its read gives up waiting for a byte"""
+        turn = self.tried_at + SAVE_GAP + READ_WAIT
+        if self.look != self.kept and clock.now >= turn and not self.drops_late_looks:
+            self.kept, self.tried_at = self.look, turn
 
     def set_reset(self, held):
         if held and not self.in_reset:
-            self.write_late_look()
-            self.late = None  # not written by then: lost
+            self.write_late_look()  # what is not written by then is lost: the board boots on the kept look
         if self.in_reset and not held:
             if self.comes_back:
                 self.boot()
@@ -137,7 +137,7 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            return HELLO % ("0.5.0", "0.13.0", self.name, 0, self.motion)
+            return HELLO % ("0.5.0", "0.13.0", self.name, self.motion)
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
@@ -146,14 +146,10 @@ class Board:
         if word == "look":
             if not re.fullmatch(LOOK, rest):
                 return "err malformed look"
+            self.write_late_look()  # the one shown before, if its turn came while it waited
             self.look = rest
-            self.write_late_look()
-            if rest == self.kept:
-                self.late = None
-            elif clock.now - self.saved_at >= SAVE_GAP:
-                self.kept, self.saved_at, self.late = rest, clock.now, None
-            else:
-                self.late = rest
+            if rest != self.kept and clock.now - self.tried_at >= SAVE_GAP:  # its turn has come: written at once
+                self.kept, self.tried_at = rest, clock.now
             return "ok"
         if word not in DRIVES:
             return REPLY_UNKNOWN
