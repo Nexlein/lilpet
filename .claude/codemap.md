@@ -393,7 +393,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (212) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 
