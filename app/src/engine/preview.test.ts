@@ -82,6 +82,18 @@ describe('preview', () => {
         ]);
     });
 
+    it('puts a still frame again on a canvas the browser cleared, without animating', () => {
+        const { engine, drawn, preview, clear } = stage();
+        const look = { sclera: '#000000', pupil: 'dot', pupilColor: ['#FFFFFF', '#FFFFFF'] } as const;
+        preview.still({ emotion: 'sad' }, look);
+        clear(); // the engine still holds the frozen scene: drawn again as it is
+        expect(engine.update).not.toHaveBeenCalled();
+        expect(drawn.mock.calls.map((call) => call.slice(1))).toEqual([
+            [0, 0, 0, 0, SIZE, SIZE],
+            [0, 0, 0, 0, SIZE, SIZE]
+        ]);
+    });
+
     it('does not catch up an hour spent in a hidden tab', () => {
         const { engine, preview, tick } = stage();
         preview.start();
