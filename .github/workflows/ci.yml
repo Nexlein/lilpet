@@ -106,11 +106,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
+      # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile. No tool to
+      # install, so no cache to restore (281 MB, about 4 s)
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           install: false
+          cache: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
       # Each push run saves a new entry per board, read from then on by the runs that start from the latest one of the
