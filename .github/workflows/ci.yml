@@ -122,8 +122,9 @@ jobs:
           BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
 
+      # Not when the exact entry was found: a re-run of the same commit
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.ccache.outputs.cache-hit != 'true'
         with:
           path: firmware/.ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
