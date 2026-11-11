@@ -31,8 +31,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   the firmware's pure parts in `firmware/tests` (run with the engine's).
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets: no direct push, no
-  force push, no deletion). The rulesets name the required checks by job name: renaming a CI job or adding a board
-  means updating both rulesets.
+  force push, no deletion). The rulesets name the required checks by job name: renaming a CI job, or adding, renaming
+  or removing a board (also in ci.yml's board list, which a test checks), means updating both rulesets.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
 - Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate and Dependabot propose each update as a pull
