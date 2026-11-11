@@ -1,7 +1,7 @@
 /*
  * Firmware entry point: the eyes, live on the display. Each frame draws its dirty region band by band into two small
- * buffers in internal RAM, each band half on each core, and sends a band by DMA while the next one is drawn: no whole
- * frame in memory, so it runs without PSRAM. Without a display, the eyes play the benchmark animation instead
+ * buffers in internal RAM, every other row of a band on each core, and sends a band by DMA while the next one is drawn:
+ * no whole frame in memory, so it runs without PSRAM. Without a display, the eyes play the benchmark animation instead
  * (engine/tools/bench_script.h). What the firmware does, board by board: docs/firmware.md; why both cores:
  * docs/adr/0009-rendu-deux-coeurs.md.
  */
@@ -38,14 +38,13 @@ static lp_renderer renderer;
 static lp_senses senses;
 
 /*
- * The second core draws the bottom half of each band, from the frame `renderer` prepared and with its own scratch,
- * while this one draws the top half. `start` hands it the rows, `done` gives them back; the eyes are only read
- * meanwhile. All static, so that nothing can fail to start.
+ * The second core draws the odd rows of each band, from the frame `renderer` prepared and with its own scratch, while
+ * this one draws the even rows. `start` hands it the band, `done` gives it back; the eyes are only read meanwhile. All
+ * static, so that nothing can fail to start.
  */
 #define SECOND_CORE_STACK 4096 /* bytes */
 static struct {
-    int y0, y1;
-    uint16_t *pixels;
+    frame_band band;
     lp_row_scratch scratch;
     SemaphoreHandle_t start, done;
     StaticSemaphore_t start_buffer, done_buffer;
@@ -58,7 +57,7 @@ static void second_core_task(void *arg)
     (void)arg;
     for (;;) {
         xSemaphoreTake(second_core.start, portMAX_DELAY);
-        lp_render_rows_with(&renderer, &second_core.scratch, second_core.y0, second_core.y1, second_core.pixels);
+        frame_draw_core_rows(&renderer, 1, &second_core.scratch, &second_core.band);
         xSemaphoreGive(second_core.done);
     }
 }
@@ -78,8 +77,8 @@ static void start_renderer(void)
 }
 
 /*
- * Draws the frame of `eyes` band by band into the two DMA buffers, each band half on each core, while the band before
- * is sent, then waits for the last one. Returns the region drawn; *render: the time both cores spent drawing.
+ * Draws the frame of `eyes` band by band into the two DMA buffers, every other row on each core, while the band
+ * before is sent, then waits for the last one. Returns the region drawn; *render: the time both cores spent drawing.
  */
 static lp_rect draw_frame(uint16_t *bands[2], int64_t *render)
 {
@@ -89,13 +88,10 @@ static lp_rect draw_frame(uint16_t *bands[2], int64_t *render)
     int b = 0;
     for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
         const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
-        const int half = frame_band_half(y, y1);
         const int64_t t = esp_timer_get_time();
-        second_core.y0 = half;
-        second_core.y1 = y1;
-        second_core.pixels = &bands[b][(half - y) * width];
+        second_core.band = (frame_band){y, y1, width, bands[b]};
         xSemaphoreGive(second_core.start);
-        lp_render_rows(&renderer, y, half, bands[b]);
+        frame_draw_core_rows(&renderer, 0, NULL, &second_core.band);
         xSemaphoreTake(second_core.done, portMAX_DELAY);
         *render += esp_timer_get_time() - t;
         display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);

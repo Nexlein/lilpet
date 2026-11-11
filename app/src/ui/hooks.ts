@@ -20,14 +20,19 @@ export function useEngine(): EngineState {
     return state;
 }
 
-// The connection to lilpet (device/session.ts), closed when the app goes away
+// The connection to lilpet (device/session.ts), closed when the app goes away. Its log is followed apart
+// (useDeviceLog), so that a line redraws only what shows it
 export function useDevice() {
     const [session] = useState(() => new DeviceSession(portPicker()));
-    const { state, log } = useSyncExternalStore(session.subscribe, session.snapshot);
+    const state = useSyncExternalStore(session.subscribe, () => session.snapshot().state);
     useEffect(() => () => void session.disconnect(), [session]);
     const { connect, disconnect, send, emotion, react } = session;
-    return { state, log, connect, disconnect, send, emotion, react };
+    return { session, state, connect, disconnect, send, emotion, react };
 }
+
+// The lines lilpet wrote, for the component that shows them
+export const useDeviceLog = (session: DeviceSession): readonly string[] =>
+    useSyncExternalStore(session.subscribe, () => session.snapshot().log);
 
 // A value kept in the browser: read once, written on every change. shared: read again when another tab writes it, so
 // that a change here starts from theirs

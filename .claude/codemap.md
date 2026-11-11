@@ -64,11 +64,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **session.ts** (141) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
-  - ← app/src/ui/DeviceBar.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
+  - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
-- **preview.ts** (76) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
+- **preview.ts** (82) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
   - exports: loadEyeEngine, Preview, pointerIn, Engine
   - → engine/wasm/engine.mjs
   - ← app/src/ui/Screen.tsx, app/src/ui/hooks.ts
@@ -84,8 +84,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceBar
   - → app/src/device/session.ts
   - ← app/src/ui/App.tsx
-- **DeviceLog.tsx** (29) — What the device writes, in a folding panel that follows the last line unless it was scrolled up
+- **DeviceLog.tsx** (34) — What the device writes, in a folding panel that follows the last line unless it was scrolled up.
   - exports: DeviceLog
+  - → app/src/device/session.ts, app/src/ui/hooks.ts
   - packages: react
   - ← app/src/ui/App.tsx
 - **EyeGlyph.tsx** (66) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
@@ -113,11 +114,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (58) — React state around the engine, the device connection and the browser
-  - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
+- **hooks.ts** (63) — React state around the engine, the device connection and the browser
+  - exports: EngineState, useEngine, useDevice, useDeviceLog, useStored, useLessMotion
   - → app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react
-  - ← app/src/ui/App.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
+  - ← app/src/ui/App.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
 - **labels.ts** (32) — French names shown in the interface
   - exports: PUPIL_LABELS, EMOTION_LABELS, FAMILY_LABELS, FAMILY_COLORS
   - → eyes/emotions.json, app/src/data/looks.ts
@@ -138,7 +139,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lilpet.h** (375) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_event, lp_reaction, lp_reaction_get, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -176,14 +177,14 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **pose.c** (83) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
   - exports: lp_eyes_blink_pose, lp_eyes_eye_pose
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **raster.c** (233) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
+- **raster.c** (234) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
   - exports: lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/src/raster.h
-- **raster.h** (63) — Scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
+- **raster.h** (64) — Scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
   - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_line_at, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
-- **render.c** (590) — Renderer: draws the eyes row by row into an RGB565 frame.
+- **render.c** (640) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
 - **rng.c** (23) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c)
@@ -216,19 +217,20 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## engine/wasm
 - **Dockerfile** (3) — Emscripten used to build the WebAssembly module, locally and in CI (mise run engine:wasm): the latest release, pinned here only.
   - ← mise.toml
-- **bindings.c** (144) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
-  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render
+- **bindings.c** (156) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/wasm/bindings.h, engine/include/lilpet/lilpet.h
-- **bindings.h** (37) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
-  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render
+- **bindings.h** (41) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+  - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
+  - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (41) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
-  - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Engine, loadEngine
+- **engine.d.mts** (51) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
+  - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (80) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
+- **engine.mjs** (89) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
   - exports: PUPILS, BLINK_PHASES, loadEngine
   - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **smoke.mjs** (70) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
+- **smoke.mjs** (94) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
   - → engine/wasm/engine.mjs
 - tests: engine.test.mjs
 
@@ -295,8 +297,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
   - exports: display_wait_frame
   - → firmware/main/display.h
-- **frame.h** (26) — The arithmetic of a frame on the board (main.c): which rows of a band each core draws, and the share of the screen a frame redraws, for the timing ...
-  - exports: frame_band_half, frame_area_permille
+- **frame.h** (42) — A frame on the board (main.c): the rows of a band each core draws, and the share of the screen a frame redraws, for the timing reports.
+  - exports: frame_band, frame_draw_core_rows, frame_area_permille
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
 - **imu.h** (16) — Motion sensor: one .c per sensor (AtomS3R: imu_bmi270.c), imu_none.c on boards without one (board.cmake)
@@ -325,7 +327,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (224) — Firmware entry point: the eyes, live on the display.
+- **main.c** (220) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 

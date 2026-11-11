@@ -48,7 +48,7 @@ export function App() {
                 <Gallery swatch={swatch} pupil={pupil} favorites={favorites} onPick={setChoice} />
             </main>
 
-            {(device.state.status === 'connected' || device.log.length > 0) && <DeviceLog lines={device.log} />}
+            <DeviceLog session={device.session} connected={device.state.status === 'connected'} />
         </div>
     );
 }

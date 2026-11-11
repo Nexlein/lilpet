@@ -1,9 +1,13 @@
-// What the device writes, in a folding panel that follows the last line unless it was scrolled up
+// What the device writes, in a folding panel that follows the last line unless it was scrolled up. Shown while
+// connected, and after only if lilpet wrote something
 import { useLayoutEffect, useRef, type UIEvent } from 'react';
+import type { DeviceSession } from '../device/session';
+import { useDeviceLog } from './hooks';
 
 const END_MARGIN = 8; // px from the end that still count as the end
 
-export function DeviceLog({ lines }: { lines: readonly string[] }) {
+export function DeviceLog({ session, connected }: { session: DeviceSession; connected: boolean }) {
+    const lines = useDeviceLog(session);
     const pre = useRef<HTMLPreElement>(null);
     const atEnd = useRef(true);
 
@@ -16,6 +20,7 @@ export function DeviceLog({ lines }: { lines: readonly string[] }) {
         atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < END_MARGIN;
     };
 
+    if (!connected && lines.length === 0) return null;
     return (
         <section aria-label="Journal de lilpet">
             <details className="log">

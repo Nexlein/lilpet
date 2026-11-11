@@ -21,6 +21,14 @@ export interface Scene {
     emotion?: string;
 }
 
+// A region of the screen, in pixels
+export interface Region {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 export interface Engine {
     size: number;
     emotions: string[];
@@ -36,6 +44,8 @@ export interface Engine {
     // RGBA pixels of the whole screen (size × size × 4), without a copy, in the engine's memory: valid until the next
     // render
     renderView(): Uint8ClampedArray<ArrayBuffer>;
+    // The region the last render changed: the rest of the frame is the one before
+    dirty(): Region;
 }
 
 export function loadEngine(moduleUrl: string): Promise<Engine>;
