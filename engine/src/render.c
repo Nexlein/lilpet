@@ -515,6 +515,45 @@ static uint16_t pack565(const float *px, bool big_endian)
     return (uint16_t)(big_endian ? v << 8u | v >> 8u : v);
 }
 
+/*
+ * The bits of a float, as an integer, through a union: memcpy would be a call on the chip, whose compiler copies with
+ * memcpy unless it can use one aligned load
+ */
+static uint32_t bits_of(float f)
+{
+    const union {
+        float f;
+        uint32_t u;
+    } bits = {.f = f};
+    return bits.u;
+}
+
+/*
+ * Packs the `count` (at least 1) pixels of a composed row. Most repeat the one before them (background, inside of an
+ * eye) and converting to integers is slow, so a pixel is packed only when its bits differ from the one before: the
+ * same bits are the same pixel, and comparing integers is cheaper than comparing floats
+ */
+static void pack_row(const float *line, int count, bool big_endian, uint16_t *out)
+{
+    uint32_t last_r = ~bits_of(line[0]); /* differs from the first pixel, which is always packed */
+    uint32_t last_g = 0;
+    uint32_t last_b = 0;
+    uint16_t packed = 0;
+    for (int i = 0; i < count; i++) {
+        const float *px = &line[3 * i];
+        const uint32_t r = bits_of(px[0]);
+        const uint32_t g = bits_of(px[1]);
+        const uint32_t b = bits_of(px[2]);
+        if (((r ^ last_r) | (g ^ last_g) | (b ^ last_b)) != 0u) {
+            packed = pack565(px, big_endian);
+            last_r = r;
+            last_g = g;
+            last_b = b;
+        }
+        out[i] = packed;
+    }
+}
+
 lp_rect lp_render_begin(lp_renderer *r, const lp_eyes *eyes)
 {
     const lp_blink_pose bp = lp_eyes_blink_pose(eyes);
@@ -554,18 +593,7 @@ static void draw_row(const lp_renderer *r, lp_row_scratch *s, int y, uint16_t *o
     draw_eye_row(s, &r->eyes[1], y);
     for (int i = 0; i < r->particle_count; i++)
         draw_polygon_row(s, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
-
-    /* Most pixels repeat the one before them (background, inside of an eye), and converting to integers is slow */
-    static const float NONE[3] = {-1.0f, -1.0f, -1.0f};
-    const float *last = NONE;
-    uint16_t packed = 0;
-    for (int x = d.x0; x < d.x1; x++) {
-        const float *px = &s->line[3 * x];
-        if (px[0] != last[0] || px[1] != last[1] || px[2] != last[2])
-            packed = pack565(px, r->big_endian);
-        last = px;
-        out[x - d.x0] = packed;
-    }
+    pack_row(&s->line[3 * d.x0], d.x1 - d.x0, r->big_endian, out);
 }
 
 void lp_render_rows_with(const lp_renderer *r, lp_row_scratch *scratch, int y0, int y1, uint16_t *band)
