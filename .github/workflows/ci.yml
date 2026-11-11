@@ -104,8 +104,9 @@ jobs:
           cache: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # Each push run saves a new entry per board, read from then on by the runs that start from the latest one of the
-      # same board, ESP-IDF image and options; a pull request reads it and saves nothing, like the mise caches.
+      # Each push run of dev saves a new entry per board, read from then on by the runs that start from the latest one
+      # of the same board, ESP-IDF image and options. Pull requests and main read dev's entries and save none: main's
+      # own, older ones would come first for its next runs.
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: ccache
         with:
@@ -123,7 +124,7 @@ jobs:
 
       # Not when the exact entry was found: a re-run of the same commit
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.event_name == 'push' && steps.ccache.outputs.cache-hit != 'true'
+        if: github.ref == 'refs/heads/dev' && steps.ccache.outputs.cache-hit != 'true'
         with:
           path: firmware/.ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
