@@ -177,14 +177,14 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **pose.c** (83) — Geometry derived from the state: blink lid and eye scale, eye position on the virtual 3D face
   - exports: lp_eyes_blink_pose, lp_eyes_eye_pose
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **raster.c** (233) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
+- **raster.c** (234) — Implements raster.h: scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
   - exports: lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/src/raster.h
-- **raster.h** (63) — Scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
+- **raster.h** (64) — Scanline rasterizer: shapes are turned into horizontal spans, one sub-row at a time, and the spans are accumulated into per-pixel coverage.
   - exports: LP_SUBROWS, LP_MAX_SPANS, lp_spans, lp_line, lp_affine_mul, lp_affine_inverse, lp_affine_rotate, lp_affine_scale, lp_affine_apply, lp_line_at, lp_spans_clip, lp_ellipse_prepare, lp_half_plane_prepare, lp_spans_ellipse, lp_spans_keep_below, lp_spans_cut_ellipse, lp_polygon_edges, lp_spans_polygon, lp_coverage_add
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/raster.c, engine/src/render.c
-- **render.c** (638) — Renderer: draws the eyes row by row into an RGB565 frame.
+- **render.c** (633) — Renderer: draws the eyes row by row into an RGB565 frame.
   - exports: lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render_begin, lp_render_rows_with, lp_render_rows, lp_render
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/raster.h
 - **rng.c** (23) — Seeded random numbers (mulberry32): a seed always gives the same sequence (tests/test_eyes.c)

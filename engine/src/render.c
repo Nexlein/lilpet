@@ -440,12 +440,7 @@ static void add_inside_eye(layer *l, const lp_spans *eye, const lp_spans *shape,
     if (shape->n == 0)
         return;
     lp_spans clipped;
-    clipped.n = eye->n;
-    for (int i = 0; i < eye->n; i++) { /* the spans in use only: the whole structure is 68 bytes, per sub-row */
-        clipped.a[i] = eye->a[i];
-        clipped.b[i] = eye->b[i];
-    }
-    lp_spans_clip(&clipped, shape->a[0], shape->b[0]);
+    lp_spans_clip(&clipped, eye, shape->a[0], shape->b[0]);
     layer_add(l, &clipped, w);
 }
 

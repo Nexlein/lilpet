@@ -34,7 +34,8 @@ static inline lp_line lp_line_at(lp_affine inv, float y)
     return (lp_line){.u0 = inv.b * y + inv.tx, .v0 = inv.d * y + inv.ty};
 }
 
-void lp_spans_clip(lp_spans *s, float lo, float hi); /* keep the part inside [lo, hi) */
+/* The part of `in` inside [lo, hi), into `out`, which may be `in` */
+void lp_spans_clip(lp_spans *out, const lp_spans *in, float lo, float hi);
 
 /* Prepares an ellipse for the sub-rows of a frame (lines of step du, dv) */
 lp_ellipse lp_ellipse_prepare(float du, float dv, float cu, float cv, float ra, float rb);

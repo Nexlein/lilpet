@@ -46,19 +46,20 @@ void lp_affine_apply(lp_affine m, float x, float y, float *ox, float *oy)
     *oy = m.c * x + m.d * y + m.ty;
 }
 
-void lp_spans_clip(lp_spans *s, float lo, float hi)
+void lp_spans_clip(lp_spans *out, const lp_spans *in, float lo, float hi)
 {
+    const int count = in->n;
     int n = 0;
-    for (int i = 0; i < s->n; i++) {
-        const float a = s->a[i] > lo ? s->a[i] : lo;
-        const float b = s->b[i] < hi ? s->b[i] : hi;
+    for (int i = 0; i < count; i++) { /* span n is written after span i is read, and n <= i: `out` may be `in` */
+        const float a = in->a[i] > lo ? in->a[i] : lo;
+        const float b = in->b[i] < hi ? in->b[i] : hi;
         if (a < b) {
-            s->a[n] = a;
-            s->b[n] = b;
+            out->a[n] = a;
+            out->b[n] = b;
             n++;
         }
     }
-    s->n = n;
+    out->n = n;
 }
 
 /* Removes [lo, hi), in place */
@@ -152,9 +153,9 @@ void lp_spans_keep_below(lp_spans *s, const lp_line *l, const lp_half_plane *h)
     }
     const float x = -g0 * h->inv_g1;
     if (h->g1 > 0.0f)
-        lp_spans_clip(s, x, FAR);
+        lp_spans_clip(s, s, x, FAR);
     else
-        lp_spans_clip(s, -FAR, x);
+        lp_spans_clip(s, s, -FAR, x);
 }
 
 void lp_spans_cut_ellipse(lp_spans *s, const lp_line *l, const lp_ellipse *e)
@@ -203,7 +204,7 @@ void lp_spans_polygon(lp_spans *out, const lp_edge *edges, int count, float y, f
         out->b[out->n] = xs[k + 1];
         out->n++;
     }
-    lp_spans_clip(out, lo, hi);
+    lp_spans_clip(out, out, lo, hi);
 }
 
 static void add_cell(float *diff, int i, float v)
