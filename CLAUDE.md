@@ -57,6 +57,8 @@ model that will choose the reactions does not exist yet; what it will send is re
 - The reference renders come from the WebAssembly build: a host build may use FMA and differ by a few pixels. The host
   build uses the system clang and refuses one older than CI's (21).
 - The engine is not thread-safe: the firmware queues the commands for its drawing loop.
+- On the chip, loads must be aligned: GCC turns a copy it cannot prove aligned into a call to `memcpy`, which the host
+  and WebAssembly builds hide. In a hot loop, read a float's bits through a union, and check a speed-up on the board.
 - The Playwright tests serve on port 8468, so two runs at once collide; the app needs `mise run engine:wasm` first.
 - `firmware:flash` writes the bootloader, the partition table and the app only, so the look kept in NVS survives;
   `merged-binary.bin`, for a blank board, erases it. `FORCE=1` flashes over another board's image: only when the owner

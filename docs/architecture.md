@@ -51,11 +51,14 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 
 ### À mesurer ou à essayer sur du vrai matériel
 
-- **Dessin à 466 px encore un peu lent pour 60 images/s** : sur les deux cœurs, il manque environ 3 ms par image pour
-  tenir 16,7 ms ([mesures](firmware.md#sur-la-puce)). Pistes : accélérer le rendu lui-même (`draw_row`), et essayer le
-  QSPI à 80 MHz sur la carte (moins d'attente sur la dernière bande). Sur le Waveshare, chaque image attend le signal TE
-  suivant : si l'écran rafraîchit à 60 Hz (à vérifier), une image de 19 ms tombe un rafraîchissement sur deux, donc
-  30 images/s stables, et 60 seulement sous 16,7 ms.
+- **Images à 466 px plus longues que 16,7 ms au pire** : depuis le 11 novembre 2026, une image prend 15,6 ms en
+  moyenne, sous les 16,7 ms de 60 images/s, mais 21,4 ms au pire, où l'envoi limite
+  ([mesures](firmware.md#sur-la-puce)). Pistes : faire le travail de l'image suivante pendant l'envoi de la dernière
+  bande, essayer le QSPI à 80 MHz sur la carte (les broches 11 et 12 ne le permettent peut-être pas), et pour le
+  dessin, `sqrtf`, appelé en flash à chaque sous-ligne d'une ellipse (une copie en IRAM, ou une racine plus rapide).
+  Sur le Waveshare, chaque image attend le signal TE suivant, et l'attente oublie celui venu pendant l'image : si
+  l'écran rafraîchit à 60 Hz (à vérifier), une image de plus de 16,7 ms attend un rafraîchissement de plus. À corriger
+  et régler avec la carte.
 - **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La
   [démo de Waveshare](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)
   définit la broche TE sans s'en servir.

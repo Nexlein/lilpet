@@ -50,8 +50,7 @@ Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lan
 jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le moment
 où un look s'écrit en flash (`look_saving.h`), les lignes d'une bande que dessine chaque cœur et la part de l'écran
 qu'une image redessine (`frame.h`), et les plages de colonnes et de lignes que les deux pilotes d'écran envoient
-(`dcs.h`). Le reste se vérifie sur la carte, avec
-`firmware:check-device`.
+(`dcs.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
 ## Pilotes d'écran
 
@@ -84,7 +83,8 @@ En CI, les tableaux vont dans le résumé du job « C engine », pour comparer d
 machines partagées de GitHub sont trop irrégulières pour ça. Fin octobre 2026, sur un AMD Ryzen 7 7730U : 0,34 ms par
 image en moyenne sur l'animation, 0,51 ms au pire. Les pupilles « gland », les plus grandes, coûtent environ 20 % de
 plus que les autres. Ces chiffres ne servent qu'à repérer les régressions : l'ESP32-S3 (240 MHz) est beaucoup plus lent
-qu'un PC.
+qu'un PC. Le 11 novembre 2026, avec les pixels convertis seulement là où les formes dessinent : 0,23 ms en moyenne,
+0,31 ms au pire.
 
 ### Sur la puce
 
@@ -97,9 +97,19 @@ qu'un PC.
   zéro (les tours suivant le premier continuaient alors l'animation du précédent), pour 51 % de l'écran redessiné en
   moyenne : sur un cœur, dessin 29,5 ms en moyenne et 41 ms au pire, dessin plus envoi 32,5 ms, soit 30,7 images/s ; sur
   les deux cœurs, rendu en IRAM, dessin 16,4 ms et 23 ms au pire, dessin plus envoi 19,3 ms, soit 51 à 52 images/s.
+  Le 11 novembre, avec les pixels convertis seulement là où les formes dessinent et les deux cœurs à une ligne sur
+  deux : dessin 10,8 ms en moyenne et 14,5 ms au pire, dessin plus envoi 15,6 ms et 21,4 ms au pire, soit les
+  62,5 images/s de la cadence (le même jour, avant ces changements : dessin 16,4 et 22 ms, dessin plus envoi 19,2 et
+  25,6 ms, 52 images/s). Au pire, c'est l'envoi qui limite.
 - **AtomS3R, 128 px**, yeux au repos : 8,2 ms de dessin par image, puis 4,9 ms (novembre 2026) une fois le mélange des
   couleurs mis en `inline` et les divisions faites une fois par ligne plutôt qu'à chaque sous-ligne (la puce n'a pas de
   division rapide), et 3,6 ms le 6 novembre, avec les couleurs converties une fois par image et les pixels répétés
   réutilisés. Dessin plus envoi : 6,7 ms, pour 16 ms disponibles à 62,5 images/s. Sur les deux cœurs (8 novembre) :
-  dessin 1,9 ms, dessin plus envoi 5,1 ms, image propre à l'œil.
+  dessin 1,9 ms, dessin plus envoi 5,1 ms, image propre à l'œil. Le 11 novembre, avec les changements du Stamp :
+  dessin 1,64 ms au lieu de 1,85 ms, dessin plus envoi inchangé (4,8 ms), que l'envoi limite.
+- Sur la puce, les lectures en mémoire doivent être alignées : une copie que GCC ne sait pas alignée devient un appel à
+  `memcpy`, ce que les versions PC et WebAssembly ne montrent pas. La lecture des bits d'un float dans `render.c` passe
+  donc par une union : par `memcpy`, l'AtomS3R dessinait 56 % plus lentement. Un gain mesuré sur PC se vérifie sur la
+  carte. `sqrtf` reste un appel en flash, à chaque sous-ligne d'une ellipse : `-fno-math-errno` n'y change rien, le code
+  du rendu en IRAM reste le même octet pour octet.
 - Avec un écran, les temps affichés suivent l'animation libre et ne se comparent pas.
