@@ -23,8 +23,9 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
 - **Le compilateur C du PC reste celui du système**, mais `engine/CMakeLists.txt` refuse un clang plus ancien que celui
   de la CI (21), qui n'est pas testé.
 - **Chaque nouvelle version arrive en pull request**, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils
-  de `mise.toml`, que Dependabot ne sait pas lire, Dependabot pour npm, les images Docker et les actions, toutes
-  épinglées par commit.
+  de `mise.toml`, que Dependabot ne sait pas lire, Dependabot pour npm, les images Docker et les actions. Les actions
+  sont épinglées par commit et les images par tag et digest, puisqu'un tag peut être déplacé ; les paquets npm, par
+  `package-lock.json`, que `npm ci` suit à la lettre.
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
   `engine:check`, les tests Playwright). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au
   lieu de recopier leurs étapes : une étape ajoutée au contrôle ne peut pas manquer en CI. `npm run check`, la partie

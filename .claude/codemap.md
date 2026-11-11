@@ -215,7 +215,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/tools/bench.c, firmware/main/main.c
 
 ## engine/wasm
-- **Dockerfile** (3) — Emscripten used to build the WebAssembly module, locally and in CI (mise run engine:wasm): the latest release, pinned here only.
+- **Dockerfile** (4) — Emscripten used to build the WebAssembly module, locally and in CI (mise run engine:wasm): the latest release, pinned here only, by its tag and by ...
   - ← mise.toml
 - **bindings.c** (156) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
@@ -242,7 +242,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware
 - **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
-- **Dockerfile** (3) — ESP-IDF used to build the firmware, locally and in CI (mise run firmware:build): the latest release, pinned here only.
+- **Dockerfile** (4) — ESP-IDF used to build the firmware, locally and in CI (mise run firmware:build): the latest release, pinned here only, by its tag and by the digest...
   - ← .github/workflows/ci.yml, mise.toml
 
 ## firmware/boards/atoms3r
