@@ -410,12 +410,19 @@ static void layer_add(layer *l, const lp_spans *s, float w)
     l->hi = lp_maxf(l->hi, s->b[s->n - 1]);
 }
 
+/* ceilf of a coordinate on the screen, 0 or more, as an int: on the chip, ceilf is a call into flash */
+static int ceil_px(float v)
+{
+    const int i = (int)v;
+    return i + ((float)i < v);
+}
+
 /* Blends a layer on the columns it touched, often a small part of its box, and returns them */
 static column_range layer_blend(const layer *l, float *line, lp_rgb color)
 {
     if (l->lo >= l->hi)
         return (column_range){0, 0};
-    const column_range c = {(int)l->lo, (int)ceilf(l->hi)};
+    const column_range c = {(int)l->lo, ceil_px(l->hi)};
     blend_row(line, c.x0, &l->cov[c.x0 - l->x0], c.x1 - c.x0, color);
     return c;
 }
