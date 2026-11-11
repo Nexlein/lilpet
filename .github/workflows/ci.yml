@@ -8,9 +8,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its run; a push to dev or main keeps its own, so that every merge commit
+# gets a whole result
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # The mise every job installs (min_version in mise.toml is the oldest that works); Renovate keeps it current. Not
