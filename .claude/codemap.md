@@ -64,7 +64,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **session.ts** (141) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
-  - ← app/src/ui/DeviceBar.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
+  - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
@@ -84,8 +84,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceBar
   - → app/src/device/session.ts
   - ← app/src/ui/App.tsx
-- **DeviceLog.tsx** (29) — What the device writes, in a folding panel that follows the last line unless it was scrolled up
+- **DeviceLog.tsx** (34) — What the device writes, in a folding panel that follows the last line unless it was scrolled up.
   - exports: DeviceLog
+  - → app/src/device/session.ts, app/src/ui/hooks.ts
   - packages: react
   - ← app/src/ui/App.tsx
 - **EyeGlyph.tsx** (66) — A small drawing of a pair of eyes, for the gallery and the pupil picker.
@@ -113,11 +114,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
-- **hooks.ts** (58) — React state around the engine, the device connection and the browser
-  - exports: EngineState, useEngine, useDevice, useStored, useLessMotion
+- **hooks.ts** (63) — React state around the engine, the device connection and the browser
+  - exports: EngineState, useEngine, useDevice, useDeviceLog, useStored, useLessMotion
   - → app/src/device/connection.ts, app/src/device/session.ts, app/src/engine/preview.ts
   - packages: react
-  - ← app/src/ui/App.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
+  - ← app/src/ui/App.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Screen.tsx, app/src/ui/Stage.tsx
 - **labels.ts** (32) — French names shown in the interface
   - exports: PUPIL_LABELS, EMOTION_LABELS, FAMILY_LABELS, FAMILY_COLORS
   - → eyes/emotions.json, app/src/data/looks.ts
