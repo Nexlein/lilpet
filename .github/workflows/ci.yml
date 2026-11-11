@@ -30,11 +30,13 @@ jobs:
           fetch-depth: 0 # the whole history, for the secret scan
 
       # Installs the tools from mise.toml, same as local development (only those `npm run check` uses). Actions are
-      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment. Caches are saved by
+      # push runs only: a pull request reads dev's, so its own copies do not fill the 10 GB GitHub keeps per repository.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           install_args: node uv python shellcheck actionlint ruff gitleaks
+          cache_save: ${{ github.event_name == 'push' }}
 
       # The pre-commit hook scans what is staged, but a commit can skip it (--no-verify, a worktree without its hooks)
       - name: Scan the history for secrets
@@ -58,6 +60,7 @@ jobs:
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
+          cache_save: ${{ github.event_name == 'push' }}
 
       - name: Check the engine
         run: mise run engine:check
@@ -108,8 +111,10 @@ jobs:
           install: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # A new entry per board and commit, starting from the latest one of the same board, ESP-IDF image and options.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Each push run saves a new entry per board, read from then on by the runs that start from the latest one of the
+      # same board, ESP-IDF image and options; a pull request reads it and saves nothing, like the mise caches.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: ccache
         with:
           path: firmware/.ccache
           key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-${{ github.sha }}
@@ -122,6 +127,12 @@ jobs:
         env:
           BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
+
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: github.event_name == 'push'
+        with:
+          path: firmware/.ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       # The licence of the BMI270 file asks for its notice to go with the binaries
       - name: Add the notices
@@ -153,6 +164,7 @@ jobs:
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
+          cache_save: ${{ github.event_name == 'push' }}
 
       - run: npm ci
 
