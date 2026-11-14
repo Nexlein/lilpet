@@ -275,7 +275,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (168) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
+- **commands.c** (159) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
   - exports: commands_start, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
 - **commands.h** (20) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
@@ -316,8 +316,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id, lcd_id_match
   - ← firmware/main/display_atoms3r.c
-- **look_saving.h** (30) — When the look shown is written to flash: once it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last write or try.
-  - exports: LOOK_SAVE_GAP_US, look_same, look_save_due
+- **look_saving.h** (48) — When the look shown is written to flash: once it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last write or try.
+  - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_save_if_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
 - **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles

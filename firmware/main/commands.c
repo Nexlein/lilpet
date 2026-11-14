@@ -22,8 +22,7 @@
 /* Set before the task starts, then written by the task alone */
 static struct {
     lp_look current;
-    lp_look kept;     /* the last look written to flash */
-    int64_t tried_at; /* the last write or try (esp_timer_get_time) */
+    look_saving saving;
     bool motion;
 } state;
 
@@ -41,14 +40,7 @@ static bool push(const lp_command *c)
 /* Writes the shown look to flash once its turn comes (look_saving.h); false when the flash refuses it */
 static bool save_if_due(void)
 {
-    const int64_t now = esp_timer_get_time();
-    if (!look_save_due(&state.current, &state.kept, now, state.tried_at))
-        return true;
-    state.tried_at = now;
-    if (!look_store_save(&state.current))
-        return false;
-    state.kept = state.current;
-    return true;
+    return look_save_if_due(&state.saving, &state.current, esp_timer_get_time(), look_store_save);
 }
 
 static void handle_eyes_command(const lp_command *c)
@@ -156,8 +148,7 @@ void commands_start(const lp_look *current, bool motion)
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
-    state.kept = *current;              /* what the flash holds, or the default look that stands for nothing kept */
-    state.tried_at = -LOOK_SAVE_GAP_US; /* the first new look is written at once */
+    state.saving = look_saving_start(current);
     state.motion = motion;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }
