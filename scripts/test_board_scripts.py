@@ -2,6 +2,7 @@
 # no real port is opened and no test waits. Its hello comes from firmware/main/commands.c: a field renamed there fails
 # here. Standard library only.
 # Usage: npm run check:scripts
+import ast
 import contextlib
 import io
 import json
@@ -312,6 +313,18 @@ class FirmwareFacts(unittest.TestCase):
         for reply in (REPLY_UNKNOWN, REPLY_TOO_LONG):
             self.assertIn(f'return "{reply.removeprefix("err ")}";', command_c)
 
+    def test_the_screen_faults_the_checks_look_for_are_in_the_firmware_s_log(self):
+        script = ast.parse((SCRIPTS / "check-device.py").read_text())
+        faults = next(
+            ast.literal_eval(node.value)
+            for node in script.body
+            if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", None) == "SCREEN_FAULTS"
+        )
+        sources = "".join(path.read_text() for path in (ROOT / "firmware" / "main").glob("*.c"))
+        code = re.sub(r"/\*.*?\*/|//[^\n]*", "", sources, flags=re.DOTALL)  # what it prints, not its comments
+        for fault in faults:
+            self.assertIn(fault, code)
+
     def test_the_report_window_holds_a_round_at_the_lowest_rate(self):
         # LP_BENCH_FRAMES, from the enum of bench_script.h (sums of products of names and numbers), with the emotion
         # count of eyes/emotions.json
@@ -497,6 +510,9 @@ class DeviceCheck(unittest.TestCase):
         for fault in (
             "display ID not recognized (00 00 00 00 00 00): trying the GC9107 settings",
             "backlight: no answer from the driver at I2C 0x30",
+            "lilpet 0.15.0, board waveshare_132, ESP32-S3 at 240 MHz, display: CO5300 AMOLED (no TE signal: is the "
+            "panel there?), 466x466, motion sensor: none, animation: idle, bands of 16 rows on both cores, 200000 "
+            "bytes of internal RAM free",
         ):
             with self.subTest(fault):
                 status, out, _ = check_device(Board("atoms3r", boot_log=[fault]))
