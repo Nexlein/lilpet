@@ -358,7 +358,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
-- **files.mjs** (49) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
+- **files.mjs** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
   - exports: GROUPS, trackedFiles
   - ← .lintstagedrc.mjs, mise.toml, package.json
 - **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
@@ -409,7 +409,7 @@ mise (`mise run <task>`):
 - `engine:format:check` — Fail if a C source is not formatted
 - `engine:goldens` — Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
-- `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
+- `engine:tidy` — Static analysis of the engine sources, tests and tools, and of the firmware tests (engine/wasm and the firmware's chip code need their own compilers, so they are not covered)
 - `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does

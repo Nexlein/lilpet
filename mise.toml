@@ -77,9 +77,15 @@ description = "Fail if a C source is not formatted"
 run = "node scripts/files.mjs c | xargs -0 -r clang-format --dry-run --Werror"
 
 [tasks."engine:tidy"]
-description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
-depends = ["engine:test"]
-run = "node scripts/files.mjs tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug"
+description = "Static analysis of the engine sources, tests and tools, and of the firmware tests (engine/wasm and the firmware's chip code need their own compilers, so they are not covered)"
+# clang-tidy needs only the compile commands of the debug build, which its configure writes: alone, no need to build
+# and run the tests. Run with engine:test (engine:check), it waits for it, so the two never configure the same folder
+# at once.
+wait_for = ["engine:test"]
+run = [
+    "cd engine && cmake --preset host-debug > /dev/null",
+    "node scripts/files.mjs tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug",
+]
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
