@@ -251,6 +251,43 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('asks one hello at a time of a board that restarts in a loop, one more after the last boot, then each time', async () => {
+        const device = fakePort(firmware(), { delay: () => 50 });
+        const session = new DeviceSession(async () => device.port);
+        session.emotion('sad');
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
+        for (let i = 0; i < 5; i++) device.log('I (250) main_task: Calling app_main()');
+        await vi.waitFor(() => expect(device.sent).toHaveLength(6));
+        await new Promise((r) => setTimeout(r, 200)); // time for a third hello, if there were one
+        expect(device.sent.slice(2)).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']);
+        device.log('I (250) main_task: Calling app_main()'); // once over, a boot gets its hello again
+        await vi.waitFor(() => expect(device.sent.slice(6)).toEqual([HELLO, '> emotion sad']));
+        await session.disconnect();
+    });
+
+    it('stops asking hello of a board that restarted in a loop once it is unplugged', async () => {
+        let booted = false;
+        const answer = firmware();
+        const device = fakePort((c) => (booted ? null : answer(c))); // silent after the boots
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        booted = true;
+        device.log('I (250) main_task: Calling app_main()');
+        device.log('I (250) main_task: Calling app_main()');
+        await vi.waitFor(() => expect(device.sent).toHaveLength(2));
+        const close = device.port.close;
+        device.port.close = async () => {
+            await new Promise((r) => setTimeout(r, 20)); // as a real port: the session hears of it a moment later
+            await close();
+        };
+        device.readError({ fatal: true });
+        const unplugged = '> hello : lilpet n’est plus branché.';
+        await vi.waitFor(() => expect(session.snapshot().log).toContain(unplugged));
+        await new Promise((r) => setTimeout(r, 50)); // time for another hello, if there were one
+        expect(session.snapshot().log.filter((line) => line === unplugged)).toHaveLength(1);
+    });
+
     it('asks only hello of a board that restarted before any mood was picked', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);

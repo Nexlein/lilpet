@@ -61,7 +61,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, isCommandReply, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts
-- **session.ts** (148) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
+- **session.ts** (162) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
   - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts

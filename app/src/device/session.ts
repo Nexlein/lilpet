@@ -33,6 +33,8 @@ export class DeviceSession {
     #connecting = false; // from the call on: the state only says so once a port is picked
     #mood: string | null = null; // the last one picked: the interface shows it, so a board plugged in later gets it
     #told: { line: string; waiting: boolean } | null = null; // the last line told in passing (#tell)
+    #restarting = false; // a restart hello is on its way (#restarted)
+    #bootedAgain = false; // and the board booted again meanwhile
 
     // requestPort: the browser's port picker, or null without Web Serial
     constructor(requestPort: (() => Promise<PortLike>) | null) {
@@ -99,14 +101,26 @@ export class DeviceSession {
 
     react = (event: EyeEvent): void => this.#tell(reactCommand(event));
 
-    // A board that restarted forgot the mood: ask hello again, as it may answer for another firmware, then tell it
+    // A board that restarted forgot the mood: ask hello again, as it may answer for another firmware, then tell it. One
+    // hello at a time: a board that restarts in a loop asks one more once it is over, not one per boot.
     async #restarted(connection: Connection): Promise<void> {
-        try {
-            const info = await hello(connection);
-            if (this.#connection === connection) this.#greeted(info); // unless unplugged meanwhile
-        } catch (err) {
-            this.#log(`> hello : ${describe(err)}`);
+        if (this.#restarting) {
+            this.#bootedAgain = true;
+            return;
         }
+        this.#restarting = true;
+        do {
+            this.#bootedAgain = false;
+            try {
+                // oxlint-disable-next-line no-await-in-loop -- a hello again only once the last one is over
+                const info = await hello(connection);
+                if (this.#connection === connection) this.#greeted(info); // unless unplugged meanwhile
+            } catch (err) {
+                this.#log(`> hello : ${describe(err)}`);
+                if (err instanceof ConnectionClosed) break; // unplugged: the port may not have said so yet (onClose)
+            }
+        } while (this.#bootedAgain);
+        this.#restarting = false;
     }
 
     // A board that answered hello: connected, and told the mood picked, if any
