@@ -32,6 +32,7 @@ export class DeviceSession {
     #connection: Connection | null = null;
     #connecting = false; // from the call on: the state only says so once a port is picked
     #mood: string | null = null; // the last one picked: the interface shows it, so a board plugged in later gets it
+    #told: { line: string; waiting: boolean } | null = null; // the last line told in passing (#tell)
 
     // requestPort: the browser's port picker, or null without Web Serial
     constructor(requestPort: (() => Promise<PortLike>) | null) {
@@ -114,10 +115,16 @@ export class DeviceSession {
         if (this.#mood) this.#tell(emotionCommand(this.#mood));
     }
 
-    // Tells the board something in passing, if it is there: same queue as the looks, and a failure only goes to the log
+    // Tells the board something in passing, if it is there: same queue as the looks, and a failure only goes to the log.
+    // The same line as the last one, while that one waits for its reply, would change nothing: thirty clicks on a slow
+    // board would hold back the next look for 15 s.
     #tell(line: string): void {
-        if (!this.#connection) return;
-        command(this.#connection, line).catch((err: unknown) => this.#log(`${line} : ${describe(err)}`));
+        if (!this.#connection || (this.#told?.waiting && this.#told.line === line)) return;
+        const told = { line, waiting: true };
+        this.#told = told;
+        command(this.#connection, line)
+            .catch((err: unknown) => this.#log(`${line} : ${describe(err)}`))
+            .finally(() => (told.waiting = false));
     }
 
     #log(line: string): void {

@@ -186,6 +186,46 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('tells a line on its way once, the others in the order they came, and the same again once answered', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        for (const mood of ['happy', 'happy', 'sad', 'sad', 'happy']) session.emotion(mood);
+        session.react('tap');
+        session.react('tap');
+        await session.send(kite); // behind them in the queue: all answered by now
+        session.react('tap');
+        await session.send(kite);
+        const look = '> look 7DB5F4 C10787 C10787 dot';
+        expect(device.sent.slice(1)).toEqual([
+            '> emotion happy',
+            '> emotion sad',
+            '> emotion happy',
+            '> react tap',
+            look,
+            '> react tap',
+            look
+        ]);
+        await session.disconnect();
+    });
+
+    it('holds a look back by one mood only, however many clicks on that mood a silent board got', async () => {
+        const answer = firmware();
+        const device = fakePort((c) => (c === HELLO ? answer(c) : null));
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        vi.useFakeTimers();
+        for (let i = 0; i < 30; i++) session.emotion('happy');
+        let failed = false;
+        const look = session.send(kite).catch(() => (failed = true));
+        await vi.advanceTimersByTimeAsync(500 + 2000);
+        vi.useRealTimers();
+        expect(failed).toBe(true);
+        await look;
+        expect(device.sent.filter((line) => line === '> emotion happy')).toHaveLength(1);
+        await session.disconnect();
+    });
+
     it('gives the last mood picked to a board plugged in later, each time', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
@@ -252,7 +292,7 @@ describe('device session', () => {
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         vi.useFakeTimers();
-        for (let i = 0; i < 10; i++) session.emotion('happy');
+        for (let i = 0; i < 10; i++) session.emotion(i % 2 ? 'happy' : 'sad'); // each one differs from the last
         const look = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
         await vi.advanceTimersByTimeAsync(10 * 500 + 2000);
         vi.useRealTimers();

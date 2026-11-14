@@ -24,9 +24,10 @@ commandes `emotion`, `react` et `face` répondent sur l'AtomS3R depuis le 6 nove
 2. **Envoi à l'objet**
     - Bouton « Brancher lilpet » (Web Serial), puis les infos de l'objet : carte, versions du firmware et du moteur.
     - Bouton « Envoyer à lilpet » : l'objet affiche le look tout de suite et le garde en mémoire flash.
-    - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder. La
-      dernière humeur repart après `hello`. Après un rechargement de la page, l'app montre Neutre, et l'objet garde la
-      sienne : il faudrait une commande `emotion?` pour la lire.
+    - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder ; la
+      même, tant que la précédente attend sa réponse, ne repart pas. La dernière humeur repart après `hello`. Après un
+      rechargement de la page, l'app montre Neutre, et l'objet garde la sienne : il faudrait une commande `emotion?`
+      pour la lire.
     - Journal de l'objet (les mesures qu'il écrit déjà) dans un panneau repliable.
 
 Version 1 testée sur l'AtomS3R (voir [materiel.md](materiel.md)) : le look envoyé est gardé (`> look?`,
