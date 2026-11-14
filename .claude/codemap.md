@@ -149,7 +149,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/include/lilpet/lilpet.h, engine/include/lilpet/render_state.h
 
 ## engine/src
-- **command.c** (121) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
+- **command.c** (122) — Command lines of the text protocol (docs/protocole.md): the same on the USB port and on the camera link
   - exports: lp_command_line_add, lp_command_parse
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
 - **emotions.c** (36) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)

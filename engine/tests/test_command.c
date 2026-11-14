@@ -104,6 +104,9 @@ void test_command_reads_every_command(void)
     check_accepted("> hello", LP_COMMAND_HELLO, &c);
     check_accepted("> look?", LP_COMMAND_LOOK_QUERY, &c);
     check_accepted("> imu?", LP_COMMAND_IMU_QUERY, &c);
+    check_accepted("> hello  ", LP_COMMAND_HELLO, &c); /* spaces after the name, as many as after any word */
+    check_accepted("> look?   ", LP_COMMAND_LOOK_QUERY, &c);
+    check_accepted("> imu? ", LP_COMMAND_IMU_QUERY, &c);
 
     check_accepted("> look B865A8 76D8EB 8F1716 acorn", LP_COMMAND_LOOK, &c);
     CHECK(c.look.sclera == 0xB865A8u && c.look.pupil == LP_PUPIL_ACORN);
@@ -137,7 +140,6 @@ void test_command_refuses_bad_input(void)
         {"> ", "unknown command"},
         {"> wag", "unknown command"},
         {">  hello", "unknown command"},
-        {"> hello  ", "unknown command"},
         {"> hello you", "unknown command"},
         {"> look? now", "unknown command"},
         {"> imu? now", "unknown command"},
