@@ -1,8 +1,51 @@
-/* Engine behavior the parity vectors do not cover: limits, invalid input and the setters used by the live view */
+/* The eyes themselves: names, random numbers and clamp, setters, bad input, time steps, scenes, the clock */
+#include "../src/internal.h"
 #include "lilpet/lilpet.h"
 #include "test.h"
 
 #include <math.h>
+
+/* Whether two eyes are at the same point of their animation: every member an update can change, one by one (floats
+ * and padding make a byte comparison unreliable) */
+static bool same_motion(const lp_eyes *a, const lp_eyes *b)
+{
+    bool same = a->rng.state == b->rng.state && a->time == b->time && a->emotion == b->emotion && a->mood == b->mood &&
+                a->emotion_timer == b->emotion_timer && a->burst_wait == b->burst_wait &&
+                a->upside_down == b->upside_down && a->next_saccade == b->next_saccade &&
+                a->next_roll == b->next_roll && a->spin_phase == b->spin_phase && a->next_blink == b->next_blink;
+    same = same && a->cur.tl == b->cur.tl && a->cur.ts == b->cur.ts && a->cur.bl == b->cur.bl &&
+           a->cur.sq == b->cur.sq && a->cur.cr == b->cur.cr && a->cur.rot == b->cur.rot && a->cur.hl == b->cur.hl &&
+           a->cur.ps == b->cur.ps && a->cur.es == b->cur.es && a->cur.gy == b->cur.gy && a->cur.spin == b->cur.spin;
+    same = same && a->gaze.x == b->gaze.x && a->gaze.y == b->gaze.y && a->gaze.tx == b->gaze.tx &&
+           a->gaze.ty == b->gaze.ty && a->gaze.vx == b->gaze.vx && a->gaze.vy == b->gaze.vy &&
+           a->pending_gaze.active == b->pending_gaze.active && a->pending_gaze.x == b->pending_gaze.x &&
+           a->pending_gaze.y == b->pending_gaze.y;
+    same = same && a->head.yaw == b->head.yaw && a->head.pitch == b->head.pitch && a->head.roll == b->head.roll &&
+           a->head.roll_target == b->head.roll_target && a->head.level == b->head.level &&
+           a->blink.phase == b->blink.phase && a->blink.t == b->blink.t && a->blink.hold == b->blink.hold &&
+           a->blink.open == b->blink.open && a->blink.twice == b->blink.twice;
+    same = same && a->particle_count == b->particle_count && a->emit_debt == b->emit_debt;
+    for (int i = 0; same && i < a->particle_count; i++) {
+        const lp_particle *p = &a->particles[i];
+        const lp_particle *q = &b->particles[i];
+        same = p->type == q->type && p->x == q->x && p->y == q->y && p->vy == q->vy && p->sway == q->sway &&
+               p->size == q->size && p->spin == q->spin && p->age == q->age && p->life == q->life;
+    }
+    return same;
+}
+
+void test_eyes_start_with_the_default_look_and_shape(void)
+{
+    /* The firmware and the PC app show the same look until one is chosen: cherry with a dot pupil (eyes/looks.json) */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    const lp_look look = lp_default_look();
+    CHECK(look.sclera == 0xAE0002u && look.pupil == LP_PUPIL_DOT && look.pupil_color[0] == 0xFF5252u);
+    CHECK(eyes.look.sclera == look.sclera && eyes.look.pupil == look.pupil);
+    CHECK(eyes.look.pupil_color[0] == look.pupil_color[0] && eyes.look.pupil_color[1] == look.pupil_color[1]);
+    const lp_shape shape = lp_default_shape();
+    CHECK(eyes.shape.rx == shape.rx && eyes.shape.ry == shape.ry && eyes.shape.tilt == shape.tilt);
+}
 
 void test_unknown_emotion_is_rejected(void)
 {
@@ -15,53 +58,42 @@ void test_unknown_emotion_is_rejected(void)
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
 }
 
-void test_particle_pool_drops_extra_particles(void)
+void test_every_emotion_and_event_is_found_by_its_name(void)
 {
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    for (int i = 0; i < LP_MAX_PARTICLES + 8; i++)
-        lp_eyes_spawn(&eyes, LP_PARTICLE_HEART);
-    CHECK(eyes.particle_count == LP_MAX_PARTICLES);
+    for (int i = 0; i < LP_EMOTION_COUNT; i++)
+        CHECK(lp_emotion_from_name(lp_emotion_get((lp_emotion)i)->name) == (lp_emotion)i);
+    for (int i = 0; i < LP_EVENT_COUNT; i++)
+        CHECK(lp_event_from_name(lp_reaction_get((lp_event)i)->name) == (lp_event)i);
+    /* Names the protocol sends (docs/protocole.md) */
+    CHECK(lp_emotion_from_name("love") == LP_EMOTION_LOVE);
+    CHECK(lp_event_from_name("gesture_like") == LP_EVENT_GESTURE_LIKE);
 }
 
-void test_particles_keep_the_random_sequence_when_dropped(void)
+void test_rng_gives_the_mulberry32_sequence(void)
 {
-    /* A full pool still draws the particle's random numbers, so later animation matches the prototype */
-    lp_eyes full;
-    lp_eyes room;
-    lp_eyes_init(&full, 9);
-    lp_eyes_init(&room, 9);
-    full.particle_count = LP_MAX_PARTICLES;
-    lp_eyes_spawn(&full, LP_PARTICLE_SPARKLE);
-    lp_eyes_spawn(&room, LP_PARTICLE_SPARKLE);
-    CHECK(full.rng.state == room.rng.state);
+    /* 24-bit numerators over 2^24: exact in float. The second seed wraps the 32-bit state on its first step. */
+    static const uint32_t seed_1[] = {10520554u, 45897u,    8849092u, 16459303u, 16246685u, 4716134u,
+                                      10281729u, 12092063u, 7143687u, 16690359u, 7638182u,  8200507u,
+                                      2330918u,  6773713u,  4152761u, 2591964u};
+    static const uint32_t seed_deadbeef[] = {15793561u, 4482800u, 12952570u, 6008940u};
+    lp_rng rng;
+    lp_rng_seed(&rng, 1u);
+    for (size_t i = 0; i < sizeof seed_1 / sizeof seed_1[0]; i++)
+        CHECK(lp_rng_next(&rng) == (float)seed_1[i] / 16777216.0f);
+    lp_rng_seed(&rng, 0xDEADBEEFu);
+    for (size_t i = 0; i < sizeof seed_deadbeef / sizeof seed_deadbeef[0]; i++)
+        CHECK(lp_rng_next(&rng) == (float)seed_deadbeef[i] / 16777216.0f);
 }
 
-void test_timed_emotion_returns_to_neutral(void)
+void test_clamp_with_a_negative_limit_gives_zero(void)
 {
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_HAPPY, 0.5f);
-    for (int i = 0; i < 31; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
-    for (int i = 0; i < 2; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-}
-
-void test_blink_does_not_restart_while_running(void)
-{
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_blink(&eyes);
-    const uint32_t state = eyes.rng.state;
-    lp_eyes_update(&eyes, 0.07f); /* into the closing phase */
-    const lp_blink_phase phase = eyes.blink.phase;
-    eyes.rng.state = state;
-    lp_eyes_blink(&eyes);
-    CHECK(eyes.blink.phase == phase);
-    CHECK(eyes.rng.state == state);
+    CHECK(lp_clampf(0.25f, 1.0f) == 0.25f);
+    CHECK(lp_clampf(2.0f, 1.0f) == 1.0f);
+    CHECK(lp_clampf(-2.0f, 1.0f) == -1.0f);
+    /* A pupil bigger than its eye makes the limit negative: no room left, so the pupil stays centered */
+    CHECK(lp_clampf(33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(-33.5f, -6.75f) == 0.0f);
+    CHECK(lp_clampf(0.0f, -6.75f) == 0.0f);
 }
 
 void test_follow_off_ignores_the_pointer(void)
@@ -70,12 +102,11 @@ void test_follow_off_ignores_the_pointer(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_pointer(&eyes, true, 0.9f, 0.0f);
     lp_eyes_set_follow(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 1.0f);
     CHECK(eyes.gaze.tx != 0.9f);
 
     lp_eyes_set_follow(&eyes, true);
-    lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_eyes_update(&eyes, LP_TEST_STEP);
     CHECK(eyes.gaze.tx == 0.9f);
 }
 
@@ -85,9 +116,25 @@ void test_head_amount_zero_keeps_the_head_still(void)
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_head_amount(&eyes, 0.0f);
     lp_eyes_set_pointer(&eyes, true, 0.9f, 0.5f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    lp_test_play(&eyes, 5.0f);
     CHECK(eyes.head.yaw == 0.0f && eyes.head.pitch == 0.0f && eyes.head.roll == 0.0f);
+}
+
+void test_shape_and_head_amount_stay_in_their_ranges(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_head_amount(&eyes, 1e20f);
+    CHECK(eyes.head_amount == 1.0f);
+    lp_eyes_set_head_amount(&eyes, -3.0f);
+    CHECK(eyes.head_amount == 0.0f);
+    /* An eye with no size, or a negative one, is no shape: the one before stays */
+    const lp_shape before = eyes.shape;
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 0.0f, .ry = 50.0f, .gap = 101.0f, .tilt = 0.37f});
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 50.0f, .ry = -50.0f, .gap = 101.0f, .tilt = 0.37f});
+    CHECK(eyes.shape.rx == before.rx && eyes.shape.ry == before.ry);
+    lp_eyes_set_shape(&eyes, &(lp_shape){.rx = 1.0f, .ry = 400.0f, .gap = 400.0f, .tilt = -0.5f});
+    CHECK(eyes.shape.rx == 1.0f && eyes.shape.ry == 400.0f && eyes.shape.gap == 400.0f && eyes.shape.tilt == -0.5f);
 }
 
 void test_set_shape_is_used_by_the_renderer(void)
@@ -109,86 +156,6 @@ void test_set_shape_is_used_by_the_renderer(void)
     lp_render(&renderer, &eyes, frame);
     const lp_rect thin = lp_render(&renderer, &eyes, frame);
     CHECK(thin.x1 - thin.x0 < wide.x1 - wide.x0);
-}
-
-void test_tilt_holds_upside_down_on_noise(void)
-{
-    /* Upside down and leaned back, gravity noise flips the angle across half a turn every frame: the face holds */
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_set_head_amount(&eyes, 0.0f); /* no idle roll: only the tilt turns the face */
-    float max_step = 0.0f;
-    for (int i = 0; i < 640; i++) {
-        lp_eyes_set_gravity(&eyes, true, i % 2 ? 0.02f : -0.02f, -0.5f);
-        const float before = eyes.head.roll;
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-        const float step = fabsf(remainderf(eyes.head.roll - before, 6.2831853f));
-        if (i >= 320 && step > max_step)
-            max_step = step;
-    }
-    CHECK(fabsf(eyes.head.roll) > 3.0f); /* level, half a turn from the screen's upright */
-    CHECK(max_step < 0.02f);
-}
-
-void test_tilt_holds_lying_flat(void)
-{
-    /* Turned a quarter turn, then laid flat: the face keeps its last level angle, then goes upright without sensor */
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_set_head_amount(&eyes, 0.0f);
-    lp_eyes_set_gravity(&eyes, true, 1.0f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
-    lp_eyes_set_gravity(&eyes, true, 0.05f, 0.1f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.head.level, -1.5707963f, 0.01f);
-    lp_eyes_set_gravity(&eyes, false, 0.0f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.head.level, 0.0f, 0.01f);
-}
-
-void test_lying_flat_does_not_slide_the_eyes(void)
-{
-    /* Almost no gravity left in the screen plane: mostly sensor noise, so the eyes stay where they look */
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_set_head_amount(&eyes, 0.0f);
-    lp_eyes_set_pointer(&eyes, true, 0.0f, 0.0f);
-    lp_eyes_set_gravity(&eyes, true, 0.2f, 0.0f);
-    for (int i = 0; i < 320; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK_NEAR(eyes.gaze.x, 0.0f, 0.001f);
-}
-
-void test_clock_keeps_running_for_days(void)
-{
-    /* A float clock left growing stops after about 6 days at 60 frames/s: the engine winds it back, with its deadlines.
-     * 20 minutes at 64 frames/s cross the wrap; the eyes keep blinking at their usual rate after it. */
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 4);
-    int blinks = 0;
-    float wound_back = 0.0f;
-    for (int i = 0; i < 20 * 60 * 64; i++) {
-        const bool open = eyes.blink.phase == LP_BLINK_NONE;
-        const float before = eyes.time;
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-        if (eyes.time < before)
-            wound_back = before + 1.0f / 64.0f - eyes.time;
-        if (i >= 19 * 60 * 64 && open && eyes.blink.phase != LP_BLINK_NONE)
-            blinks++;
-    }
-    CHECK(eyes.time < 600.0f); /* wound back once */
-    /* By whole breaths (render.c: sin(time * 2.1)): the breathing does not hiccup */
-    CHECK(wound_back > 0.0f);
-    CHECK_NEAR(remainderf(wound_back * 2.1f, 6.2831853f), 0.0f, 0.01f);
-    CHECK(blinks >= 10 && blinks <= 40);
-    /* Deadlines wound back with it: each is a few seconds ahead at most */
-    CHECK(eyes.next_blink - eyes.time < 8.0f);
-    CHECK(eyes.next_saccade - eyes.time < 4.0f);
-    CHECK(eyes.next_roll - eyes.time < 7.0f);
 }
 
 void test_bad_input_is_ignored(void)
@@ -225,14 +192,14 @@ void test_bad_input_is_ignored(void)
         }
     }
 
-    const float time = eyes.time;
+    /* A step that is not positive and finite changes nothing at all, not even the random numbers */
+    const lp_eyes before = eyes;
     lp_eyes_update(&eyes, 0.0f);
     lp_eyes_update(&eyes, NAN);
     lp_eyes_update(&eyes, INFINITY);
     lp_eyes_update(&eyes, -1.0f);
-    CHECK(eyes.time == time);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+    CHECK(same_motion(&eyes, &before));
+    lp_test_play(&eyes, 1.0f);
     CHECK(isfinite(eyes.gaze.x) && isfinite(eyes.gaze.vx) && isfinite(eyes.head.roll));
 
     /* A scene with an unknown emotion or blink phase leaves the eyes as they were */
@@ -275,34 +242,22 @@ void test_bad_input_is_ignored(void)
     CHECK(eyes.emotion == emotion);
 }
 
-void test_scene_starts_over(void)
+void test_bad_point_clears_a_pointer_and_a_gravity(void)
 {
-    /* What came before leaves no trace: time, pointer, gravity, shaking and the rest are those of a fresh start */
+    /* A sensor that sends garbage points nowhere: the last valid point is not kept */
+    const struct {
+        float x, y;
+    } bad[] = {{NAN, 0.0f}, {0.0f, INFINITY}, {-INFINITY, 0.0f}};
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_pointer(&eyes, true, 0.5f, 0.5f);
-    lp_eyes_set_gravity(&eyes, true, 0.0f, -1.0f);
-    lp_eyes_set_shaking(&eyes, true);
-    lp_eyes_set_head_amount(&eyes, 0.0f);
-    lp_eyes_set_follow(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-
-    const lp_look look = {0x123456u, LP_PUPIL_CAT, {0x111111u, 0x222222u}};
-    lp_eyes_set_look(&eyes, &look);
-    const lp_scene scene = {.emotion = LP_EMOTION_SAD, .yaw = 0.25f, .gaze_x = 0.5f};
-    lp_eyes_set_scene(&eyes, &scene, &eyes.look); /* its own look: kept */
-
-    lp_eyes fresh;
-    lp_eyes_init(&fresh, scene.particle_seed);
-    CHECK(eyes.time == 0.0f && eyes.rng.state == fresh.rng.state);
-    CHECK(!eyes.pointer.active && !eyes.gravity.active && !eyes.shaking);
-    CHECK(eyes.head_amount == fresh.head_amount && eyes.follow);
-    CHECK(eyes.next_blink == fresh.next_blink);
-    CHECK(eyes.look.pupil == LP_PUPIL_CAT && eyes.look.sclera == look.sclera);
-    CHECK(eyes.emotion == LP_EMOTION_SAD && eyes.mood == LP_EMOTION_SAD);
-    CHECK(eyes.head.yaw == 0.25f && eyes.gaze.x == 0.5f);
-    CHECK(eyes.blink.hold == 0.2f && eyes.blink.open == 0.2f); /* a blink scene must be able to finish */
+    for (int i = 0; i < 3; i++) {
+        lp_eyes_set_pointer(&eyes, true, 0.5f, 0.5f);
+        lp_eyes_set_gravity(&eyes, true, 0.0f, 1.0f);
+        CHECK(eyes.pointer.active && eyes.gravity.active);
+        lp_eyes_set_pointer(&eyes, true, bad[i].x, bad[i].y);
+        lp_eyes_set_gravity(&eyes, true, bad[i].x, bad[i].y);
+        CHECK(!eyes.pointer.active && !eyes.gravity.active);
+    }
 }
 
 void test_pointer_stays_inside_its_range(void)
@@ -322,307 +277,67 @@ void test_long_step_counts_as_one_second(void)
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    lp_eyes second = eyes;
     lp_eyes_update(&eyes, 1e4f);
+    lp_eyes_update(&second, 1.0f);
     CHECK(eyes.time == 1.0f);
-    CHECK(eyes.particle_count <= 3);
+    CHECK(eyes.particle_count > 0);     /* hearts were owed */
+    CHECK(same_motion(&eyes, &second)); /* the very same as one second */
 }
 
-void test_tap_makes_it_happy_for_a_moment(void)
+void test_scene_starts_over(void)
 {
+    /* What came before leaves no trace: time, pointer, gravity, shaking and the rest are those of a fresh start */
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
-    lp_eyes_react(&eyes, LP_EVENT_TAP);
-    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
-    CHECK(eyes.particle_count == 4); /* a burst of sparkles */
-    for (int i = 0; i < 112; i++)    /* 1.75 s */
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
-    for (int i = 0; i < 8; i++) /* past 1.8 s */
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-}
-
-void test_repeated_reaction_goes_on_without_a_new_burst(void)
-{
-    const lp_reaction *like = lp_reaction_get(LP_EVENT_GESTURE_LIKE);
-    const lp_reaction *tap = lp_reaction_get(LP_EVENT_TAP);
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    CHECK(eyes.particle_count == like->sparkles);
-
-    /* Almost half a second later: it goes on, with no more sparkles and no random draw */
-    for (int i = 0; i < 31; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    const uint32_t random = eyes.rng.state;
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    CHECK(eyes.particle_count == like->sparkles);
-    CHECK(eyes.emotion_timer == like->duration);
-    CHECK(eyes.rng.state == random);
-
-    /* Another event of the same emotion is the same reaction, and a shorter one cuts nothing short */
-    lp_eyes_react(&eyes, LP_EVENT_TAP);
-    CHECK(eyes.particle_count == like->sparkles);
-    CHECK(eyes.emotion_timer == like->duration);
-
-    /* Half a second after the burst: a new one, which still cuts nothing short */
-    lp_eyes_update(&eyes, 1.0f / 64.0f);
-    const float timer = eyes.emotion_timer;
-    CHECK(timer > tap->duration);
-    lp_eyes_react(&eyes, LP_EVENT_TAP);
-    CHECK(eyes.particle_count == like->sparkles + tap->sparkles);
-    CHECK(eyes.emotion_timer == timer);
-}
-
-void test_another_emotion_reacts_at_once_without_a_new_burst(void)
-{
-    const lp_reaction *like = lp_reaction_get(LP_EVENT_GESTURE_LIKE);
-    const lp_reaction *dislike = lp_reaction_get(LP_EVENT_GESTURE_DISLIKE);
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
-    CHECK(eyes.emotion == dislike->emotion);
-    CHECK(eyes.emotion_timer == dislike->duration);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    CHECK(eyes.emotion == like->emotion);
-    CHECK(eyes.emotion_timer == like->duration);
-    CHECK(eyes.particle_count == like->sparkles);
-}
-
-void test_reaction_without_sparkles_leaves_the_wait_alone(void)
-{
-    const lp_reaction *like = lp_reaction_get(LP_EVENT_GESTURE_LIKE);
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-
-    /* It starts no wait: the sparkles right after it burst */
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
-    CHECK(eyes.burst_wait == 0.0f);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    CHECK(eyes.particle_count == like->sparkles);
-
-    /* It does not start the wait over: half a second after the burst, the next one comes */
-    for (int i = 0; i < 31; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    const float wait = eyes.burst_wait;
-    CHECK(wait > 0.0f);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_DISLIKE);
-    CHECK(eyes.burst_wait == wait);
-    lp_eyes_update(&eyes, 1.0f / 64.0f);
-    lp_eyes_react(&eyes, LP_EVENT_GESTURE_LIKE);
-    CHECK(eyes.particle_count == 2 * like->sparkles);
-}
-
-/* 10 events a second for 10 s, taking turns; returns the most particles at once */
-static int chatter(lp_eyes *eyes, lp_event first, lp_event second)
-{
-    int most = 0;
-    for (int i = 0; i < 10 * 60; i++) {
-        if (i % 6 == 0)
-            lp_eyes_react(eyes, i % 12 == 0 ? first : second);
-        lp_eyes_update(eyes, 1.0f / 60.0f);
-        most = eyes->particle_count > most ? eyes->particle_count : most;
-    }
-    return most;
-}
-
-void test_chatty_events_never_fill_the_screen(void)
-{
-    /* Bursts are half a second apart, and sparkles last 1.1 s at most */
-    const int sparkles = lp_reaction_get(LP_EVENT_GESTURE_LIKE)->sparkles;
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    CHECK(chatter(&eyes, LP_EVENT_GESTURE_LIKE, LP_EVENT_GESTURE_LIKE) <= 3 * sparkles);
-    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
-
-    /* Whatever the emotion in between, which still follows each event */
-    lp_eyes_init(&eyes, 1);
-    CHECK(chatter(&eyes, LP_EVENT_GESTURE_LIKE, LP_EVENT_EXPRESSION_SAD) <= 3 * sparkles);
-    CHECK(eyes.emotion == LP_EMOTION_SAD);
-}
-
-void test_scene_forgets_the_last_burst(void)
-{
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_react(&eyes, LP_EVENT_TAP);
-    const lp_scene scene = {.emotion = LP_EMOTION_HAPPY};
-    lp_eyes_set_scene(&eyes, &scene, &eyes.look);
-    lp_eyes_react(&eyes, LP_EVENT_TAP);
-    CHECK(eyes.particle_count == lp_reaction_get(LP_EVENT_TAP)->sparkles);
-}
-
-static void hold(lp_eyes *eyes, float gx, float gy, float seconds)
-{
-    lp_eyes_set_gravity(eyes, true, gx, gy);
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
-        lp_eyes_update(eyes, 1.0f / 64.0f);
-}
-
-void test_upside_down_makes_it_angry_until_righted(void)
-{
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    hold(&eyes, 0.0f, -1.0f, 0.4f); /* turned over for a moment: no anger */
-    hold(&eyes, 0.0f, 1.0f, 0.5f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-    hold(&eyes, 0.1f, -0.9f, 3.0f); /* held upside down: angry as long as it lasts */
-    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
-    hold(&eyes, 0.0f, 1.0f, 1.0f); /* righted: calms down */
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-    hold(&eyes, 0.0f, 0.0f, 2.0f); /* lying flat is not upside down */
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-
-    /* An emotion picked for good (no duration) stays once the object is righted */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_SAD, 0.0f);
-    hold(&eyes, 0.0f, -1.0f, 2.0f);
-    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
-    hold(&eyes, 0.0f, 1.0f, 1.0f);
-    CHECK(eyes.emotion == LP_EMOTION_SAD);
-
-    /* Shaken while upside down: dizzy, then angry again once the shake is over */
+    lp_eyes_set_pointer(&eyes, true, 0.5f, 0.5f);
+    lp_eyes_set_gravity(&eyes, true, 0.0f, -1.0f);
     lp_eyes_set_shaking(&eyes, true);
-    hold(&eyes, 0.0f, -1.0f, 1.0f);
-    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
-    lp_eyes_set_shaking(&eyes, false);
-    hold(&eyes, 0.0f, -1.0f, 1.0f);
-    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
-}
-
-void test_holding_keeps_a_longer_emotion(void)
-{
-    /* Already angry for 3 s: held upside down renews 0.5 s at most, it does not cut the 3 s short */
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 1);
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_ANGRY, 3.0f);
-    hold(&eyes, 0.0f, -1.0f, 1.0f);
-    hold(&eyes, 0.0f, 1.0f, 1.0f);
-    CHECK(eyes.emotion == LP_EMOTION_ANGRY);
-    hold(&eyes, 0.0f, 1.0f, 1.5f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-}
-
-/* Feeds `seconds` of shaking along x, +-amplitude g at 6 Hz; returns how long the detector said "shaken" */
-static float shake_for(lp_shake *shake, float amplitude, float seconds)
-{
-    const float dt = 1.0f / 64.0f;
-    float shaken = 0.0f;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++) {
-        const float x = amplitude * sinf(2.0f * 3.14159265f * 6.0f * (float)i * dt);
-        shaken += lp_shake_update(shake, x, 1.0f, 0.0f, dt) ? dt : 0.0f;
-    }
-    return shaken;
-}
-
-void test_shake_is_told_from_tilt_and_knocks(void)
-{
-    const float dt = 1.0f / 64.0f;
-    lp_shake shake = {0};
-    /* At rest, then turned slowly: always 1 g, never shaken */
-    for (int i = 0; i < 640; i++) {
-        const float a = (float)i * 0.01f;
-        CHECK(!lp_shake_update(&shake, sinf(a), cosf(a), 0.0f, dt));
-    }
-    /* A knock, two 10 g samples (measured: a shake reaches 11 g), then a flick of 0.15 s: not a shake */
-    CHECK(!lp_shake_update(&shake, 0.0f, 10.0f, 0.0f, dt));
-    CHECK(!lp_shake_update(&shake, 0.0f, -10.0f, 0.0f, dt));
-    CHECK(shake_for(&shake, 8.0f, 0.15f) == 0.0f);
-    CHECK(shake_for(&shake, 0.0f, 1.0f) == 0.0f);
-    /* A 2 s shake (measured: about 4 g from 1 g on average, 8 to 10 g peaks, 6 Hz): told from about 0.4 s in */
-    const float shaken = shake_for(&shake, 8.0f, 2.0f);
-    CHECK(shaken > 1.4f && shaken < 1.7f);
-    CHECK(lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt)); /* still the end of the shake */
-    CHECK(shake_for(&shake, 0.0f, 0.75f) < 0.6f);         /* over soon after it stops */
-    CHECK(!lp_shake_update(&shake, 0.0f, 1.0f, 0.0f, dt));
-}
-
-/* Feeds `seconds` of a steady acceleration of `g`; returns whether the detector ended up saying "shaken" */
-static bool steady(lp_shake *shake, float g, float seconds)
-{
-    bool shaken = shake->active;
-    for (int i = 0; i < (int)(seconds * 64.0f); i++)
-        shaken = lp_shake_update(shake, g, 0.0f, 0.0f, 1.0f / 64.0f);
-    return shaken;
-}
-
-void test_shake_limits(void)
-{
-    /* The values tuned by hand on the AtomS3R, measured from either side. Starts above 1.5 g away from 1 g... */
-    lp_shake shake = {0};
-    CHECK(!steady(&shake, 2.4f, 5.0f));
-    shake = (lp_shake){0};
-    CHECK(steady(&shake, 3.0f, 5.0f));
-
-    /* ...and lasts until the energy is below 0.5 g */
-    CHECK(steady(&shake, 1.75f, 5.0f));
-    CHECK(!steady(&shake, 1.4f, 5.0f));
-
-    /* 3 g away, the energy passes 1.5 g in 6 samples at 8 per second, then counts for 0.3 s: 20 samples more */
-    shake = (lp_shake){0};
-    CHECK(!steady(&shake, 4.0f, 24.0f / 64.0f));
-    CHECK(steady(&shake, 4.0f, 1.0f / 64.0f));
-}
-
-void test_shake_skips_bad_samples(void)
-{
-    const float dt = 1.0f / 64.0f;
-    lp_shake shake = {0};
-    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, dt);
-    const lp_shake before = shake;
-    /* No time passed, no time known, then samples that are not numbers or overflow once squared */
-    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, 0.0f);
-    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, -dt);
-    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, NAN);
-    lp_shake_update(&shake, 3.0f, 0.0f, 0.0f, INFINITY);
-    lp_shake_update(&shake, NAN, 0.0f, 0.0f, dt);
-    lp_shake_update(&shake, 0.0f, INFINITY, 0.0f, dt);
-    lp_shake_update(&shake, 0.0f, 0.0f, 1e30f, dt);
-    CHECK(shake.energy == before.energy && shake.strong == before.strong && shake.active == before.active);
-    CHECK(shake_for(&shake, 8.0f, 2.0f) > 1.0f); /* a real shake is still told */
-}
-
-void test_shaking_makes_it_dizzy_until_a_bit_after(void)
-{
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 2);
-    lp_eyes_set_shaking(&eyes, true);
-    for (int i = 0; i < 4 * 64; i++) /* longer than the reaction itself: renewed while shaken */
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
-    lp_eyes_set_shaking(&eyes, false);
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_DIZZY); /* a moment after */
-    for (int i = 0; i < 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-}
-
-void test_shake_makes_it_dizzy_then_calm(void)
-{
-    lp_eyes eyes;
-    lp_eyes_init(&eyes, 2);
     lp_eyes_set_head_amount(&eyes, 0.0f);
-    lp_eyes_react(&eyes, LP_EVENT_SHAKE);
-    CHECK(eyes.emotion == LP_EMOTION_DIZZY);
-    /* The pupils go round: over a second the gaze visits left and right, up and down */
-    float min_x = 1.0f;
-    float max_x = -1.0f;
-    float min_y = 1.0f;
-    float max_y = -1.0f;
-    for (int i = 0; i < 64; i++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-        min_x = eyes.gaze.x < min_x ? eyes.gaze.x : min_x;
-        max_x = eyes.gaze.x > max_x ? eyes.gaze.x : max_x;
-        min_y = eyes.gaze.y < min_y ? eyes.gaze.y : min_y;
-        max_y = eyes.gaze.y > max_y ? eyes.gaze.y : max_y;
+    lp_eyes_set_follow(&eyes, false);
+    lp_test_play(&eyes, 1.0f);
+
+    const lp_look look = {0x123456u, LP_PUPIL_CAT, {0x111111u, 0x222222u}};
+    lp_eyes_set_look(&eyes, &look);
+    const lp_scene scene = {.emotion = LP_EMOTION_SAD, .yaw = 0.25f, .gaze_x = 0.5f};
+    lp_eyes_set_scene(&eyes, &scene, &eyes.look); /* its own look: kept */
+
+    lp_eyes fresh;
+    lp_eyes_init(&fresh, scene.particle_seed);
+    CHECK(eyes.time == 0.0f && eyes.rng.state == fresh.rng.state);
+    CHECK(!eyes.pointer.active && !eyes.gravity.active && !eyes.shaking);
+    CHECK(eyes.head_amount == fresh.head_amount && eyes.follow);
+    CHECK(eyes.next_blink == fresh.next_blink);
+    CHECK(eyes.look.pupil == LP_PUPIL_CAT && eyes.look.sclera == look.sclera);
+    CHECK(eyes.emotion == LP_EMOTION_SAD && eyes.mood == LP_EMOTION_SAD);
+    CHECK(eyes.head.yaw == 0.25f && eyes.gaze.x == 0.5f);
+    CHECK(eyes.blink.hold == 0.2f && eyes.blink.open == 0.2f); /* a blink scene must be able to finish */
+}
+
+void test_clock_keeps_running_for_days(void)
+{
+    /* A float clock left growing stops after about 6 days at 60 frames/s: the engine winds it back, with its deadlines.
+     * 20 minutes of LP_TEST_STEP steps cross the wrap; the eyes keep blinking at their usual rate after it. */
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 4);
+    int blinks = 0;
+    float wound_back = 0.0f;
+    for (int i = 0; i < (int)(20.0f * 60.0f / LP_TEST_STEP); i++) {
+        const bool open = eyes.blink.phase == LP_BLINK_NONE;
+        const float before = eyes.time;
+        lp_eyes_update(&eyes, LP_TEST_STEP);
+        if (eyes.time < before)
+            wound_back = before + LP_TEST_STEP - eyes.time;
+        if (i >= (int)(19.0f * 60.0f / LP_TEST_STEP) && open && eyes.blink.phase != LP_BLINK_NONE)
+            blinks++;
     }
-    CHECK(min_x < -0.3f && max_x > 0.3f && min_y < -0.1f && max_y > 0.2f);
-    CHECK(fabsf(eyes.head.roll) <= 0.2f); /* the head wobbles a little */
-    /* Back to its mood when the reaction is over, and the spinning dies down soon after */
-    for (int i = 0; i < 3 * 64; i++)
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
-    CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
-    CHECK(eyes.cur.spin < 0.5f);
+    CHECK(eyes.time < 600.0f); /* wound back once */
+    /* By whole breaths (render.c: sin(time * 2.1)): the breathing does not hiccup */
+    CHECK(wound_back > 0.0f);
+    CHECK_NEAR(remainderf(wound_back * 2.1f, 2.0f * LP_PI), 0.0f, 0.01f);
+    CHECK(blinks >= 10 && blinks <= 40);
+    /* Deadlines wound back with it: each is a few seconds ahead at most */
+    CHECK(eyes.next_blink - eyes.time < 8.0f);
+    CHECK(eyes.next_saccade - eyes.time < 4.0f);
+    CHECK(eyes.next_roll - eyes.time < 7.0f);
 }

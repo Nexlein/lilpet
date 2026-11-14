@@ -1,0 +1,8 @@
+# Lint and format of the Python scripts (scripts/*.py): same line width as the rest of the repository, and the version
+# of Python that mise.toml pins
+line-length = 120
+target-version = "py315"
+
+[lint]
+# pycodestyle, pyflakes, import order, bugbear, newer syntax, simplifications and ruff's own rules
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]

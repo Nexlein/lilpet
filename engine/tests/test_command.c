@@ -1,4 +1,4 @@
-/* Command lines: what the USB port and the camera link read (notes/app.md) */
+/* Command lines: what the USB port and the camera link read (docs/protocole.md) */
 #include "lilpet/lilpet.h"
 #include "test.h"
 

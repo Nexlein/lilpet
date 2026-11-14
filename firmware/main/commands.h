@@ -1,15 +1,6 @@
-/* Commands from the PC app over the USB serial port, one per line (protocol in notes/app.md, read by lp_command_parse):
- *   "> hello"       ->  "< lilpet fw=<version> engine=<version> board=<board> camera=<0|1> motion=<0|1>"
- *   "> look <text>" ->  "< ok" once the look is saved, or "< err <reason>"
- *   "> look?"       ->  "< look <text>", the current look
- *   "> imu?"        ->  "< imu <x> <y> <z>", gravity in g in screen coordinates (imu.h), or "< err no motion sensor"
- *   "> emotion <name> [seconds]"  an emotion for that long (above 0, up to 3600); with no seconds, the new mood
- *   "> react <event>"             the reaction to an event, by its name in the engine (tap, gesture_like...)
- *   "> face <x> <y>"              a face at x, y in -1..1, to send again while it is seen (lp_senses_face)
- *   "> face off"                  the face is gone
- * The last four answer "< ok", or "< err <reason>" for bad input. On a board that plays the benchmark animation they
- * are refused, and looks are kept but not shown. A line too long gets "< err line too long". Other lines are ignored;
- * the timing reports share the port. */
+/* Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face
+ * (lp_command_parse reads them). What each takes and answers is in docs/protocole.md; the timing reports share the
+ * port. */
 #ifndef LILPET_COMMANDS_H
 #define LILPET_COMMANDS_H
 

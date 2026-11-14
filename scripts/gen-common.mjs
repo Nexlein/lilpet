@@ -1,9 +1,8 @@
-// What the generators of the engine's C files share (gen-engine-vectors.mjs, gen-emotions-table.mjs)
+// What the generators of the engine's C files share (the gen-*-table.mjs of scripts/data.mjs)
 import { readFileSync, writeFileSync } from 'node:fs';
-import { BASE } from '../prototype/eyes.js';
-
-export const EXPR = Object.keys(BASE); // the fields of lp_expression: a new one breaks the C build until ported
 export const emotionEnum = (name) => `LP_EMOTION_${name.toUpperCase()}`;
+export const pupilEnum = (type) => `LP_PUPIL_${type.toUpperCase()}`;
+export const hexColor = (hex) => `0x${hex.slice(1).toUpperCase()}u`; // "#AE0002" as 0xAE0002u
 export const eventEnum = (name) => `LP_EVENT_${name.toUpperCase()}`;
 export const num = (v) => {
     if (!Number.isFinite(v)) throw new Error(`not a finite number: ${v}`);
@@ -25,7 +24,7 @@ export function writeGenerated(path, text, summary) {
         writeFileSync(path, text);
         console.log(`${path}: ${summary}`);
     } else if (current(path) !== text) {
-        console.error(`${path}: out of date, run npm run vectors`);
+        console.error(`${path}: out of date, run npm run tables`);
         process.exit(1);
     } else console.log(`${path}: up to date`);
 }

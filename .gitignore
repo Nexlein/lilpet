@@ -6,7 +6,6 @@ __pycache__/
 .DS_Store
 .env
 .env.*
-!.env.example
 
 # editor directories and files
 .idea
@@ -17,6 +16,9 @@ __pycache__/
 !.vscode/settings.json
 !.vscode/tasks.json
 *.sw?
+
+# Frame sheets of third-party videos behind docs/yeux.md: kept on the machine, never published
+references/
 
 # Claude Code: personal settings and session worktrees stay local
 .claude/settings.local.json

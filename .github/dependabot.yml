@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Dev tooling (Prettier, oxlint)
+  # npm packages of the root and of the app workspace (one lockfile): tooling, React, Vite, test runners
   - package-ecosystem: npm
     directory: /
     schedule:

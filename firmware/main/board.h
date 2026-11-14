@@ -20,7 +20,10 @@ bool board_button_pressed(void);
 /* The board's internal I2C bus (backlight driver, motion sensor), started on first use; only on boards with one */
 i2c_master_bus_handle_t board_i2c(void);
 
-/* Turns the backlight on, once the panel is ready to show something; only on boards with a backlight driver */
-void board_backlight_on(void);
+/* How long a request on that bus waits for its device */
+#define BOARD_I2C_TIMEOUT_MS 50
+
+/* A device of that bus at its 7-bit address, at the bus's one speed; NULL when there is no bus or it cannot be added */
+i2c_master_dev_handle_t board_i2c_device(uint16_t address);
 
 #endif

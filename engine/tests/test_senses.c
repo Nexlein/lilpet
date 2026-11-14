@@ -1,7 +1,6 @@
+/* Senses: the motion sensor's samples, the button and the face a camera sees, turned into what the eyes do */
 #include "lilpet/lilpet.h"
 #include "test.h"
-
-#define STEP (1.0f / 60.0f)
 
 static void start(lp_eyes *eyes, lp_senses *senses)
 {
@@ -12,9 +11,9 @@ static void start(lp_eyes *eyes, lp_senses *senses)
 /* Runs `seconds` of frames, each with the same input */
 static void run_frames(lp_senses *senses, lp_eyes *eyes, const float *accel, bool pressed, float seconds)
 {
-    for (int i = 0; (float)i * STEP < seconds; i++) {
-        lp_senses_update(senses, eyes, accel, pressed, STEP);
-        lp_eyes_update(eyes, STEP);
+    for (int i = 0; (float)i * LP_TEST_STEP < seconds; i++) {
+        lp_senses_update(senses, eyes, accel, pressed, LP_TEST_STEP);
+        lp_eyes_update(eyes, LP_TEST_STEP);
     }
 }
 
@@ -25,15 +24,15 @@ void test_senses_smooth_gravity(void)
     start(&eyes, &senses);
     const float upright[3] = {0.0f, 1.0f, 0.0f};
     const float flat_left[3] = {-1.0f, 0.0f, 0.0f};
-    lp_senses_update(&senses, &eyes, upright, false, STEP);
-    lp_senses_update(&senses, &eyes, flat_left, false, STEP);
+    lp_senses_update(&senses, &eyes, upright, false, LP_TEST_STEP);
+    lp_senses_update(&senses, &eyes, flat_left, false, LP_TEST_STEP);
     CHECK(eyes.gravity.active);
     CHECK(eyes.gravity.x > -0.5f); /* smoothed: one sample does not jump there */
     run_frames(&senses, &eyes, flat_left, false, 1.0f);
     CHECK_NEAR(eyes.gravity.x, -1.0f, 0.01f);
 
     run_frames(&senses, &eyes, NULL, false, 0.1f); /* a few failed reads: it goes on from where it was */
-    lp_senses_update(&senses, &eyes, upright, false, STEP);
+    lp_senses_update(&senses, &eyes, upright, false, LP_TEST_STEP);
     CHECK(eyes.gravity.x < -0.5f);
 }
 
@@ -49,10 +48,10 @@ void test_senses_start_over_when_a_sensor_comes_back(void)
     run_frames(&senses, &eyes, NULL, false, 5.0f);
     CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
 
-    /* Upright all along: what the sensor said before it went quiet no longer turns the face */
-    for (int i = 0; i < 30; i++) {
-        lp_senses_update(&senses, &eyes, upright, false, STEP);
-        lp_eyes_update(&eyes, STEP);
+    /* Upright all along, for half a second: what the sensor said before it went quiet no longer turns the face */
+    for (int i = 0; i < (int)(0.5f / LP_TEST_STEP); i++) {
+        lp_senses_update(&senses, &eyes, upright, false, LP_TEST_STEP);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         CHECK_NEAR(eyes.head.level, 0.0f, 0.001f);
     }
 }
@@ -79,10 +78,10 @@ void test_senses_stop_a_shake_when_the_sensor_stops(void)
     lp_eyes eyes;
     lp_senses senses;
     start(&eyes, &senses);
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < (int)(1.0f / LP_TEST_STEP); i++) { /* a second of shaking */
         const float sample[3] = {i % 2 ? 6.0f : -6.0f, 1.0f, 0.0f};
-        lp_senses_update(&senses, &eyes, sample, false, STEP);
-        lp_eyes_update(&eyes, STEP);
+        lp_senses_update(&senses, &eyes, sample, false, LP_TEST_STEP);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
     }
     CHECK(eyes.shaking);
     run_frames(&senses, &eyes, NULL, false, 0.5f);
@@ -91,7 +90,7 @@ void test_senses_stop_a_shake_when_the_sensor_stops(void)
     /* Back on an object at rest, long after: the shake it stopped in is over, not picked up again */
     const float rest[3] = {0.0f, 1.0f, 0.0f};
     run_frames(&senses, &eyes, NULL, false, 3.0f);
-    lp_senses_update(&senses, &eyes, rest, false, STEP);
+    lp_senses_update(&senses, &eyes, rest, false, LP_TEST_STEP);
     CHECK(!eyes.shaking);
     CHECK(senses.shake.energy < 0.5f);
 }
@@ -104,7 +103,7 @@ void test_senses_skip_a_bad_sample(void)
     const float good[3] = {0.0f, 1.0f, 0.0f};
     const float bad[3] = {NAN, 1.0f, 0.0f};
     run_frames(&senses, &eyes, good, false, 0.5f);
-    lp_senses_update(&senses, &eyes, bad, false, STEP);
+    lp_senses_update(&senses, &eyes, bad, false, LP_TEST_STEP);
     CHECK(isfinite(senses.gravity[0]));
     CHECK(isfinite(senses.shake.energy));
     CHECK(eyes.gravity.active);
@@ -112,7 +111,7 @@ void test_senses_skip_a_bad_sample(void)
     /* Finite, but its length overflows: no more of a sample than a NaN */
     const float huge[3] = {1e30f, 1.0f, 0.0f};
     const float age = senses.motion_age;
-    lp_senses_update(&senses, &eyes, huge, false, STEP);
+    lp_senses_update(&senses, &eyes, huge, false, LP_TEST_STEP);
     CHECK(fabsf(senses.gravity[0]) < 0.01f);
     CHECK(senses.motion_age > age);
 }
@@ -142,16 +141,16 @@ void test_senses_debounce_the_button(void)
     lp_senses senses;
     start(&eyes, &senses);
     run_frames(&senses, &eyes, NULL, false, 0.1f);
-    lp_senses_update(&senses, &eyes, NULL, true, STEP);
+    lp_senses_update(&senses, &eyes, NULL, true, LP_TEST_STEP);
     CHECK(eyes.emotion == LP_EMOTION_HAPPY);
 
     lp_eyes_set_emotion(&eyes, LP_EMOTION_NEUTRAL, 0.0f);
-    lp_senses_update(&senses, &eyes, NULL, false, STEP); /* the contact bounces: released for one frame */
-    lp_senses_update(&senses, &eyes, NULL, true, STEP);
+    lp_senses_update(&senses, &eyes, NULL, false, LP_TEST_STEP); /* the contact bounces: released for one frame */
+    lp_senses_update(&senses, &eyes, NULL, true, LP_TEST_STEP);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
 
     run_frames(&senses, &eyes, NULL, false, 0.1f); /* a real release, then a real press */
-    lp_senses_update(&senses, &eyes, NULL, true, STEP);
+    lp_senses_update(&senses, &eyes, NULL, true, LP_TEST_STEP);
     CHECK(eyes.emotion == LP_EMOTION_HAPPY);
 }
 
@@ -164,7 +163,7 @@ void test_senses_react_to_a_press_not_a_release(void)
     run_frames(&senses, &eyes, NULL, true, 1.0f); /* a long press, past the settling time */
     CHECK(eyes.emotion == LP_EMOTION_HAPPY);
     lp_eyes_set_emotion(&eyes, LP_EMOTION_NEUTRAL, 0.0f);
-    lp_senses_update(&senses, &eyes, NULL, false, STEP);
+    lp_senses_update(&senses, &eyes, NULL, false, LP_TEST_STEP);
     CHECK(eyes.emotion == LP_EMOTION_NEUTRAL);
 }
 

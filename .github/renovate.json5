@@ -1,16 +1,31 @@
-// Renovate keeps the tool versions of mise.toml and the dependency of scripts/requirements.txt up to date, one pull
-// request per new release. Dependabot cannot read them; it still covers npm, the Docker images and the GitHub Actions
-// (dependabot.yml).
+// Renovate keeps the tool versions of mise.toml, the dependency of scripts/requirements.txt and the mise version of
+// CI up to date, one pull request per new release. Dependabot cannot read them; it still covers npm, the Docker
+// images and the GitHub Actions (dependabot.yml).
 {
     $schema: 'https://docs.renovatebot.com/renovate-schema.json',
     extends: ['config:recommended'],
-    enabledManagers: ['mise', 'pip_requirements'],
+    enabledManagers: ['mise', 'pip_requirements', 'custom.regex'],
     pip_requirements: { managerFilePatterns: ['/^scripts/requirements\\.txt$/'] }, // pyserial
+    customManagers: [
+        {
+            // The mise version CI installs (LILPET_MISE_VERSION in ci.yml), from mise's releases
+            customType: 'regex',
+            managerFilePatterns: ['/^\\.github/workflows/ci\\.yml$/'],
+            matchStrings: ['LILPET_MISE_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)'],
+            depNameTemplate: 'jdx/mise',
+            datasourceTemplate: 'github-releases',
+            extractVersionTemplate: '^v(?<version>.+)$'
+        }
+    ],
     dependencyDashboard: false,
     timezone: 'Europe/Paris',
     schedule: ['* 0-5 * * 1'], // Monday morning, like Dependabot
     semanticCommits: 'enabled',
     packageRules: [
-        { matchManagers: ['mise', 'pip_requirements'], semanticCommitType: 'build', semanticCommitScope: 'deps' }
+        {
+            matchManagers: ['mise', 'pip_requirements', 'custom.regex'],
+            semanticCommitType: 'build',
+            semanticCommitScope: 'deps'
+        }
     ]
 }

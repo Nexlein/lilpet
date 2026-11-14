@@ -15,32 +15,33 @@ Projet strictement personnel, non commercial.
 
 ## Où on en est
 
-- [x] Recherche sur le Starboy → [notes/recherche.md](notes/recherche.md)
-- [x] Analyse des yeux → [notes/yeux.md](notes/yeux.md)
-- [x] Prototype des yeux dans le navigateur, figé comme référence de design → `prototype/`
-- [x] Architecture choisie → [notes/architecture.md](notes/architecture.md)
+- [x] Recherche sur le Starboy → [docs/recherche.md](docs/recherche.md)
+- [x] Analyse des yeux → [docs/yeux.md](docs/yeux.md)
+- [x] Architecture choisie → [docs/architecture.md](docs/architecture.md), décisions dans [docs/adr/](docs/adr/)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
-- [x] Choix du matériel → [notes/materiel.md](notes/materiel.md)
+- [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
 - [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
       écran rond à tester sur la carte
 - [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
       recevoir
 - [ ] Boîtier 3D (`case/`, créé le moment venu)
-- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [notes/app.md](notes/app.md)
+- [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
 - [ ] App PC : looks perso, réglages, animations
 
-## Lancer le prototype
+## Installer
+
+Prérequis : [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent (tests
+du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
 
 ```bash
-npm run serve
+mise trust
+mise run setup
 ```
 
-Puis ouvrir http://127.0.0.1:8466/prototype/ (un serveur est nécessaire pour charger les modules et les données).
-Le sélecteur « Rendu » affiche le prototype, le moteur C (après `mise run engine:wasm`) ou les deux côte à côte, pilotés
-par les mêmes commandes.
-Les scènes de référence, que le moteur C reproduit, sont sur
-http://127.0.0.1:8466/prototype/reference.html.
+`mise run setup` installe les outils de `mise.toml` (Node, Python, uv, CMake, clang-format…), les paquets npm avec
+`npm ci`, qui active aussi les hooks git, et le navigateur des tests Playwright. À refaire dans chaque nouveau worktree
+git : sans `npm ci`, git n'y lance aucun hook.
 
 ## Lancer l'app PC
 
@@ -51,51 +52,50 @@ npm run app:dev
 Puis ouvrir http://localhost:8467/ dans Chrome ou Edge (le moteur doit être compilé : `mise run engine:wasm`). On y
 choisit une couleur et une pupille, avec l'aperçu animé par le vrai moteur. « Brancher lilpet » ouvre la liste des ports
 USB : choisir la carte flashée avec le firmware, puis « Envoyer à lilpet ». La carte garde le look même
-éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer `mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
+éteinte, et après un nouveau flash. Une humeur choisie ou une caresse passent aussi sur la carte. Fermer
+`mise run firmware:monitor` avant : un port USB ne s'ouvre qu'une fois.
 
 ## Vérifier avant de commiter
 
 ```bash
-npm install
-npm run check
+mise run check
 ```
 
-Vérifie le formatage (Prettier), le code (oxlint), les données (`eyes/` et `prototype/scenes.json`), que les fichiers
-générés sont à jour (`engine/tests/js_vectors.h`, `engine/src/emotions_table.h`), les scripts de carte sur un faux port
-(avec `uv`), puis les types et les tests de l'app PC.
+Lance tout ce qu'un changement doit passer, comme la CI : `npm run check`, les contrôles du moteur C avec ses rendus de
+référence, et les tests Playwright. Pour un changement du firmware, ajouter `mise run firmware:build-all`.
 
-Pour le moteur C (outils installés par `mise install`, Docker nécessaire pour le WebAssembly) :
+- `npm run check`, la partie rapide (une dizaine de secondes), tourne aussi avant chaque `git push` : formatage,
+  linters, données et tables générées, tests des scripts et de l'app, carte du code (la liste est le script `check` de
+  `package.json`). Comme les commandes qui corrigent, il ne lit que les fichiers suivis par git : un fichier local non
+  suivi n'est jamais touché.
+- `mise run engine:check` vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse
+  clang-tidy et la compilation WebAssembly, puis compare au pixel près les rendus de référence de
+  `engine/tests/goldens/` : chaque scène de `engine/tests/scenes.json`, et une animation scriptée relevée toutes les 16
+  étapes. Ce qui diffère est écrit dans `engine/build/goldens/`. Quand les yeux changent exprès, `npm run goldens`
+  réécrit ces images et les empreintes de l'animation ; les regarder avant de les commiter.
+- `npm run test:playwright` ouvre l'app PC compilée avec une fausse carte.
 
-```bash
-mise run engine:check
-```
+Avant chaque commit, le hook cherche des secrets dans ce qui est indexé, formate les fichiers indexés, vérifie les
+fichiers générés quand leurs sources changent (et refuse ceux qui gardent des changements non indexés) et régénère la
+carte du code (`npm run codemap`), qui liste chaque fichier avec son rôle, ce qu'il exporte, ce qu'il utilise et qui
+l'utilise.
 
-Vérifie le formatage du C, lance les tests avec les détecteurs d'erreurs mémoire, l'analyse clang-tidy et la
-compilation WebAssembly. Ensuite, pour comparer le moteur C au prototype scène par scène et ouvrir l'app PC compilée
-(première fois : `npx playwright install --only-shell chromium`) :
-
-```bash
-npm run test:parity
-```
-
-La même comparaison est visible sur http://127.0.0.1:8466/prototype/reference.html. Pour mesurer la vitesse du rendu
-(temps par image, à comparer sur une même machine) :
+Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même machine) :
 
 ```bash
 mise run engine:bench
 ```
 
-La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte.
+La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte
+et une recherche de secrets dans tout l'historique (le hook ne voit que ce qu'on commite avec lui).
+Tout changement passe par une pull request vers `dev`, la branche par défaut, et n'est mergé qu'avec la CI verte ;
+`main` ne reçoit que des merges de `dev`.
 
 ## Tester sur un ESP32-S3
 
-Il y a une image de firmware par carte, car rien sur la puce ne les distingue à coup sûr : l'AtomS3R et l'écran rond
-Waveshare ont le même boîtier. Flasher l'image d'une autre carte piloterait les mauvaises broches. `BOARD` vaut :
-
-- `atoms3r` : l'AtomS3R de M5Stack, écran de 128 px. Quand on le tourne, le visage reste à l'horizontale, et il réagit :
-  fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
-- `waveshare_132` : l'écran rond 1,32", pas encore essayé sur la vraie carte.
-- `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
+Il y a une image de firmware par carte ([pourquoi](docs/adr/0006-une-image-par-carte.md)) : flasher l'image d'une
+autre carte piloterait les mauvaises broches. `BOARD` est le nom d'un dossier de `firmware/boards` ; les cartes et ce
+que chacune fait sont dans [le tableau des cartes](docs/firmware.md#les-cartes).
 
 La compilation passe par Docker, sans installer ESP-IDF. Une seule commande s'occupe d'un objet : compiler, flasher,
 vérifier.
@@ -104,20 +104,25 @@ vérifier.
 BOARD=atoms3r mise run firmware:deploy
 ```
 
-Elle prend la seule carte branchée, ou celle de `PORT`. Elle refuse une carte qui répond sous un autre nom (`FORCE=1`
-pour passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche.
-Les étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à
-la carte comme l'app (réponse, look gardé après un redémarrage, commandes, entrées refusées) et remet son look à la fin.
+Elle prend la seule carte branchée, ou celle de `PORT` (vide, il compte comme absent), et s'arrête si elle n'en trouve
+aucune (`FORCE=1` laisse alors esptool la chercher). Elle refuse une carte qui répond sous un autre nom (`FORCE=1` pour
+passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les
+étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la
+carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, commandes, entrées
+refusées) et remet son look et son humeur à la fin.
 
-Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi toutes les 1080 images, soit environ 17 s (quitter
-avec Ctrl+]) :
+Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
+(`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]), sur la seule carte branchée ou celle de `PORT` :
 
 ```bash
 mise run firmware:monitor
 ```
 
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
-`board_config.h`. Rien d'autre à toucher, la CI la compile d'elle-même.
+`board_config.h`, puis ajouter son nom à la liste des cartes de `.github/workflows/ci.yml` (un test de `npm run check`
+compare cette liste aux dossiers). Pour que sa compilation soit exigée avant un merge, ajouter son job (« ESP32-S3
+firmware build (<carte>) ») aux checks requis des règles GitHub de `main` et `dev`. De même pour renommer ou retirer une
+carte : un check requis dont le job n'existe plus reste en attente et bloque chaque pull request.
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
@@ -125,14 +130,11 @@ la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artef
 
 ## Arborescence
 
-| Dossier       | Contenu                                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| `notes/`      | Notes de recherche, matériel, architecture, yeux                                         |
-| `references/` | Captures d'inspiration                                                                   |
-| `eyes/`       | Les 100 couleurs officielles et les émotions et réactions, en données                    |
-| `prototype/`  | Référence de design : état et dessin des yeux, page interactive, scènes de référence     |
-| `engine/`     | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                 |
-| `firmware/`   | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures |
-| `app/`        | App PC (React, TypeScript, Vite) : choisir les yeux, les envoyer à l'objet par USB       |
-| `scripts/`    | Validation des données, fichiers générés, contrôle d'une carte branchée                  |
-| `tests/`      | Tests Playwright : parité avec le prototype, données, app PC                             |
+| Dossier     | Contenu                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `docs/`     | Architecture, décisions, protocole, firmware, app, yeux, matériel, recherche               |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |
+| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB      |
+| `scripts/`  | Données (validation, tables générées), rendus de référence, carte du code, outils de carte |

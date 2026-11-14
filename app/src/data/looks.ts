@@ -16,7 +16,16 @@ export interface Swatch {
 // Checked by scripts/validate-data.mjs (CI): two pupil colors each
 export const SWATCHES: readonly Swatch[] = data.swatches as unknown as Swatch[];
 
-// Same rule as makeLook in prototype/eyes.js
+// The look worn until one is chosen, the engine's and the firmware's too (checked: a known swatch and pupil type)
+export const DEFAULT_LOOK = { swatchId: data.default.swatch, pupil: data.default.pupil as PupilType };
+
+// The eye shape and the pupil types the engine draws (engine/src/looks_table.h is generated from the same file): radii
+// and resting position of a pupil in fractions of the eye radii, r for a disc (a fraction of rx)
+export const EYE_SHAPE: { rx: number; ry: number; gap: number; tilt: number } = data.eye;
+export const PUPIL_LEAN: number = data.pupilLean;
+export type PupilShape = { x: number; y: number } & ({ rx: number; ry: number } | { r: number });
+export const PUPIL_SHAPES = data.pupils as Record<PupilType, PupilShape>;
+
 export function makeLook(swatch: Swatch, pupil: PupilType): Look {
     return { id: swatch.id, sclera: swatch.sclera, pupil, pupilColor: swatch.pupilColor };
 }
@@ -33,8 +42,9 @@ export const hasTwoPupilColors = (s: Swatch): boolean => s.pupilColor[0] !== s.p
 
 // --- Color families, for the gallery filter ----------------------------------------------------------------------
 
-export type Family = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'neutral';
-export const FAMILIES: readonly Family[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'neutral'];
+// The filter's buttons, in order; the type follows, so a family cannot be in one and not the other
+export const FAMILIES = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'neutral'] as const;
+export type Family = (typeof FAMILIES)[number];
 
 type Rgb = [number, number, number];
 

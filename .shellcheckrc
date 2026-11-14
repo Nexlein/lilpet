@@ -1,0 +1,2 @@
+# The git hooks run with sh (husky), not bash
+shell=sh

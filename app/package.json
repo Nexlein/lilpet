@@ -4,11 +4,12 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "tsc && vite build",
-        "preview": "vite preview",
-        "test": "vitest run"
+        "build": "vite build",
+        "test": "vitest run",
+        "test:playwright": "playwright test"
     },
     "devDependencies": {
+        "@playwright/test": "^1.64.1",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.1.2",

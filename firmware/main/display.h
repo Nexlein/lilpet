@@ -14,7 +14,8 @@
  * display_draw will send. */
 const char *display_init(size_t max_band_bytes);
 
-/* Waits until the next frame can start: the display's refresh signal (TE), or display_paced.c without one */
+/* Waits until the next frame can start. A driver with a TE signal defines it under #ifdef BOARD_LCD_TE, to wait for the
+ * signal; display_paced.c gives it to every board without BOARD_LCD_TE */
 void display_wait_frame(void);
 
 /*
@@ -24,7 +25,7 @@ void display_wait_frame(void);
  */
 void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels);
 
-/* Waits until every queued band is sent */
+/* Waits until every queued band is sent; after the first frame, a panel that waited for it turns on (CO5300) */
 void display_flush(void);
 
 #endif /* LILPET_DISPLAY_H */

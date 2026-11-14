@@ -1,17 +1,9 @@
 /*
- * Firmware entry point: the eyes, live on the display. Each frame starts when the display is ready for it, draws its
- * dirty region band by band into two small buffers in internal RAM, each band drawn half by one core and half by the
- * other, and sends each band by DMA while drawing the next one: no whole frame in memory, so it also runs on boards
- * without PSRAM. The eyes idle on their own (saccades, blinks, the head following the gaze), with the look chosen in
- * the PC app (kept in flash, cherry until one is sent). Without a display, they play the benchmark animation instead
- * (engine/tools/bench_script.h), in a loop, with the host's frames: the redrawn area compares with the host's, the
- * drawing time is that of both cores (the host draws on one). Commands from the app and the timings, printed once per
- * round of that animation, share the USB serial port (mise run firmware:monitor).
- *
- * One image per board: the build links its parts (display.h, imu.h), and the engine draws at the size of its screen
- * (board_config.h). With a motion sensor, tilting the board turns the face to stay level and slides the eyes toward the
- * low side, and the eyes react (REACTIONS in the engine): angry held upside down, dizzy when shaken, happy when the
- * button (the AtomS3R's screen) is pressed. lp_senses turns what the hardware reports into all of that.
+ * Firmware entry point: the eyes, live on the display. Each frame draws its dirty region band by band into two small
+ * buffers in internal RAM, every other row of a band on each core, and sends a band by DMA while the next one is drawn:
+ * no whole frame in memory, so it runs without PSRAM. Without a display, the eyes play the benchmark animation instead
+ * (engine/tools/bench_script.h). What the firmware does, board by board: docs/firmware.md; why both cores:
+ * docs/adr/0009-rendu-deux-coeurs.md.
  */
 #include "../../engine/tools/bench_script.h"
 #include "board.h"
@@ -20,6 +12,7 @@
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "frame.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -33,15 +26,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BAND_ROWS     30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
-#define BAND_BYTES    (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
-#define REPORT_FRAMES LP_BENCH_FRAMES /* a whole round of the benchmark: every report covers the same frames */
+#define BAND_ROWS  30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
+#define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
-/* Until the PC app sends a look: cherry with a dot pupil, from eyes/looks.json */
-static const lp_look DEFAULT_LOOK = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
+/* The engine draws at most LP_SCREEN_SIZE pixels a side, rounded down to even (lp_renderer_set_size): a larger or odd
+ * size would leave part of the screen undrawn, silently */
+_Static_assert(BOARD_DISPLAY_SIZE <= LP_SCREEN_SIZE && BOARD_DISPLAY_SIZE % 2 == 0,
+               "the board's display must be even and no larger than the engine's screen");
 
 #if CONFIG_FREERTOS_UNICORE
-#error "the eyes are drawn on both cores: a board cannot set CONFIG_FREERTOS_UNICORE"
+#error "the eyes are drawn on both cores: CONFIG_FREERTOS_UNICORE must stay off"
 #endif
 
 static lp_eyes eyes;
@@ -49,14 +43,13 @@ static lp_renderer renderer;
 static lp_senses senses;
 
 /*
- * The second core draws the bottom half of each band, from the frame `renderer` prepared and with its own scratch,
- * while this one draws the top half. `start` hands it the rows, `done` gives them back; the eyes are only read
- * meanwhile. All static, so that nothing can fail to start.
+ * The second core draws the odd rows of each band, from the frame `renderer` prepared and with its own scratch, while
+ * this one draws the even rows. `start` hands it the band, `done` gives it back; the eyes are only read meanwhile. All
+ * static, so that nothing can fail to start.
  */
 #define SECOND_CORE_STACK 4096 /* bytes */
 static struct {
-    int y0, y1;
-    uint16_t *pixels;
+    frame_band band;
     lp_row_scratch scratch;
     SemaphoreHandle_t start, done;
     StaticSemaphore_t start_buffer, done_buffer;
@@ -69,7 +62,7 @@ static void second_core_task(void *arg)
     (void)arg;
     for (;;) {
         xSemaphoreTake(second_core.start, portMAX_DELAY);
-        lp_render_rows_with(&renderer, &second_core.scratch, second_core.y0, second_core.y1, second_core.pixels);
+        frame_draw_core_rows(&renderer, 1, &second_core.scratch, &second_core.band);
         xSemaphoreGive(second_core.done);
     }
 }
@@ -79,6 +72,48 @@ static struct {
     int frames;
     int64_t render, render_max, frame, frame_max, area;
 } stats;
+
+/* What the renderer needs for this board: the size of its display, and the byte order of the controllers */
+static void start_renderer(void)
+{
+    lp_renderer_init(&renderer);
+    lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
+    lp_renderer_set_big_endian(&renderer, true);
+}
+
+/*
+ * Draws the frame of `eyes` band by band into the two DMA buffers, every other row on each core, while the band
+ * before is sent, then waits for the last one. Returns the region drawn; *render: the time both cores spent drawing.
+ */
+static lp_rect draw_frame(uint16_t *bands[2], int64_t *render)
+{
+    const lp_rect dirty = lp_render_begin(&renderer, &eyes);
+    const int width = dirty.x1 - dirty.x0;
+    *render = 0;
+    int b = 0;
+    for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
+        const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
+        const int64_t t = esp_timer_get_time();
+        second_core.band = (frame_band){y, y1, width, bands[b]};
+        xSemaphoreGive(second_core.start);
+        frame_draw_core_rows(&renderer, 0, NULL, &second_core.band);
+        xSemaphoreTake(second_core.done, portMAX_DELAY);
+        *render += esp_timer_get_time() - t;
+        display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);
+    }
+    display_flush();
+    return dirty;
+}
+
+/* A round of the benchmark starts as each pass of tools/bench.c: the same eyes, and their first frame drawn whole,
+ * not counted. Its frames are then the host's, every one. */
+static void start_bench_round(uint16_t *bands[2])
+{
+    lp_bench_start(&eyes);
+    start_renderer();
+    int64_t render;
+    draw_frame(bands, &render);
+}
 
 static void report(int64_t elapsed_us)
 {
@@ -136,21 +171,20 @@ void app_main(void)
     }
 
     look_store_init();
-    lp_look look = DEFAULT_LOOK;
+    lp_look look = lp_default_look(); /* until the PC app sends one */
     look_store_load(&look);
     commands_start(&look, motion);
 
-    lp_eyes_init(&eyes, 1);
-    /* The benchmark replays the host's run (engine/tools/bench.c): its look, seed and fixed time step */
-    lp_eyes_set_look(&eyes, bench ? &DEFAULT_LOOK : &look);
-    lp_renderer_init(&renderer);
-    lp_renderer_set_size(&renderer, BOARD_DISPLAY_SIZE); /* same picture, scaled to a smaller screen */
-    lp_renderer_set_big_endian(&renderer, true);
+    lp_eyes_init(&eyes, 1); /* the benchmark starts its own eyes: start_bench_round */
+    lp_eyes_set_look(&eyes, &look);
+    start_renderer();
     second_core.start = xSemaphoreCreateBinaryStatic(&second_core.start_buffer);
     second_core.done = xSemaphoreCreateBinaryStatic(&second_core.done_buffer);
     xTaskCreateStaticPinnedToCore(second_core_task, "second core", SECOND_CORE_STACK, NULL, uxTaskPriorityGet(NULL),
                                   second_core.stack, &second_core.task, 1);
     lp_senses_init(&senses);
+    if (bench)
+        start_bench_round(bands);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
@@ -169,24 +203,8 @@ void app_main(void)
         lp_senses_update(&senses, &eyes, imu_gravity(g) ? g : NULL, board_button_pressed(), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
-        const lp_rect dirty = lp_render_begin(&renderer, &eyes);
-        const int width = dirty.x1 - dirty.x0;
-        int64_t render = 0; /* until both halves of each band are drawn */
-        int b = 0;
-        for (int y = dirty.y0; y < dirty.y1; y += BAND_ROWS, b ^= 1) {
-            const int y1 = y + BAND_ROWS < dirty.y1 ? y + BAND_ROWS : dirty.y1;
-            const int half = y + (y1 - y) / 2; /* the second core draws from there, into the same band */
-            const int64_t t = esp_timer_get_time();
-            second_core.y0 = half;
-            second_core.y1 = y1;
-            second_core.pixels = &bands[b][(half - y) * width];
-            xSemaphoreGive(second_core.start);
-            lp_render_rows(&renderer, y, half, bands[b]);
-            xSemaphoreTake(second_core.done, portMAX_DELAY);
-            render += esp_timer_get_time() - t;
-            display_draw(dirty.x0, y, dirty.x1, y1, bands[b]);
-        }
-        display_flush();
+        int64_t render;
+        const lp_rect dirty = draw_frame(bands, &render);
         const int64_t frame = esp_timer_get_time() - start;
 
         stats.frames++;
@@ -194,12 +212,14 @@ void app_main(void)
         stats.render_max = render > stats.render_max ? render : stats.render_max;
         stats.frame += frame;
         stats.frame_max = frame > stats.frame_max ? frame : stats.frame_max;
-        stats.area +=
-            (int64_t)(dirty.x1 - dirty.x0) * (dirty.y1 - dirty.y0) * 1000 / (BOARD_DISPLAY_SIZE * BOARD_DISPLAY_SIZE);
-        if (stats.frames == REPORT_FRAMES) {
+        stats.area += frame_area_permille(dirty, BOARD_DISPLAY_SIZE);
+        if (f == LP_BENCH_FRAMES - 1) { /* a whole round of the benchmark: every report covers the same frames */
             const int64_t now = esp_timer_get_time();
             report(now - report_start);
-            report_start = now;
+            if (bench)
+                start_bench_round(bands); /* between two rounds, out of any frame's time */
+            /* Outside the benchmark, the report's own time counts in the next one */
+            report_start = bench ? esp_timer_get_time() : now;
         }
     }
 }

@@ -64,36 +64,18 @@ i2c_master_bus_handle_t board_i2c(void)
     }
     return bus;
 }
-#endif
 
-#ifdef BOARD_BACKLIGHT_ADDR
-#define BACKLIGHT_HZ 400000
-#define BRIGHTNESS   160u /* out of 255 */
+/* Every device of the bus runs at the speed of the slowest: one speed for all, 400 kHz, which all of them take */
+#define I2C_HZ 400000
 
-static i2c_master_dev_handle_t backlight;
-
-static void set_backlight(uint8_t reg, uint8_t value)
+i2c_master_dev_handle_t board_i2c_device(uint16_t address)
 {
-    const uint8_t bytes[2] = {reg, value};
-    if (backlight && i2c_master_transmit(backlight, bytes, sizeof bytes, 50) != ESP_OK)
-        printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
-}
-
-/* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
-void board_backlight_on(void)
-{
-    const i2c_master_bus_handle_t bus = board_i2c(); /* shared with the motion sensor */
-    const i2c_device_config_t device = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BOARD_BACKLIGHT_ADDR, .scl_speed_hz = BACKLIGHT_HZ};
-    if (!bus || i2c_master_bus_add_device(bus, &device, &backlight) != ESP_OK) {
-        printf("backlight: cannot reach its driver on the I2C bus\n");
-        return;
-    }
-    /* Register writes of M5GFX's Light_M5StackAtomS3R */
-    set_backlight(0x00u, 0x40u); /* chip enabled */
-    vTaskDelay(pdMS_TO_TICKS(1));
-    set_backlight(0x08u, 0x01u); /* internal clock */
-    set_backlight(0x70u, 0x00u); /* outputs driven by the brightness registers */
-    set_backlight(0x0Eu, BRIGHTNESS);
+    const i2c_master_bus_handle_t bus = board_i2c();
+    const i2c_device_config_t config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = address, .scl_speed_hz = I2C_HZ};
+    i2c_master_dev_handle_t device = NULL;
+    if (!bus || i2c_master_bus_add_device(bus, &config, &device) != ESP_OK)
+        return NULL;
+    return device;
 }
 #endif

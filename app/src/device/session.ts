@@ -18,6 +18,8 @@ interface DeviceSnapshot {
 }
 
 const LOG_LINES = 200;
+// What ESP-IDF logs as the board starts: a crash or its watchdog restarted it with the port still open
+const BOOT_LINE = 'Calling app_main';
 
 const NOT_LILPET =
     'Cet appareil ne répond pas comme lilpet. Flashe-le avec « BOARD=<carte> mise run firmware:deploy », puis réessaie.';
@@ -52,7 +54,10 @@ export class DeviceSession {
             const port = await this.#requestPort();
             this.#set({ state: { status: 'connecting' } });
             opened = await Connection.open(port, {
-                onLog: (line) => this.#log(line),
+                onLog: (line) => {
+                    this.#log(line);
+                    if (line.includes(BOOT_LINE) && opened && this.#connection === opened) void this.#restarted(opened);
+                },
                 onClose: () => {
                     if (this.#connection !== opened) return; // a connection that never got through hello
                     this.#connection = null;
@@ -61,8 +66,7 @@ export class DeviceSession {
             });
             const info = await hello(opened);
             this.#connection = opened;
-            this.#set({ state: { status: 'connected', info } });
-            if (this.#mood) this.#tell(emotionCommand(this.#mood));
+            this.#greeted(info);
         } catch (err) {
             await opened?.close();
             // Closing the port picker without choosing is not an error
@@ -94,6 +98,22 @@ export class DeviceSession {
 
     react = (event: EyeEvent): void => this.#tell(reactCommand(event));
 
+    // A board that restarted forgot the mood: ask hello again, as it may answer for another firmware, then tell it
+    async #restarted(connection: Connection): Promise<void> {
+        try {
+            const info = await hello(connection);
+            if (this.#connection === connection) this.#greeted(info); // unless unplugged meanwhile
+        } catch (err) {
+            this.#log(`> hello : ${describe(err)}`);
+        }
+    }
+
+    // A board that answered hello: connected, and told the mood picked, if any
+    #greeted(info: DeviceInfo): void {
+        this.#set({ state: { status: 'connected', info } });
+        if (this.#mood) this.#tell(emotionCommand(this.#mood));
+    }
+
     // Tells the board something in passing, if it is there: same queue as the looks, and a failure only goes to the log
     #tell(line: string): void {
         if (!this.#connection) return;
@@ -116,6 +136,6 @@ function describe(err: unknown, silent = NO_REPLY): string {
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
     if (err instanceof NotLilpet || err instanceof NoReply) return silent;
     if (err instanceof DOMException && err.name === 'NetworkError')
-        return 'Le port est déjà ouvert ailleurs (moniteur série ?). Ferme-le, puis réessaie.';
+        return 'Le port est déjà ouvert ailleurs (moniteur série ?), ou fermé à ton compte (sous Linux : le groupe dialout). Ferme-le, ou ajoute ton compte au groupe, puis réessaie.';
     return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;
 }

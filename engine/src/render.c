@@ -1,6 +1,5 @@
 /*
- * Renderer: draws the eyes row by row into an RGB565 frame. Port of drawEyes() and its helpers in prototype/draw.js;
- * the shapes and transforms follow the same order as the canvas calls there.
+ * Renderer: draws the eyes row by row into an RGB565 frame.
  * Each row is composed in a float RGB buffer: eyes (sclera, pupil, glint, each clipped to the eye), then particles.
  */
 #include "internal.h"
@@ -9,7 +8,7 @@
 
 #include <string.h>
 
-/* Closed-eye stroke, measured on the official footage (see CLOSED in prototype/draw.js) */
+/* Closed-eye stroke, measured on the official footage */
 #define CLOSED_HALF_WIDTH 0.76f
 #define CLOSED_BOTTOM     0.7f
 #define CLOSED_DEPTH      0.245f
@@ -28,15 +27,6 @@ _Static_assert(4 * SPARKLE_STEPS <= LP_POLY_MAX, "sparkle too long");
 #define HEART_COLOR   0xFF2A3Au
 #define SPARKLE_COLOR 0xFFFFFFu
 #define GLINT_COLOR   0xFFFFFFu
-
-/* Resting pupil position, fractions of the eye radii (x toward the inner corner, y down) */
-static const float PUPIL_REST[LP_PUPIL_COUNT][2] = {
-    [LP_PUPIL_DOT] = {0.57f, 0.12f},
-    [LP_PUPIL_CAT] = {0.35f, 0.11f},
-    [LP_PUPIL_ACORN] = {0.18f, 0.25f},
-    [LP_PUPIL_CIRCLE] = {0.36f, 0.0f},
-};
-#define PUPIL_LEAN 0.09f /* pupils lean a little, top toward the nose (rad) */
 
 static lp_rgb to_rgb(uint32_t color)
 {
@@ -152,7 +142,7 @@ static void poly_cap(lp_polygon *p, float cx, float cy, float nx, float ny, floa
     }
 }
 
-/* Closed eye: lower half of a flat ellipse stroked with round tips (drawClosedEye in the prototype) */
+/* Closed eye: lower half of a flat ellipse stroked with round tips */
 static void poly_closed(lp_polygon *p, float rx, float ry)
 {
     p->count = 0;
@@ -182,7 +172,7 @@ static void poly_closed(lp_polygon *p, float rx, float ry)
     poly_cap(p, cx[0], cy[0], -nx[0], -ny[0], 0.0f, -1.0f, h);
 }
 
-/* Heart of size s at the origin (drawHeart in the prototype) */
+/* Heart of size s at the origin */
 static void poly_heart(lp_polygon *p, float s)
 {
     p->count = 0;
@@ -192,7 +182,7 @@ static void poly_heart(lp_polygon *p, float s)
     poly_cubic(p, right, HEART_STEPS);
 }
 
-/* 4-point sparkle of size s: quadratic curves through the center (drawSparkle in the prototype) */
+/* 4-point sparkle of size s: quadratic curves through the center */
 static void poly_sparkle(lp_polygon *p, float s)
 {
     p->count = 0;
@@ -213,34 +203,36 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
 {
     const float ps = e->cur.ps;
     const lp_pupil type = (unsigned)e->look.pupil < LP_PUPIL_COUNT ? e->look.pupil : LP_PUPIL_CIRCLE;
+    const lp_pupils *pupils = lp_pupils_get();
+    const lp_pupil_shape *p = &pupils->types[type];
+    /* The emotion's pupil scale (ps) applies differently to each type */
     float prx;
     float pry;
     switch (type) {
     case LP_PUPIL_DOT:
-        prx = rx * 0.105f * ps;
-        pry = ry * 0.125f * ps;
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry * ps;
         break;
     case LP_PUPIL_CAT:
-        prx = rx * 0.21f * ps;
-        pry = ry * 0.72f;
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry;
         break;
     case LP_PUPIL_ACORN: /* a tall ellipse set low: the bottom of the eye cuts it into its acorn shape */
-        prx = rx * 0.5f * ps;
-        pry = ry * 0.98f * lp_minf(ps, 1.05f);
+        prx = rx * p->rx * ps;
+        pry = ry * p->ry * lp_minf(ps, 1.05f);
         break;
-    case LP_PUPIL_CIRCLE:
+    case LP_PUPIL_CIRCLE: /* a disc: both radii from the eye's rx */
     case LP_PUPIL_COUNT:
-        prx = pry = rx * 0.52f * ps;
+        prx = pry = rx * p->rx * ps;
         break;
     }
     /* Travel is limited by the room left inside the eye; big acorn pupils may run past the edge */
     const float lim_x = type == LP_PUPIL_ACORN ? rx : rx - prx - 3.0f;
     const float lim_y = type == LP_PUPIL_ACORN ? ry : ry - pry - 3.0f;
-    const float px =
-        lp_clampf(inner * PUPIL_REST[type][0] * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
-    const float py = lp_clampf(PUPIL_REST[type][1] * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
+    const float px = lp_clampf(inner * p->x * rx + e->gaze.x * lp_maxf(rx - prx, rx * 0.15f) * 0.85f, lim_x);
+    const float py = lp_clampf(p->y * ry + e->gaze.y * lp_maxf(ry - pry, ry * 0.12f) * 0.85f, lim_y);
     /* Lean around the pupil center */
-    lp_affine lean = lp_affine_rotate(inner * PUPIL_LEAN);
+    lp_affine lean = lp_affine_rotate(inner * pupils->lean);
     lean.tx = px - (lean.a * px + lean.b * py);
     lean.ty = py - (lean.c * px + lean.d * py);
     g->inv_pupil = lp_affine_inverse(lp_affine_mul(to_screen, lean));
@@ -254,7 +246,7 @@ static void setup_pupil(lp_eye_geometry *g, const lp_eyes *e, float rx, float ry
     }
 }
 
-/* Mirrors drawEye in the prototype: same transform chain, lids and cuts */
+/* One eye: its transform chain (place, head roll, perspective, tilt, size and squash), then its lids and cuts */
 /* `scale` maps the 466-pixel layout to the output size (lp_renderer_set_size) */
 static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_pose bp, float squash_x, float squash_y,
                       float scale)
@@ -278,7 +270,6 @@ static void setup_eye(lp_eye_geometry *g, const lp_eyes *e, int side, lp_blink_p
     g->inv_pupil = lp_affine_inverse(pupil); /* setup_pupil leans it when the eye is open */
     g->sclera = to_rgb(e->look.sclera);
     g->pupil_color = to_rgb(e->look.pupil_color[side < 0 ? 0 : 1]);
-    g->glint_color = to_rgb(GLINT_COLOR);
     g->closed = bp.closed;
 
     if (bp.closed) {
@@ -385,53 +376,69 @@ static void blend_row(float *line, int x0, const float *cov, int width, lp_rgb c
     }
 }
 
-static void draw_polygon_row(lp_row_scratch *s, const lp_polygon *p, int y, lp_rgb color, float alpha)
-{
-    if (y < p->box.y0 || y >= p->box.y1)
-        return;
-    const int x0 = p->box.x0;
-    const int width = p->box.x1 - x0;
-    float *cov = s->cov[0];
-    memset(cov, 0, (size_t)(width + 1) * sizeof *cov);
-    const int edges = lp_polygon_edges(s->edges, p->pts, p->count, sub_row_y(y, 0), sub_row_y(y, LP_SUBROWS - 1));
-    for (int sub = 0; sub < LP_SUBROWS; sub++) {
-        lp_spans spans;
-        lp_spans_polygon(&spans, s->edges, edges, sub_row_y(y, sub), (float)x0, (float)p->box.x1);
-        lp_coverage_add(cov, x0, width, &spans, alpha / (float)LP_SUBROWS);
-    }
-    blend_row(s->line, x0, cov, width, color);
-}
+/* The columns [x0, x1) a shape drew on a row, none while x0 >= x1 */
+typedef struct {
+    int x0, x1;
+} column_range;
 
-/* A layer of an eye on one row: its coverage over the eye box, and the columns touched so far, none while lo >= hi */
+/*
+ * A layer of a shape on one row: its coverage over the shape's box, cleared at its first span (most rows of an eye
+ * have no pupil or glint), and the columns touched, none while lo >= hi
+ */
 typedef struct {
     float *cov;
     int x0, width;
+    bool cleared;
     float lo, hi;
 } layer;
 
 static layer layer_start(float *cov, lp_rect box)
 {
-    const int width = box.x1 - box.x0;
-    memset(cov, 0, (size_t)(width + 1) * sizeof *cov);
-    return (layer){.cov = cov, .x0 = box.x0, .width = width, .lo = (float)box.x1, .hi = (float)box.x0};
+    return (layer){.cov = cov, .x0 = box.x0, .width = box.x1 - box.x0, .lo = (float)box.x1, .hi = (float)box.x0};
 }
 
 static void layer_add(layer *l, const lp_spans *s, float w)
 {
     if (s->n == 0)
         return;
+    if (!l->cleared) {
+        memset(l->cov, 0, (size_t)(l->width + 1) * sizeof *l->cov);
+        l->cleared = true;
+    }
     lp_coverage_add(l->cov, l->x0, l->width, s, w);
     l->lo = lp_minf(l->lo, s->a[0]);
     l->hi = lp_maxf(l->hi, s->b[s->n - 1]);
 }
 
-/* Blends a layer on the columns it touched, often a small part of the eye box */
-static void layer_blend(const layer *l, float *line, lp_rgb color)
+/* ceilf of a coordinate on the screen, 0 or more, as an int: on the chip, ceilf is a call into flash */
+static int ceil_px(float v)
+{
+    const int i = (int)v;
+    return i + ((float)i < v);
+}
+
+/* Blends a layer on the columns it touched, often a small part of its box, and returns them */
+static column_range layer_blend(const layer *l, float *line, lp_rgb color)
 {
     if (l->lo >= l->hi)
-        return;
-    const int first = (int)l->lo;
-    blend_row(line, first, &l->cov[first - l->x0], (int)ceilf(l->hi) - first, color);
+        return (column_range){0, 0};
+    const column_range c = {(int)l->lo, ceil_px(l->hi)};
+    blend_row(line, c.x0, &l->cov[c.x0 - l->x0], c.x1 - c.x0, color);
+    return c;
+}
+
+static column_range draw_polygon_row(lp_row_scratch *s, const lp_polygon *p, int y, lp_rgb color, float alpha)
+{
+    if (y < p->box.y0 || y >= p->box.y1)
+        return (column_range){0, 0};
+    layer l = layer_start(s->cov[0], p->box);
+    const int edges = lp_polygon_edges(s->edges, p->pts, p->count, sub_row_y(y, 0), sub_row_y(y, LP_SUBROWS - 1));
+    for (int sub = 0; sub < LP_SUBROWS; sub++) {
+        lp_spans spans;
+        lp_spans_polygon(&spans, s->edges, edges, sub_row_y(y, sub), (float)p->box.x0, (float)p->box.x1);
+        layer_add(&l, &spans, alpha / (float)LP_SUBROWS);
+    }
+    return layer_blend(&l, s->line, color);
 }
 
 /* Adds to a layer the part of the eye inside `shape`, which is one span at most (an ellipse on a sub-row) */
@@ -440,29 +447,23 @@ static void add_inside_eye(layer *l, const lp_spans *eye, const lp_spans *shape,
     if (shape->n == 0)
         return;
     lp_spans clipped;
-    clipped.n = eye->n;
-    for (int i = 0; i < eye->n; i++) { /* the spans in use only: the whole structure is 68 bytes, per sub-row */
-        clipped.a[i] = eye->a[i];
-        clipped.b[i] = eye->b[i];
-    }
-    lp_spans_clip(&clipped, shape->a[0], shape->b[0]);
+    lp_spans_clip(&clipped, eye, shape->a[0], shape->b[0]);
     layer_add(l, &clipped, w);
 }
 
-static void draw_eye_row(lp_row_scratch *s, const lp_eye_geometry *g, int y)
+static column_range draw_eye_row(lp_row_scratch *s, const lp_eye_geometry *g, int y)
 {
     if (y < g->box.y0 || y >= g->box.y1)
-        return;
-    if (g->closed) {
-        draw_polygon_row(s, &g->shape, y, g->sclera, 1.0f);
-        return;
-    }
+        return (column_range){0, 0};
+    if (g->closed)
+        return draw_polygon_row(s, &g->shape, y, g->sclera, 1.0f);
     const float lo = (float)g->box.x0;
     const float hi = (float)g->box.x1;
     const float w = 1.0f / (float)LP_SUBROWS;
     layer sclera = layer_start(s->cov[0], g->box);
     layer pupil = layer_start(s->cov[1], g->box);
-    layer glint = g->glint ? layer_start(s->cov[2], g->box) : (layer){0};
+    /* drawn only with a glint; a layer costs nothing until its first span */
+    layer glint = layer_start(s->cov[2], g->box);
 
     for (int sub = 0; sub < LP_SUBROWS; sub++) {
         const float ys = sub_row_y(y, sub);
@@ -484,9 +485,10 @@ static void draw_eye_row(lp_row_scratch *s, const lp_eye_geometry *g, int y)
     }
 
     /* Layer after layer: most rows of an eye have no pupil or glint, and a pixel only sees its own layers in order */
-    layer_blend(&sclera, s->line, g->sclera);
+    const column_range eye_columns = layer_blend(&sclera, s->line, g->sclera);
     layer_blend(&pupil, s->line, g->pupil_color);
-    layer_blend(&glint, s->line, g->glint_color);
+    layer_blend(&glint, s->line, to_rgb(GLINT_COLOR)); /* a constant once compiled */
+    return eye_columns; /* the pupil and the glint are clipped to the eye: inside the sclera's columns */
 }
 
 /* --- Public API ------------------------------------------------------------------------------------- */
@@ -524,6 +526,45 @@ static uint16_t pack565(const float *px, bool big_endian)
     return (uint16_t)(big_endian ? v << 8u | v >> 8u : v);
 }
 
+/*
+ * The bits of a float, as an integer, through a union: memcpy would be a call on the chip, whose compiler copies with
+ * memcpy unless it can use one aligned load
+ */
+static uint32_t bits_of(float f)
+{
+    const union {
+        float f;
+        uint32_t u;
+    } bits = {.f = f};
+    return bits.u;
+}
+
+/*
+ * Packs the `count` (at least 1) pixels of a composed row. Most repeat the one before them (background, inside of an
+ * eye) and converting to integers is slow, so a pixel is packed only when its bits differ from the one before: the
+ * same bits are the same pixel, and comparing integers is cheaper than comparing floats
+ */
+static void pack_row(const float *line, int count, bool big_endian, uint16_t *out)
+{
+    uint32_t last_r = ~bits_of(line[0]); /* differs from the first pixel, which is always packed */
+    uint32_t last_g = 0;
+    uint32_t last_b = 0;
+    uint16_t packed = 0;
+    for (int i = 0; i < count; i++) {
+        const float *px = &line[3 * i];
+        const uint32_t r = bits_of(px[0]);
+        const uint32_t g = bits_of(px[1]);
+        const uint32_t b = bits_of(px[2]);
+        if (((r ^ last_r) | (g ^ last_g) | (b ^ last_b)) != 0u) {
+            packed = pack565(px, big_endian);
+            last_r = r;
+            last_g = g;
+            last_b = b;
+        }
+        out[i] = packed;
+    }
+}
+
 lp_rect lp_render_begin(lp_renderer *r, const lp_eyes *eyes)
 {
     const lp_blink_pose bp = lp_eyes_blink_pose(eyes);
@@ -559,21 +600,21 @@ static void draw_row(const lp_renderer *r, lp_row_scratch *s, int y, uint16_t *o
 {
     const lp_rect d = r->dirty;
     memset(&s->line[3 * d.x0], 0, (size_t)(d.x1 - d.x0) * 3 * sizeof s->line[0]);
-    draw_eye_row(s, &r->eyes[0], y);
-    draw_eye_row(s, &r->eyes[1], y);
+    column_range shapes[2 + LP_MAX_PARTICLES];
+    int n = 0;
+    shapes[n++] = draw_eye_row(s, &r->eyes[0], y);
+    shapes[n++] = draw_eye_row(s, &r->eyes[1], y);
     for (int i = 0; i < r->particle_count; i++)
-        draw_polygon_row(s, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
+        shapes[n++] = draw_polygon_row(s, &r->particles[i], y, r->particle_color[i], r->particle_alpha[i]);
 
-    /* Most pixels repeat the one before them (background, inside of an eye), and converting to integers is slow */
-    static const float NONE[3] = {-1.0f, -1.0f, -1.0f};
-    const float *last = NONE;
-    uint16_t packed = 0;
-    for (int x = d.x0; x < d.x1; x++) {
-        const float *px = &s->line[3 * x];
-        if (px[0] != last[0] || px[1] != last[1] || px[2] != last[2])
-            packed = pack565(px, r->big_endian);
-        last = px;
-        out[x - d.x0] = packed;
+    /* Only the columns a shape drew are packed: the rest of the row is background, 0 in RGB565. A column two shapes
+     * drew is packed twice, to the same value */
+    memset(out, 0, (size_t)(d.x1 - d.x0) * sizeof *out);
+    for (int i = 0; i < n; i++) {
+        const int x0 = shapes[i].x0 > d.x0 ? shapes[i].x0 : d.x0;
+        const int x1 = shapes[i].x1 < d.x1 ? shapes[i].x1 : d.x1; /* a box may pass the edge of a smaller output */
+        if (x0 < x1)
+            pack_row(&s->line[3 * x0], x1 - x0, r->big_endian, &out[x0 - d.x0]);
     }
 }
 

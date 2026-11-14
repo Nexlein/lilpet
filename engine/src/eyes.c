@@ -1,17 +1,12 @@
 /*
  * State and animation of the eyes: emotions, gaze, head, blink, particles.
- * Port of the Eyes class in prototype/eyes.js. Random numbers are drawn in the same order as there, so a seed
- * gives the same animation in both (tests/test_parity.c).
+ * A seed and the same time steps give the same animation: engine/tests/goldens/animation.txt pins the frames of one,
+ * so drawing the random numbers in another order changes it.
  */
 #include "internal.h"
 #include "lilpet/lilpet.h"
 
 #include <string.h>
-
-lp_shape lp_default_shape(void)
-{
-    return (lp_shape){.rx = 93.0f, .ry = 109.0f, .gap = 101.0f, .tilt = 0.37f};
-}
 
 static float rnd(lp_eyes *e)
 {
@@ -22,7 +17,7 @@ void lp_eyes_init(lp_eyes *eyes, uint32_t seed)
 {
     memset(eyes, 0, sizeof *eyes);
     lp_rng_seed(&eyes->rng, seed);
-    eyes->look = (lp_look){.sclera = 0x6FF5D0, .pupil = LP_PUPIL_ACORN, .pupil_color = {0x106E54, 0x106E54}};
+    eyes->look = lp_default_look();
     eyes->emotion = LP_EMOTION_NEUTRAL;
     eyes->cur = lp_emotion_get(LP_EMOTION_NEUTRAL)->expr;
     eyes->shape = lp_default_shape();
@@ -40,6 +35,10 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration)
 {
     if ((unsigned)emotion >= LP_EMOTION_COUNT || !isfinite(duration))
         return;
+    const lp_emotion_def *from = lp_emotion_get(eyes->emotion);
+    const lp_emotion_def *to = lp_emotion_get(emotion);
+    if (to->emit != from->emit || to->emit_rate != from->emit_rate)
+        eyes->emit_debt = 0.0f; /* what one emitter owed is not owed by another */
     eyes->emotion = emotion;
     eyes->emotion_timer = duration;
     if (duration <= 0.0f)
@@ -91,14 +90,15 @@ void lp_eyes_set_follow(lp_eyes *eyes, bool follow)
 
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape)
 {
-    if (isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt))
+    const bool finite = isfinite(shape->rx) && isfinite(shape->ry) && isfinite(shape->gap) && isfinite(shape->tilt);
+    if (finite && shape->rx > 0.0f && shape->ry > 0.0f) /* an eye with no size is no shape */
         eyes->shape = *shape;
 }
 
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount)
 {
     if (isfinite(amount))
-        eyes->head_amount = amount;
+        eyes->head_amount = lp_maxf(0.0f, lp_minf(1.0f, amount));
 }
 
 void lp_eyes_blink(lp_eyes *eyes)
@@ -211,7 +211,7 @@ static void update_blink(lp_eyes *e, float dt)
 }
 
 /* Dizzy: the gaze circles (radius, in gaze units) and the head wobbles (rad), in proportion to spin / max; the spin
- * wears off slower than it comes, so the eyes calm down after the emotion is over (DIZZY in prototype/eyes.js) */
+ * wears off slower than it comes, so the eyes calm down after the emotion is over */
 #define DIZZY_MAX      9.0f
 #define DIZZY_RADIUS   0.55f
 #define DIZZY_WOBBLE   0.12f
@@ -339,7 +339,7 @@ static gaze_aim update_gaze(lp_eyes *e, float dt, float t, float slide)
 /*
  * The clock goes back by a whole number of breaths (render.c: sin(time * 2.1)) about every 17 minutes, with every
  * deadline: a float clock that keeps growing loses its fractions, runs fast after 3 days and stops after 6 at 60
- * frames/s. The prototype counts in double and needs no wrap; the parity vectors stay far below it.
+ * frames/s.
  */
 #define CLOCK_WRAP (336.0f * 2.0f * LP_PI / 2.1f)
 

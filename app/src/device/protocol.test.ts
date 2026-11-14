@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import COMMANDS_C from '../../../firmware/main/commands.c?raw';
 import { findSwatch, makeLook } from '../data/looks';
 import {
+    HELLO,
     LineSplitter,
     MAX_LINE,
     classify,
@@ -12,7 +14,29 @@ import {
 } from './protocol';
 import { Connection, ConnectionClosed, portPicker } from './connection';
 import { NotLilpet, command, hello, sendLook } from './device';
-import { fakePort, firmware } from './fake-port';
+import { FAKE_HELLO, FAKE_INFO, fakePort, firmware } from './fake-port';
+
+// The field names of a hello reply
+const fieldNames = (reply: string) => reply.split(' ').map((word) => word.split('=')[0]);
+
+// What the app reads of the firmware's replies, compared with what firmware/main/commands.c prints
+describe('the firmware', () => {
+    const format = /"< (lilpet [^"]*)\\n"/.exec(COMMANDS_C)?.[1] ?? '';
+
+    it('writes a hello the app reads, whatever the order of its fields', () => {
+        const reply = format.replace(/(\w+)=%[sd]/g, '$1=v-$1'); // "lilpet fw=v-fw engine=v-engine ..."
+        expect(parseHello(reply)).toEqual({ firmware: 'v-fw', engine: 'v-engine', board: 'v-board' });
+    });
+
+    it('has the fields of the fake board', () => {
+        expect(fieldNames(FAKE_HELLO).toSorted()).toEqual(fieldNames(format).toSorted());
+    });
+
+    it('writes the replies the app tells apart', () => {
+        expect(COMMANDS_C).toContain('printf("< err busy\\n");');
+        expect(COMMANDS_C).toContain('printf("< err shown, ');
+    });
+});
 
 describe('protocol', () => {
     const socks = makeLook(findSwatch('socks')!, 'acorn');
@@ -34,14 +58,17 @@ describe('protocol', () => {
     });
 
     it('reads the device info', () => {
-        expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toEqual({ firmware: '2e62a96', engine: '0.6.0' });
         expect(parseHello('lilpet fw=0.5.0 engine=0.13.0 board=atoms3r camera=0 motion=1')).toEqual({
             firmware: '0.5.0',
             engine: '0.13.0',
             board: 'atoms3r'
         });
+    });
+
+    it('rejects a hello that is not a lilpet, or from firmware older than its board name', () => {
         expect(parseHello('something else')).toBeNull();
         expect(parseHello('lilpet fw=1')).toBeNull();
+        expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toBeNull();
     });
 
     it('reads replies', () => {
@@ -76,12 +103,12 @@ describe('connection', () => {
         // RTS released before DTR: the other order reboots an ESP32-S3; then a newline ends any half line
         expect(device.signals).toEqual([{ requestToSend: false }, { dataTerminalReady: false }]);
         expect(device.options()?.bufferSize).toBeGreaterThanOrEqual(4096);
-        expect(await hello(connection)).toMatchObject({ firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' });
+        expect(await hello(connection)).toMatchObject(FAKE_INFO);
         expect(device.writes[0]).toBe('\n');
         const look = makeLook(findSwatch('kite')!, 'cat');
         // Sent together: the second waits for the first reply
         await Promise.all([sendLook(connection, look), sendLook(connection, look)]);
-        expect(device.sent).toEqual(['> hello', '> look 7DB5F4 C10787 C10787 cat', '> look 7DB5F4 C10787 C10787 cat']);
+        expect(device.sent).toEqual([HELLO, '> look 7DB5F4 C10787 C10787 cat', '> look 7DB5F4 C10787 C10787 cat']);
         expect(logs).toEqual(Array(3).fill('draw 1.2 ms'));
         await connection.close();
         expect(device.closed()).toBe(true);
@@ -90,9 +117,9 @@ describe('connection', () => {
     it('asks hello again when the board misses the first one while it boots', async () => {
         let hellos = 0;
         const answer = firmware();
-        const device = fakePort((line) => (line === '> hello' && ++hellos === 1 ? null : answer(line)));
+        const device = fakePort((line) => (line === HELLO && ++hellos === 1 ? null : answer(line)));
         const connection = await Connection.open(device.port);
-        expect((await hello(connection)).firmware).toBe('abc1234');
+        expect((await hello(connection)).firmware).toBe(FAKE_INFO.firmware);
         expect(hellos).toBe(2);
         await connection.close();
     });
@@ -100,8 +127,8 @@ describe('connection', () => {
     it('asks hello again when a reply left from before a reload answers the first one', async () => {
         const device = fakePort(firmware(), { atOpen: '< ok\n', delay: () => 5 });
         const connection = await Connection.open(device.port);
-        expect((await hello(connection)).firmware).toBe('abc1234');
-        expect(device.sent).toEqual(['> hello', '> hello']);
+        expect((await hello(connection)).firmware).toBe(FAKE_INFO.firmware);
+        expect(device.sent).toEqual([HELLO, HELLO]);
         await connection.close();
     });
 
@@ -129,7 +156,7 @@ describe('connection', () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
         await connection.close();
-        await expect(connection.request('> hello')).rejects.toThrow(ConnectionClosed);
+        await expect(connection.request(HELLO)).rejects.toThrow(ConnectionClosed);
         expect(device.sent).toEqual([]);
     });
 
@@ -137,7 +164,7 @@ describe('connection', () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
         device.failWrites();
-        await expect(connection.request('> hello', 5000)).rejects.toThrow(ConnectionClosed);
+        await expect(connection.request(HELLO, 5000)).rejects.toThrow(ConnectionClosed);
         await connection.close();
     });
 
@@ -151,7 +178,7 @@ describe('connection', () => {
         expect(await sendLook(connection, look)).toBe('shown');
         reply = 'err malformed look';
         await expect(sendLook(connection, look)).rejects.toThrow('malformed look');
-        await expect(command(connection, '> emotion furious')).rejects.toThrow('malformed look');
+        await expect(command(connection, emotionCommand('furious'))).rejects.toThrow('malformed look');
         await connection.close();
     });
 
@@ -159,7 +186,7 @@ describe('connection', () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
         await expect(connection.request('> unknown', 50)).rejects.toThrow('no reply to "> unknown"');
-        expect((await hello(connection)).engine).toBe('0.6.0');
+        expect((await hello(connection)).engine).toBe(FAKE_INFO.engine);
         await connection.close();
     });
 
@@ -168,9 +195,9 @@ describe('connection', () => {
         let wait = 0;
         const device = fakePort(firmware(), { delay: () => wait });
         const connection = await Connection.open(device.port);
-        await connection.request('> hello', 100);
+        await connection.request(HELLO, 100);
         wait = 200;
-        const answered = expect(connection.request('> hello', 1000)).resolves.toContain('lilpet');
+        const answered = expect(connection.request(HELLO, 1000)).resolves.toContain('lilpet');
         await vi.advanceTimersByTimeAsync(1000);
         vi.useRealTimers();
         await answered;
@@ -181,7 +208,7 @@ describe('connection', () => {
         const device = fakePort(firmware());
         const connection = await Connection.open(device.port);
         device.readError({ fatal: false }); // buffer overrun: the port gets a new stream
-        expect((await hello(connection)).firmware).toBe('abc1234');
+        expect((await hello(connection)).firmware).toBe(FAKE_INFO.firmware);
         expect(device.closed()).toBe(false);
         await connection.close();
     });
@@ -199,7 +226,7 @@ describe('connection', () => {
         const device = fakePort(() => null); // never answers: the request is still waiting when the board goes
         let closes = 0;
         const connection = await Connection.open(device.port, { onClose: () => closes++ });
-        const waiting = connection.request('> hello', 5000);
+        const waiting = connection.request(HELLO, 5000);
         device.readError({ fatal: true });
         await expect(waiting).rejects.toThrow('connection closed');
         await connection.close(); // safe after an unplug, and twice

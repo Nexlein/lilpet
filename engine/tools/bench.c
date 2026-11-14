@@ -8,7 +8,7 @@
  * - Animation (bench_script.h, the same as on the chip): each frame redraws only its dirty region, as on the device,
  *   and keeps its fastest time over PASSES identical passes, which filters out noise from the rest of the system.
  */
-#include "../tests/js_vectors.h"
+#include "../tests/scenes_table.h"
 #include "bench_script.h"
 #include "lilpet/lilpet.h"
 
@@ -81,9 +81,9 @@ static void bench_scenes(void)
 {
     printf("| Reference scene | Whole screen (µs) | Eyes only (µs) | Eyes area |\n");
     printf("| --- | ---: | ---: | ---: |\n");
-    const int count = (int)(sizeof LPV_SCENES / sizeof LPV_SCENES[0]);
+    const int count = (int)(sizeof SCENES / sizeof SCENES[0]);
     for (int i = 0; i < count; i++) {
-        lp_eyes_set_scene(&eyes, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, SCENES[i].look);
         int64_t whole[RUNS];
         int64_t still[RUNS];
         lp_rect region = {0, 0, 0, 0};
@@ -96,7 +96,7 @@ static void bench_scenes(void)
             still[r] = now_ns() - t1;
             whole[r] = t1 - t0;
         }
-        printf("| %s |", LPV_SCENES[i].id);
+        printf("| %s |", SCENES[i].id);
         print_us(median(whole, RUNS));
         print_us(median(still, RUNS));
         print_share(rect_area(region));
@@ -107,8 +107,7 @@ static void bench_scenes(void)
 static void bench_animation(void)
 {
     for (int pass = 0; pass < PASSES; pass++) {
-        lp_eyes_init(&eyes, 1);
-        lp_eyes_set_look(&eyes, &LPV_LOOKS[0]);
+        lp_bench_start(&eyes);
         lp_renderer_init(&renderer);
         lp_render(&renderer, &eyes, frame); /* the first frame clears the whole screen: not counted */
         for (int f = 0; f < ANIM_FRAMES; f++) {

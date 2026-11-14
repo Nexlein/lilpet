@@ -1,5 +1,15 @@
+# The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and
+# host-release); with Emscripten, the WebAssembly module (preset wasm). The firmware builds the same sources as an
+# ESP-IDF component (firmware/components/lilpet).
 cmake_minimum_required(VERSION 3.25)
 project(lilpet LANGUAGES C) # version: LP_VERSION_* in include/lilpet/lilpet.h
+
+# The host builds use the system clang (CMakePresets.json): CI tests the clang of its runner image, so an older one is
+# untested. Raise the minimum with that image (runs-on in .github/workflows/ci.yml). Emscripten brings its own clang.
+set(LILPET_MIN_CLANG 21)
+if(NOT EMSCRIPTEN AND CMAKE_C_COMPILER_ID STREQUAL "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_LESS LILPET_MIN_CLANG)
+    message(FATAL_ERROR "clang ${CMAKE_C_COMPILER_VERSION} found, the host build needs clang ${LILPET_MIN_CLANG} or newer")
+endif()
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -31,8 +41,9 @@ target_include_directories(lilpet PUBLIC include)
 target_link_libraries(lilpet PRIVATE lilpet_warnings)
 
 enable_testing()
-add_executable(lilpet_tests tests/test_main.c tests/test_version.c tests/test_parity.c tests/test_eyes.c
-    tests/test_look.c tests/test_command.c tests/test_render.c tests/test_senses.c)
+add_executable(lilpet_tests tests/test_main.c tests/test_version.c tests/test_eyes.c tests/test_reactions.c
+    tests/test_motion.c tests/test_pose.c tests/test_look.c tests/test_command.c tests/test_render.c tests/test_senses.c
+    ../firmware/tests/test_firmware.c) # the firmware's pure parts, with the same runner
 target_link_libraries(lilpet_tests PRIVATE lilpet lilpet_warnings m)
 add_test(NAME lilpet_tests COMMAND lilpet_tests)
 

@@ -1,9 +1,9 @@
-// JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with the
-// same scene and look objects as the prototype (prototype/scenes.json, eyes/looks.json).
-// Used by prototype/reference.html, the live view of prototype/index.html, the parity tests and the PC app.
+// JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with
+// scene objects as in engine/tests/scenes.json and looks (a swatch of eyes/looks.json worn with a pupil type).
+// Used by the PC app, the reference renders (scripts/goldens.mjs), the data validator and smoke.mjs.
 
 export const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
-const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
+export const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
 
@@ -31,12 +31,20 @@ export async function loadEngine(moduleUrl) {
     // The same, as a copy to keep
     const render = () => renderView().slice();
 
+    // The region the last render changed, in pixels; the rest of the frame is the one before
+    const dirty = () => {
+        const [x0, y0, x1, y1] = new Int32Array(m.HEAPU8.buffer, m._lpw_dirty(), 4); // lp_rect: x0, y0, x1, y1
+        return x0 < x1 && y0 < y1
+            ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+            : { x: 0, y: 0, width: 0, height: 0 };
+    };
+
     return {
         version: m.UTF8ToString(m._lp_version()),
         size,
         emotions: [...emotions.keys()],
 
-        // Same scene object as Eyes.setScene in prototype/eyes.js
+        // A scene object as in engine/tests/scenes.json, frozen by lp_eyes_set_scene
         renderScene(scene, look) {
             setLook(look);
             m._lpw_set_scene(
@@ -58,13 +66,14 @@ export async function loadEngine(moduleUrl) {
         // Live animation, for the PC app
         init: (seed) => m._lpw_init(seed),
         setLook,
-        setEmotion: (name, duration = 0) => {
-            if (emotions.has(name)) m._lpw_set_emotion(emotions.get(name), duration);
+        setEmotion: (name) => {
+            if (emotions.has(name)) m._lpw_set_emotion(emotions.get(name));
         },
         blink: () => m._lpw_blink(),
         setPointer: (point) => m._lpw_set_pointer(point ? 1 : 0, point?.x ?? 0, point?.y ?? 0),
         setGravity: (g) => m._lpw_set_gravity(g ? 1 : 0, g?.x ?? 0, g?.y ?? 0),
         setShaking: (shaking) => m._lpw_set_shaking(shaking ? 1 : 0),
+        // Follow, shape and head amount: kept for the app's future eye editor (smoke.mjs checks they reach the module)
         setFollow: (follow) => m._lpw_set_follow(follow ? 1 : 0),
         setShape: ({ rx, ry, gap, tilt }) => m._lpw_set_shape(rx, ry, gap, tilt),
         setHeadAmount: (amount) => m._lpw_set_head_amount(amount),
@@ -74,6 +83,7 @@ export async function loadEngine(moduleUrl) {
         emotion: () => names[m._lpw_emotion()],
         update: (dt) => m._lpw_update(dt),
         render,
-        renderView
+        renderView,
+        dirty
     };
 }

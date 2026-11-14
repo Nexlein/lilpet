@@ -1,3 +1,4 @@
+/* The version string matches its macros */
 #include "lilpet/lilpet.h"
 #include "test.h"
 

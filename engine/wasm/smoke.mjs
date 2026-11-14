@@ -48,4 +48,47 @@ engine.render();
 engine.setShape({ gap: 400 });
 engine.render();
 
+// The settings kept for the app's future eye editor reach the module: without following, a pointer changes nothing;
+// with the head held still, a pointer moves the eyes but not the face
+const after = (setup) => {
+    engine.init(1);
+    engine.setLook(look);
+    setup();
+    for (let i = 0; i < 64; i++) engine.update(1 / 64);
+    return engine.render();
+};
+const same = (a, b) => a.every((v, i) => v === b[i]);
+const pointer = { x: 1, y: 0 };
+const idle = after(() => {});
+const following = after(() => engine.setPointer(pointer));
+const notFollowing = after(() => (engine.setFollow(false), engine.setPointer(pointer)));
+const headStill = after(() => (engine.setHeadAmount(0), engine.setPointer(pointer)));
+if (same(following, idle)) fail('a pointer does not move the eyes');
+if (!same(notFollowing, idle)) fail('setFollow(false) still follows the pointer');
+if (same(headStill, following) || same(headStill, idle)) fail('setHeadAmount(0) does not hold only the head');
+
+// The region a render reports holds every pixel that changed: the app puts only that region on its canvas
+engine.init(1);
+engine.setLook(look);
+let previous = engine.render();
+const whole = engine.dirty();
+if (whole.x !== 0 || whole.y !== 0 || whole.width !== engine.size || whole.height !== engine.size)
+    fail(`the first frame after init is not whole: ${JSON.stringify(whole)}`);
+let partial = 0;
+for (let f = 0; f < 128; f++) {
+    engine.update(1 / 64);
+    const now = engine.render();
+    const { x, y, width, height } = engine.dirty();
+    if (width < engine.size || height < engine.size) partial++;
+    for (let i = 0; i < now.length; i += 4) {
+        const px = (i / 4) % engine.size;
+        const py = Math.floor(i / 4 / engine.size);
+        const inside = px >= x && px < x + width && py >= y && py < y + height;
+        if (!inside && (now[i] !== previous[i] || now[i + 1] !== previous[i + 1] || now[i + 2] !== previous[i + 2]))
+            fail(`frame ${f}: pixel ${px}, ${py} changed outside the region the engine reported`);
+    }
+    previous = now;
+}
+if (partial === 0) fail('every frame was redrawn whole: the region was never tested');
+
 console.log(`WebAssembly engine ${engine.version} OK (${(share * 100).toFixed(1)}% of the frame is eye)`);

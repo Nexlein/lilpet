@@ -1,8 +1,9 @@
+/* Runs every test of LP_TESTS (test.h) and fails when one of them does */
 #include "test.h"
 
 int lp_test_failures = 0;
 
-/* A NaN must fail a comparison, or a corrupted state would pass every parity test */
+/* A NaN must fail a comparison, or a corrupted state would pass every test */
 void test_check_near_fails_on_nan(void)
 {
     const int before = lp_test_failures;

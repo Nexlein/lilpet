@@ -1,11 +1,15 @@
-// Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables. Apart from
-// gen-engine-vectors.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
-// Run it after changing emotions.json (npm run vectors runs both).
+// Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each
+// expression with every field (scripts/expression.mjs gives the ones an emotion leaves out). Apart from
+// gen-scenes-table.mjs, so that a fault in the scenes never stops the tables that the engine builds from.
+// Run it after changing emotions.json (npm run tables runs every generator).
 // Usage: node scripts/gen-emotions-table.mjs [--check]   (--check: fail if the committed file is out of date)
-import { EMOTIONS, REACTIONS } from '../prototype/eyes.js';
-import { EXPR, emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
+import { EMOTIONS, EMOTIONS_TABLE, readJson } from './data.mjs';
+import { EXPRESSION, withNeutral } from './expression.mjs';
+import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.mjs';
 
-const TABLES = 'engine/src/emotions_table.h';
+const data = readJson(EMOTIONS);
+const emotions = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
+const reactions = data.reactions;
 
 const particleEnum = (type) => `LP_PARTICLE_${(type ?? 'none').toUpperCase()}`;
 
@@ -22,14 +26,18 @@ const tables = [
     '',
     '#include "lilpet/lilpet.h"',
     '',
-    countCheck(Object.keys(EMOTIONS).length, 'LP_EMOTION_COUNT', 'lp_emotion'),
+    countCheck(Object.keys(emotions).length, 'LP_EMOTION_COUNT', 'lp_emotion'),
+    // A field missing from scripts/expression.mjs would silently be 0 in every emotion
+    `_Static_assert(sizeof(lp_expression) == ${Object.keys(EXPRESSION).length} * sizeof(float), "lp_expression in lilpet.h and scripts/expression.mjs differ");`,
     'static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {'
 ];
-for (const [name, e] of Object.entries(EMOTIONS))
+for (const [name, e] of Object.entries(emotions))
     tables.push(
         `    [${emotionEnum(name)}] = {${note(e)}`,
         `        .name = "${name}",`,
-        `        .expr = {${EXPR.map((k) => `.${k} = ${num(e[k])}`).join(', ')}},`,
+        `        .expr = {${Object.keys(EXPRESSION)
+            .map((k) => `.${k} = ${num(e[k])}`)
+            .join(', ')}},`,
         `        .emit = ${particleEnum(e.emit?.type)},`,
         `        .emit_rate = ${num(e.emit?.rate ?? 0)},`,
         '    },'
@@ -37,10 +45,10 @@ for (const [name, e] of Object.entries(EMOTIONS))
 tables.push(
     '};',
     '',
-    countCheck(Object.keys(REACTIONS).length, 'LP_EVENT_COUNT', 'lp_event'),
+    countCheck(Object.keys(reactions).length, 'LP_EVENT_COUNT', 'lp_event'),
     'static const lp_reaction REACTIONS[LP_EVENT_COUNT] = {'
 );
-for (const [name, r] of Object.entries(REACTIONS))
+for (const [name, r] of Object.entries(reactions))
     tables.push(
         `    [${eventEnum(name)}] = {.name = "${name}", .emotion = ${emotionEnum(r.emotion)}, ` +
             `.duration = ${num(r.duration)}, .sparkles = ${r.sparkles}},${note(r)}`
@@ -48,7 +56,7 @@ for (const [name, r] of Object.entries(REACTIONS))
 tables.push('};', '', '#endif /* LILPET_EMOTIONS_TABLE_H */', '');
 
 writeGenerated(
-    TABLES,
+    EMOTIONS_TABLE,
     tables.join('\n'),
-    `${Object.keys(EMOTIONS).length} emotions, ${Object.keys(REACTIONS).length} reactions`
+    `${Object.keys(emotions).length} emotions, ${Object.keys(reactions).length} reactions`
 );

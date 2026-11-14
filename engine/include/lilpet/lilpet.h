@@ -1,7 +1,7 @@
 /*
- * lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see notes/architecture.md).
+ * lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
  * Portable C17: no allocation, no global state, float only (doubles are emulated in software on the ESP32-S3).
- * It reproduces the design prototype (prototype/eyes.js); names and constants match it.
+ * It is the one reference of the eyes: engine/tests/goldens holds reference renders of its WebAssembly build.
  * Units: pixels of the 466x466 round screen, seconds, radians.
  */
 #ifndef LILPET_LILPET_H
@@ -20,25 +20,21 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 14
+#define LP_VERSION_MINOR 15
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
 const char *lp_version(void);
 
-/* --- Random numbers: mulberry32, same sequence as createRng in prototype/eyes.js ---------------- */
+/* --- Random numbers: mulberry32, one sequence per seed ------------------------------------------ */
 
 typedef struct {
     uint32_t state;
 } lp_rng;
 
-void lp_rng_seed(lp_rng *rng, uint32_t seed);
-/* Uniform in [0, 1), 24-bit resolution: the exact same values as the prototype */
-float lp_rng_next(lp_rng *rng);
-
 /* --- Looks -------------------------------------------------------------------------------------- */
 
-/* Official pupil names (notes/yeux.md) */
+/* Official pupil names (docs/yeux.md) */
 typedef enum { LP_PUPIL_DOT, LP_PUPIL_CAT, LP_PUPIL_ACORN, LP_PUPIL_CIRCLE, LP_PUPIL_COUNT } lp_pupil;
 
 typedef struct {
@@ -47,10 +43,12 @@ typedef struct {
     uint32_t pupil_color[2]; /* left and right pupil colors, 0xRRGGBB */
 } lp_look;
 
-/* Looks as text, as the PC app sends them over USB (notes/app.md): "AE0002 FF5252 FF5252 dot" for the eye, left
+/* Looks as text, as the PC app sends them over USB (docs/protocole.md): "AE0002 FF5252 FF5252 dot" for the eye, left
  * pupil, right pupil and pupil type. Parsing returns false and leaves *look unchanged on malformed text. */
 #define LP_LOOK_TEXT_SIZE 28 /* longest text with its NUL */
 bool lp_look_parse(const char *text, lp_look *look);
+/* The look worn until one is chosen (eyes/looks.json), the one lp_eyes_init sets */
+lp_look lp_default_look(void);
 /* Writes the text into `out`, LP_LOOK_TEXT_SIZE bytes; returns its length without the NUL, or -1 for an unknown pupil
  * type */
 int lp_look_format(const lp_look *look, char *out);
@@ -84,7 +82,7 @@ typedef struct {
 typedef enum { LP_PARTICLE_NONE, LP_PARTICLE_HEART, LP_PARTICLE_SPARKLE } lp_particle_type;
 
 typedef struct {
-    const char *name;      /* same names as the prototype ("neutral", "love"...) */
+    const char *name;      /* as in eyes/emotions.json and the protocol ("neutral", "love"...) */
     lp_expression expr;    /* target shape */
     lp_particle_type emit; /* particles spawned while the emotion is on */
     float emit_rate;       /* particles per second */
@@ -92,10 +90,8 @@ typedef struct {
 
 /* Definition of an emotion; NULL when out of range */
 const lp_emotion_def *lp_emotion_get(lp_emotion emotion);
-/* Emotion from its name; LP_EMOTION_COUNT when unknown */
-lp_emotion lp_emotion_from_name(const char *name);
 
-/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (notes/materiel.md) */
+/* What happens to the object, then what its camera sees: gestures are the ones ESP-DL recognizes (docs/materiel.md) */
 typedef enum {
     LP_EVENT_TAP,
     LP_EVENT_SHAKE,
@@ -115,7 +111,7 @@ typedef enum {
 
 /* How the eyes react to an event: an emotion for a while, and a burst of sparkles (eyes/emotions.json) */
 typedef struct {
-    const char *name; /* same names as the prototype ("tap", "gesture_like"...) */
+    const char *name; /* as in eyes/emotions.json and the protocol ("tap", "gesture_like"...) */
     lp_emotion emotion;
     float duration; /* seconds */
     int sparkles;
@@ -123,8 +119,6 @@ typedef struct {
 
 /* Reaction to an event; NULL when the event is unknown */
 const lp_reaction *lp_reaction_get(lp_event event);
-/* Event from its name; LP_EVENT_COUNT when unknown */
-lp_event lp_event_from_name(const char *name);
 
 /* --- Eyes state --------------------------------------------------------------------------------- */
 
@@ -206,9 +200,6 @@ typedef struct {
     float emit_debt; /* fractional particles owed by the current emitter */
 } lp_eyes;
 
-/* Default shape, measured on the original (see notes/yeux.md) */
-lp_shape lp_default_shape(void);
-
 void lp_eyes_init(lp_eyes *eyes, uint32_t seed);
 void lp_eyes_set_look(lp_eyes *eyes, const lp_look *look);
 /* duration > 0: back to the mood after that many seconds; 0: the new mood */
@@ -219,34 +210,31 @@ void lp_eyes_set_emotion(lp_eyes *eyes, lp_emotion emotion, float duration);
 void lp_eyes_react(lp_eyes *eyes, lp_event event);
 /* Starts a blink, unless one is running */
 void lp_eyes_blink(lp_eyes *eyes);
-/* Adds one particle; dropped when the pool is full (random numbers are still drawn, to keep the sequence) */
-void lp_eyes_spawn(lp_eyes *eyes, lp_particle_type type);
 /* Pointer (face position) in -1..1, or inactive */
 void lp_eyes_set_pointer(lp_eyes *eyes, bool active, float x, float y);
 /* Gravity from an accelerometer, in the screen plane (x right, y down, in g), or inactive without one */
 void lp_eyes_set_gravity(lp_eyes *eyes, bool active, float x, float y);
-/* Being shaken (lp_shake_update): the shake reaction lasts as long, and a little after */
+/* Being shaken (lp_senses_update tells it): the shake reaction lasts as long, and a little after */
 void lp_eyes_set_shaking(lp_eyes *eyes, bool shaking);
 /* Follow the active pointer instead of idle saccades (on by default) */
 void lp_eyes_set_follow(lp_eyes *eyes, bool follow);
-/* Eye shape: radii, gap and tilt (the prototype page's sliders, later the PC app) */
+/* Eye shape: radii, gap and tilt (for the PC app's future eye editor). A value that is not finite, or a radius that is
+ * not positive, leaves the shape as it was. The emotions' turns were tuned for the measured tilt (0.37 rad): past it,
+ * an eye can turn more than a quarter turn (docs/architecture.md, known limits). */
 void lp_eyes_set_shape(lp_eyes *eyes, const lp_shape *shape);
-/* How much the head follows the gaze: 0 still, 1 fully (0.6 by default) */
+/* How much the head follows the gaze: 0 still, 1 fully (0.6 by default), held within 0 to 1 */
 void lp_eyes_set_head_amount(lp_eyes *eyes, float amount);
 /* Advances the animation by dt seconds */
 void lp_eyes_update(lp_eyes *eyes, float dt);
 
 /* --- Motion sensor -------------------------------------------------------------------------------- */
 
-/* Tells a shake from raw accelerometer samples (motion.c). The caller owns it; zero it to start. */
+/* The shake detector's state (motion.c), part of lp_senses: lp_senses_update feeds it the raw samples */
 typedef struct {
     float energy; /* distance from 1 g, smoothed */
     float strong; /* seconds of strong motion, before it counts as a shake */
     bool active;  /* being shaken */
 } lp_shake;
-
-/* Feeds one sample (in g, any axes, not smoothed); true while the object is being shaken (for lp_eyes_set_shaking) */
-bool lp_shake_update(lp_shake *shake, float ax, float ay, float az, float dt);
 
 /* --- What the object senses ----------------------------------------------------------------------- */
 
@@ -273,7 +261,7 @@ void lp_senses_update(lp_senses *senses, lp_eyes *eyes, const float accel[3], bo
  * comes back after a long absence is new: it fires LP_EVENT_FACE_SEEN. */
 void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float y);
 
-/* --- Commands: the text protocol of the USB port and the camera link (notes/app.md) ---------------- */
+/* --- Commands: the text protocol of the USB port and the camera link (docs/protocole.md) ---------- */
 
 #define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
 
@@ -321,7 +309,7 @@ typedef struct {
 /* Reads a whole line into `out`. Returns NULL, or what is wrong with it: the reason given after "< err ". */
 const char *lp_command_parse(const lp_command_line *line, lp_command *out);
 
-/* --- Reference scenes (prototype/scenes.json) --------------------------------------------------- */
+/* --- Reference scenes (engine/tests/scenes.json) ------------------------------------------------ */
 
 typedef struct {
     lp_emotion emotion;
@@ -338,24 +326,6 @@ typedef struct {
  * particles replayed from their seed. A scene with an unknown emotion or blink phase, a value that is not finite, or
  * a particle_time outside 0 to 60 seconds, is ignored. */
 void lp_eyes_set_scene(lp_eyes *eyes, const lp_scene *scene, const lp_look *look);
-
-/* --- Derived geometry, used by the renderer ----------------------------------------------------- */
-
-typedef struct {
-    float lid;    /* blink lid closure, 0 open, 1 shut */
-    float sx, sy; /* eye scale */
-    bool closed;  /* draw the closed-eye stroke instead of the eye */
-} lp_blink_pose;
-
-typedef struct {
-    float x, y;   /* eye center on screen */
-    float persp;  /* perspective scale, 1 at rest */
-    float fx, fy; /* foreshortening */
-} lp_eye_pose;
-
-lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes);
-/* side: -1 left eye, +1 right eye */
-lp_eye_pose lp_eyes_eye_pose(const lp_eyes *eyes, int side);
 
 /* --- Rendering into an RGB565 frame ------------------------------------------------------------- */
 

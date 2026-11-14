@@ -1,3 +1,4 @@
+/* The engine version as text, from the LP_VERSION_* macros of lilpet.h */
 #include "lilpet/lilpet.h"
 
 #define LP_STR_(x) #x

@@ -1,5 +1,5 @@
 # What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in
-# notes/app.md). uv installs pyserial, from scripts/requirements.txt.
+# docs/protocole.md). uv installs pyserial, from scripts/requirements.txt.
 import os
 import re
 import sys
@@ -32,11 +32,21 @@ def has_motion_sensor(board):
     return any(part != "imu_none.c" for part in re.findall(r"\bimu_\w+\.c\b", parts))
 
 
+def next_line(port, end):
+    """The next whole line before `end` (time.time()), stripped, or None. readline gives back what it has when its own
+    timeout ends, which may be half a line: a half hello with no board= would pass for a silent board."""
+    line = b""
+    while time.time() < end:
+        line += port.readline()
+        if line.endswith(b"\n"):
+            return line.decode(errors="replace").strip()
+    return None
+
+
 def read_reply(port, timeout=3):
     """Returns the next reply without the "< " prefix, or None"""
     end = time.time() + timeout
-    while time.time() < end:
-        line = port.readline().decode(errors="replace").strip()
+    while (line := next_line(port, end)) is not None:
         if line.startswith("< "):
             return line[2:]
     return None
@@ -60,8 +70,9 @@ def ask_hello(port, timeout=3):
 
 
 def find_port():
-    """PORT, or the only board plugged in, or None. Stops when several could be meant: it may be the wrong one."""
-    if "PORT" in os.environ:
+    """PORT, or the only board plugged in, or None. Stops when several could be meant: it may be the wrong one. An empty
+    PORT counts as none."""
+    if os.environ.get("PORT"):
         return os.environ["PORT"]
     ports = [port.device for port in list_ports.comports() if port.vid == ESPRESSIF_USB]
     if len(ports) > 1:

@@ -2,15 +2,31 @@
     "$schema": "https://json.schemastore.org/claude-code-settings.json",
     "permissions": {
         "allow": [
-            "Bash(npm run *)",
+            "Bash(npm run check*)",
+            "Bash(npm run format:check)",
+            "Bash(npm run codemap)",
+            "Bash(npm run tables)",
+            "Bash(npm run app:build)",
+            "Bash(npm run app:test)",
             "Bash(node scripts/*)",
             "Bash(git status*)",
-            "Bash(git diff*)",
-            "Bash(git log*)",
-            "Bash(git show*)",
+            "Bash(mise run check)",
+            "Bash(mise run engine:*)",
+            "Bash(mise run firmware:build*)",
+            "Bash(mise tasks*)",
             "Bash(gh run list*)",
-            "Bash(gh run view*)"
+            "Bash(gh run view*)",
+            "Bash(gh pr view*)",
+            "Bash(gh pr checks*)"
         ],
-        "deny": ["Read(./node_modules/**)", "Read(./.git/**)", "Read(./.env)", "Read(./.env.*)"]
+        "deny": [
+            "Read(./node_modules/**)",
+            "Read(./.git/**)",
+            "Read(./.env)",
+            "Read(./.env.*)",
+            "Bash(git commit --no-verify*)",
+            "Bash(git commit -n*)",
+            "Bash(git push --no-verify*)"
+        ]
     }
 }

@@ -1,9 +1,10 @@
-/* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses */
+/* Renderer: colors where they belong, closed eye, dirty regions, determinism, extreme poses; the reference scenes */
 #include "lilpet/render_state.h" /* first: it compiles on its own */
 
+#include "../src/internal.h"
 #include "../src/raster.h"
-#include "js_vectors.h"
 #include "lilpet/lilpet.h"
+#include "scenes_table.h"
 #include "test.h"
 
 #include <stdlib.h>
@@ -16,14 +17,14 @@
 static lp_eyes eyes;
 static lp_renderer renderer;
 static lp_renderer other;
-static lp_row_scratch second; /* draws half of each band of `other`, as the second core of the firmware does */
+static lp_row_scratch second; /* draws the odd rows of each band of `other`, as the second core of the firmware does */
 static uint16_t frame[PIXELS];
 static uint16_t reference[PIXELS];
 
 static int find_scene(const char *id)
 {
-    for (int i = 0; i < (int)(sizeof LPV_SCENES / sizeof LPV_SCENES[0]); i++)
-        if (strcmp(LPV_SCENES[i].id, id) == 0)
+    for (int i = 0; i < (int)(sizeof SCENES / sizeof SCENES[0]); i++)
+        if (strcmp(SCENES[i].id, id) == 0)
             return i;
     LP_FAIL("unknown scene %s", id);
     return 0;
@@ -32,7 +33,7 @@ static int find_scene(const char *id)
 static void set_scene(lp_eyes *e, const char *id)
 {
     const int i = find_scene(id);
-    lp_eyes_set_scene(e, &LPV_SCENES[i].scene, &LPV_LOOKS[LPV_SCENES[i].look]);
+    lp_eyes_set_scene(e, &SCENES[i].scene, SCENES[i].look);
 }
 
 /* Fresh full render of a scene into `out` */
@@ -103,7 +104,7 @@ void test_render_first_frame_is_full_screen(void)
 void test_render_puts_colors_where_they_belong(void)
 {
     render_scene("look-cherry", frame);
-    const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("look-cherry")].look];
+    const lp_look *look = SCENES[find_scene("look-cherry")].look;
     CHECK_COLOR(frame[5 * SIZE + 5], 0x000000); /* corner: background */
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
@@ -151,7 +152,7 @@ void test_render_glint_is_white(void)
 void test_closed_eye_shows_only_the_stroke(void)
 {
     render_scene("blink-closed", frame);
-    const lp_look *look = &LPV_LOOKS[LPV_SCENES[find_scene("blink-closed")].look];
+    const lp_look *look = SCENES[find_scene("blink-closed")].look;
     for (int side = 0; side < 2; side++) {
         const lp_eye_geometry *g = &other.eyes[side];
         CHECK(g->closed);
@@ -203,7 +204,7 @@ void test_lid_level_with_the_rows(void)
     level.tilt = 0.0f;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_shape(&eyes, &level);
-    const float both_eyes = 2.0f * 3.14159265f * level.rx * level.ry;
+    const float both_eyes = 2.0f * LP_PI * level.rx * level.ry;
     const float edge = 0.02f * both_eyes; /* partly covered pixels count as lit */
     CHECK_NEAR((float)lit_pixels(), both_eyes, edge);
 
@@ -270,9 +271,8 @@ static uint16_t band[SIZE * BAND_ROWS];
 static lp_rect check_bands(int size)
 {
     lp_eyes_init(&eyes, 1);
-    lp_eyes_set_look(&eyes,
-                     &LPV_LOOKS[LPV_SCENES[find_scene("look-terrarium")].look]); /* acorn pupil, cut by the eye */
-    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                           /* hearts */
+    lp_eyes_set_look(&eyes, SCENES[find_scene("look-terrarium")].look); /* acorn pupil, cut by the eye */
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);                  /* hearts */
     lp_renderer_init(&renderer);
     lp_renderer_init(&other);
     lp_renderer_set_size(&renderer, size);
@@ -281,16 +281,18 @@ static lp_rect check_bands(int size)
     memset(frame, 0, sizeof frame);
     lp_rect dirty = {0, 0, 0, 0};
     for (int f = 0; f < 90; f++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect whole = lp_render(&renderer, &eyes, reference);
         dirty = lp_render_begin(&other, &eyes);
         CHECK(dirty.x0 == whole.x0 && dirty.y0 == whole.y0 && dirty.x1 == whole.x1 && dirty.y1 == whole.y1);
         const int width = dirty.x1 - dirty.x0;
         for (int y0 = dirty.y0; y0 < dirty.y1; y0 += BAND_ROWS) {
             const int y1 = y0 + BAND_ROWS < dirty.y1 ? y0 + BAND_ROWS : dirty.y1;
-            const int half = y0 + (y1 - y0) / 2; /* split as the firmware does, the last band too */
-            lp_render_rows(&other, y0, half, band);
-            lp_render_rows_with(&other, &second, half, y1, &band[(half - y0) * width]);
+            for (int y = y0; y < y1; y++) /* every other row on each scratch, as the firmware's two cores */
+                if ((y - y0) % 2 == 0)
+                    lp_render_rows(&other, y, y + 1, &band[(y - y0) * width]);
+                else
+                    lp_render_rows_with(&other, &second, y, y + 1, &band[(y - y0) * width]);
             for (int y = y0; y < y1; y++)
                 memcpy(&frame[y * size + dirty.x0], &band[(y - y0) * width], (size_t)width * sizeof band[0]);
         }
@@ -350,7 +352,7 @@ void test_big_endian_swaps_the_bytes_of_every_pixel(void)
         memset(reference, 0, sizeof reference);
         memset(frame, 0, sizeof frame);
         for (int f = 0; f < 60; f++) {
-            lp_eyes_update(&eyes, 1.0f / 64.0f);
+            lp_eyes_update(&eyes, LP_TEST_STEP);
             lp_render(&renderer, &eyes, reference);
             if (f % 2) {
                 lp_render(&other, &eyes, frame);
@@ -381,7 +383,7 @@ void test_dirty_region_has_even_coordinates(void)
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts move the region every frame */
     lp_renderer_init(&renderer);
     for (int f = 0; f < 120; f++) {
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect d = lp_render_begin(&renderer, &eyes);
         CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
         CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SIZE && d.y1 <= SIZE);
@@ -409,7 +411,7 @@ void test_extreme_poses_render_inside_the_frame(void)
                               .particle_time = 3.0f};
             if (!lp_emotion_get((lp_emotion)e)->emit)
                 scene.has_particles = false;
-            lp_eyes_set_scene(&eyes, &scene, &LPV_LOOKS[p]);
+            lp_eyes_set_scene(&eyes, &scene, &SCENE_LOOKS[p]);
             lp_renderer_init(&renderer);
             lp_render(&renderer, &eyes, frame);
         }
@@ -419,7 +421,7 @@ void test_extreme_poses_render_inside_the_frame(void)
 
 void test_unknown_pupil_renders_as_a_circle(void)
 {
-    lp_look look = LPV_LOOKS[0];
+    lp_look look = SCENE_LOOKS[0];
     look.pupil = LP_PUPIL_CIRCLE;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_look(&eyes, &look);
@@ -432,24 +434,28 @@ void test_unknown_pupil_renders_as_a_circle(void)
     CHECK(memcmp(frame, reference, sizeof frame) == 0);
 }
 
-void test_eyes_off_the_screen_render_nothing(void)
+void test_extreme_shapes_stay_in_the_buffers(void)
 {
-    /* Half past the edge, all the way past it, too far for an int, wider than the screen; open and closed. The
-     * sanitizers catch any write outside the buffers. */
+    /* Eyes past the edge, wider than the screen, or with radii too big for an int or smaller than a pixel
+     * (lp_eyes_set_shape takes any positive radius); open and closed, on both screen sizes. The sanitizers catch any
+     * write outside the buffers. */
     const lp_shape deflt = lp_default_shape();
     const lp_shape shapes[] = {
-        {deflt.rx, deflt.ry, 300.0f, deflt.tilt},
-        {deflt.rx, deflt.ry, 400.0f, deflt.tilt},
-        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},
-        {600.0f, 600.0f, deflt.gap, deflt.tilt},
+        {deflt.rx, deflt.ry, 300.0f, deflt.tilt}, /* half past the edge */
+        {deflt.rx, deflt.ry, 400.0f, deflt.tilt}, /* all the way past it */
+        {deflt.rx, deflt.ry, 1e30f, deflt.tilt},  /* too far for an int */
+        {600.0f, 600.0f, deflt.gap, deflt.tilt},  /* wider than the screen */
+        {1e30f, 1e30f, deflt.gap, deflt.tilt},    /* radii too big for an int */
+        {1e-30f, 1e-30f, deflt.gap, deflt.tilt},  /* smaller than a pixel */
     };
     const char *scenes[] = {"look-cherry", "blink-closed"};
     const int sizes[] = {SIZE, 128};
     for (int s = 0; s < 2; s++) {
-        for (int k = 0; k < 4; k++) {
+        for (size_t k = 0; k < sizeof shapes / sizeof shapes[0]; k++) {
             for (int i = 0; i < 2; i++) {
                 set_scene(&eyes, scenes[s]);
                 lp_eyes_set_shape(&eyes, &shapes[k]);
+                CHECK(eyes.shape.rx == shapes[k].rx && eyes.shape.gap == shapes[k].gap); /* taken, not refused */
                 lp_renderer_init(&renderer);
                 lp_renderer_set_size(&renderer, sizes[i]);
                 lp_render(&renderer, &eyes, frame);
@@ -544,23 +550,12 @@ void test_line_too_far_misses_an_ellipse(void)
 
 enum { SMALL = 128 };
 
-static float minf(float a, float b)
-{
-    return a < b ? a : b;
-}
-
-static float maxf(float a, float b)
-{
-    return a > b ? a : b;
-}
-
 /* Channel c (0 red, 1 green, 2 blue) of an RGB565 pixel, 0-255 */
 static float channel565(uint16_t px, int c)
 {
     static const unsigned SHIFT[3] = {11u, 5u, 0u};
     static const unsigned MAX[3] = {31u, 63u, 31u};
-    const unsigned v = ((unsigned)px >> SHIFT[c]) & MAX[c];
-    return (float)v * 255.0f / (float)MAX[c];
+    return (float)channel(px, SHIFT[c], MAX[c]) * 255.0f / (float)MAX[c];
 }
 
 /* Mean of the full-size frame over the area one small pixel covers, for channel c */
@@ -572,9 +567,9 @@ static float area_mean(const uint16_t *big, int sx, int sy, int c)
     float sum = 0.0f;
     float weight = 0.0f;
     for (int y = (int)y0; (float)y < y0 + k && y < SIZE; y++) {
-        const float wy = minf((float)y + 1.0f, y0 + k) - maxf((float)y, y0);
+        const float wy = lp_minf((float)y + 1.0f, y0 + k) - lp_maxf((float)y, y0);
         for (int x = (int)x0; (float)x < x0 + k && x < SIZE; x++) {
-            const float w = wy * (minf((float)x + 1.0f, x0 + k) - maxf((float)x, x0));
+            const float w = wy * (lp_minf((float)x + 1.0f, x0 + k) - lp_maxf((float)x, x0));
             sum += w * channel565(big[y * SIZE + x], c);
             weight += w;
         }
@@ -628,6 +623,10 @@ void test_small_output_regions_stay_inside(void)
     CHECK(renderer.size == SIZE);
     lp_renderer_set_size(&renderer, 7);
     CHECK(renderer.size == 6);
+    lp_renderer_set_size(&renderer, 0);
+    CHECK(renderer.size == 2); /* the smallest even size */
+    lp_renderer_set_size(&renderer, -5);
+    CHECK(renderer.size == 2);
 
     set_scene(&eyes, "head-turn-right");
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* hearts start below the bottom edge of the small screen */
@@ -635,9 +634,50 @@ void test_small_output_regions_stay_inside(void)
     lp_render(&renderer, &eyes, small);
     for (int f = 0; f < 200; f++) {
         lp_eyes_set_pointer(&eyes, true, f % 2 ? 1.0f : -1.0f, 0.5f);
-        lp_eyes_update(&eyes, 1.0f / 64.0f);
+        lp_eyes_update(&eyes, LP_TEST_STEP);
         const lp_rect d = lp_render(&renderer, &eyes, small);
         CHECK(d.x0 >= 0 && d.y0 >= 0 && d.x1 <= SMALL && d.y1 <= SMALL);
         CHECK(d.x0 % 2 == 0 && d.y0 % 2 == 0 && d.x1 % 2 == 0 && d.y1 % 2 == 0);
     }
+}
+
+/* Each reference scene with particles shows some at its time, in its frame: the data validator cannot tell without a
+ * simulation */
+void test_reference_scenes_with_particles_show_some(void)
+{
+    for (int i = 0; i < (int)(sizeof SCENES / sizeof SCENES[0]); i++) {
+        if (!SCENES[i].scene.has_particles)
+            continue;
+        lp_eyes_init(&eyes, 1);
+        lp_eyes_set_scene(&eyes, &SCENES[i].scene, SCENES[i].look);
+        if (eyes.particle_count == 0)
+            LP_FAIL("scene %s: no particle is alive at its time", SCENES[i].id);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, frame);
+        lp_scene without = SCENES[i].scene;
+        without.has_particles = false;
+        lp_eyes_set_scene(&eyes, &without, SCENES[i].look);
+        lp_renderer_init(&renderer);
+        lp_render(&renderer, &eyes, reference);
+        if (memcmp(frame, reference, sizeof frame) == 0)
+            LP_FAIL("scene %s: its particles do not reach the frame", SCENES[i].id);
+    }
+}
+
+/* A pupil bigger than its eye (data allow a pupil scale of 2) has no room to move: it stays centered, so the two eyes
+ * stay mirror images of each other, as they are at rest. Rounding leaves a pixel or two; a pupil pushed to one side
+ * changed thousands. */
+void test_pupil_bigger_than_its_eye_stays_centered(void)
+{
+    const lp_look look = {0xFFFFFFu, LP_PUPIL_CIRCLE, {0x0000FFu, 0x0000FFu}};
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_look(&eyes, &look);
+    eyes.cur.ps = 2.0f;
+    lp_renderer_init(&renderer);
+    lp_render(&renderer, &eyes, frame);
+    int asymmetric = 0;
+    for (int y = 0; y < SIZE; y++)
+        for (int x = 0; x < SIZE / 2; x++)
+            asymmetric += frame[y * SIZE + x] != frame[y * SIZE + SIZE - 1 - x];
+    CHECK(asymmetric < 100);
 }

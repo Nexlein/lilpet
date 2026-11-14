@@ -1,7 +1,7 @@
 // Right column: the 100 official colors, as small pairs of eyes wearing the chosen pupil
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { FAMILIES, filterSwatches, type Family, type PupilType, type Swatch } from '../data/looks';
-import { lookKey, parseLookKey } from '../data/favorites';
+import { lookKey, parseLookKey, type LookChoice } from '../data/favorites';
 import { EyeGlyph } from './EyeGlyph';
 import { FAMILY_COLORS, FAMILY_LABELS, PUPIL_LABELS } from './labels';
 
@@ -9,7 +9,7 @@ interface Props {
     swatch: Swatch;
     pupil: PupilType;
     favorites: readonly string[];
-    onPick(swatch: Swatch, pupil?: PupilType): void;
+    onPick(choice: LookChoice): void;
 }
 
 // The arrow keys walk the grid, so that its 100 colors take a single stop of the Tab key
@@ -54,7 +54,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                     aria-current={c.swatch === swatch && c.pupil === pupil}
                                     onClick={() => {
                                         setWalked(null); // the grid's stop goes back to the color chosen here
-                                        onPick(c.swatch, c.pupil);
+                                        onPick(c);
                                     }}
                                 >
                                     <EyeGlyph colors={c.swatch} pupil={c.pupil} />
@@ -111,7 +111,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
                                 aria-current={s === swatch}
                                 tabIndex={s === tabStop ? 0 : -1}
                                 onFocus={() => setWalked(s)}
-                                onClick={() => onPick(s)}
+                                onClick={() => onPick({ swatch: s, pupil })}
                             >
                                 <EyeGlyph colors={s} pupil={pupil} />
                                 <span>{s.id}</span>

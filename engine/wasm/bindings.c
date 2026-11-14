@@ -3,6 +3,7 @@
 #include "lilpet/lilpet.h"
 
 #include <emscripten/emscripten.h>
+#include <stddef.h>
 
 #define PIXELS (LP_SCREEN_SIZE * LP_SCREEN_SIZE)
 
@@ -10,6 +11,7 @@ static lp_eyes eyes;
 static lp_renderer renderer;
 static uint16_t frame[PIXELS];
 static uint8_t rgba[PIXELS * 4];
+static lp_rect dirty; /* what the last lpw_render changed */
 
 EMSCRIPTEN_KEEPALIVE int lpw_screen_size(void)
 {
@@ -50,9 +52,9 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_look(uint32_t sclera, int pupil, uint32_t left
     lp_eyes_set_look(&eyes, &look);
 }
 
-EMSCRIPTEN_KEEPALIVE void lpw_set_emotion(int emotion, float duration)
+EMSCRIPTEN_KEEPALIVE void lpw_set_emotion(int emotion)
 {
-    lp_eyes_set_emotion(&eyes, (lp_emotion)emotion, duration);
+    lp_eyes_set_emotion(&eyes, (lp_emotion)emotion, 0.0f); /* for good: the app sets moods */
 }
 
 EMSCRIPTEN_KEEPALIVE void lpw_blink(void)
@@ -129,7 +131,7 @@ EMSCRIPTEN_KEEPALIVE void lpw_set_scene(int emotion, int blink_phase, float blin
 
 EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
 {
-    const lp_rect dirty = lp_render(&renderer, &eyes, frame);
+    dirty = lp_render(&renderer, &eyes, frame);
     for (int y = dirty.y0; y < dirty.y1; y++) {
         for (int x = dirty.x0; x < dirty.x1; x++) {
             const int i = y * LP_SCREEN_SIZE + x;
@@ -141,4 +143,14 @@ EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
         }
     }
     return rgba;
+}
+
+/* engine.mjs reads it as four ints in a row */
+_Static_assert(sizeof(lp_rect) == 4 * sizeof(int) && offsetof(lp_rect, y0) == sizeof(int) &&
+                   offsetof(lp_rect, x1) == 2 * sizeof(int) && offsetof(lp_rect, y1) == 3 * sizeof(int),
+               "engine.mjs reads lp_rect as x0, y0, x1, y1");
+
+EMSCRIPTEN_KEEPALIVE const lp_rect *lpw_dirty(void)
+{
+    return &dirty;
 }

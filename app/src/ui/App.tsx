@@ -1,6 +1,6 @@
 // lilpet PC app: pick the eyes, see them live, send them to the device
 import type { CSSProperties } from 'react';
-import { findSwatch, inkOn, type LookColors, type PupilType } from '../data/looks';
+import { DEFAULT_LOOK, findSwatch, inkOn, type LookColors } from '../data/looks';
 import { loadCurrent, loadFavorites, lookKey, saveCurrent, saveFavorites, type LookChoice } from '../data/favorites';
 import { DeviceBar } from './DeviceBar';
 import { DeviceLog } from './DeviceLog';
@@ -8,7 +8,7 @@ import { Gallery } from './Gallery';
 import { Stage } from './Stage';
 import { useDevice, useEngine, useStored } from './hooks';
 
-const DEFAULT: LookChoice = { swatch: findSwatch('cherry')!, pupil: 'dot' };
+const DEFAULT: LookChoice = { swatch: findSwatch(DEFAULT_LOOK.swatchId)!, pupil: DEFAULT_LOOK.pupil };
 
 // The interface takes the colors of the chosen eyes
 function theme({ sclera }: LookColors): CSSProperties {
@@ -18,8 +18,8 @@ function theme({ sclera }: LookColors): CSSProperties {
 export function App() {
     const engine = useEngine();
     const device = useDevice();
-    const [choice, setChoice] = useStored((s) => loadCurrent(s) ?? DEFAULT, saveCurrent);
-    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites);
+    const [choice, setChoice] = useStored(() => loadCurrent() ?? DEFAULT, saveCurrent);
+    const [favorites, setFavorites] = useStored(loadFavorites, saveFavorites, true); // other tabs may add some
     const { swatch, pupil } = choice;
     const key = lookKey(swatch.id, pupil);
 
@@ -39,21 +39,16 @@ export function App() {
                     choice={choice}
                     favorite={favorites.includes(key)}
                     device={device.state}
-                    onPupil={(p: PupilType) => setChoice({ swatch, pupil: p })}
+                    onPupil={(p) => setChoice({ swatch, pupil: p })}
                     onFavorite={toggleFavorite}
                     onSend={device.send}
                     onEmotion={device.emotion}
                     onPet={() => device.react('tap')}
                 />
-                <Gallery
-                    swatch={swatch}
-                    pupil={pupil}
-                    favorites={favorites}
-                    onPick={(s, p) => setChoice({ swatch: s, pupil: p ?? pupil })}
-                />
+                <Gallery swatch={swatch} pupil={pupil} favorites={favorites} onPick={setChoice} />
             </main>
 
-            {(device.state.status === 'connected' || device.log.length > 0) && <DeviceLog lines={device.log} />}
+            <DeviceLog session={device.session} connected={device.state.status === 'connected'} />
         </div>
     );
 }

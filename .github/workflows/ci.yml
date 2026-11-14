@@ -8,102 +8,111 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its run. Each push to dev or main has a group of its own, so that every merge
+# commit gets a whole result: in a shared group, the next run cancels the one running, or without cancel-in-progress,
+# the one waiting behind it. No other run joins a push's group, so cancel-in-progress cancels only pull request runs.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'latest' || github.sha }}
   cancel-in-progress: true
 
+env:
+  # The mise every job installs (min_version in mise.toml is the oldest that works); Renovate keeps it current. Not
+  # named MISE_*: mise reads its own settings from that prefix.
+  LILPET_MISE_VERSION: 2026.11.4
+
+# The check, engine and playwright jobs are the three parts of `mise run check` (mise.toml), run in parallel: a part added
+# there goes here too. The firmware jobs are `mise run firmware:build-all`, one board each.
 jobs:
   check:
     name: Format, lint, data, script and app tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history, for the secret scan
 
-      # Installs the tools from mise.toml, same as local development (only Node and uv are needed here). Actions are
-      # pinned by commit, since a tag can be moved; Dependabot updates the pin and its comment.
+      # Installs the tools from mise.toml, same as local development and as the engine and playwright jobs, with no
+      # list here to keep in step with mise.toml. No cache: mise installs the 11 tools in about 4 s, and restoring the
+      # 281 MB entry took as long. Actions are pinned by commit, since a tag can be moved; Dependabot updates the pin
+      # and its comment.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          install_args: node uv
+          version: ${{ env.LILPET_MISE_VERSION }}
+          cache: false
+
+      # The pre-commit hook scans what is staged, but a commit can skip it (--no-verify, a worktree without its hooks)
+      - name: Scan the history for secrets
+        run: gitleaks git --redact --no-banner --verbose
 
       - run: npm ci
 
-      - name: Format
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Validate looks and scenes
-        run: npm run check:data
-
-      # engine/tests/js_vectors.h must match what the prototype computes today
-      - name: Engine test values up to date
-        run: npm run check:vectors
-
-      # The flash guard and the device check, on a fake serial port (no hardware needed)
-      - name: Board scripts
-        run: npm run check:scripts
-
-      # TypeScript types and Vitest tests of the PC app (no browser or engine build needed)
-      - name: PC app types and tests
-        run: npm run check:app
+      # The same command as locally (package.json): format, lint (JS, shell, workflow, Python), data, generated files,
+      # board scripts on a fake port, code map, PC app types and tests. No browser or engine build needed.
+      - name: Check
+        run: npm run check
 
   engine:
     name: C engine (format, tests with sanitizers, clang-tidy, WebAssembly)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: ${{ env.LILPET_MISE_VERSION }}
+          cache: false # as in the check job
 
       - name: Check the engine
         run: mise run engine:check
+
+      # What the engine drew instead of a reference render (scripts/goldens.mjs), to look at
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: goldens-drawn-instead
+          path: engine/build/goldens
+          if-no-files-found: ignore
+          retention-days: 7
 
       # Timings go to the job summary, to follow from commit to commit. Not a pass/fail check: shared runners are
       # too noisy for a time limit. Also runs the tests on the optimized build.
       - name: Benchmark the renderer
         run: mise run engine:bench
 
-  boards:
-    name: List the firmware boards
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      list: ${{ steps.folders.outputs.list }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # A board is a folder of firmware/boards with a board.cmake: a new one is built with no change here
-      - id: folders
-        run: echo "list=$(ls firmware/boards/*/board.cmake | cut -d/ -f3 | jq -Rcs 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
-
   esp32:
     name: ESP32-S3 firmware build (${{ matrix.board }})
-    needs: boards
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        board: ${{ fromJSON(needs.boards.outputs.list) }}
+        # The folders of firmware/boards that hold a board.cmake, which scripts/ci.test.mjs checks: a board added there
+        # goes here too, and its job into the required checks of both rulesets. Written here rather than listed by a
+        # job, which the firmware jobs waited for, 6 to 10 s.
+        board: [atoms3r, stamp_s3a, waveshare_132]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
+          version: ${{ env.LILPET_MISE_VERSION }}
           install: false
+          cache: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # A new entry per board and commit, starting from the latest one of the same board, ESP-IDF image and options.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Each push run of dev saves a new entry per board, read from then on by the runs that start from the latest one
+      # of the same board, ESP-IDF image and options. Pull requests and main read dev's entries and save none: main's
+      # own, older ones would come first for its next runs.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: ccache
         with:
           path: firmware/.ccache
-          key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-${{ github.sha }}
-          restore-keys: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-
+          key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults*') }}-${{ github.sha }}
+          restore-keys: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults*') }}-
 
       # Same command as locally; proves the engine compiles for the chip (no hardware needed) and gives a binary
       # ready to flash
@@ -112,6 +121,13 @@ jobs:
         env:
           BOARD: ${{ matrix.board }}
           MISE_TASK_RUN_AUTO_INSTALL: 'false' # the task needs Docker only, not the tools of mise.toml
+
+      # Not when the exact entry was found: a re-run of the same commit
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: github.ref == 'refs/heads/dev' && steps.ccache.outputs.cache-hit != 'true'
+        with:
+          path: firmware/.ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       # The licence of the BMI270 file asks for its notice to go with the binaries
       - name: Add the notices
@@ -132,15 +148,18 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  parity:
-    name: Parity, C engine vs prototype, PC app (Playwright)
-    runs-on: ubuntu-latest
+  playwright:
+    name: PC app (Playwright)
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # All tools from mise.toml: the engine:wasm task runs through mise
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: ${{ env.LILPET_MISE_VERSION }}
+          cache: false # as in the check job
 
       - run: npm ci
 
@@ -151,15 +170,15 @@ jobs:
       # Headless shell only, without --with-deps: the runner image already has its libraries, and the apt fonts that
       # option adds took about 11 minutes to download
       - name: Install Chromium
-        run: npx playwright install --only-shell chromium
+        run: npm exec -w app -- playwright install --only-shell chromium
 
-      # Builds the PC app first: it ships the engine it was built with, and tests/app.spec.mjs opens this build
-      - name: Compare every reference scene, open the PC app
-        run: npm run test:parity
+      # Builds the PC app first: it ships the engine it was built with, and app/tests/app.spec.mjs opens this build
+      - name: Open the PC app with a fake board
+        run: npm run test:playwright
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
-          path: playwright-report
+          path: app/playwright-report
           retention-days: 7

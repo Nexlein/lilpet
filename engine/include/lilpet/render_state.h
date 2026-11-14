@@ -65,7 +65,7 @@ typedef struct {
         lp_ellipse pupil; /* in the pupil frame, like the glint */
         lp_ellipse glint;
     } shapes;
-    lp_rgb sclera, pupil_color, glint_color;
+    lp_rgb sclera, pupil_color;
     lp_polygon shape; /* closed-eye stroke */
 } lp_eye_geometry;
 

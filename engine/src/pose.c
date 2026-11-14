@@ -7,6 +7,17 @@
 #define FACE_CAMERA  600.0f
 #define FACE_OUTWARD 0.35f
 
+static float ease_in(float p)
+{
+    return p * p;
+}
+
+static float ease_out(float p)
+{
+    const float q = 1.0f - p;
+    return 1.0f - q * q * q;
+}
+
 lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes)
 {
     const float t = eyes->blink.t;
@@ -16,13 +27,13 @@ lp_blink_pose lp_eyes_blink_pose(const lp_eyes *eyes)
         return (lp_blink_pose){.lid = 0.1f * p, .sx = 1.0f + 0.05f * p, .sy = 1.0f - 0.03f * p, .closed = false};
     }
     case LP_BLINK_CLOSE: {
-        const float p = lp_ease_in(lp_minf(t / LP_BLINK_CLOSE_TIME, 1.0f));
+        const float p = ease_in(lp_minf(t / LP_BLINK_CLOSE_TIME, 1.0f));
         return (lp_blink_pose){.lid = 0.1f + 0.9f * p, .sx = 1.05f, .sy = 0.97f, .closed = false};
     }
     case LP_BLINK_CLOSED:
         return (lp_blink_pose){.lid = 1.0f, .sx = 1.04f, .sy = 1.0f, .closed = true};
     case LP_BLINK_OPEN: {
-        const float p = lp_ease_out(lp_minf(t / eyes->blink.open, 1.0f));
+        const float p = ease_out(lp_minf(t / eyes->blink.open, 1.0f));
         return (lp_blink_pose){.lid = 1.0f - p, .sx = 1.04f - 0.04f * p, .sy = 0.97f + 0.03f * p, .closed = false};
     }
     case LP_BLINK_NONE:

@@ -1,6 +1,5 @@
 // React state around the engine, the device connection and the browser
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { browserStore, type KeyValueStore } from '../data/favorites';
 import { portPicker } from '../device/connection';
 import { DeviceSession } from '../device/session';
 import { loadEyeEngine, type Engine } from '../engine/preview';
@@ -21,21 +20,33 @@ export function useEngine(): EngineState {
     return state;
 }
 
-// The connection to lilpet (device/session.ts), closed when the app goes away
+// The connection to lilpet (device/session.ts), closed when the app goes away. Its log is followed apart
+// (useDeviceLog), so that a line redraws only what shows it
 export function useDevice() {
     const [session] = useState(() => new DeviceSession(portPicker()));
-    const { state, log } = useSyncExternalStore(session.subscribe, session.snapshot);
+    const state = useSyncExternalStore(session.subscribe, () => session.snapshot().state);
     useEffect(() => () => void session.disconnect(), [session]);
     const { connect, disconnect, send, emotion, react } = session;
-    return { state, log, connect, disconnect, send, emotion, react };
+    return { session, state, connect, disconnect, send, emotion, react };
 }
 
-// A value kept in the browser: read once, written on every change
-export function useStored<T>(read: (store: KeyValueStore) => T, write: (store: KeyValueStore, value: T) => void) {
-    const [value, setValue] = useState<T>(() => read(browserStore));
+// The lines lilpet wrote, for the component that shows them
+export const useDeviceLog = (session: DeviceSession): readonly string[] =>
+    useSyncExternalStore(session.subscribe, () => session.snapshot().log);
+
+// A value kept in the browser: read once, written on every change. shared: read again when another tab writes it, so
+// that a change here starts from theirs
+export function useStored<T>(read: () => T, write: (value: T) => void, shared = false) {
+    const [value, setValue] = useState<T>(read);
+    useEffect(() => {
+        if (!shared) return;
+        const reload = () => setValue(read());
+        addEventListener('storage', reload); // fired in the other tabs, never in the one that wrote
+        return () => removeEventListener('storage', reload);
+    }, [read, shared]);
     const update = (next: T) => {
         setValue(next);
-        write(browserStore, next);
+        write(next);
     };
     return [value, update] as const;
 }

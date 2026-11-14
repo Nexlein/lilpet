@@ -5,17 +5,15 @@
  */
 #include "imu.h"
 
+#include "../third_party/bmi270/bmi270_config.h"
 #include "board.h"
 #include "board_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "imu_bmi270.h"
+#include "imu_axes.h"
 
 #include <stdio.h>
 #include <string.h>
-
-#define HZ         400000
-#define TIMEOUT_MS 50
 
 #define REG_CHIP_ID         0x00u
 #define REG_STATUS          0x03u
@@ -37,10 +35,7 @@
 #define CHUNK      64      /* bytes of the configuration per write */
 
 /* Sensor axes to screen axes: how the sensor is mounted on the board */
-static const struct {
-    int axis;
-    float sign;
-} SCREEN_AXES[3] = BOARD_IMU_AXES;
+static const imu_axis SCREEN_AXES[3] = BOARD_IMU_AXES;
 
 static i2c_master_dev_handle_t dev;
 
@@ -51,7 +46,7 @@ static bool write_reg(uint8_t reg, const uint8_t *data, size_t len)
         return false;
     bytes[0] = reg;
     memcpy(bytes + 1, data, len);
-    return i2c_master_transmit(dev, bytes, len + 1, TIMEOUT_MS) == ESP_OK;
+    return i2c_master_transmit(dev, bytes, len + 1, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
 }
 
 static bool write_reg8(uint8_t reg, uint8_t value)
@@ -61,7 +56,7 @@ static bool write_reg8(uint8_t reg, uint8_t value)
 
 static bool read_reg(uint8_t reg, uint8_t *data, size_t len)
 {
-    return i2c_master_transmit_receive(dev, &reg, 1, data, len, TIMEOUT_MS) == ESP_OK;
+    return i2c_master_transmit_receive(dev, &reg, 1, data, len, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
 }
 
 static bool upload_config(void)
@@ -116,11 +111,10 @@ static bool start(void)
 bool imu_init(void)
 {
     const i2c_master_bus_handle_t bus = board_i2c();
-    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, TIMEOUT_MS) != ESP_OK)
+    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
         return false;
-    const i2c_device_config_t config = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = BOARD_IMU_ADDR, .scl_speed_hz = HZ};
-    if (i2c_master_bus_add_device(bus, &config, &dev) != ESP_OK)
+    dev = board_i2c_device(BOARD_IMU_ADDR);
+    if (!dev)
         return false;
     if (start() || start()) /* a second try from a soft reset */
         return true;
@@ -134,10 +128,6 @@ bool imu_gravity(float out[3])
     uint8_t raw[6];
     if (!dev || !read_reg(REG_ACC_X, raw, sizeof raw))
         return false;
-    float sensor[3];
-    for (int i = 0; i < 3; i++)
-        sensor[i] = (float)(int16_t)(uint16_t)(raw[2 * i] | (unsigned)raw[2 * i + 1] << 8u) / LSB_PER_G;
-    for (int i = 0; i < 3; i++)
-        out[i] = SCREEN_AXES[i].sign * sensor[SCREEN_AXES[i].axis];
+    imu_axes_to_screen(raw, SCREEN_AXES, LSB_PER_G, out);
     return true;
 }

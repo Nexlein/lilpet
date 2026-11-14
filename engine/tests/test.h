@@ -1,9 +1,12 @@
 /*
  * Minimal test runner for the engine, run on the host (no dependency).
- * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below.
+ * Add a test: write `void test_x(void)` in a C file of this folder, then list it in LP_TESTS below (a new file goes in
+ * engine/CMakeLists.txt too).
  */
 #ifndef LILPET_TEST_H
 #define LILPET_TEST_H
+
+#include "lilpet/lilpet.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -13,13 +16,7 @@
 #define LP_TESTS(X)                                                                                                    \
     X(test_check_near_fails_on_nan)                                                                                    \
     X(test_version_matches_macros)                                                                                     \
-    X(test_rng_matches_prototype)                                                                                      \
-    X(test_emotions_match_prototype)                                                                                   \
-    X(test_clamp_matches_prototype)                                                                                    \
-    X(test_blink_poses_match_prototype)                                                                                \
-    X(test_eye_poses_match_prototype)                                                                                  \
-    X(test_simulations_match_prototype)                                                                                \
-    X(test_scenes_match_prototype)                                                                                     \
+    X(test_eyes_start_with_the_default_look_and_shape)                                                                 \
     X(test_unknown_emotion_is_rejected)                                                                                \
     X(test_particle_pool_drops_extra_particles)                                                                        \
     X(test_particles_keep_the_random_sequence_when_dropped)                                                            \
@@ -59,7 +56,24 @@
     X(test_blink_does_not_restart_while_running)                                                                       \
     X(test_follow_off_ignores_the_pointer)                                                                             \
     X(test_head_amount_zero_keeps_the_head_still)                                                                      \
+    X(test_shape_and_head_amount_stay_in_their_ranges)                                                                 \
     X(test_set_shape_is_used_by_the_renderer)                                                                          \
+    X(test_emotion_without_a_positive_duration_is_the_mood)                                                            \
+    X(test_duration_that_is_not_finite_leaves_the_mood)                                                                \
+    X(test_bad_point_clears_a_pointer_and_a_gravity)                                                                   \
+    X(test_mood_that_is_the_reaction_stays_after_it)                                                                   \
+    X(test_reaction_after_a_scene_returns_to_its_emotion)                                                              \
+    X(test_rng_gives_the_mulberry32_sequence)                                                                          \
+    X(test_clamp_with_a_negative_limit_gives_zero)                                                                     \
+    X(test_every_emotion_and_event_is_found_by_its_name)                                                               \
+    X(test_turning_keeps_the_face_level_across_the_wrap)                                                               \
+    X(test_gaze_reaches_a_held_pointer)                                                                                \
+    X(test_tilt_slides_the_eyes_toward_the_low_side)                                                                   \
+    X(test_every_emotion_settles_on_its_expression)                                                                    \
+    X(test_blink_pose_stops_at_the_end_of_its_phase)                                                                   \
+    X(test_love_sends_hearts_at_its_rate_until_they_fade)                                                              \
+    X(test_particles_owed_by_one_emitter_are_not_owed_by_another)                                                      \
+    X(test_particles_owed_at_one_rate_are_not_owed_at_another)                                                         \
     X(test_look_text_round_trips)                                                                                      \
     X(test_every_pupil_type_has_a_name)                                                                                \
     X(test_malformed_look_text_is_rejected)                                                                            \
@@ -81,6 +95,7 @@
     X(test_dirty_region_redraws_everything_that_changed)                                                               \
     X(test_dirty_region_stays_inside_the_screen)                                                                       \
     X(test_band_rendering_matches_whole_frame)                                                                         \
+    X(test_reference_scenes_with_particles_show_some)                                                                  \
     X(test_big_endian_swaps_the_bytes_of_every_pixel)                                                                  \
     X(test_dirty_region_has_even_coordinates)                                                                          \
     X(test_extreme_poses_render_inside_the_frame)                                                                      \
@@ -88,10 +103,17 @@
     X(test_cutting_spans)                                                                                              \
     X(test_polygon_edges_reach_every_sub_row)                                                                          \
     X(test_line_too_far_misses_an_ellipse)                                                                             \
-    X(test_eyes_off_the_screen_render_nothing)                                                                         \
+    X(test_extreme_shapes_stay_in_the_buffers)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \
     X(test_new_size_redraws_everything)                                                                                \
-    X(test_small_output_regions_stay_inside)
+    X(test_small_output_regions_stay_inside)                                                                           \
+    X(test_pupil_bigger_than_its_eye_stays_centered)                                                                   \
+    X(test_lcd_id_tells_the_two_controllers_apart)                                                                     \
+    X(test_imu_axes_give_gravity_on_the_screen)                                                                        \
+    X(test_a_look_is_written_at_once_then_at_most_every_gap)                                                           \
+    X(test_frame_cores_share_the_rows_of_each_band)                                                                    \
+    X(test_frame_measures_the_redrawn_share)                                                                           \
+    X(test_dcs_range_is_big_endian_first_and_last)
 
 #define LP_DECLARE_TEST(fn) void fn(void);
 LP_TESTS(LP_DECLARE_TEST)
@@ -127,5 +149,21 @@ extern int lp_test_failures;
         if (!(fabsf(a_ - e_) <= (tolerance)))                                                                          \
             LP_FAIL("%s is %g, expected %g", #actual, (double)a_, (double)e_);                                         \
     } while (0)
+
+#define LP_TEST_STEP    (1.0f / 64.0f) /* a time step of the animation, exact in float */
+#define LP_TEST_SETTLED 1e-4f /* what an easing given seconds to settle leaves of its distance, with float rounding */
+
+/* Plays `steps` steps of LP_TEST_STEP */
+static inline void lp_test_steps(lp_eyes *eyes, int steps)
+{
+    for (int i = 0; i < steps; i++)
+        lp_eyes_update(eyes, LP_TEST_STEP);
+}
+
+/* Plays `seconds` of animation, LP_TEST_STEP at a time */
+static inline void lp_test_play(lp_eyes *eyes, float seconds)
+{
+    lp_test_steps(eyes, (int)(seconds / LP_TEST_STEP));
+}
 
 #endif /* LILPET_TEST_H */

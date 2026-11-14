@@ -1,5 +1,5 @@
-// Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps like the prototype.
-import { loadEngine, type Engine, type Look, type Scene } from '../../../engine/wasm/engine.mjs';
+// Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
+import { loadEngine, type Engine, type Look, type Region, type Scene } from '../../../engine/wasm/engine.mjs';
 
 export type { Engine };
 
@@ -20,11 +20,14 @@ export class Preview {
     #frame = 0;
     #last = 0;
     #pending = 0;
+    #whole = true; // a new canvas does not hold the engine's last frame
 
     constructor(engine: Engine, canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('2D canvas unavailable');
         canvas.width = canvas.height = engine.size;
+        // Its context was lost and it came back blank: the whole frame again, at once, moving or still
+        canvas.addEventListener('contextrestored', () => this.#draw(this.#engine.renderView()));
         this.#engine = engine;
         this.#ctx = ctx;
     }
@@ -41,7 +44,7 @@ export class Preview {
                 stepped = true;
             }
             // A fast screen asks for more frames than the animation has: only draw the new ones
-            if (stepped) this.#draw(this.#engine.renderView());
+            if (stepped) this.#draw(this.#engine.renderView(), this.#engine.dirty());
             this.#frame = requestAnimationFrame(tick);
         };
         this.#frame = requestAnimationFrame(tick);
@@ -56,9 +59,12 @@ export class Preview {
         this.#draw(this.#engine.renderScene(scene, look));
     }
 
-    #draw(pixels: Uint8ClampedArray<ArrayBuffer>): void {
+    // Puts a frame on the canvas, only the region that changed when the canvas holds the frame before it
+    #draw(pixels: Uint8ClampedArray<ArrayBuffer>, changed?: Region): void {
         const { size } = this.#engine;
-        this.#ctx.putImageData(new ImageData(pixels, size, size), 0, 0);
+        const { x, y, width, height } = this.#whole || !changed ? { x: 0, y: 0, width: size, height: size } : changed;
+        this.#ctx.putImageData(new ImageData(pixels, size, size), 0, 0, x, y, width, height);
+        this.#whole = false;
     }
 }
 
