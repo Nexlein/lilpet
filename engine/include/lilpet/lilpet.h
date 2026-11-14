@@ -20,7 +20,7 @@ extern "C" {
 
 /* Bumped when the public API or the rendering changes */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 14
+#define LP_VERSION_MINOR 15
 #define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
