@@ -246,22 +246,22 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← .github/workflows/ci.yml, mise.toml
 
 ## firmware/boards/atoms3r
-- **board.cmake** (3) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party).
+- **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
 - **board_config.h** (32) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
-- **board.cmake** (2) — Parts of the board, files of firmware/main.
+- **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — M5Stamp S3A, bare: no screen.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
 - **CMakeLists.txt** (7) — The engine as an ESP-IDF component: same sources and warnings as the host build (engine/sources.cmake)
@@ -285,7 +285,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **dcs.h** (37) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
   - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_WRITE_CTRL_DISPLAY, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
-- **display.h** (30) — The board's screen.
+- **display.h** (31) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
 - **display_atoms3r.c** (234) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
@@ -294,9 +294,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
-- **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
+- **display_paced.c** (21) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
   - exports: display_wait_frame
-  - → firmware/main/display.h
+  - → firmware/boards/*/board_config.h, firmware/main/display.h
 - **frame.h** (42) — A frame on the board (main.c): the rows of a band each core draws, and the share of the screen a frame redraws, for the timing reports.
   - exports: frame_band, frame_draw_core_rows, frame_area_permille
   - → engine/include/lilpet/lilpet.h

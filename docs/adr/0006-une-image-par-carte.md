@@ -26,9 +26,11 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 
 ## Conséquences
 
-- Ajouter un écran : un `.c` de 4 fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2
-  fonctions et une ligne. Ajouter une carte aux composants connus : son dossier, et son nom dans la liste des cartes de
-  la CI, qu'un test compare aux dossiers (README, « Tester sur un ESP32-S3 »).
+- Ajouter un écran : un `.c` de 3 fonctions (`display_init`, `display_draw`, `display_flush`) et une ligne dans le
+  `board.cmake` ; s'il a le signal TE, il définit aussi `display_wait_frame`, sous `#ifdef BOARD_LCD_TE`, et
+  `display_paced.c` la donne aux autres. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
+  aux composants connus : son dossier, et son nom dans la liste des cartes de la CI, qu'un test compare aux dossiers
+  (README, « Tester sur un ESP32-S3 »).
 - Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde. Sans carte trouvée
   sur un port USB de la puce, le flash s'arrête : esptool essaierait chaque port série et flasherait ce qui répond.
   `FORCE=1` le laisse chercher.
