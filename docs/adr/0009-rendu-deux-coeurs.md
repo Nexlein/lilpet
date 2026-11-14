@@ -16,7 +16,7 @@ cœurs, qui partagent un cache d'instructions de 16 Ko, ou de 32 Ko au prix de 1
   une fois (`lp_render_begin`), et chacun compose ses lignes dans son propre brouillon (`lp_row_scratch`, 12 Ko ;
   `lp_render_rows_with` pour le second cœur), au lieu d'un second moteur de rendu entier (31 Ko).
 - Deux sémaphores passent ses lignes au second cœur et les reprennent. Tout est statique, donc rien ne peut échouer au
-  démarrage, et une carte qui mettrait `CONFIG_FREERTOS_UNICORE` ne compile pas.
+  démarrage, et le firmware ne compile pas avec `CONFIG_FREERTOS_UNICORE`.
 - **Une seule bande part à la fois**, donc l'envoi reste caché derrière le dessin de la suivante (une bande sur deux par
   cœur attendait l'envoi de l'autre : 37 images/s au lieu de 44).
 - **Le code du rendu (`render.c`, `raster.c`) tourne depuis la mémoire interne** (IRAM,

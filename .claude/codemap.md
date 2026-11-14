@@ -241,7 +241,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/firmware_facts.py, scripts/gen-looks-table.mjs
 
 ## firmware
-- **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
+- **CMakeLists.txt** (19) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
 - **Dockerfile** (6) — ESP-IDF used to build the firmware, locally and in CI (mise run firmware:build): the latest release, pinned here only, by its tag and by the digest...
   - ← .github/workflows/ci.yml, mise.toml
 

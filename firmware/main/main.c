@@ -30,7 +30,7 @@
 #define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
 #if CONFIG_FREERTOS_UNICORE
-#error "the eyes are drawn on both cores: a board cannot set CONFIG_FREERTOS_UNICORE"
+#error "the eyes are drawn on both cores: CONFIG_FREERTOS_UNICORE must stay off"
 #endif
 
 static lp_eyes eyes;
