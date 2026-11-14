@@ -29,6 +29,11 @@
 #define BAND_ROWS  30 /* like the Waveshare display demos: 466 x 30 RGB565 pixels = 27960 bytes per buffer */
 #define BAND_BYTES (BOARD_DISPLAY_SIZE * BAND_ROWS * sizeof(uint16_t))
 
+/* The engine draws at most LP_SCREEN_SIZE pixels a side, rounded down to even (lp_renderer_set_size): a larger or odd
+ * size would leave part of the screen undrawn, silently */
+_Static_assert(BOARD_DISPLAY_SIZE <= LP_SCREEN_SIZE && BOARD_DISPLAY_SIZE % 2 == 0,
+               "the board's display must be even and no larger than the engine's screen");
+
 #if CONFIG_FREERTOS_UNICORE
 #error "the eyes are drawn on both cores: CONFIG_FREERTOS_UNICORE must stay off"
 #endif
