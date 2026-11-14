@@ -5,9 +5,10 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+# Prettier reads its indent and width here (.prettierrc only holds what this file cannot say); clang-format and ruff
+# wrap at the same width
 indent_style = space
 indent_size = 4
-# Prettier, clang-format and ruff wrap at the same width
 max_line_length = 120
 
 [*.{yml,yaml}]
