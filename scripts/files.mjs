@@ -19,7 +19,8 @@ export const GROUPS = {
         'firmware/tests/*.[ch]',
         'firmware/third_party/*/*.h'
     ],
-    // What clang-tidy can analyse with the host build's compile commands: engine/wasm and the firmware need other compilers
+    // What clang-tidy can analyse with the host build's compile commands: engine/wasm and the firmware's chip code need
+    // other compilers
     tidy: ['engine/src/*.c', 'engine/tests/*.c', 'engine/tools/*.c', 'firmware/tests/*.c'],
     workflows: ['.github/workflows/*.yml', '.github/workflows/*.yaml'],
     hooks: ['.husky/*'] // every file there is a shell script

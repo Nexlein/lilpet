@@ -14,7 +14,8 @@
  * display_draw will send. */
 const char *display_init(size_t max_band_bytes);
 
-/* Waits until the next frame can start: the display's refresh signal (TE), or display_paced.c without one */
+/* Waits until the next frame can start. A driver with a TE signal defines it under #ifdef BOARD_LCD_TE, to wait for the
+ * signal; display_paced.c gives it to every board without BOARD_LCD_TE */
 void display_wait_frame(void);
 
 /*

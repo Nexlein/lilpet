@@ -1,6 +1,11 @@
-/* Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board */
+/*
+ * Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
+ * Built for every board: one whose board_config.h gives BOARD_LCD_TE waits for that signal instead (display_co5300.c).
+ */
+#include "board_config.h"
 #include "display.h"
 
+#ifndef BOARD_LCD_TE
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -13,3 +18,4 @@ void display_wait_frame(void)
         wake = xTaskGetTickCount();
     vTaskDelayUntil(&wake, pdMS_TO_TICKS(FRAME_MS));
 }
+#endif

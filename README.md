@@ -112,7 +112,7 @@ carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé
 refusées) et remet son look et son humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
-(`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]) :
+(`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]), sur la seule carte branchée ou celle de `PORT` :
 
 ```bash
 mise run firmware:monitor

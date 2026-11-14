@@ -77,9 +77,15 @@ description = "Fail if a C source is not formatted"
 run = "node scripts/files.mjs c | xargs -0 -r clang-format --dry-run --Werror"
 
 [tasks."engine:tidy"]
-description = "Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)"
-depends = ["engine:test"]
-run = "node scripts/files.mjs tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug"
+description = "Static analysis of the engine sources, tests and tools, and of the firmware tests (engine/wasm and the firmware's chip code need their own compilers, so they are not covered)"
+# clang-tidy needs only the compile commands of the debug build, which its configure writes: alone, no need to build
+# and run the tests. Run with engine:test (engine:check), it waits for it, so the two never configure the same folder
+# at once.
+wait_for = ["engine:test"]
+run = [
+    "cd engine && cmake --preset host-debug > /dev/null",
+    "node scripts/files.mjs tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug",
+]
 
 [tasks."engine:check"]
 description = "Everything CI checks on the engine"
@@ -103,9 +109,9 @@ depends = ["firmware:board"]
 # the build regenerates a specs file given to the compiler, and ccache would otherwise hash its date and never hit.
 run = [
     # ESP-IDF only reads the defaults when it creates the board's sdkconfig: start over when they changed, or a local
-    # build would keep old settings that CI (always fresh) does not have. The board's folder changes date when its
-    # defaults are added or removed.
-    'for file in firmware/sdkconfig.defaults "firmware/boards/$BOARD" "firmware/boards/$BOARD/sdkconfig.defaults"; do if [ "$file" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
+    # build would keep old settings that CI (always fresh) does not have. Also those for the chip only
+    # (sdkconfig.defaults.esp32s3), which ESP-IDF reads when they exist.
+    'for file in firmware/sdkconfig.defaults*; do if [ "$file" -nt "firmware/build/$BOARD/sdkconfig" ]; then rm -f "firmware/build/$BOARD/sdkconfig"; fi; done',
     "docker build -t lilpet-idf - < firmware/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" build merge-bin',
 ]
@@ -137,7 +143,6 @@ run = [
 ]
 
 [tasks."firmware:monitor"]
-description = "Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])"
-# Opening asserts both lines, then pyserial sets DTR, then RTS. The chip reboots on RTS without DTR, so DTR stays high
-# while RTS goes low: opening the port does not reboot the board (checked on the AtomS3R, where --dtr 0 rebooted it)
-run = 'uv run --with-requirements scripts/requirements.txt pyserial-miniterm --raw --rts 0 --dtr 1 "${PORT:-/dev/ttyACM0}" 115200'
+description = "Show what the board prints over USB (port: PORT, or the only board plugged in; quit with Ctrl+])"
+# Without rebooting the board: scripts/monitor.py says how
+run = "uv run --with-requirements scripts/requirements.txt scripts/monitor.py"

@@ -111,8 +111,8 @@ jobs:
         id: ccache
         with:
           path: firmware/.ccache
-          key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-${{ github.sha }}
-          restore-keys: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults', format('firmware/boards/{0}/sdkconfig.defaults', matrix.board)) }}-
+          key: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults*') }}-${{ github.sha }}
+          restore-keys: ccache-${{ matrix.board }}-${{ hashFiles('firmware/Dockerfile', 'firmware/sdkconfig.defaults*') }}-
 
       # Same command as locally; proves the engine compiles for the chip (no hardware needed) and gives a binary
       # ready to flash

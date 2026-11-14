@@ -14,9 +14,9 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 
 - **Une image par carte**, choisie à la compilation (`BOARD`).
 - **Une carte est un dossier**, `firmware/boards/<carte>/` : `board.cmake` liste ses composants, `board_config.h` ses
-  broches, son montage, sa taille d'écran et le boîtier de sa puce, un `sdkconfig.defaults` facultatif ses options
-  ESP-IDF. Le dossier donne son nom à la carte. CMake, la CI et les scripts de carte (`scripts/board_link.py`) lisent
-  ces dossiers.
+  broches, son montage, sa taille d'écran et le boîtier de sa puce. Les options d'ESP-IDF sont celles de
+  `firmware/sdkconfig.defaults`, communes à toutes les cartes. Le dossier donne son nom à la carte. CMake, la CI et les
+  scripts de carte (`scripts/board_link.py`) lisent ces dossiers.
 - Chaque en-tête (`display.h`, `imu.h`) est une interface, chaque composant un fichier `.c`, sans table de fonctions :
   tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure (`lcd_id.h`, `imu_axes.h`,
   `look_saving.h`, `frame.h`, `dcs.h`), pour que les tests sur PC la voient (`firmware/tests`).
@@ -26,9 +26,11 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 
 ## Conséquences
 
-- Ajouter un écran : un `.c` de 4 fonctions et une ligne dans le `board.cmake`. Ajouter un capteur : un `.c` de 2
-  fonctions et une ligne. Ajouter une carte aux composants connus : son dossier, et son nom dans la liste des cartes de
-  la CI, qu'un test compare aux dossiers (README, « Tester sur un ESP32-S3 »).
+- Ajouter un écran : un `.c` de 3 fonctions (`display_init`, `display_draw`, `display_flush`) et une ligne dans le
+  `board.cmake` ; s'il a le signal TE, il définit aussi `display_wait_frame`, sous `#ifdef BOARD_LCD_TE`, et
+  `display_paced.c` la donne aux autres. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
+  aux composants connus : son dossier, et son nom dans la liste des cartes de la CI, qu'un test compare aux dossiers
+  (README, « Tester sur un ESP32-S3 »).
 - Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde. Sans carte trouvée
   sur un port USB de la puce, le flash s'arrête : esptool essaierait chaque port série et flasherait ce qui répond.
   `FORCE=1` le laisse chercher.

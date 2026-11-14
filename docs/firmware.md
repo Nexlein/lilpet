@@ -17,7 +17,8 @@ Le firmware ESP-IDF de la carte écran (`firmware/`) : une image par carte
 - `waveshare_132` : l'écran rond 1,32" de l'objet final, pas encore essayé sur la vraie carte.
 - `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
 
-Une carte sans signal TE cadence ses images avec `display_paced.c`, à 62,5 images/s : des ticks de 1 ms ne font pas 60.
+Une carte sans signal TE (sans `BOARD_LCD_TE` dans son `board_config.h`) cadence ses images avec `display_paced.c`,
+compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pas 60.
 
 ## Ce que fait le firmware
 

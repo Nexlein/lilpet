@@ -241,27 +241,27 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/firmware_facts.py, scripts/gen-looks-table.mjs
 
 ## firmware
-- **CMakeLists.txt** (25) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
+- **CMakeLists.txt** (19) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
 - **Dockerfile** (6) — ESP-IDF used to build the firmware, locally and in CI (mise run firmware:build): the latest release, pinned here only, by its tag and by the digest...
   - ← .github/workflows/ci.yml, mise.toml
 
 ## firmware/boards/atoms3r
-- **board.cmake** (3) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party).
+- **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
 - **board_config.h** (32) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
-- **board.cmake** (2) — Parts of the board, files of firmware/main.
+- **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — M5Stamp S3A, bare: no screen.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
 - **CMakeLists.txt** (7) — The engine as an ESP-IDF component: same sources and warnings as the host build (engine/sources.cmake)
@@ -285,7 +285,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **dcs.h** (37) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
   - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_WRITE_CTRL_DISPLAY, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
-- **display.h** (30) — The board's screen.
+- **display.h** (31) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
 - **display_atoms3r.c** (234) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
@@ -294,9 +294,9 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
-- **display_paced.c** (15) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board
+- **display_paced.c** (21) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
   - exports: display_wait_frame
-  - → firmware/main/display.h
+  - → firmware/boards/*/board_config.h, firmware/main/display.h
 - **frame.h** (42) — A frame on the board (main.c): the rows of a band each core draws, and the share of the screen a frame redraws, for the timing reports.
   - exports: frame_band, frame_draw_core_rows, frame_area_permille
   - → engine/include/lilpet/lilpet.h
@@ -327,7 +327,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (220) — Firmware entry point: the eyes, live on the display.
+- **main.c** (225) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 
@@ -344,7 +344,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## scripts
 - **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
-  - ← scripts/check-device.py, scripts/flash-guard.py
+  - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
 - **check-device.py** (255) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
@@ -358,7 +358,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
   - exports: EXPRESSION, withNeutral
   - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
-- **files.mjs** (49) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
+- **files.mjs** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
   - exports: GROUPS, trackedFiles
   - ← .lintstagedrc.mjs, mise.toml, package.json
 - **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
@@ -384,6 +384,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: strict, compare
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
   - ← mise.toml, package.json
+- **monitor.py** (21) — Shows what the board prints over USB, on the port that firmware:flash and firmware:check-device use: PORT, or the only board plugged in.
+  - exports: main
+  - → scripts/board_link.py
+  - ← mise.toml
 - **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
   - exports: encodePng, decodePng, rgbOf, differingPixels
   - ← scripts/goldens.mjs
@@ -393,7 +397,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (212) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 
@@ -405,19 +409,19 @@ mise (`mise run <task>`):
 - `engine:format:check` — Fail if a C source is not formatted
 - `engine:goldens` — Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)
 - `engine:test` — Build and run the engine tests on the host, with AddressSanitizer and UBSan
-- `engine:tidy` — Static analysis of the engine sources, tests and tools (engine/wasm and firmware need their own compilers, so they are not covered)
+- `engine:tidy` — Static analysis of the engine sources, tests and tools, and of the firmware tests (engine/wasm and the firmware's chip code need their own compilers, so they are not covered)
 - `engine:wasm` — Build the WebAssembly module (Emscripten image of engine/wasm/Dockerfile, same as CI) and check it loads in Node
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)
 - `firmware:deploy` — Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)
 - `firmware:flash` — Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1
-- `firmware:monitor` — Show what the board prints over USB (port: PORT, /dev/ttyACM0 by default; quit with Ctrl+])
+- `firmware:monitor` — Show what the board prints over USB (port: PORT, or the only board plugged in; quit with Ctrl+])
 - `setup` — Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser
 
 npm (`npm run <script>`, workspace app):
 - `dev`: `vite`
-- `build`: `tsc && vite build`
+- `build`: `vite build`
 - `test`: `vitest run`
 - `test:playwright`: `playwright test`
 
