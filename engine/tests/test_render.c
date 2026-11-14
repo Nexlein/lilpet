@@ -507,6 +507,28 @@ void test_cutting_spans(void)
     check_cut(inside, 3, inside_cut, 2);
 
     check_cut(inside_cut, 2, inside_cut, 2); /* nothing inside the hole */
+
+    /* No room left for the two halves of a split: the span keeps its left part, never more spans than fit */
+    const float full[LP_MAX_SPANS][2] = {{0.0f, 2.0f},   {3.0f, 5.0f},    {6.0f, 8.0f},     {9.0f, 11.0f},
+                                         {12.0f, 14.0f}, {20.0f, 100.0f}, {110.0f, 112.0f}, {113.0f, 115.0f}};
+    float full_cut[LP_MAX_SPANS][2];
+    memcpy(full_cut, full, sizeof full);
+    full_cut[5][1] = 40.0f;
+    check_cut(full, LP_MAX_SPANS, full_cut, LP_MAX_SPANS);
+}
+
+void test_polygon_with_too_many_crossings_keeps_those_that_fit(void)
+{
+    /* Upright edges at x = 0, 10, 20 ...: a sub-row crosses every one, two more than spans can hold */
+    enum { EDGES = 2 * LP_MAX_SPANS + 4 };
+    lp_edge edges[EDGES];
+    for (int i = 0; i < EDGES; i++)
+        edges[i] = (lp_edge){.x = 10.0f * (float)i, .y0 = 0.0f, .y1 = 10.0f, .slope = 0.0f};
+    lp_spans s;
+    lp_spans_polygon(&s, edges, EDGES, 5.0f, 0.0f, 1000.0f);
+    CHECK(s.n == LP_MAX_SPANS);
+    for (int i = 0; i < LP_MAX_SPANS && i < s.n; i++) /* the first crossings, in the order of the edges */
+        CHECK(s.a[i] == 20.0f * (float)i && s.b[i] == 20.0f * (float)i + 10.0f);
 }
 
 void test_polygon_edges_reach_every_sub_row(void)
