@@ -42,6 +42,9 @@ export function parseHello(reply: string): DeviceInfo | null {
     return { firmware, engine, board };
 }
 
+// The replies of the commands, as opposed to hello's: "ok" or "err <reason>" (docs/protocole.md)
+export const isCommandReply = (reply: string): boolean => reply === 'ok' || reply.startsWith('err');
+
 // A reply to a command, read once here: the rest of the app never looks at its text
 type Reply =
     | { kind: 'ok' }
