@@ -47,6 +47,16 @@ void test_imu_axes_give_gravity_on_the_screen(void)
     CHECK(g[1] == 8.0f && g[2] == 1.0f / 4096.0f);
 }
 
+static int saves;    /* the writes look_save_if_due asked for */
+static bool save_ok; /* what the fake flash answers */
+
+static bool fake_save(const lp_look *look)
+{
+    (void)look;
+    saves++;
+    return save_ok;
+}
+
 void test_a_look_is_written_at_once_then_at_most_every_gap(void)
 {
     const int64_t gap = LOOK_SAVE_GAP_US;
@@ -63,10 +73,22 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     other.pupil_color[1] = 0x0964E7u;
     CHECK(!look_same(&kept, &sclera) && !look_same(&kept, &pupil) && !look_same(&kept, &left));
     CHECK(!look_same(&kept, &other));
-    CHECK(!look_save_due(&kept, &kept, 9 * gap, 0));  /* the flash holds it: nothing to write, ever */
-    CHECK(look_save_due(&other, &kept, 0, -gap));     /* the first new look, at once */
-    CHECK(!look_save_due(&other, &kept, gap - 1, 0)); /* too soon after the last write or try: in its turn */
-    CHECK(look_save_due(&other, &kept, gap, 0));
+
+    look_saving s = look_saving_start(&kept);
+    saves = 0;
+    save_ok = true;
+    CHECK(look_save_if_due(&s, &kept, 9 * gap, fake_save) && saves == 0); /* the flash holds it: nothing to write */
+    CHECK(look_save_if_due(&s, &other, 0, fake_save) && saves == 1);      /* the first new look, at once */
+    CHECK(look_same(&s.kept, &other));
+    CHECK(look_save_if_due(&s, &sclera, gap - 1, fake_save) && saves == 1); /* too soon after the last write: later */
+    CHECK(look_save_if_due(&s, &sclera, gap, fake_save) && saves == 2);
+    save_ok = false;
+    CHECK(!look_save_if_due(&s, &pupil, 2 * gap, fake_save) && saves == 3);
+    CHECK(look_same(&s.kept, &sclera)); /* the flash still holds the last one written */
+    CHECK(look_save_if_due(&s, &pupil, 3 * gap - 1, fake_save) && saves == 3); /* tried again a gap after the try */
+    save_ok = true;
+    CHECK(look_save_if_due(&s, &pupil, 3 * gap, fake_save) && saves == 4);
+    CHECK(look_save_if_due(&s, &pupil, 9 * gap, fake_save) && saves == 4); /* kept: not written again */
 }
 
 /* Each core draws its rows of a band and leaves the other's alone (the cores draw at once): together, the frame drawn

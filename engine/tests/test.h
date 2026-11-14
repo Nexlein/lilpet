@@ -102,6 +102,7 @@
     X(test_unknown_pupil_renders_as_a_circle)                                                                          \
     X(test_cutting_spans)                                                                                              \
     X(test_polygon_edges_reach_every_sub_row)                                                                          \
+    X(test_polygon_with_too_many_crossings_keeps_those_that_fit)                                                       \
     X(test_line_too_far_misses_an_ellipse)                                                                             \
     X(test_extreme_shapes_stay_in_the_buffers)                                                                         \
     X(test_small_output_is_the_frame_scaled_down)                                                                      \

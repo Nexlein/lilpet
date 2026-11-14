@@ -31,8 +31,14 @@ Projet strictement personnel, non commercial.
 
 ## Installer
 
-Prérequis : [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent (tests
-du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
+Prérequis : Linux, macOS ou WSL (les tâches et les hooks git lancent des commandes POSIX, les scripts des cartes ont
+besoin de termios), [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent
+(tests du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
+
+Sous WSL, une carte n'apparaît qu'une fois attachée avec
+[usbipd-win](https://learn.microsoft.com/fr-fr/windows/wsl/connect-usb) : `usbipd bind --busid <id>` une fois, en
+administrateur, puis `usbipd attach --wsl --busid <id>`. Tant qu'elle l'est, ni Windows ni Chrome ne la voient : la
+détacher (`usbipd detach --busid <id>`) avant d'ouvrir l'app PC.
 
 ```bash
 mise trust

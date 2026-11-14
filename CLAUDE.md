@@ -39,13 +39,15 @@ model that will choose the reactions does not exist yet; what it will send is re
   request against `dev` (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals: recreate the style, never copy their assets. `references/`
   (frame sheets of third-party videos, behind `docs/yeux.md`) stays local, ignored by git, never published.
-- After changing `eyes/*.json`, `engine/tests/scenes.json` or `scripts/expression.mjs`: `npm run tables` (CI fails on
-  a stale generated file).
+- After changing `eyes/*.json`, `engine/tests/scenes.json`, `scripts/expression.mjs` or `sceneFields` in
+  `engine/wasm/engine.mjs`: `npm run tables` (CI fails on a stale generated file).
 - A visual change to the eyes goes with a scene in `engine/tests/scenes.json` that shows it. After changing how the eyes
   look or move: `mise run engine:wasm`, `npm run goldens`, then look at the images it rewrote before committing them.
 
 ## Pitfalls
 
+- The toolchain needs Linux, macOS or WSL: the tasks and git hooks run POSIX commands, the board scripts need termios.
+  On WSL, a board shows only once attached with usbipd (README), and Windows, Chrome included, no longer sees it.
 - A new clone or worktree needs `mise trust` then `mise run setup`: without the `.husky/_` that `npm ci` creates, git
   silently skips every hook.
 - Never install emsdk through mise: its clang and node shadow the system ones and send ccache into a loop. The
