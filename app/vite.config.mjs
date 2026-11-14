@@ -37,6 +37,6 @@ function engineFiles() {
 export default defineConfig({
     base: './', // relative paths: the build works from any folder (the Playwright tests serve it from /dist/)
     plugins: [react(), engineFiles()],
-    server: { port: 8467 },
+    server: { port: 8467, strictPort: true }, // the port the README and .claude/launch.json give: fail if it is taken
     test: { include: ['src/**/*.test.ts'] }
 });
