@@ -253,7 +253,17 @@ serial.Serial = Serial
 serial.tools = types.ModuleType("serial.tools")
 serial.tools.list_ports = types.ModuleType("serial.tools.list_ports")
 serial.tools.list_ports.comports = lambda: [types.SimpleNamespace(device=port, vid=0x303A) for port in plugged]
-sys.modules.update({"serial": serial, "serial.tools": serial.tools, "serial.tools.list_ports": serial.tools.list_ports})
+serial.tools.miniterm = types.ModuleType("serial.tools.miniterm")
+monitored = []  # the arguments each monitor opened with
+serial.tools.miniterm.main = lambda: monitored.append(sys.argv[1:])
+sys.modules.update(
+    {
+        "serial": serial,
+        "serial.tools": serial.tools,
+        "serial.tools.list_ports": serial.tools.list_ports,
+        "serial.tools.miniterm": serial.tools.miniterm,
+    }
+)
 
 import board_link  # noqa: E402  after the fake, so that it can never reach a real port
 
@@ -284,6 +294,12 @@ def guard(*boards, **env):
 
 def check_device(board, **env):
     return run("check-device.py", board, **{"BOARD": board.name, **env})
+
+
+def monitor(*boards, **env):
+    monitored.clear()
+    with mock.patch.object(sys, "argv", ["monitor.py"]):
+        return run("monitor.py", *boards, **env)
 
 
 class FirmwareFacts(unittest.TestCase):
@@ -350,6 +366,24 @@ class MotionSensor(unittest.TestCase):
         cmake = "# imu_bmi270.c once soldered\nlist(APPEND srcs imu_none.c) # not imu_bmi270.c\n"
         with mock.patch.object(Path, "read_text", return_value=cmake):
             self.assertFalse(board_link.has_motion_sensor("atoms3r"))
+
+
+class Monitor(unittest.TestCase):
+    def test_opens_the_only_board_without_rebooting_it(self):
+        self.assertEqual(monitor(Board("atoms3r"))[0], 0)
+        self.assertEqual(monitored, [["--raw", "--rts", "0", "--dtr", "1", PORT, "115200"]])
+
+    def test_opens_the_port_it_is_given(self):
+        self.assertEqual(monitor(Board("atoms3r"), Board("stamp_s3a"), PORT="/dev/ttyACM1")[0], 0)
+        self.assertEqual(monitored, [["--raw", "--rts", "0", "--dtr", "1", "/dev/ttyACM1", "115200"]])
+
+    def test_stops_without_a_board(self):
+        self.assertIn("No board found", monitor()[0])
+        self.assertEqual(monitored, [])
+
+    def test_stops_when_several_boards_could_be_meant(self):
+        self.assertIn("Several boards are plugged in", monitor(Board("atoms3r"), Board("stamp_s3a"))[0])
+        self.assertEqual(monitored, [])
 
 
 class FlashGuard(unittest.TestCase):
