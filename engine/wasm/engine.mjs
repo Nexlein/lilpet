@@ -1,11 +1,28 @@
 // JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with
 // scene objects as in engine/tests/scenes.json and looks (a swatch of eyes/looks.json worn with a pupil type).
-// Used by the PC app, the reference renders (scripts/goldens.mjs), the data validator and smoke.mjs.
+// Used by the PC app, the reference renders (scripts/goldens.mjs), the data validator and smoke.mjs; its scene fields
+// also by the host scene table (scripts/gen-scenes-table.mjs).
 
 export const PUPILS = ['dot', 'cat', 'acorn', 'circle']; // lp_pupil order
 export const BLINK_PHASES = [null, 'anticip', 'close', 'closed', 'open']; // lp_blink_phase order
 
 const color = (hex) => Number.parseInt(hex.slice(1), 16);
+
+// A scene object as in engine/tests/scenes.json, as the fields of lp_scene, by name. Read here for the reference renders
+// and by scripts/gen-scenes-table.mjs for the host tests: both draw the same state.
+export const sceneFields = (scene) => ({
+    emotion: scene.emotion ?? 'neutral',
+    blink_phase: scene.blink?.phase ?? null,
+    blink_t: scene.blink?.t ?? 0,
+    yaw: scene.head?.yaw ?? 0,
+    pitch: scene.head?.pitch ?? 0,
+    roll: scene.head?.roll ?? 0,
+    gaze_x: scene.gaze?.x ?? 0,
+    gaze_y: scene.gaze?.y ?? 0,
+    has_particles: Boolean(scene.particles),
+    particle_seed: scene.particles?.seed ?? 0,
+    particle_time: scene.particles?.time ?? 0
+});
 
 // moduleUrl: URL of lilpet.mjs (the Emscripten ES module next to lilpet.wasm)
 export async function loadEngine(moduleUrl) {
@@ -47,19 +64,15 @@ export async function loadEngine(moduleUrl) {
         // A scene object as in engine/tests/scenes.json, frozen by lp_eyes_set_scene
         renderScene(scene, look) {
             setLook(look);
-            m._lpw_set_scene(
-                emotions.get(scene.emotion ?? 'neutral') ?? -1, // the engine ignores a scene it does not know
-                BLINK_PHASES.indexOf(scene.blink?.phase ?? null),
-                scene.blink?.t ?? 0,
-                scene.head?.yaw ?? 0,
-                scene.head?.pitch ?? 0,
-                scene.head?.roll ?? 0,
-                scene.gaze?.x ?? 0,
-                scene.gaze?.y ?? 0,
-                scene.particles ? 1 : 0,
-                scene.particles?.seed ?? 0,
-                scene.particles?.time ?? 0
-            );
+            const s = sceneFields(scene);
+            // In the order of sceneFields, which is that of lpw_set_scene's parameters (engine.test.mjs)
+            const args = {
+                ...s,
+                emotion: emotions.get(s.emotion) ?? -1, // the engine ignores a scene it does not know
+                blink_phase: BLINK_PHASES.indexOf(s.blink_phase),
+                has_particles: s.has_particles ? 1 : 0
+            };
+            m._lpw_set_scene(...Object.values(args));
             return render();
         },
 
