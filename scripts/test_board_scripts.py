@@ -74,6 +74,8 @@ class Board:
         drops_late_looks=False,  # a look that waits for its turn answers ok but is never written
         comes_back=True,  # starts again after a reset
         lost_at=None,  # the port goes away when the board gets this line (unplugged)
+        held_bus_at=None,  # this reset (from 1) among those during motion sensor reads leaves the I2C bus held
+        mute_at=None,  # this boot (from 1) never reads its port
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -82,6 +84,8 @@ class Board:
         self.open_error, self.dtr_error, self.monitor_open, self.stop_at = open_error, dtr_error, monitor_open, stop_at
         self.cut, self.drops_late_looks, self.comes_back, self.lost_at = cut, drops_late_looks, comes_back, lost_at
         self.lost = False
+        self.fitted, self.held_bus_at, self.mute_at, self.boots = motion, held_bus_at, mute_at, 0
+        self.read_at, self.resets_during_reads, self.bus_held = -math.inf, 0, False
         self.look = "AE0002 FF5252 FF5252 dot"
         # What the flash holds, and when it was last written (firmware/main/look_saving.h)
         self.kept, self.tried_at = self.look, -SAVE_GAP
@@ -91,9 +95,11 @@ class Board:
         self.opened = 0
 
     def boot(self):
+        self.boots += 1
+        self.motion = self.fitted and not self.bus_held
         self.look, self.mood = self.kept, "neutral"
         self.tried_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
-        self.reads_from = clock.now + 1
+        self.reads_from = math.inf if self.boots == self.mute_at else clock.now + 1
         for line in ["I (250) main_task: Calling app_main()", *self.boot_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
         if self.report:
@@ -109,6 +115,11 @@ class Board:
     def set_reset(self, held):
         if held and not self.in_reset:
             self.write_late_look()  # what is not written by then is lost: the board boots on the kept look
+            self.output = [(at, line) for at, line in self.output if at <= clock.now]  # nor is what it had yet to print
+            # A reset while the motion sensor answers a read can leave the bus held, without the bus clear at boot
+            during_reads = clock.now - self.read_at < 0.05
+            self.resets_during_reads += during_reads
+            self.bus_held = during_reads and self.resets_during_reads == self.held_bus_at
         if self.in_reset and not held:
             if self.comes_back:
                 self.boot()
@@ -142,6 +153,7 @@ class Board:
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
+            self.read_at = clock.now
             return "imu 0.000 1.000 0.000" if self.motion else REPLY_NO_MOTION
         word, _, rest = text[2:].partition(" ")
         if word == "look":
@@ -569,9 +581,23 @@ class DeviceCheck(unittest.TestCase):
         self.assertIn("close the serial monitor", status)
 
     def test_fails_when_the_motion_sensor_does_not_answer(self):
-        status, out, _ = check_device(Board("atoms3r", motion=False))
+        board = Board("atoms3r", motion=False)
+        status, out, _ = check_device(board)
         self.assertEqual(status, 1)
         self.assertIn("FAIL has its motion sensor", out)
+        self.assertEqual(board.boots, 1)  # no reboots during reads: they would tell nothing more
+
+    def test_fails_when_a_reboot_during_reads_loses_the_motion_sensor(self):
+        board = Board("atoms3r", held_bus_at=4)
+        status, out, _ = check_device(board)
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL keeps its motion sensor across 40 reboots during its reads (lost on 1 of 40 boots,", out)
+        self.assertEqual(board.boots, 41)
+
+    def test_tells_a_board_that_stops_answering_from_a_lost_motion_sensor(self):
+        status, out, _ = check_device(Board("atoms3r", mute_at=10))
+        self.assertEqual(status, 1)
+        self.assertIn("during its reads (lost on 0 of 40 boots, no hello on 1)", out)
 
 
 if __name__ == "__main__":
