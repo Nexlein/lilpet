@@ -8,6 +8,7 @@
 #include "../third_party/bmi270/bmi270_config.h"
 #include "board.h"
 #include "board_config.h"
+#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "imu_axes.h"
@@ -111,8 +112,13 @@ static bool start(void)
 bool imu_init(void)
 {
     const i2c_master_bus_handle_t bus = board_i2c();
-    if (!bus || i2c_master_probe(bus, BOARD_IMU_ADDR, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
+    if (!bus)
         return false;
+    const esp_err_t probed = i2c_master_probe(bus, BOARD_IMU_ADDR, BOARD_I2C_TIMEOUT_MS);
+    if (probed != ESP_OK) {
+        printf("motion sensor: no answer at I2C 0x%02X (%s)\n", BOARD_IMU_ADDR, esp_err_to_name(probed));
+        return false;
+    }
     dev = board_i2c_device(BOARD_IMU_ADDR);
     if (!dev)
         return false;

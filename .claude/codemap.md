@@ -269,7 +269,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **board.c** (81) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+- **board.c** (117) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h
 - **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
@@ -307,7 +307,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
   - exports: imu_axis, imu_axes_to_screen
   - ← firmware/main/imu_bmi270.c
-- **imu_bmi270.c** (133) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
+- **imu_bmi270.c** (139) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_axes.h
 - **imu_none.c** (13) — Boards without a motion sensor
@@ -345,8 +345,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (256) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
-  - exports: Board, check, check_reply, read_lines, reboot, open_booted_board, finish, run_checks, put_back, check_board
+- **check-device.py** (286) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+  - exports: Board, check, check_reply, read_lines, reset, reboot, open_booted_board, finish, run_checks, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
 - **codemap.mjs** (653) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
