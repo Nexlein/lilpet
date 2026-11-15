@@ -36,7 +36,10 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   `board.c` lit le bouton (l'écran de l'AtomS3R, broche 41). `main.c` passe ces valeurs brutes au moteur par
   `lp_senses_update` (`engine/src/senses.c`, le même sur toutes les cartes, testé sur PC) : il repère la secousse sur
   la mesure brute (`lp_shake_update`), puis la lisse pour l'inclinaison, suit le bouton sans rebond, et repère un
-  capteur muet.
+  capteur muet. Au démarrage, `board.c` libère d'abord le bus I2C, que le capteur partage avec le rétroéclairage : un
+  redémarrage en pleine lecture peut laisser le BMI270 tenir SDA à zéro, ce qui bloque tout le bus (capteur perdu,
+  écran noir). Neuf coups d'horloge puis un STOP l'en sortent, envoyés à la main : sur l'ESP32-S3, le nettoyage du
+  pilote d'ESP-IDF (`i2c_master_bus_reset`) n'attend pas sa fin.
 - **Réactions** : le moteur reçoit des événements (`lp_eyes_react` : appui, visage vu…) et des états (secousse, gravité,
   dont il tire seul la position à l'envers) ; chaque cause mène à une réaction décrite comme une donnée (émotion, durée,
   étincelles, dans `eyes/emotions.json`), pour que l'app puisse un jour les changer.

@@ -56,6 +56,11 @@ const CASES = [
     ],
     ['docs/protocole.md', "qu'elle pose N fois", codeNumber('app/src/device/device.ts', /HELLO_ATTEMPTS = (\d+)/)],
     ['README.md', 'clang N ou plus récent', CLANG],
+    [
+        'README.md',
+        'après N redémarrages en pleine lecture',
+        codeNumber('scripts/check-device.py', /^REBOOTS_DURING_READS = (\d+)$/m)
+    ],
     ['CLAUDE.md', "older than CI's (N)", CLANG],
     ['docs/adr/0008-outils-figes.md', 'de la CI (N)', CLANG]
 ];

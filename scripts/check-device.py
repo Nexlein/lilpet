@@ -2,9 +2,9 @@
 # opening the port does not reboot it, it answers hello and tells its board, keeps the last of two looks sent in a row
 # across a reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad
 # commands and lines too long, which change nothing.
-# With a motion sensor, it reads about 1 g at rest; a board that has one must have it working. The board's own look and
-# usual mood are put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and
-# firmware/boards/<board>.
+# With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
+# has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
+# knows about a board comes from its hello and firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
 # uv installs pyserial, from scripts/requirements.txt.
 import re
@@ -41,6 +41,9 @@ REPORT_LINE = r"^(\d+\.\d) frames/s"
 MIN_FRAMES_PER_SECOND = 20
 REPORT_SECONDS = 60
 WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
+# Without the bus clear of firmware/main/board.c, these reboots left the I2C bus held, and the motion sensor lost until
+# the next boot, on 9 boots in 120 (issue #33): 40 of them catch it about 96 times in 100, in about 50 s
+REBOOTS_DURING_READS = 40
 
 failures = 0
 
@@ -78,13 +81,17 @@ def read_lines(port, seconds, until=None):
     return lines
 
 
-def reboot(port):
-    """Returns what the board prints from its boot to its first report, nothing if it does not boot. The ESP32-S3 USB
-    port reboots the chip when RTS is asserted without DTR (what esptool does)."""
+def reset(port):
+    """The ESP32-S3 USB port reboots the chip when RTS is asserted without DTR (what esptool does)"""
     port.dtr = False
     port.rts = True
     time.sleep(0.1)
     port.rts = False
+
+
+def reboot(port):
+    """Returns what the board prints from its boot to its first report, nothing if it does not boot"""
+    reset(port)
     boot = read_lines(port, BOOT_SECONDS, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
     if not (boot and BOOT_LINE in boot[0]):
         return []
@@ -197,6 +204,29 @@ def run_checks(port, board, test_look, other_look):
         except ValueError:
             g = 0.0
         check_reply(0.8 < g < 1.2, "reads gravity, about 1 g at rest", imu)
+        if 0.8 < g < 1.2:  # a sensor that does not work at rest says nothing more after a reboot
+            lost, silent = reboots_during_reads(port)
+            check(
+                lost == silent == 0,
+                f"keeps its motion sensor across {REBOOTS_DURING_READS} reboots during its reads",
+                f"lost on {lost} of {REBOOTS_DURING_READS} boots, no hello on {silent}" if lost or silent else "",
+            )
+
+
+def reboots_during_reads(port):
+    """Reboots the board while it answers a flood of motion sensor reads, so that resets land in the middle of an I2C
+    transfer; returns how many boots came back without the sensor, and how many did not answer hello"""
+    lost = silent = 0
+    for i in range(REBOOTS_DURING_READS):
+        port.write(b"> imu?\n" * 20)
+        time.sleep(i % 20 / 1000)  # from 0 to 19 ms: the reset lands while the board reads, at another point each time
+        reset(port)
+        read_lines(port, BOOT_SECONDS, until=BOOT_LINE)
+        read_lines(port, 1)  # until it reads: a board still booting keeps only a few bytes of what it is sent
+        hello = ask_hello(port)
+        silent += hello is None
+        lost += hello is not None and hello_fields(hello).get("motion") != "1"
+    return lost, silent
 
 
 def put_back(port, board, before):
