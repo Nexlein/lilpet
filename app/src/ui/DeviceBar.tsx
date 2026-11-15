@@ -11,6 +11,8 @@ export function DeviceBar({ state, onConnect, onDisconnect }: Props) {
     if (state.status === 'unsupported') return null; // said by the send note
     const connected = state.status === 'connected';
     const connecting = state.status === 'connecting';
+    // As the board says it in its hello, at any length: the bar cuts it, the tooltip shows it whole
+    const info = connected ? `${state.info.board}, firmware ${state.info.firmware}, moteur ${state.info.engine}` : '';
     return (
         <div className={connected ? 'device connected' : 'device'}>
             {state.status === 'idle' && state.error && (
@@ -24,9 +26,7 @@ export function DeviceBar({ state, onConnect, onDisconnect }: Props) {
                     <>
                         <span className="led" aria-hidden="true" />
                         lilpet est branché
-                        <small>
-                            {state.info.board}, firmware {state.info.firmware}, moteur {state.info.engine}
-                        </small>
+                        <small title={info}>{info}</small>
                     </>
                 )}
             </p>

@@ -399,6 +399,22 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await expect.poll(async () => (await sent(page)).at(-1)).toBe('> emotion sad');
 });
 
+test('cuts the board text that does not fit, and shows it whole in its tooltip', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 }); // a phone: the bar has the least room
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const board = 'x'.repeat(60); // what another firmware may say
+    const hello = FAKE_HELLO.replace(`board=${FAKE_INFO.board}`, `board=${board}`);
+    await page.evaluate((reply) => (window.board.hello = reply), hello);
+    await plugIn(page);
+    const info = page.locator('.device small');
+    await expect(info).toHaveAttribute('title', new RegExp(`^${board}, firmware`));
+    expect(await info.evaluate((element) => element.scrollWidth > element.clientWidth), 'cut').toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no scroll').toBe(
+        true
+    );
+});
+
 test('says when the flash refuses a look, and when the board does', async ({ page }) => {
     await page.addInitScript(fakeSerial);
     await page.goto(APP);
