@@ -33,6 +33,7 @@ export class Preview {
     }
 
     start(): void {
+        this.stop(); // a loop already running would go on after the next stop()
         this.#last = performance.now();
         const tick = (now: number) => {
             this.#pending = Math.min(this.#pending + (now - this.#last) / 1000, MAX_STEPS * STEP);
