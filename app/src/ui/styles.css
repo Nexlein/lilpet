@@ -150,6 +150,10 @@ button {
     color: #ffb4c0;
 }
 
+.device-note {
+    color: #ffd58a;
+}
+
 /* --- Stage: the device and the chosen look ------------------------------------------------------------------ */
 
 .stage {

@@ -42,6 +42,12 @@ export function parseHello(reply: string): DeviceInfo | null {
     return { firmware, engine, board };
 }
 
+// The part of an engine version that changes with the drawing: a patch does not
+const drawingVersion = (version: string): string => version.split('.', 2).join('.');
+
+// Whether a board's engine draws like the app's preview: their versions agree on the major and minor parts
+export const drawsLike = (board: string, app: string): boolean => drawingVersion(board) === drawingVersion(app);
+
 // The replies of the commands, as opposed to hello's: "ok" or "err <reason>" (docs/protocole.md)
 export const isCommandReply = (reply: string): boolean => reply === 'ok' || reply.startsWith('err');
 
