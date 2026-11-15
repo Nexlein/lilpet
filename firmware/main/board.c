@@ -4,6 +4,7 @@
 #include "driver/gpio.h"
 #include "esp_efuse.h"
 #include "esp_err.h"
+#include "esp_rom_sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "soc/efuse_defs.h"
@@ -45,6 +46,40 @@ bool board_button_pressed(void)
 }
 
 #ifdef BOARD_I2C_SDA
+/* Drives a pin of the bus by hand, open drain, then waits half a clock (100 kHz) */
+static void i2c_pin(int pin, int level)
+{
+    gpio_set_level(pin, level);
+    esp_rom_delay_us(5);
+}
+
+/*
+ * A chip reset in the middle of a read leaves the device that was answering with SDA held low, which blocks the whole
+ * bus: the motion sensor and the backlight. Nine clocks take it to the end of its byte and to the acknowledge, which
+ * the released SDA refuses; a STOP then ends the transfer. All nine: a high SDA may be a 1 of the byte. A write cut
+ * short gets 0xFF instead, which the drivers write over at boot. By hand, before the driver takes the pins: on the
+ * ESP32-S3 the driver's bus clear (i2c_master_bus_reset) does not wait for its end.
+ */
+static void i2c_free_bus(void)
+{
+    gpio_set_level(BOARD_I2C_SCL, 1);
+    gpio_set_level(BOARD_I2C_SDA, 1);
+    const gpio_config_t pins = {.pin_bit_mask = (1ULL << BOARD_I2C_SDA) | (1ULL << BOARD_I2C_SCL),
+                                .mode = GPIO_MODE_OUTPUT_OD,
+                                .pull_up_en = GPIO_PULLUP_ENABLE};
+    gpio_config(&pins);
+    for (int clock = 0; clock < 9; clock++) {
+        i2c_pin(BOARD_I2C_SCL, 0);
+        i2c_pin(BOARD_I2C_SCL, 1);
+    }
+    i2c_pin(BOARD_I2C_SCL, 0); /* STOP: SDA rises while SCL is high */
+    i2c_pin(BOARD_I2C_SDA, 0);
+    i2c_pin(BOARD_I2C_SCL, 1);
+    i2c_pin(BOARD_I2C_SDA, 1);
+    gpio_reset_pin(BOARD_I2C_SDA); /* gpio_config reserved them: the driver reserves them again */
+    gpio_reset_pin(BOARD_I2C_SCL);
+}
+
 i2c_master_bus_handle_t board_i2c(void)
 {
     static i2c_master_bus_handle_t bus;
@@ -58,6 +93,7 @@ i2c_master_bus_handle_t board_i2c(void)
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
     };
+    i2c_free_bus();
     if (i2c_new_master_bus(&config, &bus) != ESP_OK) {
         printf("cannot start the I2C bus\n");
         bus = NULL;
