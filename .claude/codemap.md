@@ -320,7 +320,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_save_if_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
-- **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
+- **look_store.c** (56) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h
 - **look_store.h** (15) — The look chosen in the PC app, kept in flash (NVS) across power cycles
