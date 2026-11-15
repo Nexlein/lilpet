@@ -126,9 +126,31 @@ describe('connection', () => {
 
     it('asks hello again when a reply left from before a reload answers the first one', async () => {
         const device = fakePort(firmware(), { atOpen: '< ok\n', delay: () => 5 });
-        const connection = await Connection.open(device.port);
+        const logs: string[] = [];
+        const connection = await Connection.open(device.port, { onLog: (l) => logs.push(l) });
         expect((await hello(connection)).firmware).toBe(FAKE_INFO.firmware);
         expect(device.sent).toEqual([HELLO, HELLO]);
+        // The second hello's reply comes after: the look behind it does not take it for its own
+        expect(await sendLook(connection, makeLook(findSwatch('kite')!, 'cat'))).toBe('kept');
+        expect(logs).toContain(`< ${FAKE_HELLO}`);
+        await connection.close();
+    });
+
+    it('logs a hello reply that comes after its timeout, instead of taking it for the next command reply', async () => {
+        vi.useFakeTimers();
+        const waits = [1200, 0, 300, 300]; // the first hello answers late, after the second one
+        const device = fakePort(firmware(), { delay: () => waits.shift() ?? 0 });
+        const logs: string[] = [];
+        const connection = await Connection.open(device.port, { onLog: (l) => logs.push(l) });
+        const look = makeLook(findSwatch('kite')!, 'cat');
+        const sending = (async () => {
+            await hello(connection);
+            return [await sendLook(connection, look), await sendLook(connection, look)];
+        })();
+        await vi.advanceTimersByTimeAsync(3000);
+        vi.useRealTimers();
+        expect(await sending).toEqual(['kept', 'kept']);
+        expect(logs).toContain(`< ${FAKE_HELLO}`);
         await connection.close();
     });
 

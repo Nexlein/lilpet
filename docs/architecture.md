@@ -79,7 +79,9 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 
 ### Limites connues, à reprendre quand elles gêneront
 
-- Le protocole n'a pas d'identifiants : l'app associe une réponse à une demande par ordre d'arrivée.
+- Le protocole n'a pas d'identifiants : l'app associe une réponse à une demande par ordre d'arrivée. Elle écarte une
+  réponse d'un autre genre (un `hello` arrivé après son délai, pris sinon pour la réponse d'un look), mais deux
+  réponses en retard du même genre peuvent encore s'échanger.
 - Le WebAssembly garde une seule instance d'yeux, ce que l'éditeur devra changer.
 - `lp_eyes_set_shape` accepte toute inclinaison : la rotation des émotions (jusqu'à -1,2 rad) a été réglée pour
   l'inclinaison mesurée (0,37 rad), et au-delà un œil peut tourner de plus d'un quart de tour. L'éditeur des yeux devra

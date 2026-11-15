@@ -186,6 +186,46 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('tells a line on its way once, the others in the order they came, and the same again once answered', async () => {
+        const device = fakePort(firmware());
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        for (const mood of ['happy', 'happy', 'sad', 'sad', 'happy']) session.emotion(mood);
+        session.react('tap');
+        session.react('tap');
+        await session.send(kite); // behind them in the queue: all answered by now
+        session.react('tap');
+        await session.send(kite);
+        const look = '> look 7DB5F4 C10787 C10787 dot';
+        expect(device.sent.slice(1)).toEqual([
+            '> emotion happy',
+            '> emotion sad',
+            '> emotion happy',
+            '> react tap',
+            look,
+            '> react tap',
+            look
+        ]);
+        await session.disconnect();
+    });
+
+    it('holds a look back by one mood only, however many clicks on that mood a silent board got', async () => {
+        const answer = firmware();
+        const device = fakePort((c) => (c === HELLO ? answer(c) : null));
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        vi.useFakeTimers();
+        for (let i = 0; i < 30; i++) session.emotion('happy');
+        let failed = false;
+        const look = session.send(kite).catch(() => (failed = true));
+        await vi.advanceTimersByTimeAsync(500 + 2000);
+        vi.useRealTimers();
+        expect(failed).toBe(true);
+        await look;
+        expect(device.sent.filter((line) => line === '> emotion happy')).toHaveLength(1);
+        await session.disconnect();
+    });
+
     it('gives the last mood picked to a board plugged in later, each time', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
@@ -209,6 +249,43 @@ describe('device session', () => {
         await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']));
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
+    });
+
+    it('asks one hello at a time of a board that restarts in a loop, one more after the last boot, then each time', async () => {
+        const device = fakePort(firmware(), { delay: () => 50 });
+        const session = new DeviceSession(async () => device.port);
+        session.emotion('sad');
+        await session.connect();
+        await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
+        for (let i = 0; i < 5; i++) device.log('I (250) main_task: Calling app_main()');
+        await vi.waitFor(() => expect(device.sent).toHaveLength(6));
+        await new Promise((r) => setTimeout(r, 200)); // time for a third hello, if there were one
+        expect(device.sent.slice(2)).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']);
+        device.log('I (250) main_task: Calling app_main()'); // once over, a boot gets its hello again
+        await vi.waitFor(() => expect(device.sent.slice(6)).toEqual([HELLO, '> emotion sad']));
+        await session.disconnect();
+    });
+
+    it('stops asking hello of a board that restarted in a loop once it is unplugged', async () => {
+        let booted = false;
+        const answer = firmware();
+        const device = fakePort((c) => (booted ? null : answer(c))); // silent after the boots
+        const session = new DeviceSession(async () => device.port);
+        await session.connect();
+        booted = true;
+        device.log('I (250) main_task: Calling app_main()');
+        device.log('I (250) main_task: Calling app_main()');
+        await vi.waitFor(() => expect(device.sent).toHaveLength(2));
+        const close = device.port.close;
+        device.port.close = async () => {
+            await new Promise((r) => setTimeout(r, 20)); // as a real port: the session hears of it a moment later
+            await close();
+        };
+        device.readError({ fatal: true });
+        const unplugged = '> hello : lilpet n’est plus branché.';
+        await vi.waitFor(() => expect(session.snapshot().log).toContain(unplugged));
+        await new Promise((r) => setTimeout(r, 50)); // time for another hello, if there were one
+        expect(session.snapshot().log.filter((line) => line === unplugged)).toHaveLength(1);
     });
 
     it('asks only hello of a board that restarted before any mood was picked', async () => {
@@ -252,7 +329,7 @@ describe('device session', () => {
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         vi.useFakeTimers();
-        for (let i = 0; i < 10; i++) session.emotion('happy');
+        for (let i = 0; i < 10; i++) session.emotion(i % 2 ? 'happy' : 'sad'); // each one differs from the last
         const look = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
         await vi.advanceTimersByTimeAsync(10 * 500 + 2000);
         vi.useRealTimers();

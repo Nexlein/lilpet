@@ -33,7 +33,8 @@ from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_U
 LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
 BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
-SCREEN_FAULTS = ("not recognized", "backlight:")  # only the log tells them: everything else works with a black screen
+# Only the log tells them: everything else works with a black screen
+SCREEN_FAULTS = ("not recognized", "backlight:", "no TE signal")
 REPORT_LINE = r"^(\d+\.\d) frames/s"
 # Catches a dead or crawling drawing loop, not a slow screen: a board reports every LP_BENCH_FRAMES frames
 # (engine/tools/bench_script.h), and REPORT_SECONDS waits for a whole round at this rate (a test checks it)
