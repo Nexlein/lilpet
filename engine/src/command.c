@@ -95,6 +95,7 @@ const char *lp_command_parse(const lp_command_line *line, lp_command *out)
     char *args = name + strcspn(name, " ");
     if (*args != '\0')
         *args++ = '\0';
+    args += strspn(args, " "); /* as many spaces after the name as between the words */
 
     if (strcmp(name, "hello") == 0 && *args == '\0') {
         out->type = LP_COMMAND_HELLO;

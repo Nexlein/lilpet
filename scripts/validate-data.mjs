@@ -1,6 +1,6 @@
 // Checks the data files the renderers read:
-// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye shape and
-//   pupil types, which the engine's table is generated from
+// - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye shape (both
+//   eyes on the screen) and pupil types, which the engine's table is generated from
 // - eyes/emotions.json: emotions and reactions, with known fields in their ranges; each reaction names a known emotion,
 //   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - engine/tests/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
@@ -111,6 +111,22 @@ for (const [k, min, max] of [
     ['tilt', 0, MEASURED_TILT]
 ])
     if (!isNum(looks?.eye?.[k], min, max)) errors.push(`${LOOKS}: "eye.${k}" must be between ${min} and ${max}`);
+// At rest, each eye is its tilted ellipse, gap from the middle (engine/src/pose.c): its outline, sampled every degree,
+// stays on the round screen
+const eye = looks?.eye ?? {};
+if (['rx', 'ry', 'gap', 'tilt'].every((k) => isNum(eye[k]))) {
+    const [cos, sin] = [Math.cos(eye.tilt), Math.sin(eye.tilt)];
+    const reach = Math.max(
+        ...Array.from({ length: 360 }, (_, degree) => {
+            const [x, y] = [eye.rx * Math.cos((degree * Math.PI) / 180), eye.ry * Math.sin((degree * Math.PI) / 180)];
+            return Math.hypot(eye.gap + x * cos - y * sin, x * sin + y * cos);
+        })
+    );
+    if (reach > HALF_SCREEN)
+        errors.push(
+            `${LOOKS}: the eyes reach ${reach.toFixed(1)} px from the middle, past the round screen's ${HALF_SCREEN}`
+        );
+}
 if (!isNum(looks?.pupilLean, 0, 0.5)) errors.push(`${LOOKS}: "pupilLean" must be between 0 and 0.5 radians`);
 // Every pupil type of the engine, in fractions of the eye radii; the renderer draws circle as a disc (r)
 eachRow(LOOKS, looks?.pupils, 'pupils', PUPILS, ['rx', 'ry', 'r', 'x', 'y'], (pupil, fail, id) => {

@@ -45,6 +45,7 @@ interface ConnectionEvents {
 }
 
 interface Pending {
+    accepts(reply: string): boolean;
     resolve(reply: string): void;
     reject(error: Error): void;
 }
@@ -116,14 +117,17 @@ export class Connection {
 
     #handle(line: string): void {
         const parsed = classify(line);
-        if (parsed.kind === 'reply' && this.#pending) this.#pending.resolve(parsed.text);
+        if (parsed.kind === 'reply' && this.#pending?.accepts(parsed.text)) this.#pending.resolve(parsed.text);
         else if (line) this.#events.onLog?.(line);
     }
 
-    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies keep their order.
-    // shortcut: replies carry no id, so one that comes after its timeout answers the next request. Telling them apart
-    // takes a protocol change on both sides; a board that slow is already reported as not answering.
-    request(command: string, timeoutMs = 2000): Promise<string> {
+    // Sends a command and resolves with its reply. Commands wait for the previous one, so replies keep their order. A
+    // reply that `accepts` refuses, such as a hello's answering a look after its timeout, goes to the log, and the
+    // request waits on for its own.
+    // shortcut: replies carry no id, so a late reply of the same kind (a command's "ok" after its timeout) still
+    // answers the next request. Telling those apart takes a protocol change on both sides; a board that slow is already
+    // reported as not answering.
+    request(command: string, timeoutMs = 2000, accepts: (reply: string) => boolean = () => true): Promise<string> {
         const run = () =>
             new Promise<string>((resolve, reject) => {
                 const done = () => {
@@ -135,6 +139,7 @@ export class Connection {
                     reject(new NoReply(command));
                 }, timeoutMs);
                 this.#pending = {
+                    accepts,
                     resolve: (reply) => {
                         done();
                         resolve(reply);

@@ -1,7 +1,7 @@
 // What the app asks the device, on top of a connection
 import type { Look } from '../data/looks';
 import { ConnectionClosed, type Connection } from './connection';
-import { HELLO, lookCommand, parseHello, parseReply, type DeviceInfo } from './protocol';
+import { HELLO, isCommandReply, lookCommand, parseHello, parseReply, type DeviceInfo } from './protocol';
 
 const HELLO_ATTEMPTS = 3;
 const HELLO_TIMEOUT_MS = 1000;
@@ -41,7 +41,7 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
 
 // Sends a line and fails unless the board took it
 async function ask(connection: Connection, line: string, timeoutMs?: number): Promise<'ok' | 'shown'> {
-    const reply = parseReply(await connection.request(line, timeoutMs));
+    const reply = parseReply(await connection.request(line, timeoutMs, isCommandReply));
     if (reply.kind === 'busy') throw new BoardBusy();
     if (reply.kind === 'refused') throw new Error(reply.reason);
     return reply.kind;

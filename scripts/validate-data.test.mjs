@@ -70,6 +70,11 @@ test('the data files are valid', async () => {
     assert.deepEqual(await validate(), { status: 0, stderr: '' });
 });
 
+test('upright eyes that reach the edge of the screen are valid', async () => {
+    const status = await validate(LOOKS, (d) => Object.assign(d.eye, { gap: 233 - d.eye.rx, tilt: 0 }));
+    assert.deepEqual(status, { status: 0, stderr: '' });
+});
+
 const sleepy = (d) => d.scenes.find((s) => s.id === 'emotion-sleepy');
 
 const CASES = [
@@ -91,6 +96,14 @@ const CASES = [
     [LOOKS, 'an unknown default pupil', (d) => (d.default.pupil = 'star'), '"default.pupil" must be'],
     [LOOKS, 'no eye shape', (d) => delete d.eye, '"eye.rx" must be'],
     [LOOKS, 'an eye wider than the screen', (d) => (d.eye.rx = 300), '"eye.rx" must be'],
+    [LOOKS, 'eyes too far apart for the screen', (d) => (d.eye.gap = 141), 'past the round screen'],
+    [LOOKS, 'tilted eyes that cross the edge', (d) => (d.eye.gap = 233 - d.eye.rx), 'past the round screen'],
+    [
+        LOOKS,
+        'tall eyes that cross the rim',
+        (d) => Object.assign(d.eye, { rx: 50, ry: 200, gap: 150, tilt: 0 }),
+        'past the round screen'
+    ],
     [LOOKS, 'more tilt than measured', (d) => (d.eye.tilt = 0.5), '"eye.tilt" must be'],
     [LOOKS, 'no pupil lean', (d) => delete d.pupilLean, '"pupilLean" must be'],
     [LOOKS, 'a pupil type missing', (d) => delete d.pupils.cat, '"pupils.cat" is missing'],
