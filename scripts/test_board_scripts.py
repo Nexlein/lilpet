@@ -30,6 +30,7 @@ LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COM
 SAVE_GAP = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6  # seconds
 # Seconds: the firmware may notice that a late look's turn came this much later (read_line in commands.c)
 READ_WAIT = c_define(COMMANDS, "READ_WAIT_MS") / 1000
+QUEUE_SLOTS = c_define(COMMANDS, "QUEUE_SLOTS")
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = rf"[0-9A-F]{{6}} [0-9A-F]{{6}} [0-9A-F]{{6}} ({'|'.join(pupil_types())})"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -497,6 +498,10 @@ class DeviceCheck(unittest.TestCase):
 
     def test_passes_a_healthy_board(self):
         self.assert_passes(Board("atoms3r"))
+
+    def test_sends_a_burst_the_size_of_the_firmware_s_queue(self):
+        _, out, _ = check_device(Board("atoms3r"))
+        self.assertIn(f"ok   answers a burst of {QUEUE_SLOTS} commands", out)
 
     def test_passes_a_board_whose_lines_come_in_two_parts(self):
         self.assert_passes(Board("atoms3r", cut=12))
