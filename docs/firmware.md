@@ -23,8 +23,10 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
 ## Ce que fait le firmware
 
 - Il affiche les yeux en direct, qui vivent seuls (saccades, clignements, tête qui suit le regard), avec le look choisi
-  dans l'app PC (le look par défaut de `eyes/looks.json`, cherry, tant qu'aucun n'a été envoyé). Les commandes de l'app
-  arrivent par le port USB, celles du futur modèle arriveront par l'UART ([protocole](protocole.md)).
+  dans l'app PC (le look par défaut de `eyes/looks.json`, cherry, tant qu'aucun n'a été envoyé, ou si celui gardé en
+  flash ne se lit pas, écrit par un firmware qui connaissait un autre type de pupille, ce que le journal dit au
+  démarrage ; un look abîmé en flash, NVS l'efface en lisant). Les commandes de l'app arrivent par le port USB, celles
+  du futur modèle arriveront par l'UART ([protocole](protocole.md)).
 - Toutes les `LP_BENCH_FRAMES` images (la longueur de l'animation de mesure, `engine/tools/bench_script.h`), il écrit
   sur le port USB le nombre d'images par seconde, le temps de dessin, le temps de dessin plus envoi, et la part de
   l'écran redessinée (`mise run firmware:monitor` pour les lire).

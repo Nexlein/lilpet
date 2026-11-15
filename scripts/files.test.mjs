@@ -20,6 +20,7 @@ test('every group that a command names exists and holds tracked files', () => {
 test("a group takes dotfiles, and others' sources stay out", () => {
     const js = trackedFiles('js');
     assert.ok(js.includes('.lintstagedrc.mjs') && js.includes('app/src/ui/hooks.ts'));
+    assert.ok(js.includes('engine/wasm/engine.d.mts'), 'the type declarations are linted too');
     assert.ok(trackedFiles('c').includes('firmware/third_party/bmi270/bmi270_config.h'));
     assert.ok(!trackedFiles('c').includes('firmware/third_party/bmi270/bmi270_config.c')); // others' sources stay
 });

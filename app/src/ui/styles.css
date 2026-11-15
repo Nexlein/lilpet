@@ -90,6 +90,7 @@ button {
 
 .device {
     display: flex;
+    min-width: 0; /* in the header's row, it may shrink: the board text is cut, not the window widened */
     align-items: center;
     gap: 14px;
     color: var(--haze);
@@ -97,6 +98,7 @@ button {
 }
 
 .device p {
+    min-width: 0; /* the same, for the text beside the button */
     margin: 0;
 }
 
@@ -125,8 +127,12 @@ button {
 
 .device.connected small {
     display: block;
+    max-width: 44ch;
+    overflow: hidden;
     color: var(--haze);
     font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .led {
@@ -142,6 +148,10 @@ button {
 .device-error {
     max-width: 44ch;
     color: #ffb4c0;
+}
+
+.device-note {
+    color: #ffd58a;
 }
 
 /* --- Stage: the device and the chosen look ------------------------------------------------------------------ */

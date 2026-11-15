@@ -57,6 +57,19 @@ describe('preview', () => {
         expect(drawn).toHaveBeenCalledOnce();
     });
 
+    it('runs one loop however many times it is started, which stop() stops', () => {
+        const { preview } = stage();
+        const frames = new Map<number, FrameRequestCallback>(); // every frame asked for and not cancelled
+        let id = 0;
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.set(++id, callback) && id);
+        vi.stubGlobal('cancelAnimationFrame', (frame: number) => frames.delete(frame));
+        preview.start();
+        preview.start();
+        expect(frames.size).toBe(1);
+        preview.stop();
+        expect(frames.size).toBe(0);
+    });
+
     it('puts the whole first frame, then only the region the engine changed', () => {
         const { drawn, preview, tick } = stage();
         preview.start();

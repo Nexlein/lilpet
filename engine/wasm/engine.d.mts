@@ -30,6 +30,7 @@ export interface Region {
 }
 
 export interface Engine {
+    version: string; // MAJOR.MINOR.PATCH, as lp_version
     size: number;
     emotions: string[];
     renderScene(scene: Scene, look: Look): Uint8ClampedArray<ArrayBuffer>;

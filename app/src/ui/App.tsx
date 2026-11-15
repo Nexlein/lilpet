@@ -30,7 +30,12 @@ export function App() {
         <div style={theme(swatch)}>
             <header className="top">
                 <p className="wordmark">lilpet</p>
-                <DeviceBar state={device.state} onConnect={device.connect} onDisconnect={device.disconnect} />
+                <DeviceBar
+                    state={device.state}
+                    appEngine={engine.status === 'ready' ? engine.engine.version : null}
+                    onConnect={device.connect}
+                    onDisconnect={device.disconnect}
+                />
             </header>
 
             <main className="layout">

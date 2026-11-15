@@ -14,7 +14,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
 - **no-secrets.sh** (20) — Blocks commits that stage .env files or secrets (gitleaks, from mise.toml: the hook runs inside mise, and refuses the commit if gitleaks is still m...
-- **pre-commit** (8) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
+- **pre-commit** (9) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
 - **pre-push** (8) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## app
@@ -57,10 +57,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **fake-port.ts** (115) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
   - exports: FAKE_INFO, FAKE_HELLO, firmware, fakePort
   - → app/src/device/connection.ts, app/src/device/protocol.ts
-- **protocol.ts** (80) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
-  - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, isCommandReply, parseReply, MAX_LINE, LineSplitter
+- **protocol.ts** (86) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
+  - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, drawsLike, isCommandReply, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
-  - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts
+  - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/DeviceBar.tsx
 - **session.ts** (162) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
@@ -68,21 +68,21 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
-- **preview.ts** (82) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
+- **preview.ts** (83) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
   - exports: loadEyeEngine, Preview, pointerIn, Engine
   - → engine/wasm/engine.mjs
   - ← app/src/ui/Screen.tsx, app/src/ui/hooks.ts
 - tests: preview.test.ts
 
 ## app/src/ui
-- **App.tsx** (54) — lilpet PC app: pick the eyes, see them live, send them to the device
+- **App.tsx** (59) — lilpet PC app: pick the eyes, see them live, send them to the device
   - exports: App
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
   - packages: react
   - ← app/src/main.tsx
-- **DeviceBar.tsx** (39) — Connection to the device, in the header
+- **DeviceBar.tsx** (53) — Connection to the device, in the header
   - exports: DeviceBar
-  - → app/src/device/session.ts
+  - → app/src/device/protocol.ts, app/src/device/session.ts
   - ← app/src/ui/App.tsx
 - **DeviceLog.tsx** (34) — What the device writes, in a folding panel that follows the last line unless it was scrolled up.
   - exports: DeviceLog
@@ -123,7 +123,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: PUPIL_LABELS, EMOTION_LABELS, FAMILY_LABELS, FAMILY_COLORS
   - → eyes/emotions.json, app/src/data/looks.ts
   - ← app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx
-- **styles.css** (556) — lilpet app.
+- **styles.css** (566) — lilpet app.
   - ← app/src/main.tsx
 
 ## app/tests
@@ -136,7 +136,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
 
 ## engine/include/lilpet
-- **lilpet.h** (375) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
+- **lilpet.h** (376) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_event, lp_reaction, lp_reaction_get, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
   - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
@@ -224,7 +224,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (51) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
+- **engine.d.mts** (52) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
   - → eyes/emotions.json
 - **engine.mjs** (102) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
@@ -320,7 +320,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_save_if_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
-- **look_store.c** (46) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
+- **look_store.c** (56) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h
 - **look_store.h** (15) — The look chosen in the PC app, kept in flash (NVS) across power cycles
@@ -345,7 +345,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (286) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+- **check-device.py** (289) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, check, check_reply, read_lines, reset, reboot, open_booted_board, finish, run_checks, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml

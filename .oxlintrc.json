@@ -33,7 +33,7 @@
             }
         },
         {
-            "files": ["app/src/data/**", "app/src/device/**", "app/src/engine/**"],
+            "files": ["app/src/**"],
             "rules": {
                 "no-restricted-imports": [
                     "error",
@@ -46,6 +46,12 @@
                         ]
                     }
                 ]
+            }
+        },
+        {
+            "files": ["app/src/ui/**", "app/src/main.tsx"],
+            "rules": {
+                "no-restricted-imports": "off"
             }
         }
     ]

@@ -87,3 +87,7 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
   l'inclinaison mesurée (0,37 rad), et au-delà un œil peut tourner de plus d'un quart de tour. L'éditeur des yeux devra
   la borner.
 - Les lignes de particules parcourent toute leur boîte : les limiter aux colonnes touchées déplaçait un pixel.
+- Chaque particule garde un polygone de `LP_POLY_MAX` (64) points, la taille du trait de l'œil fermé, quand un cœur ou
+  une étincelle en prend 24 : environ 10 Ko de mémoire interne jamais écrits. Les réduire demande un autre type de
+  polygone dans `render_state.h`, public, donc une nouvelle version mineure du moteur et une mesure sur les cartes ; à
+  reprendre quand la mémoire manquera (#38).

@@ -6,6 +6,7 @@ import {
     LineSplitter,
     MAX_LINE,
     classify,
+    drawsLike,
     emotionCommand,
     lookCommand,
     parseHello,
@@ -69,6 +70,13 @@ describe('protocol', () => {
         expect(parseHello('something else')).toBeNull();
         expect(parseHello('lilpet fw=1')).toBeNull();
         expect(parseHello('lilpet fw=2e62a96 engine=0.6.0')).toBeNull();
+    });
+
+    it('tells an engine that draws like the preview from one that may not', () => {
+        expect(drawsLike('0.15.1', '0.15.0')).toBe(true); // a patch does not change the drawing
+        expect(drawsLike('0.14.2', '0.15.1')).toBe(false);
+        expect(drawsLike('1.15.0', '0.15.0')).toBe(false);
+        expect(drawsLike('dev', '0.15.0')).toBe(false); // not a version: it may draw anything
     });
 
     it('reads replies', () => {

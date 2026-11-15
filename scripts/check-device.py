@@ -56,6 +56,8 @@ class Board:
 
 
 LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
+# Commands the drawing loop's queue holds between two frames: a burst that size fits without a busy reply
+QUEUE_SLOTS = c_define(ROOT / "firmware" / "main" / "commands.c", "QUEUE_SLOTS")
 # A look sent sooner than this after the last write to flash is written once this time has passed
 SAVE_GAP_SECONDS = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
 
@@ -189,7 +191,8 @@ def run_checks(port, board, test_look, other_look):
         reply = ask(port, command)
         check_reply(bool(reply) and reply.startswith("err "), f'rejects "{command}"', reply)
 
-    burst = 30  # sent at once: the queue to the drawing loop holds them all, with no wait that would drop a packet
+    time.sleep(1 / MIN_FRAMES_PER_SECOND)  # a frame at the slowest rate allowed: the last command accepted is drawn
+    burst = QUEUE_SLOTS  # sent at once: the queue holds them all, with no wait that would drop a packet
     port.write(b"> react tap\n" * burst)
     replies = [read_reply(port) for _ in range(burst)]
     expected = f"{replies.count(accepted)} as expected"
