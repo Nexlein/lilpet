@@ -4,7 +4,7 @@ min_version = "2026.11.0"
 
 [tools]
 # Exact versions, the same locally and in CI (jdx/mise-action): a new release cannot turn CI red on unchanged code.
-# Renovate opens a pull request for each new release (.github/renovate.json5), which CI checks before it is merged.
+# Renovate groups the new releases in one weekly pull request (.github/renovate.json5), which CI checks first.
 node = "26.13.0" # the current LTS line
 # Secret scan of the git pre-commit hook (.husky/no-secrets.sh)
 gitleaks = "8.30.1"

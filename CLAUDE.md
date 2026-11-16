@@ -35,8 +35,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   or removing a board (also in ci.yml's board list, which a test checks), means updating both rulesets.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
-- Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate and Dependabot propose each update as a pull
-  request against `dev` (`docs/adr/0008-outils-figes.md`).
+- Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate (one grouped pull request a week) and
+  Dependabot propose the updates as pull requests against `dev` (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals: recreate the style, never copy their assets. `references/`
   (frame sheets of third-party videos, behind `docs/yeux.md`) stays local, ignored by git, never published.
 - After changing `eyes/*.json`, `engine/tests/scenes.json`, `scripts/expression.mjs` or `sceneFields` in

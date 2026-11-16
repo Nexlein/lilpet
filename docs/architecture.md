@@ -65,8 +65,10 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
 - **App et vraie carte dans Chrome** : les pannes de port (écriture morte, réponse restée en attente) sont prouvées sur
   un faux port seulement.
-- **Renovate** : réactivé le 9 novembre 2026 sur le dépôt recréé. Vérifier à sa première pull request qu'il suit les
-  `tools` des tâches de `mise.toml` et `scripts/requirements.txt`.
+- **Renovate** : il voit les outils de `mise.toml`, ceux de ses tâches (esptool) et `scripts/requirements.txt`, mais
+  n'a encore ouvert aucune pull request. Tant qu'aucune n'est fusionnée, Mend ne le lance qu'une fois par jour, à une
+  heure quelconque, qui ne tombait jamais dans son ancien créneau du lundi matin : il couvre désormais tout le lundi.
+  Vérifier sa pull request groupée le lundi 23 novembre 2026.
 
 ### À décider ou à construire pour l'objet final
 
