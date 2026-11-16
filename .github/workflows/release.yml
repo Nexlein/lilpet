@@ -1,0 +1,82 @@
+# On a version tag, checks the tagged commit with the whole CI, then publishes a GitHub Release that holds the firmware
+# of each board: the CI artifacts expire after 30 days, a Release stays. The tag is annotated (git tag -a) and its
+# message becomes the release notes.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  # Before the 20 minutes of CI: the tag is annotated, names the firmware version it publishes (a tag pushed before the
+  # bump would label old firmware) and is on main. Through the API: no checkout for one file.
+  tag:
+    name: Check the tag
+    runs-on: ubuntu-26.04
+    timeout-minutes: 2
+    outputs:
+      object: ${{ steps.tag.outputs.object }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - id: tag
+        name: Check the tag against the firmware version and main
+        shell: bash # with pipefail: a failed gh api stops here, not as an empty version
+        run: |
+          object=$(gh api "repos/$GH_REPO/git/ref/tags/$GITHUB_REF_NAME" \
+            -q 'select(.object.type == "tag") | .object.sha')
+          if [ -z "$object" ]; then echo "::error::$GITHUB_REF_NAME is not an annotated tag" && exit 1; fi
+          version=$(gh api "repos/$GH_REPO/contents/firmware/CMakeLists.txt?ref=$GITHUB_SHA" \
+            -H 'Accept: application/vnd.github.raw' | sed -n 's/^set(PROJECT_VER "\([^"]*\)").*/\1/p')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::$GITHUB_REF_NAME tags firmware version '$version' (firmware/CMakeLists.txt)" && exit 1
+          fi
+          on_main=$(gh api "repos/$GH_REPO/compare/main...$GITHUB_SHA" \
+            -q '.status == "identical" or .status == "behind"')
+          if [ "$on_main" != true ]; then
+            echo "::error::$GITHUB_REF_NAME tags a commit that is not on main" && exit 1
+          fi
+          echo "object=$object" >> "$GITHUB_OUTPUT"
+
+  # The same jobs as for a pull request (ci.yml), run on the tagged commit, with no step copied here. The permissions
+  # are given again: without them, a called workflow gets the token's default ones.
+  ci:
+    needs: tag
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  release:
+    name: GitHub Release
+    needs: [tag, ci]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: write # creates the Release; this job only
+    steps:
+      # One folder per board, firmware-<board>, from the esp32 jobs of this run. With a single board, download-artifact
+      # would extract it without its folder, and the next step would find nothing to zip.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: firmware-*
+
+      # The boards' files share their names: one zip per board, which keeps the folders that flash_args names
+      - name: Zip the firmware of each board
+        run: |
+          for dir in firmware-*/; do
+            board=${dir#firmware-}
+            (cd "$dir" && zip -r "../lilpet-$GITHUB_REF_NAME-${board%/}.zip" .)
+          done
+
+      - name: Publish the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_OBJECT: ${{ needs.tag.outputs.object }}
+        run: |
+          notes=$(gh api "repos/$GH_REPO/git/tags/$TAG_OBJECT" -q .message)
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" lilpet-*.zip

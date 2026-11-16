@@ -133,7 +133,10 @@ carte : un check requis dont le job n'existe plus reste en attente et bloque cha
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
-la rebrancher. La CI garde aussi les binaires (`firmware-<carte>` dans les artefacts des jobs ESP32-S3).
+la rebrancher. La CI garde aussi les binaires 30 jours (`firmware-<carte>` dans les artefacts des jobs ESP32-S3). Un tag
+de version annoté (`git tag -a vX.Y.Z` sur `main`, X.Y.Z étant la version du firmware de `firmware/CMakeLists.txt`,
+puis push du tag) les publie pour de bon : `release.yml` relance la CI sur ce commit, puis crée une Release GitHub avec
+un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes.
 
 ## Arborescence
 
