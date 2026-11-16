@@ -34,6 +34,19 @@ run = ["mise install", "npm ci", "npm exec -w app -- playwright install --only-s
 description = "Everything a change must pass: npm run check, the engine checks with the reference renders, the PC app in a browser (Docker for the WebAssembly build); firmware changes add firmware:build-all"
 run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
+[tasks."github:rulesets"]
+description = "Apply the rulesets of .github/rulesets to the GitHub repo (gh, logged in): replaces each one with the same name, or creates it"
+# scripts/ci.test.mjs checks the files against the CI jobs; GitHub enforces what was last sent to it
+run = '''
+for file in .github/rulesets/*.json; do
+  name=$(node -p "require('./$file').name") || exit 1
+  id=$(gh api 'repos/{owner}/{repo}/rulesets' -q ".[] | select(.name == \"$name\") | .id") || exit 1
+  if [ -n "$id" ]; then method=PUT endpoint="rulesets/$id"; else method=POST endpoint=rulesets; fi
+  gh api -X "$method" "repos/{owner}/{repo}/$endpoint" --input "$file" > /dev/null || exit 1
+  echo "$file: $method $name"
+done
+'''
+
 # --- C engine tasks: `mise run engine:check` runs them all, like CI ---------------------------------------------------
 [tasks."engine:test"]
 description = "Build and run the engine tests on the host, with AddressSanitizer and UBSan"

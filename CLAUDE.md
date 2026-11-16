@@ -30,9 +30,10 @@ model that will choose the reactions does not exist yet; what it will send is re
   is not a module (`scripts/docs.test.mjs`); the app's browser tests are in `app/tests`, the engine's in `engine/tests`,
   the firmware's pure parts in `firmware/tests` (run with the engine's).
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
-  pull requests with every required CI check green, merged with a merge commit (GitHub rulesets: no direct push, no
-  force push, no deletion). The rulesets name the required checks by job name: renaming a CI job, or adding, renaming
-  or removing a board (also in ci.yml's board list, which a test checks), means updating both rulesets.
+  pull requests with every required CI check green, merged with a merge commit (GitHub rulesets, kept in
+  `.github/rulesets/`: no direct push, no force push, no deletion). The rulesets name the required checks by job name,
+  which a test checks against ci.yml: renaming a CI job, or adding, renaming or removing a board (also in ci.yml's board
+  list), means editing both files, then applying them with `mise run github:rulesets`.
 - C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
 - Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate (one grouped pull request a week) and
