@@ -1,7 +1,7 @@
 // The built PC app (npm run app:build) opens, runs the C engine, picks looks and talks to a board over a fake serial
 // port. npm run test:playwright builds it first. Run alone, these tests are skipped until the app is built, and fail
 // in CI if the build is missing.
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { expect, test as base } from '@playwright/test';
 import { FAKE_HELLO, FAKE_INFO, fakePort } from '../src/device/fake-port.ts';
 
@@ -34,6 +34,11 @@ test.skip(
 
 // The fake board's hello and info, as the status shows them
 const SHOWN_INFO = `${FAKE_INFO.board}, firmware ${FAKE_INFO.firmware}, moteur ${FAKE_INFO.engine}`;
+// The engine version of the app's preview, from engine/include/lilpet/lilpet.h: the fake board's is another one
+const ENGINE_H = readFileSync(new URL('../../engine/include/lilpet/lilpet.h', import.meta.url), 'utf8');
+const APP_ENGINE = ['MAJOR', 'MINOR', 'PATCH'].map(
+    (part) => new RegExp(`#define LP_VERSION_${part} (\\d+)`).exec(ENGINE_H)[1]
+);
 
 // Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
 function plugBoard(makePort, hello) {
@@ -155,6 +160,12 @@ const wears = async (page, [r, g, b]) => {
     const { color } = await openEyes(page);
     return Math.max(Math.abs(color[0] - r), Math.abs(color[1] - g), Math.abs(color[2] - b)) <= 8;
 };
+
+// Where an element ends on the page, in pixels from the left
+async function rightEdge(locator) {
+    const box = await locator.boundingBox();
+    return box.x + box.width;
+}
 
 async function plugIn(page) {
     await page.getByRole('button', { name: 'Brancher lilpet' }).click();
@@ -353,6 +364,9 @@ test('plugs in by keyboard, sends a look, and claims nothing after an unplug', a
     await expect(button).toBeFocused();
     await expect(status).toContainText('lilpet est branché');
     await expect(status).toContainText(SHOWN_INFO);
+    // The fake board's engine is 0.6.0, not the preview's
+    await expect(page.locator('.device-note')).toHaveText(`autre moteur que l’aperçu (${APP_ENGINE.join('.')}) ·`);
+    await expect(page.locator('.device-note')).toHaveAttribute('title', new RegExp(`moteur ${APP_ENGINE.join('.')} :`));
     await expect(button).toHaveText('Débrancher');
     await expect(button).toBeFocused();
 
@@ -397,6 +411,36 @@ test('a second press while connecting changes nothing, and a mood picked meanwhi
     await page.evaluate((hello) => (window.board.hello = hello), FAKE_HELLO);
     await expect(status).toContainText('lilpet est branché');
     await expect.poll(async () => (await sent(page)).at(-1)).toBe('> emotion sad');
+});
+
+test('says nothing of an engine that draws like the preview, another patch of it', async ({ page }) => {
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const engine = `${APP_ENGINE[0]}.${APP_ENGINE[1]}.99`;
+    const hello = FAKE_HELLO.replace(`engine=${FAKE_INFO.engine}`, `engine=${engine}`);
+    await page.evaluate((reply) => (window.board.hello = reply), hello);
+    await plugIn(page);
+    await expect(page.locator('.device small')).toContainText(`moteur ${engine}`);
+    await expect(page.locator('.device-note')).toHaveCount(0);
+});
+
+test('cuts the board text that does not fit, and shows it whole in its tooltip', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 }); // a phone: the bar has the least room
+    await page.addInitScript(fakeSerial);
+    await page.goto(APP);
+    const board = 'x'.repeat(60); // what another firmware may say
+    const hello = FAKE_HELLO.replace(`board=${FAKE_INFO.board}`, `board=${board}`);
+    await page.evaluate((reply) => (window.board.hello = reply), hello);
+    await plugIn(page);
+    const info = page.locator('.device small');
+    await expect(info).toHaveAttribute('title', new RegExp(`^${board}, firmware`));
+    expect(await info.evaluate((element) => element.scrollWidth > element.clientWidth), 'cut').toBe(true);
+    expect(await rightEdge(page.locator('.device-note')), 'the note, before the cut').toBeLessThanOrEqual(
+        await rightEdge(info)
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no scroll').toBe(
+        true
+    );
 });
 
 test('says when the flash refuses a look, and when the board does', async ({ page }) => {

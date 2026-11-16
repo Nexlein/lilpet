@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 
 export const GROUPS = {
-    js: ['*.js', '*.mjs', '*.ts', '*.tsx'],
+    js: ['*.js', '*.mjs', '*.mts', '*.ts', '*.tsx'],
     python: ['scripts/*.py'],
     // Ours only: in firmware/third_party, the others' sources stay as they are
     c: [

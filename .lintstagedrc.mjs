@@ -41,5 +41,5 @@ export default {
     [anyOf(GROUPS.python)]: ['ruff check --fix', 'ruff format'],
     [anyOf(GROUPS.hooks)]: 'shellcheck -x', // -x: follows in-mise.sh, which the hooks source
     [anyOf(GROUPS.workflows)]: 'actionlint',
-    '!(*.{js,mjs,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write'
+    '!(*.{js,mjs,mts,ts,tsx,c,h,py})': 'prettier --ignore-unknown --write'
 };

@@ -8,7 +8,7 @@
 
 /* Prepares the flash storage; call once at startup */
 void look_store_init(void);
-/* false when no look was saved yet (or the saved one is unreadable) */
+/* false when no look was saved yet, or when the saved one is unreadable, which it logs */
 bool look_store_load(lp_look *look);
 bool look_store_save(const lp_look *look);
 

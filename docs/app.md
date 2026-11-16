@@ -22,7 +22,9 @@ commandes `emotion`, `react` et `face` répondent sur l'AtomS3R depuis le 6 nove
     - Les 4 types de pupille.
     - Des favoris, gardés dans le navigateur.
 2. **Envoi à l'objet**
-    - Bouton « Brancher lilpet » (Web Serial), puis les infos de l'objet : carte, versions du firmware et du moteur.
+    - Bouton « Brancher lilpet » (Web Serial), puis les infos de l'objet : carte, versions du firmware et du moteur,
+      coupées si elles dépassent, et « autre moteur » quand le sien ne dessine pas comme celui de l'aperçu (version
+      majeure ou mineure différente).
     - Bouton « Envoyer à lilpet » : l'objet affiche le look tout de suite et le garde en mémoire flash.
     - Une humeur choisie (`> emotion`) ou une caresse (`> react tap`) passent aussi sur l'objet, sans rien garder ; la
       même, tant que la précédente attend sa réponse, ne repart pas. La dernière humeur repart après `hello`. Après un
