@@ -40,6 +40,7 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
 7. [Deux cartes reliées en UART : le modèle décide, le moteur exécute](adr/0007-deux-cartes-uart.md)
 8. [Les mêmes outils, aux mêmes versions, en local et en CI](adr/0008-outils-figes.md)
 9. [Le rendu sur les deux cœurs de la puce, depuis la mémoire interne](adr/0009-rendu-deux-coeurs.md)
+10. [Linux d'abord ; sous Windows, le code dans WSL et les cartes en natif](adr/0010-plateformes-de-developpement.md)
 
 Chaque décision tient en quatre parties : contexte, options étudiées (s'il y en a eu), décision, conséquences. Une
 nouvelle décision prend le numéro suivant ; une décision remplacée garde son fichier, avec le statut « remplacée par »

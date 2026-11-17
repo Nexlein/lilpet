@@ -39,8 +39,8 @@ model that will choose the reactions does not exist yet; what it will send is re
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
 - Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate (one grouped pull request a week) and
   Dependabot propose the updates as pull requests against `dev` (`docs/adr/0008-outils-figes.md`).
-- Eye style comes from measurements of the originals: recreate the style, never copy their assets. `references/`
-  (frame sheets of third-party videos, behind `docs/yeux.md`) stays local, ignored by git, never published.
+- Eye style comes from measurements of the originals (`docs/yeux.md`): recreate the style, never copy their assets.
+  Their frame sheets were deleted on 2026-11-17; `references/` stays ignored by git, never published.
 - After changing `eyes/*.json`, `engine/tests/scenes.json`, `scripts/expression.mjs` or `sceneFields` in
   `engine/wasm/engine.mjs`: `npm run tables` (CI fails on a stale generated file).
 - A visual change to the eyes goes with a scene in `engine/tests/scenes.json` that shows it. After changing how the eyes
@@ -48,8 +48,11 @@ model that will choose the reactions does not exist yet; what it will send is re
 
 ## Pitfalls
 
-- The toolchain needs Linux, macOS or WSL: the tasks and git hooks run POSIX commands, the board scripts need termios.
-  On WSL, a board shows only once attached with usbipd (README), and Windows, Chrome included, no longer sees it.
+- The toolchain needs Linux, macOS or WSL: the tasks and git hooks run POSIX commands (`docs/adr/0010-*`). On WSL, a
+  board shows only once attached with usbipd (README), and Windows, Chrome included, no longer sees it.
+- `firmware:build` starts the board's sdkconfig over only when `firmware/sdkconfig.defaults*` is newer than it:
+  restoring an older copy of the defaults (a mutation undone with `mv`, a checkout) keeps the stale config. `touch` the
+  defaults after such a restore.
 - A new clone or worktree needs `mise trust` then `mise run setup`: without the `.husky/_` that `npm ci` creates, git
   silently skips every hook.
 - Never install emsdk through mise: its clang and node shadow the system ones and send ccache into a loop. The

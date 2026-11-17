@@ -177,6 +177,15 @@ jobs:
       - name: Open the PC app with a fake board
         run: npm run test:playwright
 
+      # The app just built and tested, for release.yml to publish on GitHub Pages: on a version tag only
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: pc-app
+          path: app/dist
+          if-no-files-found: error
+          retention-days: 7
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
