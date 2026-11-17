@@ -10,8 +10,9 @@
 
 /* What hello tells of the board, besides its versions and its name */
 typedef struct {
-    bool motion;       /* a motion sensor answers */
-    const char *reset; /* why the chip last started: a name of esp_reset_reason_t, from main.c */
+    bool motion;         /* a motion sensor answers */
+    const char *reset;   /* why the chip last started: a name of esp_reset_reason_t, from main.c */
+    const char *storage; /* what look_store_init found: ok, erased or none */
 } commands_hello;
 
 /* Starts the task that reads commands. `shown` is the look shown at startup, `kept` the one the flash holds (NULL when

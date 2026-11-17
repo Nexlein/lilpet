@@ -92,6 +92,7 @@ class Board:
         tells_reset=True,  # its hello has the reset field (firmware 0.7.4 and before do not)
         watchdog=True,  # resets the chip when its drawing loop hangs
         safe_start=True,  # starts on the default look after a crash, without reading the flash
+        storage="ok",  # what it found of its flash storage at the start (look_store_init)
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -109,6 +110,7 @@ class Board:
         self.mood = "neutral"
         self.reset, self.usb_reset, self.tells_reset = "poweron", usb_reset, tells_reset
         self.watchdog, self.hung_at, self.queued, self.safe_start = watchdog, math.inf, 0, safe_start
+        self.storage = storage
         self.in_reset = False
         self.input = b""
         self.opened = 0
@@ -186,7 +188,7 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset)
+            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset, self.storage)
             return hello if self.tells_reset else re.sub(r" reset=\S*", "", hello)
         if text == "> test hang":
             self.hung_at = clock.now
@@ -425,6 +427,7 @@ class HelloFields(unittest.TestCase):
         self.assertEqual(fields["camera"], "0")
         self.assertEqual(fields["motion"], "1")
         self.assertEqual(fields["reset"], "poweron")
+        self.assertEqual(fields["storage"], "ok")
 
     def test_no_hello_has_no_fields(self):
         self.assertEqual(board_link.hello_fields(None), {})
@@ -628,6 +631,13 @@ class DeviceCheck(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("FAIL tells why it last started (no field)", out)
         self.assertIn("FAIL tells it was reset by its USB port (reset=None)", out)
+
+    def test_fails_a_board_that_had_to_wipe_its_flash_storage(self):
+        for storage in ("erased", "none"):
+            with self.subTest(storage):
+                status, out, _ = check_device(Board("atoms3r", storage=storage))
+                self.assertEqual(status, 1)
+                self.assertIn(f"FAIL finds its flash storage as it left it (storage={storage})", out)
 
     def test_fails_a_board_that_does_not_tell_it_was_reset_by_its_usb_port(self):
         status, out, _ = check_device(Board("atoms3r", usb_reset="poweron"))

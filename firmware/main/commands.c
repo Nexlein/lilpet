@@ -106,8 +106,9 @@ static void handle(const lp_command_line *line)
         printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
         /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
-        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s\n", esp_app_get_description()->version,
-               lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset);
+        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s\n",
+               esp_app_get_description()->version, lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset,
+               state.hello.storage);
     } else if (c.type == LP_COMMAND_LOOK_QUERY) {
         reply_look(&state.current);
     } else if (c.type == LP_COMMAND_LOOK) {

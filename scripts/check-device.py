@@ -1,8 +1,9 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening
-# the port does not reboot it, it answers hello and tells its board and why it last started, keeps the last of two looks
-# sent in a row across a reboot, which it tells came from its USB port, logs no fault of its screen, keeps drawing,
-# resets itself and tells so when its drawing loop hangs, takes the commands that drive the eyes, and rejects bad
-# commands and lines too long, which change nothing.
+# the port does not reboot it, it answers hello and tells its board, why it last started and that its flash storage is
+# as it left it, keeps the last of two looks sent in a row across a reboot, which it tells came from its USB port, logs
+# no fault of its screen, keeps drawing, resets itself and tells so when its drawing loop hangs, then starts once on the
+# default look, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change
+# nothing.
 # With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
 # has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
 # knows about a board comes from its hello and firmware/boards/<board>.
@@ -298,6 +299,8 @@ def check_board(board_name):
     if board.motion:
         check(fields.get("motion") == "1", "has its motion sensor", f"motion={fields.get('motion')}")
     check(bool(fields.get("reset")), "tells why it last started", fields.get("reset", "no field"))
+    storage = fields.get("storage")
+    check(storage == "ok", "finds its flash storage as it left it", f"storage={storage}")
 
     before = ask(port, "> look?")
     check_reply(bool(before) and before.startswith("look "), "tells its look", before)
