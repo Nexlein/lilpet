@@ -336,6 +336,8 @@ test('the live eyes wear the chosen look, show the mood, and answer a pet', asyn
 
 test('the live eyes follow the pointer, and let go when it leaves the page', async ({ page }) => {
     await page.addInitScript(watchScreen);
+    // Seeded: with another seed, saccades could cover most of the pointer's move and the test would fail now and then
+    await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
     await page.goto(APP);
     const screen = await page.locator('canvas.screen').boundingBox();
     const middle = screen.x + screen.width / 2;

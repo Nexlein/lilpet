@@ -228,7 +228,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (52) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
+- **engine.d.mts** (60) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
   - → eyes/emotions.json
 - **engine.mjs** (102) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
