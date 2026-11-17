@@ -219,6 +219,17 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
         if (known && !emotions[emotion].emit) fail(`emotion "${emotion}" emits no particles`);
     }
 });
+// A visual change goes with a scene that shows it (CLAUDE.md): every emotion and every pupil has one, neutral counting
+// the scenes that name no emotion. A new one without a reference render would ship unchecked.
+if (Array.isArray(scenes?.scenes)) {
+    const shown = scenes.scenes.filter(isObject);
+    for (const emotion of Object.keys(emotions))
+        if (!shown.some((scene) => (scene.emotion ?? 'neutral') === emotion))
+            errors.push(`${SCENES}: no scene shows the emotion "${emotion}"`);
+    for (const pupil of PUPILS)
+        if (!shown.some((scene) => scene.pupil === pupil))
+            errors.push(`${SCENES}: no scene shows the pupil "${pupil}"`);
+}
 
 report();
 console.log(

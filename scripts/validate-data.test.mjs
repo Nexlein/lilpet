@@ -117,6 +117,18 @@ const CASES = [
     [SCENES, 'a misspelled key', (d) => (d.scenes[0].emotions = 'sad'), 'unknown key "emotions"'],
     [SCENES, 'an unknown swatch', (d) => (d.scenes[0].swatch = 'plaid'), '"swatch" must be'],
     [SCENES, 'an unknown pupil', (d) => (d.scenes[0].pupil = 'star'), '"pupil" must be'],
+    [
+        SCENES,
+        'an emotion that no scene shows',
+        (d) => (d.scenes = d.scenes.filter((scene) => scene.emotion !== 'tired')),
+        'no scene shows the emotion "tired"'
+    ],
+    [
+        SCENES,
+        'a pupil that no scene shows',
+        (d) => (d.scenes = d.scenes.filter((scene) => scene.pupil !== 'circle')),
+        'no scene shows the pupil "circle"'
+    ],
     [SCENES, 'an emotion inherited from Object', (d) => (d.scenes[0].emotion = 'toString'), '"emotion" must be'],
     [SCENES, 'a blink that is null', (d) => (d.scenes[0].blink = null), '"blink" must be an object'],
     [SCENES, 'an unknown blink phase', (d) => (d.scenes[0].blink = { phase: 'wink', t: 0 }), '"blink.phase" must be'],
