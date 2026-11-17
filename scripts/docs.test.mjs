@@ -102,5 +102,7 @@ test('docs/protocole.md has every command', () => {
     const engine = [...read('engine/src/command.c').matchAll(/strcmp\(name, "([^"]+)"\)/g)].map(([, name]) => name);
     const firmware = [...read('firmware/main/commands.c').matchAll(/"> (test \w+)"/g)].map(([, name]) => name);
     assert.ok(engine.length >= 7 && firmware.length >= 2, 'the commands were not found in the code');
-    for (const name of [...engine, ...firmware]) assert.ok(protocol.includes(`\`> ${name}`), `> ${name} is missing`);
+    // The name and what follows it in the doc: `> look ...` and `> look?` are two commands
+    for (const name of [...engine, ...firmware])
+        assert.match(protocol, new RegExp(`\`> ${name.replace(/[?]/g, '\\?')}[\` ]`), `> ${name} is missing`);
 });

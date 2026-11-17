@@ -15,7 +15,7 @@ const DOCS = [...TRACKED].filter((path) => path.endsWith('.md'));
 function anchors(markdown) {
     const seen = new Map();
     const found = new Set();
-    for (const [, heading] of markdown.replace(/^```[\s\S]*?^```/gm, '').matchAll(/^#{1,6} (.+)$/gm)) {
+    for (const [, heading] of markdown.replace(/^\s*```[\s\S]*?^\s*```/gm, '').matchAll(/^#{1,6} (.+)$/gm)) {
         const base = heading
             .trim()
             .toLowerCase()
@@ -31,7 +31,7 @@ function anchors(markdown) {
 test('every link between the docs leads somewhere', () => {
     const broken = [];
     for (const doc of DOCS) {
-        const text = readFileSync(doc, 'utf8').replace(/^```[\s\S]*?^```/gm, '');
+        const text = readFileSync(doc, 'utf8').replace(/^\s*```[\s\S]*?^\s*```/gm, ''); // code, indented in lists too
         for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
             if (/^[a-z]+:/.test(target)) continue; // a web address
             const [file, anchor] = target.split('#');
