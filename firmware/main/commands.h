@@ -1,6 +1,6 @@
-/* Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face
- * (lp_command_parse reads them), and test hang and test sleep, the firmware's own, for the checks. What each takes and
- * answers is in docs/protocole.md; the timing reports share the port. */
+/* Commands from the PC app over the USB serial port, one per line: those lp_command_parse reads, and test hang and test
+ * sleep, the firmware's own, for the checks. Which they are, what each takes and answers, is in docs/protocole.md (a
+ * test makes sure it lists them all); the timing reports share the port. */
 #ifndef LILPET_COMMANDS_H
 #define LILPET_COMMANDS_H
 

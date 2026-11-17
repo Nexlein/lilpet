@@ -17,7 +17,7 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
   sans SOF pendant 3 ms, le port compte comme débranché (`usb_serial_jtag_connection_monitor.c`).
 - **Pas de veille profonde sur l'AtomS3R.** Seules les broches RTC 0 à 21 réveillent de la veille profonde, et le bouton
   est sur la broche 41. La veille légère, elle, se réveille sur n'importe quelle broche (`gpio_wakeup_enable`).
-- **Le watchdog.** La boucle de dessin est sous le task watchdog (étape 13) : une boucle qui attend son réveil doit en
+- **Le watchdog.** La boucle de dessin est sous le task watchdog (depuis la v0.7.5) : une boucle qui attend son réveil doit en
   sortir, sinon il redémarre la puce.
 
 ## Décision

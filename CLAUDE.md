@@ -15,6 +15,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   (mise tasks, npm scripts) and the npm packages. Read it before searching, and open only the files it points to. It is
   generated (`npm run codemap`, run by the pre-commit hook) from the purpose comment each source file starts with.
 - `docs/architecture.md` before structural work: the parts, the decisions (`docs/adr/`), the open points.
+- `docs/recettes.md` before adding a board, a driver, an emotion, a pupil, a command or a hello field, and before a
+  release: every place to edit, and which ones no check catches.
 - `docs/yeux.md` before changing how the eyes look or move: the measured style of the originals.
 - `docs/protocole.md` before changing a command, `docs/firmware.md` before firmware work, `docs/app.md` for the app's
   spec and roadmap, `docs/materiel.md` for the hardware, `docs/objet-v1.md` for what the first finished object must do,
@@ -35,9 +37,10 @@ model that will choose the reactions does not exist yet; what it will send is re
   `.github/rulesets/`: no direct push, no force push, no deletion). The rulesets name the required checks by job name,
   which a test checks against ci.yml: renaming a CI job, or adding, renaming or removing a board (also in ci.yml's board
   list), means editing both files, then applying them with `mise run github:rulesets`.
-- C: `lp_` prefix, float literals with `f`, no `double`, no `malloc`, no globals; warnings are errors.
+- C: float literals with `f`, no `double`, warnings are errors (the firmware adds the engine's); in the engine, also the
+  `lp_` prefix, no `malloc` and no globals.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
-- Tool versions are exact, in `mise.toml` and the Dockerfiles; Renovate (one grouped pull request a week) and
+- Tool versions are exact, in `mise.toml` and the Dockerfiles, and npm's in `package-lock.json`; Renovate (one grouped pull request a week) and
   Dependabot propose the updates as pull requests against `dev` (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals (`docs/yeux.md`): recreate the style, never copy their assets.
   Their frame sheets were deleted on 2026-11-17; `references/` stays ignored by git, never published.
@@ -72,6 +75,11 @@ model that will choose the reactions does not exist yet; what it will send is re
 - `firmware:flash` writes the bootloader, the partition table and the app only, so the look kept in NVS survives;
   `merged-binary.bin`, for a blank board, erases it. `FORCE=1` flashes over another board's image: only when the owner
   asks.
+- Charging: the AXP2101 charges at `BOARD_CHARGE_MA` (200 mA, the seller's limit for the 400 mAh battery), set at every start.
+  Waveshare's factory demo charges at 400 mA: the 1.75" gets our firmware before its battery is plugged in.
+- Light sleep lets every pin float: a pin that must stay driven or pulled asleep goes in `PINS_KEPT_ASLEEP` (`board.c`).
+- A number a doc takes from the code gets a case in `scripts/docs.test.mjs`. A drawing change bumps the engine's minor
+  version before the next release (`release.yml` checks it).
 
 ## Done
 

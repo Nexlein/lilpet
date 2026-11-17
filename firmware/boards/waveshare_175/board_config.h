@@ -16,7 +16,8 @@
 #define BOARD_I2C_SDA 15
 #define BOARD_I2C_SCL 14
 
-/* The AXP2101's charge current, in mA: the chosen battery's maximum (a 400 mAh 802525, docs/materiel.md) */
+/* The AXP2101's charge current, in mA: the limit the seller gives for the chosen battery (a 400 mAh 802525,
+ * docs/materiel.md) */
 #define BOARD_CHARGE_MA 200
 
 #define BOARD_LCD_CS            12

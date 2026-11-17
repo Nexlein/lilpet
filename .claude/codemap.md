@@ -269,7 +269,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/waveshare_175
 - **board.cmake** (2) — Parts of the board, files of firmware/main.
-- **board_config.h** (35) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
+- **board_config.h** (36) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
@@ -278,7 +278,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/sources.cmake
 
 ## firmware/main
-- **CMakeLists.txt** (17) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
+- **CMakeLists.txt** (17) — One image per board: each part's header (display.h, imu.h, battery.h) is an interface, and boards/<board>/board.cmake links the board's parts (docs...
 - **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
   - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c
@@ -307,10 +307,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **chip.h** (41) — Which chip the board's image is for: its package, its flash and its PSRAM, all of which the chip reports before any pin is touched (board_init).
   - exports: chip_info, chip_psram_mb, chip_same
   - ← firmware/main/board.c
-- **commands.c** (233) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+- **commands.c** (233) — Implements commands.h: commands from the PC app over the USB serial port, one per line: those lp_command_parse reads, and test hang and test sleep, the firmware's own, fo...
   - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (42) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+- **commands.h** (42) — Commands from the PC app over the USB serial port, one per line: those lp_command_parse reads, and test hang and test sleep, the firmware's own, fo...
   - exports: commands_hello, commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → engine/include/lilpet/lilpet.h, firmware/main/rest.h
   - ← firmware/main/commands.c, firmware/main/main.c
@@ -433,7 +433,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (239) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, mise.test.mjs, partitions.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, links.test.mjs, mise.test.mjs, partitions.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 

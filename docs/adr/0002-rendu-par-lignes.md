@@ -36,6 +36,7 @@ L'ESP32-S3 a peu de mémoire interne, calcule lentement en `double`, et son écr
   ([LCD Wizard](https://lcdwizard.com/boards/waveshare-s3-touch-amoled-132)), renvoyer tout l'écran plafonnerait vers
   45 images/s (estimation). Mesuré par `mise run engine:bench`, la zone redessinée couvre 50 % de l'écran en moyenne et
   70 % au pire (particules du mode amoureux), soit environ 11 ms et 16 ms d'envoi par image (estimation) : sous les
-  16,7 ms d'une image à 60 images/s, mais avec très peu de marge au pire.
+  16,7 ms d'une image à 60 images/s, mais avec très peu de marge au pire. Mesuré depuis sur la puce, à 466 px : 21,4 ms
+  au pire pour le dessin et l'envoi, au-delà de ces 16,7 ms ([firmware.md](../firmware.md#sur-la-puce)).
 - Le compilateur refuse tout `double` implicite (`-Wdouble-promotion`, avertissements traités comme des erreurs).
 - Le rendu se partage entre les deux cœurs de la puce ([décision 9](0009-rendu-deux-coeurs.md)).
