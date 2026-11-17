@@ -5,6 +5,7 @@
 #include "esp_efuse.h"
 #include "esp_err.h"
 #include "esp_rom_sys.h"
+#include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "soc/efuse_defs.h"
@@ -42,6 +43,43 @@ bool board_button_pressed(void)
     return gpio_get_level(BOARD_BUTTON) == 0;
 #else
     return false;
+#endif
+}
+
+/*
+ * In light sleep, ESP-IDF lets every pin float, against a reset that a small electrostatic pulse could cause
+ * (CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND). These keep driving or pulling as they do awake; the button is kept by
+ * gpio_wakeup_enable.
+ */
+static const int PINS_KEPT_ASLEEP[] = {
+#ifdef BOARD_POWER_HOLD
+    BOARD_POWER_HOLD, /* or the board would cut its own power */
+#endif
+#ifdef BOARD_LCD_RESET
+    BOARD_LCD_RESET, /* low, the panel would forget its setup */
+#endif
+#ifdef BOARD_LCD_CS
+    BOARD_LCD_CS, /* high, the panel ignores its other lines, left floating */
+#endif
+#ifdef BOARD_I2C_SDA
+    BOARD_I2C_SDA,
+    BOARD_I2C_SCL, /* the bus stays idle for the motion sensor and the backlight */
+#endif
+    -1};
+
+void board_light_sleep(uint64_t us)
+{
+    for (int i = 0; PINS_KEPT_ASLEEP[i] >= 0; i++)
+        ESP_ERROR_CHECK(gpio_sleep_sel_dis(PINS_KEPT_ASLEEP[i]));
+#ifdef BOARD_BUTTON
+    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: pressed is low */
+    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, GPIO_INTR_LOW_LEVEL));
+    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+#endif
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(us));
+    (void)esp_light_sleep_start(); /* refused when a wake-up is already pending: the caller looks again */
+#ifdef BOARD_BUTTON
+    ESP_ERROR_CHECK(gpio_wakeup_disable(BOARD_BUTTON));
 #endif
 }
 

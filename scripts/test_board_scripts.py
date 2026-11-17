@@ -90,12 +90,13 @@ class Board:
         held_bus_at=None,  # this reset (from 1) among those during motion sensor reads leaves the I2C bus held
         mute_at=None,  # this boot (from 1) never reads its port
         usb_reset="usb",  # why it tells it started after its USB port reset it
-        old_hello=False,  # its hello has no reset or storage field, like firmware 0.7.4 and before
+        old_hello=False,  # its hello has no reset, storage, state or battery field, like firmware 0.7.4 and before
         watchdog=True,  # resets the chip when its drawing loop hangs
         safe_start=True,  # starts on the default look after a crash, without reading the flash
         storage="ok",  # what it found of its flash storage at the start (look_store_init)
         crash_boot_log=(),  # what it prints past the boot line on a start after a crash only, which resets the CPU only
         crash_motion=True,  # has its motion sensor on a start after a crash
+        battery="none",  # what its hello tells of the battery
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -114,7 +115,7 @@ class Board:
         self.reset, self.usb_reset, self.old_hello = "poweron", usb_reset, old_hello
         self.crash_boot_log, self.crash_motion = crash_boot_log, crash_motion
         self.watchdog, self.hung_at, self.queued, self.safe_start = watchdog, math.inf, 0, safe_start
-        self.storage = storage
+        self.storage, self.battery = storage, battery
         self.in_reset = False
         self.input = b""
         self.opened = 0
@@ -201,8 +202,8 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset, self.storage)
-            return re.sub(r" (reset|storage)=\S*", "", hello) if self.old_hello else hello
+            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset, self.storage, "awake", self.battery)
+            return re.sub(r" (reset|storage|state|battery)=\S*", "", hello) if self.old_hello else hello
         if text == "> test hang":
             self.hung_at = clock.now
             self.output = [(at, line) for at, line in self.output if not re.match(r"\d+\.\d frames/s", line)]
