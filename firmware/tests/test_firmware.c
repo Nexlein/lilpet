@@ -1,9 +1,10 @@
 /* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
  * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, the column and
- * row ranges the display drivers send, when the eyes rest and how they look then, and when the battery counts as low
- * and the eyes look tired */
+ * row ranges the display drivers send, when the eyes rest and how they look then, when the battery counts as low and
+ * the eyes look tired, and the AXP2101 power chip's register values */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
+#include "../main/axp2101.h"
 #include "../main/battery_rule.h"
 #include "../main/dcs.h"
 #include "../main/frame.h"
@@ -280,4 +281,27 @@ void test_a_low_battery_makes_the_eyes_tired_until_it_charges_back(void)
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
     battery_show(&eyes, true, false, &before);
     CHECK(eyes.mood == LP_EMOTION_LOVE);
+}
+
+void test_the_axp2101_charges_at_most_the_current_asked(void)
+{
+    /* 100 to 200 mA by 25, then by 100 up to 1000 (Zephyr's table): 200 mA is code 8 */
+    CHECK(axp2101_charge_code(100) == 4 && axp2101_charge_code(125) == 5 && axp2101_charge_code(200) == 8);
+    CHECK(axp2101_charge_code(300) == 9 && axp2101_charge_code(1000) == 16);
+    /* Between two steps, the lower one: never more than asked */
+    CHECK(axp2101_charge_code(199) == 7 && axp2101_charge_code(250) == 8 && axp2101_charge_code(399) == 9);
+    CHECK(axp2101_charge_code(99) == 0 && axp2101_charge_code(0) == 0); /* under the first step: no charge */
+    CHECK(axp2101_charge_code(5000) == 16);
+    /* The register's other bits stay */
+    CHECK(axp2101_charge_register(0xE9u, 200) == 0xE8u && axp2101_charge_register(0x00u, 200) == 0x08u);
+}
+
+void test_the_axp2101_measures_the_battery_and_not_its_temperature_pin(void)
+{
+    CHECK(axp2101_adc_register(0x02u) == 0x01u && axp2101_adc_register(0xFFu) == 0xFDu);
+    CHECK(axp2101_adc_register(0x00u) == 0x01u && axp2101_adc_register(0x1Cu) == 0x1Du);
+    CHECK(axp2101_detection_register(0x00u) == 0x01u && axp2101_detection_register(0xF0u) == 0xF1u);
+    /* 13 bits of mV, over two registers: 0x10 0x68 is 4200 mV; the high register's top bits are not part of it */
+    CHECK(axp2101_millivolts(0x10u, 0x68u) == 4200 && axp2101_millivolts(0xF0u, 0x68u) == 4200);
+    CHECK(axp2101_millivolts(0x0Du, 0xACu) == 3500);
 }

@@ -118,6 +118,8 @@
     X(test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back)                                             \
     X(test_a_low_battery_stays_low_until_it_charges_back)                                                              \
     X(test_a_low_battery_makes_the_eyes_tired_until_it_charges_back)                                                   \
+    X(test_the_axp2101_charges_at_most_the_current_asked)                                                              \
+    X(test_the_axp2101_measures_the_battery_and_not_its_temperature_pin)                                               \
     X(test_frame_cores_share_the_rows_of_each_band)                                                                    \
     X(test_frame_measures_the_redrawn_share)                                                                           \
     X(test_dcs_range_is_big_endian_first_and_last)
