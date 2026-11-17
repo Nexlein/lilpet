@@ -1,7 +1,8 @@
 # Yeux
 
-Analyse faite à partir de la planche `starboy-eye-looks.png`, tirée de vidéos de tiers. Les planches restent en local
-dans `references/`, ignoré par git et jamais publié.
+Analyse faite à partir de la planche `starboy-eye-looks.png`, tirée de vidéos de tiers. Les planches, gardées en local
+dans `references/` et jamais publiées, ont été supprimées le 2026-11-17 : les mesures de cette page restent la
+référence.
 
 ## Base commune
 
@@ -43,7 +44,7 @@ Les techniques classiques d'animation d'yeux, toutes reprises par le moteur :
 ## Analyse vidéo de la galerie officielle (2026-10-27)
 
 Source : enregistrement d'écran de la galerie creature.company/eyes (environ 27 images/s, donc environ 37 ms par image).
-Planches (en local, `references/`) : vue d'ensemble (`eyes-gallery-overview.png`), clignement « dot »
+Planches (supprimées) : vue d'ensemble (`eyes-gallery-overview.png`), clignement « dot »
 (`blink-dot-frames.png`), clignement « acorn » et mouvement de tête (`blink-acorn-headturn-frames.png`).
 
 ### Noms officiels
@@ -79,7 +80,7 @@ Planches (en local, `references/`) : vue d'ensemble (`eyes-gallery-overview.png`
 
 ## Analyse de deux TikTok d'utilisateurs (2026-10-27)
 
-Sources : vidéos @lilguynet et @pikespicks, fournies par Nielsen (vidéos et planches gardées en local, `references/`).
+Sources : vidéos @lilguynet et @pikespicks, fournies par Nielsen (planches supprimées depuis).
 Planches : cœurs (`tiktok-love-hearts.png`), inclinaison (`tiktok-tilt.png`), colère (`tiktok-angry.png`), choix des
 yeux (`tiktok-eye-picking.png`), réaction au geste (`tiktok-gesture-reaction.png`).
 
