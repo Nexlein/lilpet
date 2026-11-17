@@ -10,6 +10,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: default
   - → scripts/data.mjs, scripts/files.mjs
 
+## .github/rulesets
+- **dev.json** (66) — data
+- **main.json** (66) — data
+
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
@@ -417,6 +421,7 @@ mise (`mise run <task>`):
 - `firmware:deploy` — Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)
 - `firmware:flash` — Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1
 - `firmware:monitor` — Show what the board prints over USB (port: PORT, or the only board plugged in; quit with Ctrl+])
+- `github:rulesets` — Apply the rulesets of .github/rulesets to the GitHub repo (gh, logged in): replaces each one with the same name, or creates it
 - `setup` — Prepare a new clone or worktree: the tools of this file, the npm packages (which install the git hooks) and the Playwright browser
 
 npm (`npm run <script>`, workspace app):
