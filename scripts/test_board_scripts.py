@@ -430,6 +430,10 @@ class FirmwareFacts(unittest.TestCase):
         for fault in faults:
             self.assertIn(fault, code)
 
+    def test_the_charge_line_the_checks_look_for_is_the_firmware_s(self):
+        battery = (ROOT / "firmware" / "main" / "battery_axp2101.c").read_text()
+        self.assertIn(f'printf("battery: {check_device_constant("CHARGE_LINE")} %d mA at most\\n"', battery)
+
     def test_the_sleep_lines_the_checks_wait_for_are_the_firmware_s(self):
         main_c = (ROOT / "firmware" / "main" / "main.c").read_text()
         for name in ("ASLEEP_LINE", "AWAKE_LINE"):
@@ -492,6 +496,14 @@ class MotionSensor(unittest.TestCase):
         self.assertTrue(board_link.has_motion_sensor("atoms3r"))
         self.assertFalse(board_link.has_motion_sensor("waveshare_132"))
         self.assertFalse(board_link.has_motion_sensor("stamp_s3a"))
+        self.assertFalse(board_link.has_motion_sensor("waveshare_175"))  # imu_none.c, until the QMI8658's driver
+
+    def test_knows_which_boards_charge_their_battery(self):
+        self.assertTrue(board_link.charges_battery("waveshare_175"))
+        for board in ("atoms3r", "stamp_s3a", "waveshare_132"):
+            self.assertFalse(board_link.charges_battery(board), board)
+        with mock.patch.object(Path, "read_text", return_value="# battery_axp2101.c later\nlist(APPEND srcs a.c)\n"):
+            self.assertFalse(board_link.charges_battery("atoms3r"))
 
     def test_any_sensor_counts(self):
         with mock.patch.object(Path, "read_text", return_value="list(APPEND srcs display.c imu_other.c)\n"):
@@ -623,6 +635,24 @@ class DeviceCheck(unittest.TestCase):
 
     def test_passes_a_board_on_battery(self):
         self.assert_passes(Board("atoms3r", battery="3912"))
+
+    def test_passes_a_board_that_sets_its_charge_current(self):
+        charging = ["battery: AXP2101 charges at 200 mA at most"]
+        _, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=charging))
+        self.assertIn("ok   sets its battery's charge current", out)
+        self.assert_passes(Board("waveshare_175", motion=False, boot_log=charging))
+
+    def test_fails_a_board_that_does_not_set_its_charge_current(self):
+        fault = "battery: the AXP2101 does not answer, its charge current is not set: keep the battery unplugged"
+        status, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=[fault]))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL sets its battery's charge current (keep the battery unplugged)", out)
+        _, out, _ = check_device(Board("atoms3r"))
+        self.assertNotIn("charge current", out)  # a board that does not charge its battery is not asked
+        # One that does not come back after the reboot says nothing of its charge: no blame on the power chip
+        charging = ["battery: AXP2101 charges at 200 mA at most"]
+        _, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=charging, comes_back=False))
+        self.assertIn("FAIL sets its battery's charge current (no boot log)", out)
 
     def test_stops_on_another_board(self):
         board = Board("waveshare_132", motion=False)

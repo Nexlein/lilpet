@@ -30,10 +30,19 @@ def board_from_env():
     return board
 
 
+def board_parts(board):
+    """The source files board.cmake links, by name, comments left out"""
+    return set(re.findall(r"\b\w+\.c\b", re.sub(r"#.*", "", (BOARDS / board / "board.cmake").read_text())))
+
+
 def has_motion_sensor(board):
-    """Whether board.cmake links a motion sensor: an imu_*.c other than imu_none.c, comments left out"""
-    parts = re.sub(r"#.*", "", (BOARDS / board / "board.cmake").read_text())
-    return any(part != "imu_none.c" for part in re.findall(r"\bimu_\w+\.c\b", parts))
+    """Whether board.cmake links a motion sensor: an imu_*.c other than imu_none.c"""
+    return any(part.startswith("imu_") and part != "imu_none.c" for part in board_parts(board))
+
+
+def charges_battery(board):
+    """Whether the board's firmware sets the charge current of its battery: battery_axp2101.c"""
+    return "battery_axp2101.c" in board_parts(board)
 
 
 def next_line(port, end):
