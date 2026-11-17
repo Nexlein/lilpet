@@ -15,14 +15,18 @@
  * board's, it prints why and never returns, with no pin touched. */
 void board_init(void);
 
-/* The user button is held down (the AtomS3R's screen is one); false on boards without one */
+/* Whether the board has a user button (the AtomS3R's screen is one), which can wake it up */
+bool board_has_button(void);
+
+/* The user button is held down; false on boards without one */
 bool board_button_pressed(void);
 
 /* Light sleep for up to `us` microseconds, or until the button is pressed. Only with no USB host: light sleep turns the
  * chip's USB pad off, and a PC would lose the port. */
 void board_light_sleep(uint64_t us);
 
-/* The board's internal I2C bus (backlight driver, motion sensor), started on first use; only on boards with one */
+/* The board's internal I2C bus (backlight driver, motion sensor, power chip), started on first use; only on boards with
+ * one */
 i2c_master_bus_handle_t board_i2c(void);
 
 /* How long a request on that bus waits for its device */

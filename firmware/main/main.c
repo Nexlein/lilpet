@@ -74,14 +74,8 @@ static void second_core_task(void *arg)
     }
 }
 
-#ifdef BOARD_BUTTON
-#define HAS_BUTTON true
-#else
-#define HAS_BUTTON false
-#endif
-
 #define BATTERY_EVERY_US 10000000 /* how often the battery is read, in microseconds */
-#define ASLEEP_POLL_MS   20       /* asleep, plugged into a PC: how often it looks for the button and motion */
+#define ASLEEP_POLL_MS   20       /* asleep without light sleep (a PC on USB): how often it looks for what wakes it */
 #define LIGHT_SLEEP_US   1000000  /* asleep on its own: how long a light sleep lasts at most, between two looks */
 
 /* The eyes' rest and the battery (rest.h, battery_rule.h) */
@@ -232,9 +226,10 @@ static void read_battery(int64_t now)
 
 /*
  * Asleep: the screen off and the drawing loop out of its watchdog, until a command, the button or a move wakes the
- * eyes. Light sleep only with no USB host (board_light_sleep). Returns how long it slept, in microseconds.
+ * eyes. Light sleep only with no USB host (board_light_sleep), and on a board that rests by itself (`rests`): the
+ * others wake on a command only, which needs the USB pad on. Returns how long it slept, in microseconds.
  */
-static int64_t sleep_until_woken(void)
+static int64_t sleep_until_woken(bool rests)
 {
     const int64_t start = esp_timer_get_time();
     enter_rest(REST_ASLEEP);
@@ -244,20 +239,22 @@ static int64_t sleep_until_woken(void)
     ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
     bool by_press;
     for (;;) {
-        const bool host = usb_serial_jtag_is_connected();
-        if (!host)
+        const bool light = rests && !usb_serial_jtag_is_connected();
+        if (light)
             board_light_sleep(LIGHT_SLEEP_US);
         /* A tick at least: on a board whose loop never waits otherwise, the idle task would starve its own watchdog */
-        const bool heard = commands_heard(host ? ASLEEP_POLL_MS : 1);
+        const bool heard = commands_heard(light ? 1 : ASLEEP_POLL_MS);
         const int64_t now = esp_timer_get_time();
         read_battery(now);
         float g[3];
         by_press = board_button_pressed();
-        if (heard || by_press || (imu_gravity(g) && rest_handled(&power.rest, g)))
+        if (heard || by_press || commands_hang_asked() || (imu_gravity(g) && rest_handled(&power.rest, g)))
             break;
     }
     (void)commands_sleep_asked(); /* a `> test sleep` that came while asleep asks for nothing more */
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+    if (commands_hang_asked()) /* `> test hang`: the drawing loop hangs in its watchdog, the screen still off */
+        return esp_timer_get_time() - start;
     display_wake();
     start_renderer(); /* the next frame is drawn whole, whatever the panel kept while it slept */
     /* Once the screen is back: its fade in starts now, not before the wait for its wake-up */
@@ -334,7 +331,7 @@ void app_main(void)
     power.rest = rest_start(esp_timer_get_time());
     /* Only a board that can wake by itself, on its button or on motion, rests by itself; the benchmark animation never
      * does: its timings would stop. `> test sleep` puts any board to sleep. */
-    const bool rests = !bench && (motion || HAS_BUTTON);
+    const bool rests = !bench && (motion || board_has_button());
     /* A frame that does not end within CONFIG_ESP_TASK_WDT_TIMEOUT_S resets the chip, whatever it waits for: a band
      * from the second core, the display's bus. The benchmark's first frame too. */
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
@@ -347,7 +344,7 @@ void app_main(void)
         while (commands_hang_asked())
             vTaskDelay(portMAX_DELAY);
         if (rest_state_at(&power.rest, esp_timer_get_time()) == REST_ASLEEP) {
-            const int64_t slept = sleep_until_woken(); /* out of the frame times and of the report */
+            const int64_t slept = sleep_until_woken(rests); /* out of the frame times and of the report */
             last += slept;
             report_start += slept;
         }
@@ -366,11 +363,10 @@ void app_main(void)
         const bool gravity = imu_gravity(g);
         const bool button = board_button_pressed();
         /* Before what came after it: a command that follows `> test sleep` wakes the eyes */
-        if (commands_sleep_asked())
-            rest_sleep_now(&power.rest, start);
+        const bool sleep_asked = commands_sleep_asked();
         const bool heard = commands_heard(0); /* every frame: a command taken now wakes nothing later */
-        if (!rests || heard || button || (gravity && rest_handled(&power.rest, g)))
-            rest_activity(&power.rest, start);
+        rest_frame(&power.rest, start, rests, sleep_asked,
+                   heard || button || (gravity && rest_handled(&power.rest, g)));
         enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */
         read_battery(start);
         const int brightness = rest_brightness(&power.rest, start);

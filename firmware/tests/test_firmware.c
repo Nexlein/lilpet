@@ -201,6 +201,28 @@ void test_the_eyes_rest_after_a_while_with_nothing_happening(void)
     CHECK(rest_state_at(&r, t1) == REST_ASLEEP);
 }
 
+void test_the_test_command_sends_any_board_to_sleep(void)
+{
+    const int64_t t0 = 1000;
+    for (int rests = 0; rests <= 1; rests++) { /* boards that rest by themselves, and those that never do */
+        rest r = rest_start(t0);
+        rest_frame(&r, t0 + 1000, rests, true, false);
+        CHECK(rest_state_at(&r, t0 + 1000) == REST_ASLEEP);
+        rest_frame(&r, t0 + 2000, rests, true, true); /* a command that came after it wakes the eyes */
+        CHECK(rest_state_at(&r, t0 + 2000) == REST_AWAKE);
+    }
+
+    /* Otherwise, a board that never rests stays awake, and the others rest after a while unless something happens */
+    rest never = rest_start(t0);
+    rest_frame(&never, t0 + REST_IDLE_US, false, false, false);
+    CHECK(rest_state_at(&never, t0 + REST_IDLE_US) == REST_AWAKE);
+    rest r = rest_start(t0);
+    rest_frame(&r, t0 + REST_IDLE_US, true, false, false);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US) == REST_DROWSY);
+    rest_frame(&r, t0 + REST_IDLE_US, true, false, true);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US) == REST_AWAKE);
+}
+
 void test_handling_the_board_counts_from_its_last_move(void)
 {
     const float flat[3] = {0.0f, 0.0f, 1.0f};

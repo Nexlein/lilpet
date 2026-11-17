@@ -37,6 +37,15 @@ void board_init(void)
 #endif
 }
 
+bool board_has_button(void)
+{
+#ifdef BOARD_BUTTON
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool board_button_pressed(void)
 {
 #ifdef BOARD_BUTTON
@@ -63,7 +72,7 @@ static const int PINS_KEPT_ASLEEP[] = {
 #endif
 #ifdef BOARD_I2C_SDA
     BOARD_I2C_SDA,
-    BOARD_I2C_SCL, /* the bus stays idle for the motion sensor and the backlight */
+    BOARD_I2C_SCL, /* the bus stays idle for its devices: motion sensor, backlight, power chip */
 #endif
     -1};
 

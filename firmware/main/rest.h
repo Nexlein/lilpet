@@ -81,6 +81,19 @@ static inline rest_state rest_state_at(const rest *r, int64_t now)
     return idle >= REST_IDLE_US ? REST_DROWSY : REST_AWAKE;
 }
 
+/*
+ * What one frame of the drawing loop did to the rest: `> test sleep` (sleep_asked) sends the eyes to sleep at once,
+ * unless something came after it (active: a command, a press, a move). A board that never rests by itself (`rests`
+ * false: nothing would wake it, or the benchmark, whose timings would stop) stays awake otherwise.
+ */
+static inline void rest_frame(rest *r, int64_t now, bool rests, bool sleep_asked, bool active)
+{
+    if (sleep_asked)
+        rest_sleep_now(r, now);
+    if (active || (!rests && !sleep_asked))
+        rest_activity(r, now);
+}
+
 /* The screen's brightness, from 0 (off) to 255 (as the board sets it): down to 0 over the end of the sleepy look, and
  * from 0 again just after waking up */
 static inline int rest_brightness(const rest *r, int64_t now)
