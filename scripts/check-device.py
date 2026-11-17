@@ -44,8 +44,8 @@ from firmware_facts import (
 # nobody keeps by chance.
 LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
 DEFAULT_LOOK = default_look()  # what a start after a crash shows, which the look kept across it must not be
-# What the firmware prints first as it starts (main.c, which a test compares), or before 0.8.1, which did not print it,
-# what ESP-IDF logs just before
+# What the firmware prints first as it starts (main.c, which a test compares), or for firmware 0.8.0 and earlier, which
+# did not print it, what ESP-IDF logs just before
 BOOT_LINE = "lilpet starts"
 BOOT = rf"{BOOT_LINE}|Calling app_main"
 BOOT_SECONDS = 3

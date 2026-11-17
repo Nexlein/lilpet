@@ -19,7 +19,7 @@ interface DeviceSnapshot {
 
 const LOG_LINES = 200;
 // What the firmware prints first as it starts (main.c, which a test compares): a crash or its watchdog restarted it
-// with the port still open. Firmware 0.8.0 and before did not print it.
+// with the port still open. Firmware 0.8.0 and earlier did not print it.
 export const BOOT_LINE = 'lilpet starts';
 
 const NOT_LILPET =

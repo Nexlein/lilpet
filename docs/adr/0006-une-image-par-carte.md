@@ -23,7 +23,8 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
   (`firmware/tests`).
 - **Deux gardes contre une mauvaise image.** `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et
   refuse si une autre carte répond, puis donne ce port à esptool ; `FORCE=1` passe outre sans rien demander. Au
-  démarrage, `board_init` compare le boîtier de la puce et s'arrête avant de toucher une broche.
+  démarrage, `board_init` compare la puce à celle de la carte, son boîtier, la taille de sa flash et celle de sa PSRAM
+  (`chip.h`), et s'arrête avant de toucher une broche.
 
 ## Conséquences
 
@@ -35,5 +36,7 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 - Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde. Sans carte trouvée
   sur un port USB de la puce, le flash s'arrête : esptool essaierait chaque port série et flasherait ce qui répond.
   `FORCE=1` le laisse chercher.
-- Une image `stamp_s3a` sur la XIAO n'est pas arrêtée par la seconde : les deux sont en boîtier QFN56. Le futur firmware
-  de la XIAO devra répondre à `> hello` pour que le flash la protège.
+- La XIAO, la carte caméra, partage le boîtier QFN56 de la 1,75" et du M5Stamp S3A, et son firmware d'origine ne répond
+  pas à `> hello` : la seconde garde l'arrête quand même, par sa flash (8 Mo contre 16 sur la 1,75") ou sa PSRAM (8 Mo,
+  aucune sur le M5Stamp). Un test (`scripts/boards.test.mjs`) refuse une carte qui aurait la puce de la XIAO. Deux cartes
+  à la même puce (l'AtomS3R et la 1,32") ne se distinguent que par la première garde.
