@@ -270,6 +270,7 @@ class Serial:
 
     def __init__(self):
         self.port, self.baudrate, self.timeout, self.exclusive = None, None, None, None
+        self.write_timeout = None
         self.board = None  # once open
         self._dtr = self._rts = True
         self._rest = b""  # the second part of a cut line
@@ -324,6 +325,13 @@ class Serial:
     def write(self, data):
         if self.board.lost:
             raise OSError("device disconnected")
+        if self.board.reads_from == math.inf:
+            # A board that never reads its port (stopped by its chip check, hung before it reads) holds the write: the
+            # USB endpoint takes nothing more, and pyserial waits for good without a write timeout
+            if self.write_timeout is None:
+                raise AssertionError("this write would wait for good: the board never reads its port")
+            clock.now += self.write_timeout
+            raise serial.SerialTimeoutException("Write timeout")
         clock.now += 0.001
         self.board.receive(data)
 
@@ -346,6 +354,7 @@ class Serial:
 
 serial = types.ModuleType("serial")
 serial.Serial = Serial
+serial.SerialTimeoutException = type("SerialTimeoutException", (OSError,), {})  # pyserial's is an OSError too
 serial.tools = types.ModuleType("serial.tools")
 serial.tools.list_ports = types.ModuleType("serial.tools.list_ports")
 serial.tools.list_ports.comports = lambda: [types.SimpleNamespace(device=port, vid=0x303A) for port in plugged]

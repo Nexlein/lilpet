@@ -65,9 +65,19 @@ def read_reply(port, timeout=3):
     return None
 
 
+def send(port, data):
+    """Writes to the board; False when it does not read its port, so the write timed out (open_port)"""
+    try:
+        port.write(data)
+    except serial.SerialTimeoutException:
+        return False
+    return True
+
+
 def ask(port, command, timeout=3):
-    """Sends a command and returns its reply without the "< " prefix, or None"""
-    port.write(f"{command}\n".encode())
+    """Sends a command and returns its reply without the "< " prefix, or None, also when the board does not read"""
+    if not send(port, f"{command}\n".encode()):
+        return None
     return read_reply(port, timeout)
 
 
@@ -99,6 +109,9 @@ def open_port(name):
     port.port = name
     port.baudrate = 115200
     port.timeout = 0.2
+    # A board that never reads its port (an image stopped by its chip check, a firmware hung before it reads) holds a
+    # write for good: it raises SerialTimeoutException, one of SERIAL_ERRORS, instead
+    port.write_timeout = 2
     port.exclusive = True  # the lock esptool and pyserial-miniterm take: a monitor cannot open during a check
     # Opening asserts both lines: keep DTR while releasing RTS, then release DTR, never RTS alone (same as the app)
     port.dtr = True

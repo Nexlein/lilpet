@@ -29,6 +29,7 @@ from board_link import (
     next_line,
     open_port,
     read_reply,
+    send,
 )
 from firmware_facts import (
     REPLY_BENCH,
@@ -314,7 +315,7 @@ def reboots_during_reads(port):
     transfer; returns how many boots came back without the sensor, and how many did not answer hello"""
     lost = silent = 0
     for i in range(REBOOTS_DURING_READS):
-        port.write(b"> imu?\n" * 20)
+        send(port, b"> imu?\n" * 20)  # a boot that does not read its port shows as one with no hello
         time.sleep(i % 20 / 1000)  # from 0 to 19 ms: the reset lands while the board reads, at another point each time
         reset(port)
         read_lines(port, BOOT_SECONDS, until=BOOT)
