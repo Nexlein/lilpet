@@ -128,8 +128,9 @@ run = [
     "docker build -t lilpet-idf - < firmware/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e CCACHE_DIR=/project/firmware/.ccache -e CCACHE_MAXSIZE=500M -e CCACHE_COMPILERCHECK=content -v "$PWD:/project" -w /project/firmware lilpet-idf idf.py -B "build/$BOARD" -D LILPET_BOARD="$BOARD" -D SDKCONFIG="build/$BOARD/sdkconfig" build merge-bin',
     # Every option of the defaults must be in the board's sdkconfig: ESP-IDF only notes one it does not know and builds
-    # on, as when MINIMAL_BUILD left out the core dump's component. An option set to n is written "# ... is not set".
-    '''lost=$(grep -hv -e '^#' -e '^$' firmware/sdkconfig.defaults* | sed -E 's/^(CONFIG_[A-Z0-9_]+)=n$/# \1 is not set/' | grep -vxFf "firmware/build/$BOARD/sdkconfig" || true); if [ -n "$lost" ]; then printf 'firmware/build/%s/sdkconfig lacks these options of firmware/sdkconfig.defaults (a component left out of the build?):\n%s\n' "$BOARD" "$lost" >&2; exit 1; fi''',
+    # on, as when MINIMAL_BUILD left out the core dump's component. An option set to n is written "# ... is not set",
+    # in either file. awk, not grep -f: BSD grep (macOS) reads the sdkconfig's empty lines as patterns that match all.
+    '''if ! lost=$(awk 'NR == FNR { have[$0] = 1; next } /^# CONFIG_[A-Z0-9_]+ is not set$/ || !/^(#|$)/ { line = $0; if (line ~ /^CONFIG_[A-Z0-9_]+=n$/) line = "# " substr(line, 1, length(line) - 2) " is not set"; if (!(line in have)) { print line; lost = 1 } } END { exit lost }' "firmware/build/$BOARD/sdkconfig" firmware/sdkconfig.defaults*); then printf 'firmware/build/%s/sdkconfig lacks these options of firmware/sdkconfig.defaults (a component left out of the build?):\n%s\n' "$BOARD" "$lost" >&2; exit 1; fi''',
 ]
 
 [tasks."firmware:build-all"]
