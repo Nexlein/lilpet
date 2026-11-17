@@ -23,7 +23,7 @@
 static struct {
     lp_look current;
     look_saving saving;
-    bool motion;
+    commands_hello hello;
 } state;
 
 /*
@@ -97,8 +97,8 @@ static void handle(const lp_command_line *line)
         printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
         /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
-        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d\n", esp_app_get_description()->version,
-               lp_version(), BOARD_NAME, state.motion);
+        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s\n", esp_app_get_description()->version,
+               lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset);
     } else if (c.type == LP_COMMAND_LOOK_QUERY) {
         reply_look(&state.current);
     } else if (c.type == LP_COMMAND_LOOK) {
@@ -136,7 +136,7 @@ static void commands_task(void *arg)
     }
 }
 
-void commands_start(const lp_look *current, bool motion)
+void commands_start(const lp_look *current, const commands_hello *hello)
 {
     /* Reads with a timeout (read_line) and the replies through printf: both need the port's driver, not just the
      * default console output. The driver drops what does not fit in its buffer: this one holds a burst of about 80
@@ -149,7 +149,7 @@ void commands_start(const lp_look *current, bool motion)
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
     state.current = *current;
     state.saving = look_saving_start(current);
-    state.motion = motion;
+    state.hello = *hello;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }
 

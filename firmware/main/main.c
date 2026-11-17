@@ -11,6 +11,7 @@
 #include "commands.h"
 #include "display.h"
 #include "esp_heap_caps.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "frame.h"
 #include "freertos/FreeRTOS.h"
@@ -126,6 +127,46 @@ static void report(int64_t elapsed_us)
     memset(&stats, 0, sizeof stats);
 }
 
+/* Why the chip last started, for hello and the boot line: the name of the esp_reset_reason_t, in lower case */
+static const char *reset_name(esp_reset_reason_t reason)
+{
+    switch (reason) {
+    case ESP_RST_POWERON:
+        return "poweron";
+    case ESP_RST_EXT:
+        return "ext";
+    case ESP_RST_SW:
+        return "sw";
+    case ESP_RST_PANIC:
+        return "panic";
+    case ESP_RST_INT_WDT:
+        return "int_wdt";
+    case ESP_RST_TASK_WDT:
+        return "task_wdt";
+    case ESP_RST_WDT:
+        return "wdt";
+    case ESP_RST_DEEPSLEEP:
+        return "deepsleep";
+    case ESP_RST_BROWNOUT:
+        return "brownout";
+    case ESP_RST_SDIO:
+        return "sdio";
+    case ESP_RST_USB:
+        return "usb";
+    case ESP_RST_JTAG:
+        return "jtag";
+    case ESP_RST_EFUSE:
+        return "efuse";
+    case ESP_RST_PWR_GLITCH:
+        return "pwr_glitch";
+    case ESP_RST_CPU_LOCKUP:
+        return "cpu_lockup";
+    case ESP_RST_UNKNOWN:
+        break;
+    }
+    return "unknown";
+}
+
 static void apply(const lp_command *c)
 {
     switch (c->type) {
@@ -159,12 +200,13 @@ void app_main(void)
     const bool motion = imu_init();
     const char *screen = display_init(BAND_BYTES);
     const bool bench = BOARD_BENCH; /* no screen: replay the host benchmark's animation, for the timings */
+    const commands_hello hello = {.motion = motion, .reset = reset_name(esp_reset_reason())};
     printf(
         "\nlilpet %s, board %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d "
-        "rows on both cores, %u bytes of internal RAM free\n",
+        "rows on both cores, %u bytes of internal RAM free, reset: %s\n",
         lp_version(), BOARD_NAME, CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ, screen, BOARD_DISPLAY_SIZE, BOARD_DISPLAY_SIZE,
         motion ? "yes" : "none", bench ? "benchmark" : "idle", BAND_ROWS,
-        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), hello.reset);
     if (!bands[0] || !bands[1]) {
         printf("not enough DMA memory for the bands\n");
         return;
@@ -173,7 +215,7 @@ void app_main(void)
     look_store_init();
     lp_look look = lp_default_look(); /* until the PC app sends one */
     look_store_load(&look);
-    commands_start(&look, motion);
+    commands_start(&look, &hello);
 
     lp_eyes_init(&eyes, 1); /* the benchmark starts its own eyes: start_bench_round */
     lp_eyes_set_look(&eyes, &look);

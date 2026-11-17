@@ -1,6 +1,7 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md):
-# opening the port does not reboot it, it answers hello and tells its board, keeps the last of two looks sent in a row
-# across a reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad
+# opening the port does not reboot it, it answers hello and tells its board and why it last started, keeps the last of
+# two looks sent in a row across a reboot, which it tells came from its USB port, logs no fault of its screen, keeps
+# drawing, takes the commands that drive the eyes, and rejects bad
 # commands and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
 # has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
@@ -148,6 +149,8 @@ def run_checks(port, board, test_look, other_look):
     )
     after = ask(port, "> look?")
     check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
+    reset = hello_fields(ask_hello(port)).get("reset")
+    check(reset == "usb", "tells it was reset by its USB port", f"reset={reset}")
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
@@ -264,6 +267,7 @@ def check_board(board_name):
     check(fields.get("motion") in ("0", "1"), "tells if it has a motion sensor", fields.get("motion", "no field"))
     if board.motion:
         check(fields.get("motion") == "1", "has its motion sensor", f"motion={fields.get('motion')}")
+    check(bool(fields.get("reset")), "tells why it last started", fields.get("reset", "no field"))
 
     before = ask(port, "> look?")
     check_reply(bool(before) and before.startswith("look "), "tells its look", before)

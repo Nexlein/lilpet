@@ -8,9 +8,14 @@
 
 #include <stdbool.h>
 
-/* Starts the task that reads commands. `current` is the look shown at startup, `motion` tells hello that a motion
- * sensor answers. */
-void commands_start(const lp_look *current, bool motion);
+/* What hello tells of the board, besides its versions and its name */
+typedef struct {
+    bool motion;       /* a motion sensor answers */
+    const char *reset; /* why the chip last started: a name of esp_reset_reason_t, from main.c */
+} commands_hello;
+
+/* Starts the task that reads commands. `current` is the look shown at startup. */
+void commands_start(const lp_look *current, const commands_hello *hello);
 
 /* Takes the next command for the eyes; false when none is waiting. The engine is not thread-safe: the drawing loop
  * carries them out, every frame. It lists every lp_command_type, so a new command does not build until it is handled

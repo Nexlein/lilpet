@@ -8,7 +8,10 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 - Les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal. Chaque réponse part sur
   une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas). Une ligne fait au plus 94
   caractères : au-delà, `< err line too long`, et le reste est jeté.
-- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>`.
+- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1> reset=<raison>`.
+  `reset` dit pourquoi la puce a démarré : le nom de `esp_reset_reason_t` d'ESP-IDF en minuscules, sans `ESP_RST_`
+  (`poweron` à la mise sous tension, `usb` après un flash ou un reset par le port USB, `sw`, `panic`, `task_wdt`,
+  `int_wdt`, `brownout`…).
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok`, `< err <raison>`, ou
   `< err busy` si la file de la boucle de dessin est pleine (comme les commandes des yeux, plus bas). Le look s'affiche
   même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un nouveau look est

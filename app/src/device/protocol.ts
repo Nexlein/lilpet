@@ -30,7 +30,7 @@ export function classify(line: string): Line {
     return line.startsWith('< ') ? { kind: 'reply', text: line.slice(2) } : { kind: 'log', text: line };
 }
 
-// "lilpet fw=0.6.0 engine=0.14.0 board=atoms3r camera=0 motion=1"
+// "lilpet fw=0.6.0 engine=0.14.0 board=atoms3r camera=0 motion=1 reset=poweron"
 export function parseHello(reply: string): DeviceInfo | null {
     const words = reply.trim().split(/\s+/);
     if (words[0] !== 'lilpet') return null;

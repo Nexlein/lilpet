@@ -77,6 +77,8 @@ class Board:
         lost_at=None,  # the port goes away when the board gets this line (unplugged)
         held_bus_at=None,  # this reset (from 1) among those during motion sensor reads leaves the I2C bus held
         mute_at=None,  # this boot (from 1) never reads its port
+        usb_reset="usb",  # why it tells it started after its USB port reset it
+        tells_reset=True,  # its hello has the reset field (firmware 0.7.4 and before do not)
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -91,6 +93,7 @@ class Board:
         # What the flash holds, and when it was last written (firmware/main/look_saving.h)
         self.kept, self.tried_at = self.look, -SAVE_GAP
         self.mood = "neutral"
+        self.reset, self.usb_reset, self.tells_reset = "poweron", usb_reset, tells_reset
         self.in_reset = False
         self.input = b""
         self.opened = 0
@@ -123,6 +126,7 @@ class Board:
             self.bus_held = during_reads and self.resets_during_reads == self.held_bus_at
         if self.in_reset and not held:
             if self.comes_back:
+                self.reset = self.usb_reset
                 self.boot()
             else:
                 self.reads_from = math.inf
@@ -150,7 +154,8 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            return HELLO % ("0.5.0", "0.13.0", self.name, self.motion)
+            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset)
+            return hello if self.tells_reset else re.sub(r" reset=\S*", "", hello)
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
@@ -373,6 +378,7 @@ class HelloFields(unittest.TestCase):
         self.assertEqual(fields["board"], "atoms3r")
         self.assertEqual(fields["camera"], "0")
         self.assertEqual(fields["motion"], "1")
+        self.assertEqual(fields["reset"], "poweron")
 
     def test_no_hello_has_no_fields(self):
         self.assertEqual(board_link.hello_fields(None), {})
@@ -569,6 +575,17 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(Board("atoms3r", drops_late_looks=True))
         self.assertEqual(status, 1)
         self.assertIn("FAIL still has the last look after the reboot", out)
+
+    def test_fails_a_board_that_does_not_tell_why_it_started(self):
+        status, out, _ = check_device(Board("atoms3r", tells_reset=False))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL tells why it last started (no field)", out)
+        self.assertIn("FAIL tells it was reset by its USB port (reset=None)", out)
+
+    def test_fails_a_board_that_does_not_tell_it_was_reset_by_its_usb_port(self):
+        status, out, _ = check_device(Board("atoms3r", usb_reset="poweron"))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL tells it was reset by its USB port (reset=poweron)", out)
 
     def test_fails_a_board_that_does_not_come_back_after_the_reboot(self):
         status, out, _ = check_device(Board("atoms3r", comes_back=False))
