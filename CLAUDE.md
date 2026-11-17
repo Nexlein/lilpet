@@ -5,7 +5,7 @@ expressive eyes that react to what a camera sees (gestures, faces, the person's 
 the eyes (no rarity, no random draw); looks and, later, animations stay data, not code, for the PC app to edit and send.
 
 Stage: the C eye engine runs on the host, in WebAssembly and on the ESP32-S3; PC app v1 picks the eyes and sends them
-over USB. The final hardware (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART,
+over USB. The final hardware (Waveshare ESP32-S3-Touch-AMOLED-1.75 + XIAO ESP32S3 Sense camera over UART,
 `docs/materiel.md`) is not bought yet: until then the eyes run on an M5Stack AtomS3R (128 px LCD, no camera). The AI
 model that will choose the reactions does not exist yet; what it will send is ready (`docs/protocole.md`).
 

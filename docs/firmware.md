@@ -14,7 +14,8 @@ Le firmware ESP-IDF de la carte écran (`firmware/`) : une image par carte
 
 - `atoms3r` : l'AtomS3R de M5Stack, l'objet d'essai. Quand on le tourne, le visage reste à l'horizontale, et il
   réagit : fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
-- `waveshare_132` : l'écran rond 1,32" de l'objet final, pas encore essayé sur la vraie carte.
+- `waveshare_132` : l'écran rond 1,32", choisi d'abord pour l'objet puis remplacé par la 1,75"
+  ([materiel.md](materiel.md)), jamais essayé sur la vraie carte. Il partira quand la 1,75" tournera.
 - `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
 
 Une carte sans signal TE (sans `BOARD_LCD_TE` dans son `board_config.h`) cadence ses images avec `display_paced.c`,

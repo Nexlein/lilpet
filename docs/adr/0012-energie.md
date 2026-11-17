@@ -49,7 +49,8 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
     - la luminosité qui baisse, et l'image qui se décale un peu, contre le marquage de l'AMOLED ;
     - la carte vision, en veille profonde tant que la carte écran dort, et qui cherche le pouce levé moins souvent quand
       personne n'est là ([#55](https://github.com/Nexlein/lilpet/issues/55)) ;
-    - sur la carte écran, la veille profonde, si son bouton est sur une broche RTC, et l'arrêt par `BAT_EN`
+    - sur la carte écran, la 1,75" ([#47](https://github.com/Nexlein/lilpet/issues/47)), la veille profonde réveillée
+      par son accéléromètre (GPIO21, une broche RTC), et l'arrêt par sa puce d'alimentation AXP2101
       ([#54](https://github.com/Nexlein/lilpet/issues/54)).
 
 ## Conséquences
