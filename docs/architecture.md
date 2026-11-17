@@ -15,7 +15,8 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
   couleurs, les noms, le look par défaut et les formes qu'elle dessine : les looks et les animations restent des
   données, que l'app PC éditera.
 - **Firmware** (`firmware/`) : ESP-IDF, une image par carte ([décision 6](adr/0006-une-image-par-carte.md)), le rendu
-  sur les deux cœurs ([décision 9](adr/0009-rendu-deux-coeurs.md)). Détail et mesures : [firmware.md](firmware.md).
+  sur les deux cœurs ([décision 9](adr/0009-rendu-deux-coeurs.md)), la veille ([décision 12](adr/0012-energie.md)).
+  Détail et mesures : [firmware.md](firmware.md).
 - **App PC** (`app/`) : une page web qui fait tourner le moteur WebAssembly et parle à l'objet par Web Serial
   ([décision 4](adr/0004-app-web-serial.md)). Spec : [app.md](app.md).
 - **Protocole** : des lignes de texte, les mêmes sur l'USB et l'UART ([décision 5](adr/0005-protocole-texte.md)).
@@ -42,6 +43,7 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
 9. [Le rendu sur les deux cœurs de la puce, depuis la mémoire interne](adr/0009-rendu-deux-coeurs.md)
 10. [Linux d'abord ; sous Windows, le code dans WSL et les cartes en natif](adr/0010-plateformes-de-developpement.md)
 11. [La NVS reste à sa place, et la flash se remplit après elle](adr/0011-disposition-de-la-flash.md)
+12. [Les yeux s'endorment, et la veille légère attend que le PC soit débranché](adr/0012-energie.md)
 
 Chaque décision tient en quatre parties : contexte, options étudiées (s'il y en a eu), décision, conséquences. Une
 nouvelle décision prend le numéro suivant ; une décision remplacée garde son fichier, avec le statut « remplacée par »
@@ -62,7 +64,7 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
   Sur le Waveshare, chaque image attend le signal TE suivant, et l'attente oublie celui venu pendant l'image : si
   l'écran rafraîchit à 60 Hz (à vérifier), une image de plus de 16,7 ms attend un rafraîchissement de plus. À corriger
   et régler avec la carte.
-- **Waveshare 1,32"** : pilote CO5300 et signal TE jamais essayés sur la carte. La
+- **Waveshare 1,32"** : pilote CO5300, sa mise en veille et signal TE jamais essayés sur la carte. La
   [démo de Waveshare](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)
   définit la broche TE sans s'en servir.
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.

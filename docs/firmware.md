@@ -53,6 +53,19 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   flash : si les données gardées l'ont fait planter, le démarrage suivant ne replante pas, et un look envoyé alors
   s'écrit. Le look gardé reste en flash et revient au démarrage d'après. Une mémoire flash pleine ou dans un autre
   format est effacée, look gardé compris : le journal le dit, et `hello` aussi (`storage=erased`).
+- **Repos** ([décision 12](adr/0012-energie.md)) : après 2 min sans commande, sans appui ni mouvement, les yeux prennent
+  l'air ensommeillé 5 s, puis s'endorment : rétroéclairage et écran éteints, boucle de dessin en pause, hors du
+  watchdog. Branchée à un PC, la carte garde son port USB et guette une commande, le bouton ou un mouvement toutes les
+  20 ms ; seule, elle passe en veille légère, réveillée par le bouton ou, chaque seconde, pour lire le mouvement.
+  Réveillée, elle redessine l'image entière. `hello` dit où en sont les yeux (`state=`), et `> test sleep` les endort
+  tout de suite. L'animation de mesure ne s'endort pas seule, ni une carte qui ne saurait pas se réveiller seule, sans
+  bouton ni capteur de mouvement (le Waveshare, aujourd'hui). En veille légère, ESP-IDF laisse flotter toutes les
+  broches : `board.c` garde le maintien de l'alimentation, le reset et la sélection de l'écran, et le bus I2C.
+- **Batterie** : lue toutes les 10 s par `battery.c`, à travers le pont diviseur de la carte (`BOARD_BATTERY_ADC`,
+  `BOARD_BATTERY_DIVIDER`), avec l'étalonnage de l'ADC gardé dans les eFuses de la puce. Sous 3,5 V, les yeux ont l'air
+  fatigué, jusqu'à 3,6 V (`battery_rule.h`). `hello` donne les millivolts (`battery=`), ou `none` sous 2,5 V. Sur sa
+  base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans la base, G8 n'est reliée à rien : ce qu'elle lit alors
+  reste à vérifier.
 - **Secousse**, mesurée sur la carte : une secousse à la main monte jusqu'à 11 g, vers 6 Hz, et s'écarte en moyenne de
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.
