@@ -48,8 +48,11 @@ model that will choose the reactions does not exist yet; what it will send is re
 
 ## Pitfalls
 
-- The toolchain needs Linux, macOS or WSL: the tasks and git hooks run POSIX commands, the board scripts need termios.
-  On WSL, a board shows only once attached with usbipd (README), and Windows, Chrome included, no longer sees it.
+- The toolchain needs Linux, macOS or WSL: the tasks and git hooks run POSIX commands (`docs/adr/0010-*`). On WSL, a
+  board shows only once attached with usbipd (README), and Windows, Chrome included, no longer sees it.
+- `firmware:build` starts the board's sdkconfig over only when `firmware/sdkconfig.defaults*` is newer than it:
+  restoring an older copy of the defaults (a mutation undone with `mv`, a checkout) keeps the stale config. `touch` the
+  defaults after such a restore.
 - A new clone or worktree needs `mise trust` then `mise run setup`: without the `.husky/_` that `npm ci` creates, git
   silently skips every hook.
 - Never install emsdk through mise: its clang and node shadow the system ones and send ccache into a loop. The

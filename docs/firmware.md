@@ -66,6 +66,16 @@ où un look s'écrit en flash (`look_saving.h`), les lignes d'une bande que dess
 qu'une image redessine (`frame.h`), et les plages de colonnes et de lignes que les deux pilotes d'écran envoient
 (`dcs.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
+Sur la carte :
+
+- **Un test de carte se prouve sur l'ancien firmware** : il doit échouer avant le correctif. Le zip de la Release
+  précédente se flashe tel quel (`esptool --chip esp32s3 write-flash @flash_args` depuis son dossier), sans toucher au
+  look gardé.
+- **Un port perdu n'est pas toujours la carte.** Pendant les 40 redémarrages de `check-device`, le contrôleur USB du
+  PC de développement (AMD) est mort deux fois le 2026-11-17 : « port lost » côté script, et dans `journalctl -k`
+  « xHCI host not responding to stop endpoint command » puis « HC died ». Seul un redémarrage du PC rend l'USB ; après
+  lui, 500 redémarrages de la carte n'ont rien reproduit. Lire le journal du noyau avant de chercher dans le firmware.
+
 ## Pilotes d'écran
 
 - **Écran rond** (`firmware/main/display_co5300.c`) : il reprend la démo ESP-IDF officielle de Waveshare pour la carte
