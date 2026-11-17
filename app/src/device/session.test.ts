@@ -145,6 +145,8 @@ describe('device session', () => {
         await expect(session.send(kite)).rejects.toThrow(
             'lilpet refuse : malformed look (son firmware est-il à jour ?)'
         );
+        reply = 'err benchmark animation running'; // a refusal an update would not change
+        await expect(session.send(kite)).rejects.toThrow(/^lilpet refuse : benchmark animation running$/);
         reply = null;
         vi.useFakeTimers();
         const silent = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
