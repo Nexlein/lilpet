@@ -105,8 +105,8 @@ marge (80 mAh), il reste environ 240 mAh d'éveil : environ 3 à 4 h au jalon A,
 La commande est prévue maintenant ([#47](https://github.com/Nexlein/lilpet/issues/47)). D'ici là, l'AtomS3R a déjà
 un écran, un bouton et un accéléromètre. La mise en veille, le réveil au mouvement et au bouton, l'air ensommeillé et la
 batterie faible y tournent, sur sa base de batterie ([décision 12](adr/0012-energie.md)). Ces règles passeront sur la
-carte écran ; ses pilotes, eux, sont à écrire : son accéléromètre (QMI8658) et sa puce d'alimentation (AXP2101) ne
-sont pas ceux de l'AtomS3R.
+carte écran. Sa puce d'alimentation (AXP2101) y règle déjà la charge et lit la batterie ; ses autres pilotes restent à
+écrire, à commencer par son accéléromètre (QMI8658), qui n'est pas celui de l'AtomS3R.
 
 ## L'app PC
 

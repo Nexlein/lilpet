@@ -1,6 +1,6 @@
 // Tests the boards' flash layout, firmware/partitions.csv (docs/adr/0011-disposition-de-la-flash.md): nvs stays where
 // ESP-IDF's default table put it, so that the look saved there survives a change of the table, and every partition
-// comes after the one before, so that a new one can only be added at the end. Built-in test runner, no dependency.
+// comes after the one before, without overlapping it. Built-in test runner, no dependency.
 // Usage: npm run check:scripts
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

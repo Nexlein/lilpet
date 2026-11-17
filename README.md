@@ -24,9 +24,10 @@ Projet strictement personnel, non commercial.
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB,
       watchdog et démarrage sûr ; écran rond à tester sur la carte
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
-- [ ] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
+- [x] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
       données versionnées ([#48](https://github.com/Nexlein/lilpet/issues/48)), veille et batterie sur l'AtomS3R
-      ([#51](https://github.com/Nexlein/lilpet/issues/51)), décisions et commande du matériel
+      ([#51](https://github.com/Nexlein/lilpet/issues/51))
+- [ ] Le matériel : choisi (la carte écran 1,75", [materiel.md](docs/materiel.md)), à commander
       ([#47](https://github.com/Nexlein/lilpet/issues/47))
 - [ ] Jalon A, l'objet sans caméra : banc d'essai ([#53](https://github.com/Nexlein/lilpet/issues/53)), carte écran
       avec accéléromètre, toucher, bouton et batterie ([#54](https://github.com/Nexlein/lilpet/issues/54))

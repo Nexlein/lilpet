@@ -26,12 +26,14 @@ static bool read_reg(uint8_t reg, uint8_t *out)
     return i2c_master_transmit_receive(pmu, &reg, 1, out, 1, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
 }
 
-/* Sets the charge current, then the battery's detection and measurement, and reads the charge current back */
+/* Sets the charge current, the TS pin out of the charger's way, then the battery's detection and measurement, and reads
+ * the charge current back */
 static bool set_up(void)
 {
-    uint8_t charge, detection, adc;
+    uint8_t charge, ts, detection, adc;
     return read_reg(AXP2101_ICC_CHG, &charge) &&
            write_reg(AXP2101_ICC_CHG, axp2101_charge_register(charge, BOARD_CHARGE_MA)) &&
+           read_reg(AXP2101_TS_CTRL, &ts) && write_reg(AXP2101_TS_CTRL, axp2101_ts_register(ts)) &&
            read_reg(AXP2101_BAT_DET, &detection) && write_reg(AXP2101_BAT_DET, axp2101_detection_register(detection)) &&
            read_reg(AXP2101_ADC_CTRL, &adc) && write_reg(AXP2101_ADC_CTRL, axp2101_adc_register(adc)) &&
            read_reg(AXP2101_ICC_CHG, &charge) && (charge & 0x1Fu) == axp2101_charge_code(BOARD_CHARGE_MA);

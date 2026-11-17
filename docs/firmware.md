@@ -66,19 +66,22 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   un mouvement toutes les 20 ms ; seule, elle passe en veille légère, réveillée par le bouton ou, chaque seconde, pour
   lire le mouvement. Réveillée, elle redessine l'image entière et rallume l'écran en fondu (0,5 s) ; les yeux restent
   ensommeillés 2 s avant leur humeur, et l'appui qui l'a réveillée ne compte pas comme une caresse (`rest.h`). `hello`
-  dit où en sont les yeux (`state=`), et `> test sleep` les endort tout de suite. L'animation de mesure ne s'endort pas
-  seule, ni une carte qui ne saurait pas se réveiller seule, sans bouton ni capteur de mouvement (les Waveshare,
-  aujourd'hui). En veille légère, ESP-IDF laisse flotter toutes les broches : `board.c` garde le maintien de
+  dit où en sont les yeux (`state=`), et `> test sleep` les endort tout de suite, sur toutes les cartes. L'animation de
+  mesure ne s'endort pas seule, ni une carte qui ne saurait pas se réveiller seule, sans bouton ni capteur de mouvement
+  (les Waveshare, aujourd'hui) : endormies par `> test sleep`, elles guettent une commande, port USB allumé, sans
+  veille légère. En veille légère, ESP-IDF laisse flotter toutes les broches : `board.c` garde le maintien de
   l'alimentation, le reset et la sélection de l'écran, et le bus I2C.
 - **Batterie** : lue toutes les 10 s, d'une des trois façons que `board.cmake` choisit. `battery_adc.c` lit le pont
   diviseur de la carte (`BOARD_BATTERY_ADC`, `BOARD_BATTERY_DIVIDER`), avec l'étalonnage de l'ADC gardé dans les eFuses
   de la puce. `battery_axp2101.c` lit la puce d'alimentation de la 1,75", et règle à chaque démarrage son courant de
-  charge à `BOARD_CHARGE_MA` (200 mA) : le journal le dit (« AXP2101 charges at 200 mA at most »), ou dit de laisser la
+  charge à `BOARD_CHARGE_MA` (200 mA). Il lui fait aussi ignorer la broche TS, comme la démo de Waveshare : la carte n'a
+  pas de sonde de température. Le journal dit le courant réglé (« AXP2101 charges at 200 mA at most »), ou de laisser la
   batterie débranchée si la puce ne répond pas, et `firmware:check-device` le vérifie. `battery_none.c` est pour les
   cartes sans batterie. Sous 3,5 V, les yeux ont l'air fatigué, jusqu'à 3,6 V (`battery_rule.h`). `hello` donne les
-  millivolts (`battery=`), ou `none` sous 2,5 V. Sur sa base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans
-  la base, G8 n'est reliée à rien, et lit pourtant moins de 2,5 V : `battery=none`, cinq fois sur cinq le 2026-11-17.
-  Une broche en l'air n'y fait pas croire à une batterie.
+  millivolts (`battery=`), ou `none` sans batterie : sous 2,5 V sur un pont diviseur, ou quand l'AXP2101 n'en voit pas.
+  Sur sa base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans la base, G8 n'est reliée à rien, et lit pourtant
+  moins de 2,5 V : `battery=none`, cinq fois sur cinq le 2026-11-17. Une broche en l'air n'y fait pas croire à une
+  batterie.
 - **Secousse**, mesurée sur la carte : une secousse à la main monte jusqu'à 11 g, vers 6 Hz, et s'écarte en moyenne de
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.
@@ -89,8 +92,9 @@ Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lan
 (`mise run engine:test`) : la reconnaissance de la puce de l'écran de l'AtomS3R (`lcd_id.h`, dont la branche ST7735S n'a
 jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le moment
 où un look s'écrit en flash (`look_saving.h`), les lignes d'une bande que dessine chaque cœur et la part de l'écran
-qu'une image redessine (`frame.h`), et les plages de colonnes et de lignes que les deux pilotes d'écran envoient
-(`dcs.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
+qu'une image redessine (`frame.h`), les plages de colonnes et de lignes que les deux pilotes d'écran envoient
+(`dcs.h`), le repos et ses fondus (`rest.h`), la batterie faible (`battery_rule.h`) et les registres de l'AXP2101
+(`axp2101.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
 Sur la carte :
 

@@ -97,7 +97,7 @@ class Board:
         crash_boot_log=(),  # what it prints past the boot line on a start after a crash only, which resets the CPU only
         crash_motion=True,  # has its motion sensor on a start after a crash
         battery="none",  # what its hello tells of the battery
-        sleeps=True,  # takes `> test sleep`, like firmware 0.7.6 and after
+        sleeps=True,  # takes `> test sleep`, like firmware 0.8.0 and after
         wakes=True,  # a command wakes it up
         sleep_log=(),  # what it prints as its screen goes off, before the asleep line
         wake_log=(),  # what it prints as its screen comes back, before the awake line
