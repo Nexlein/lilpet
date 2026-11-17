@@ -177,7 +177,11 @@ jobs:
       - name: Open the PC app with a fake board
         run: npm run test:playwright
 
-      # The app just built and tested, for release.yml to publish on GitHub Pages: on a version tag only
+      # The app just built and tested, for release.yml to publish on GitHub Pages: on a version tag only, with the
+      # notices of what it bundles (React, the Emscripten runtime, the font), which their licences ask for
+      - name: Add the third-party notices to the PC app
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: cp THIRD_PARTY.md app/dist/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
