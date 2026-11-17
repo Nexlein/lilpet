@@ -17,13 +17,12 @@ static i2c_master_dev_handle_t pmu; /* NULL: the chip did not answer */
 
 static bool write_reg(uint8_t reg, uint8_t value)
 {
-    const uint8_t bytes[2] = {reg, value};
-    return i2c_master_transmit(pmu, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
+    return board_i2c_write(pmu, reg, &value, 1);
 }
 
 static bool read_reg(uint8_t reg, uint8_t *out)
 {
-    return i2c_master_transmit_receive(pmu, &reg, 1, out, 1, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
+    return board_i2c_read(pmu, reg, out, 1);
 }
 
 /* Sets the charge current, the TS pin out of the charger's way, then the battery's detection and measurement, and reads

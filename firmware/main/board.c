@@ -176,4 +176,17 @@ i2c_master_dev_handle_t board_i2c_device(uint16_t address)
         return NULL;
     return device;
 }
+
+bool board_i2c_write(i2c_master_dev_handle_t device, uint8_t reg, const uint8_t *data, size_t len)
+{
+    /* The register, then the data, in one transfer and with no copy */
+    i2c_master_transmit_multi_buffer_info_t parts[] = {{.write_buffer = &reg, .buffer_size = 1},
+                                                       {.write_buffer = data, .buffer_size = len}};
+    return i2c_master_multi_buffer_transmit(device, parts, 2, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
+}
+
+bool board_i2c_read(i2c_master_dev_handle_t device, uint8_t reg, uint8_t *data, size_t len)
+{
+    return i2c_master_transmit_receive(device, &reg, 1, data, len, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
+}
 #endif
