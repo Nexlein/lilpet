@@ -8,16 +8,23 @@
 #define NAMESPACE "lilpet"
 #define KEY       "look" /* the look as text (lp_look_format), readable whatever the struct layout */
 
-void look_store_init(void)
+const char *look_store_init(void)
 {
     esp_err_t err = nvs_flash_init();
+    const char *found = "ok";
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        /* Storage full or from another format: start from scratch */
+        /* Storage full or from another format: start from scratch, and say so */
+        printf("flash storage %s: erased, with the saved look\n",
+               err == ESP_ERR_NVS_NO_FREE_PAGES ? "full" : "in another format");
         nvs_flash_erase();
         err = nvs_flash_init();
+        found = "erased";
     }
-    if (err != ESP_OK)
+    if (err != ESP_OK) {
         printf("flash storage unavailable (%s): looks will not be kept\n", esp_err_to_name(err));
+        return "none";
+    }
+    return found;
 }
 
 bool look_store_load(lp_look *look)

@@ -1,7 +1,9 @@
-# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md):
-# opening the port does not reboot it, it answers hello and tells its board, keeps the last of two looks sent in a row
-# across a reboot, logs no fault of its screen, keeps drawing, takes the commands that drive the eyes, and rejects bad
-# commands and lines too long, which change nothing.
+# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening
+# the port does not reboot it, it answers hello and tells its board, why it last started and that its flash storage is
+# as it left it, keeps the last of two looks sent in a row across a reboot, which it tells came from its USB port, logs
+# no fault of its screen, keeps drawing, resets itself and tells so when its drawing loop hangs, then starts once on the
+# default look, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change
+# nothing.
 # With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
 # has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
 # knows about a board comes from its hello and firmware/boards/<board>.
@@ -26,11 +28,20 @@ from board_link import (
     open_port,
     read_reply,
 )
-from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define
+from firmware_facts import (
+    REPLY_BENCH,
+    REPLY_NO_MOTION,
+    REPLY_TOO_LONG,
+    REPLY_UNKNOWN,
+    c_define,
+    default_look,
+    sdkconfig_default,
+)
 
 # The checks need two looks the board does not wear, so three. The first, kite colors with two pupil colors, is one
 # nobody keeps by chance.
 LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
+DEFAULT_LOOK = default_look()  # what a start after a crash shows, which the look kept across it must not be
 BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 # Only the log tells them: everything else works with a black screen
@@ -46,6 +57,7 @@ WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 REBOOTS_DURING_READS = 40
 
 failures = 0
+hung = False  # the drawing loop was told to hang, and the watchdog has yet to reset the chip
 
 
 @dataclass
@@ -60,6 +72,11 @@ LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COM
 QUEUE_SLOTS = c_define(ROOT / "firmware" / "main" / "commands.c", "QUEUE_SLOTS")
 # A look sent sooner than this after the last write to flash is written once this time has passed
 SAVE_GAP_SECONDS = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
+# A drawing loop hung this long resets the chip
+WATCHDOG_SECONDS = sdkconfig_default("ESP_TASK_WDT_TIMEOUT_S")
+# Why a start shows the default look and leaves the flash out, once (after_crash in firmware/main/main.c, which a test
+# compares)
+CRASH_RESETS = ("panic", "int_wdt", "task_wdt", "wdt", "cpu_lockup")
 
 
 def check(ok, what, detail=""):
@@ -91,13 +108,27 @@ def reset(port):
     port.rts = False
 
 
-def reboot(port):
-    """Returns what the board prints from its boot to its first report, nothing if it does not boot"""
-    reset(port)
-    boot = read_lines(port, BOOT_SECONDS, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
+def booted(port, seconds):
+    """Returns what the board prints from a boot within `seconds` to its first report, nothing if it does not boot"""
+    boot = read_lines(port, seconds, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
     if not (boot and BOOT_LINE in boot[0]):
         return []
     return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
+
+
+def reset_reason(port):
+    """Why the board last started, as its hello tells it"""
+    return hello_fields(ask_hello(port)).get("reset")
+
+
+def screen_faults(log):
+    return "; ".join(line for line in log if any(fault in line for fault in SCREEN_FAULTS))
+
+
+def reboot(port):
+    """Returns what the board prints from its boot to its first report, nothing if it does not boot"""
+    reset(port)
+    return booted(port, BOOT_SECONDS)
 
 
 def open_booted_board():
@@ -135,10 +166,33 @@ def run_checks(port, board, test_look, other_look):
     check(ask(port, "> look?") == f"look {test_look}", "tells the last look back")
     time.sleep(SAVE_GAP_SECONDS + 0.5)  # its turn, and the write
 
+    # The eyes freeze while the commands still get answers: only the watchdog of the drawing loop can tell. The start
+    # that follows resets the CPU only, not the display or the I2C bus: the screen and the sensor are checked again.
+    global hung
+    hung = True
+    reply = ask(port, "> test hang")
+    hung = reply == "ok"
+    check_reply(hung, "takes the test command that hangs its drawing loop", reply)
+    seconds = WATCHDOG_SECONDS + BOOT_SECONDS
+    log = booted(port, seconds)
+    check(bool(log), "resets itself when its drawing loop hangs", "" if log else f"no reboot in {seconds} s")
+    if not log:
+        log = reboot(port)  # its drawing loop stays hung until then
+    hung = False
+    faults = screen_faults(log)
+    check(bool(log) and not faults, "starts its screen again after the reset", faults)
+    check(bool(log) and re.search(REPORT_LINE, log[-1]), "draws again after the reset", "" if log else "no report")
+    fields = hello_fields(ask_hello(port))
+    check(fields.get("reset") == "task_wdt", "tells its watchdog reset it", f"reset={fields.get('reset')}")
+    if board.motion:
+        check(fields.get("motion") == "1", "keeps its motion sensor after the reset", f"motion={fields.get('motion')}")
+    shown = ask(port, "> look?")
+    check_reply(shown == f"look {DEFAULT_LOOK}", "starts on the default look after a crash", shown)
+
     log = reboot(port)
     check(bool(log), "reboots on request")
-    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
-    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
+    faults = screen_faults(log)
+    check(bool(log) and not faults, "starts its screen", faults)
     report = re.search(REPORT_LINE, log[-1]) if log else None
     rate = float(report.group(1)) if report else 0.0
     check(
@@ -146,8 +200,10 @@ def run_checks(port, board, test_look, other_look):
         f"draws at least {MIN_FRAMES_PER_SECOND} frames/s",
         f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
     )
-    after = ask(port, "> look?")
+    after = ask(port, "> look?")  # the start after the crash showed the default look once, and kept this one
     check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
+    reason = reset_reason(port)
+    check(reason == "usb", "tells it was reset by its USB port", f"reset={reason}")
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
@@ -238,6 +294,8 @@ def put_back(port, board, before):
         if port.rts:  # stopped during a reboot: the chip stays in reset until RTS is released
             port.rts = False
             read_lines(port, BOOT_SECONDS)
+        if hung:  # stopped while its drawing loop hangs: a look sent now would give way to the default one at the reset
+            booted(port, WATCHDOG_SECONDS + BOOT_SECONDS)
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
@@ -264,14 +322,21 @@ def check_board(board_name):
     check(fields.get("motion") in ("0", "1"), "tells if it has a motion sensor", fields.get("motion", "no field"))
     if board.motion:
         check(fields.get("motion") == "1", "has its motion sensor", f"motion={fields.get('motion')}")
+    check(bool(fields.get("reset")), "tells why it last started", fields.get("reset", "no field"))
+    storage = fields.get("storage")
+    check(storage == "ok", "finds its flash storage as it left it", f"storage={storage}")
+    if fields.get("reset") in CRASH_RESETS:  # it shows the default look this once: its own is in flash, back at a reset
+        reboot(port)
 
     before = ask(port, "> look?")
     check_reply(bool(before) and before.startswith("look "), "tells its look", before)
     if not (before and before.startswith("look ")):
         finish(port)  # its look could not be put back
 
-    # Two looks the board does not wear: a run stopped by a power cut leaves one on it
-    test_look, other_look = [look for look in LOOKS if f"look {look}" != before][:2]
+    # Two looks the board does not wear: a run stopped by a power cut leaves one on it. The one kept is not the default
+    looks = [look for look in LOOKS if f"look {look}" != before]
+    test_look = next(look for look in looks if look != DEFAULT_LOOK)
+    other_look = next(look for look in looks if look != test_look)
     try:
         run_checks(port, board, test_look, other_look)
     except KeyboardInterrupt:

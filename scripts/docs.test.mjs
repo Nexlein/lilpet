@@ -27,7 +27,10 @@ const codeNumber = (path, pattern) => {
 };
 
 const CLANG = codeNumber('engine/CMakeLists.txt', /set\(LILPET_MIN_CLANG (\d+)\)/);
+const WATCHDOG = codeNumber('firmware/sdkconfig.defaults', /^CONFIG_ESP_TASK_WDT_TIMEOUT_S=(\d+)$/m);
 const CASES = [
+    ['docs/protocole.md', '(N s) plus tard', WATCHDOG],
+    ['docs/firmware.md', 'qui ne finit pas en N s', WATCHDOG],
     [
         'docs/protocole.md',
         'au plus N caractères',

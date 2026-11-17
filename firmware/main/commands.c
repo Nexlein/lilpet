@@ -13,7 +13,9 @@
 
 #include "esp_timer.h"
 
+#include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 
 #define QUEUE_SLOTS  32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
 #define RX_BUFFER    1024 /* bytes of commands waiting on the USB port */
@@ -23,7 +25,7 @@
 static struct {
     lp_look current;
     look_saving saving;
-    bool motion;
+    commands_hello hello;
 } state;
 
 /*
@@ -31,6 +33,9 @@ static struct {
  * reads the USB port, and the driver drops the packets that no longer fit RX_BUFFER, which splices the lines behind.
  */
 static QueueHandle_t queue;
+
+/* Set by this task, read by the drawing loop (commands_hang_asked) */
+static atomic_bool hang_asked;
 
 static bool push(const lp_command *c)
 {
@@ -62,6 +67,7 @@ static void handle_look(const lp_command *c)
     }
     /* Shown even when it cannot be kept: the app still sees it. Written now if its turn has come, else by read_line */
     state.current = c->look;
+    look_saving_mark_sent(&state.saving);
     if (!save_if_due())
         printf("< err shown, but cannot save the look in flash\n");
     else
@@ -93,12 +99,16 @@ static void handle(const lp_command_line *line)
     /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
     putchar('\n');
 
-    if (error) {
+    if (error && strcmp(line->text, "> test hang") == 0) { /* the firmware's own, not the engine's: the engine parses */
+        atomic_store(&hang_asked, true);
+        printf("< ok\n");
+    } else if (error) {
         printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
         /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
-        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d\n", esp_app_get_description()->version,
-               lp_version(), BOARD_NAME, state.motion);
+        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s\n",
+               esp_app_get_description()->version, lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset,
+               state.hello.storage);
     } else if (c.type == LP_COMMAND_LOOK_QUERY) {
         reply_look(&state.current);
     } else if (c.type == LP_COMMAND_LOOK) {
@@ -136,7 +146,7 @@ static void commands_task(void *arg)
     }
 }
 
-void commands_start(const lp_look *current, bool motion)
+void commands_start(const lp_look *shown, const lp_look *kept, const commands_hello *hello)
 {
     /* Reads with a timeout (read_line) and the replies through printf: both need the port's driver, not just the
      * default console output. The driver drops what does not fit in its buffer: this one holds a burst of about 80
@@ -147,10 +157,15 @@ void commands_start(const lp_look *current, bool motion)
     usb_serial_jtag_vfs_use_driver();
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
-    state.current = *current;
-    state.saving = look_saving_start(current);
-    state.motion = motion;
+    state.current = *shown;
+    state.saving = look_saving_start(kept);
+    state.hello = *hello;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
+}
+
+bool commands_hang_asked(void)
+{
+    return atomic_load(&hang_asked);
 }
 
 bool commands_next(lp_command *out)

@@ -77,6 +77,7 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     look_saving s = look_saving_start(&kept);
     saves = 0;
     save_ok = true;
+    look_saving_mark_sent(&s);
     CHECK(look_save_if_due(&s, &kept, 9 * gap, fake_save) && saves == 0); /* the flash holds it: nothing to write */
     CHECK(look_save_if_due(&s, &other, 0, fake_save) && saves == 1);      /* the first new look, at once */
     CHECK(look_same(&s.kept, &other));
@@ -89,6 +90,28 @@ void test_a_look_is_written_at_once_then_at_most_every_gap(void)
     save_ok = true;
     CHECK(look_save_if_due(&s, &pupil, 3 * gap, fake_save) && saves == 4);
     CHECK(look_save_if_due(&s, &pupil, 9 * gap, fake_save) && saves == 4); /* kept: not written again */
+}
+
+void test_a_start_writes_only_the_looks_that_come_after_it(void)
+{
+    const lp_look saved = {0x7DB5F4u, LP_PUPIL_CAT, {0xC10787u, 0x8F1716u}};
+    const lp_look fallback = {0xAE0002u, LP_PUPIL_DOT, {0xFF5252u, 0xFF5252u}};
+    saves = 0;
+    save_ok = true;
+
+    /* A start that shows a look the flash does not hold (after a crash: the default one) leaves the flash as it is */
+    look_saving s = look_saving_start(&saved);
+    CHECK(look_save_if_due(&s, &fallback, 0, fake_save) && saves == 0);
+    look_saving_mark_sent(&s); /* the same look, sent: now chosen, and written */
+    CHECK(look_save_if_due(&s, &fallback, 1, fake_save) && saves == 1 && look_same(&s.kept, &fallback));
+
+    /* A start that did not read the flash: the first look that comes is written, whatever it is (all zeros: black) */
+    const lp_look black = {0};
+    s = look_saving_start(NULL);
+    CHECK(look_save_if_due(&s, &black, 0, fake_save) && saves == 1);
+    look_saving_mark_sent(&s);
+    CHECK(look_save_if_due(&s, &black, 1, fake_save) && saves == 2);
+    CHECK(look_save_if_due(&s, &black, 9 * LOOK_SAVE_GAP_US, fake_save) && saves == 2); /* known from then on */
 }
 
 /* Each core draws its rows of a band and leaves the other's alone (the cores draw at once): together, the frame drawn
