@@ -142,7 +142,9 @@ describe('device session', () => {
         const device = fakePort((c) => (c === HELLO ? answer(c) : reply));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
-        await expect(session.send(kite)).rejects.toThrow('Erreur de lilpet : malformed look');
+        await expect(session.send(kite)).rejects.toThrow(
+            'lilpet refuse : malformed look (son firmware est-il à jour ?)'
+        );
         reply = null;
         vi.useFakeTimers();
         const silent = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
@@ -323,7 +325,9 @@ describe('device session', () => {
         expect(device.sent).toEqual([HELLO]);
         session.emotion('furious');
         await vi.waitFor(() =>
-            expect(session.snapshot().log).toContain('> emotion furious : Erreur de lilpet : unknown emotion')
+            expect(session.snapshot().log).toContain(
+                '> emotion furious : lilpet refuse : unknown emotion (son firmware est-il à jour ?)'
+            )
         );
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();

@@ -3,7 +3,7 @@
 import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
 import { Connection, ConnectionClosed, NoReply, type PortLike } from './connection';
-import { BoardBusy, NotLilpet, command, hello, sendLook, type LookSent } from './device';
+import { BoardBusy, BoardRefused, NotLilpet, command, hello, sendLook, type LookSent } from './device';
 import { emotionCommand, reactCommand, type DeviceInfo } from './protocol';
 
 export type DeviceState =
@@ -157,6 +157,7 @@ function describe(err: unknown, silent = NO_REPLY): string {
     if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
     if (err instanceof NotLilpet || err instanceof NoReply) return silent;
+    if (err instanceof BoardRefused) return `lilpet refuse : ${err.reason} (son firmware est-il à jour ?)`;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?), ou fermé à ton compte (sous Linux : le groupe dialout). Ferme-le, ou ajoute ton compte au groupe, puis réessaie.';
     return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;
