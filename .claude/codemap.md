@@ -278,7 +278,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/sources.cmake
 
 ## firmware/main
-- **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
+- **CMakeLists.txt** (16) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
 - **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
   - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c

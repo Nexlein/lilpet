@@ -32,7 +32,7 @@ bool commands_sleep_asked(void);
 bool commands_heard(int wait_ms);
 
 /* What hello tells of the eyes' rest and of the battery (millivolts, or -1 for none), kept by the drawing loop */
-void commands_set_status(rest_state rest, int battery_mv);
+void commands_set_status(rest_state state_now, int battery_mv);
 
 /* Takes the next command for the eyes; false when none is waiting. The engine is not thread-safe: the drawing loop
  * carries them out, every frame. It lists every lp_command_type, so a new command does not build until it is handled

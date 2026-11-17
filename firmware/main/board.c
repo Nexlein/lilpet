@@ -110,7 +110,7 @@ void board_light_sleep(uint64_t us)
 
 #ifdef BOARD_I2C_SDA
 /* Drives a pin of the bus by hand, open drain, then waits half a clock (100 kHz) */
-static void i2c_pin(int pin, int level)
+static void i2c_pin(int pin, uint32_t level)
 {
     gpio_set_level(pin, level);
     esp_rom_delay_us(5);

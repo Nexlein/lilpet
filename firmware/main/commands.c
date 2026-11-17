@@ -221,9 +221,9 @@ bool commands_heard(int wait_ms)
     return xSemaphoreTake(heard, pdMS_TO_TICKS(wait_ms)) == pdTRUE;
 }
 
-void commands_set_status(rest_state rest, int battery)
+void commands_set_status(rest_state state_now, int battery)
 {
-    atomic_store(&rest_now, (int)rest);
+    atomic_store(&rest_now, (int)state_now);
     atomic_store(&battery_mv, battery);
 }
 

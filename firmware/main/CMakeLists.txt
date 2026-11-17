@@ -10,3 +10,7 @@ idf_component_register(SRCS ${srcs} INCLUDE_DIRS ../boards/${LILPET_BOARD}
                                 esp_driver_usb_serial_jtag esp_app_format efuse nvs_flash esp_adc spi_flash)
 # A board's name is its folder: a copied board cannot keep the name of the first one
 target_compile_definitions(${COMPONENT_LIB} PRIVATE BOARD_NAME="${LILPET_BOARD}")
+# The engine's warnings (engine/sources.cmake) on top of ESP-IDF's, but -Wpedantic, which ESP-IDF's headers trip, and
+# -Wmissing-prototypes, since app_main has none: a double literal or a narrowing conversion fails the build here too
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wconversion -Wsign-conversion -Wdouble-promotion -Wshadow
+                                                -Wstrict-prototypes)
