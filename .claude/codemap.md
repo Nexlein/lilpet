@@ -11,8 +11,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → scripts/data.mjs, scripts/files.mjs
 
 ## .github/rulesets
-- **dev.json** (66) — data
-- **main.json** (66) — data
+- **dev.json** (70) — data
+- **main.json** (70) — data
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
@@ -257,14 +257,20 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (21) — M5Stamp S3A, bare: no screen.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
+- **board_config.h** (22) — M5Stamp S3A, bare: no screen.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
+- **board_config.h** (22) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+
+## firmware/boards/waveshare_175
+- **board.cmake** (2) — Parts of the board, files of firmware/main.
+- **board_config.h** (33) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
@@ -314,7 +320,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_atoms3r.c** (256) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
-- **display_co5300.c** (179) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+- **display_co5300.c** (183) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
 - **display_paced.c** (24) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.

@@ -16,6 +16,7 @@
 #define BOARD_LCD_D3            15
 #define BOARD_LCD_RESET         8
 #define BOARD_LCD_TE            9
-#define BOARD_LCD_COLUMN_OFFSET 6 /* first visible column of the panel */
+#define BOARD_LCD_COLUMN_OFFSET 6     /* first visible column of the panel */
+#define BOARD_LCD_ORIENTATION   0xC0u /* rows and columns reversed: 180 degrees, as the panel is mounted */
 
 #endif
