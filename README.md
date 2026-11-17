@@ -137,6 +137,13 @@ Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés 
 mise run firmware:monitor
 ```
 
+Après un crash, pour voir où en était chaque tâche : le coredump que la carte a écrit en flash, décodé avec l'ELF de sa
+dernière compilation (la même image que celle flashée), sur la seule carte branchée ou celle de `PORT` :
+
+```bash
+BOARD=atoms3r mise run firmware:coredump
+```
+
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
 `board_config.h`, puis ajouter son nom à la liste des cartes de `.github/workflows/ci.yml` (un test de `npm run check`
 compare cette liste aux dossiers). Pour que sa compilation soit exigée avant un merge, ajouter son job (« ESP32-S3
