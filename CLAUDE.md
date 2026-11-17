@@ -15,6 +15,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   (mise tasks, npm scripts) and the npm packages. Read it before searching, and open only the files it points to. It is
   generated (`npm run codemap`, run by the pre-commit hook) from the purpose comment each source file starts with.
 - `docs/architecture.md` before structural work: the parts, the decisions (`docs/adr/`), the open points.
+- `docs/recettes.md` before adding a board, a driver, an emotion, a pupil, a command or a hello field, and before a
+  release: every place to edit, and which ones no check catches.
 - `docs/yeux.md` before changing how the eyes look or move: the measured style of the originals.
 - `docs/protocole.md` before changing a command, `docs/firmware.md` before firmware work, `docs/app.md` for the app's
   spec and roadmap, `docs/materiel.md` for the hardware, `docs/objet-v1.md` for what the first finished object must do,

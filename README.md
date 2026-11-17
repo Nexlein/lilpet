@@ -147,13 +147,8 @@ dernière compilation (la même image que celle flashée), sur la seule carte br
 BOARD=atoms3r mise run firmware:coredump
 ```
 
-Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et
-`board_config.h`, puis ajouter son nom à la liste des cartes de `.github/workflows/ci.yml` (un test de `npm run check`
-compare cette liste aux dossiers). Pour que sa compilation soit exigée avant un merge, ajouter son job (« ESP32-S3
-firmware build (<carte>) ») aux checks requis des règles GitHub de `dev` et `main`, `.github/rulesets/dev.json` et
-`main.json` (un test les compare aux jobs de la CI), puis les appliquer avec `mise run github:rulesets` (gh connecté ;
-crée aussi les règles d'un dépôt recréé). De même pour renommer ou retirer une carte ou un job : un check requis dont le
-job n'existe plus reste en attente et bloque chaque pull request.
+Pour ajouter une carte, un pilote, une émotion ou une commande, et ce qui vérifie chaque étape :
+[docs/recettes.md](docs/recettes.md).
 
 Sous Linux, l'utilisateur doit être dans le groupe
 `dialout` pour accéder au port USB. Si le flash ne trouve pas la carte : la débrancher, maintenir son bouton BOOT, puis
@@ -161,15 +156,21 @@ la rebrancher. La CI garde aussi les binaires 30 jours (`firmware-<carte>` dans 
 de version annoté (`git tag -a vX.Y.Z` sur `main`, X.Y.Z étant la version du firmware de `firmware/CMakeLists.txt`,
 puis push du tag) les publie pour de bon : `release.yml` relance la CI sur ce commit, puis crée une Release GitHub avec
 un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes. Il publie aussi sur GitHub Pages l'app
-PC que la CI vient de compiler et de tester.
+PC que la CI vient de compiler et de tester. L'ordre des étapes d'une version :
+[docs/recettes.md](docs/recettes.md#sortir-une-version).
 
 ## Arborescence
 
-| Dossier     | Contenu                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `docs/`     | Architecture, décisions, protocole, firmware, app, yeux, matériel, recherche               |
-| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                      |
-| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                   |
-| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures   |
-| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB      |
-| `scripts/`  | Données (validation, tables générées), rendus de référence, carte du code, outils de carte |
+| Dossier     | Contenu                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------- |
+| `docs/`     | Architecture, décisions, protocole, firmware, app, yeux, matériel, l'objet v1, recherche, recettes |
+| `eyes/`     | Les 100 couleurs officielles et les émotions et réactions, en données                              |
+| `engine/`   | Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32                           |
+| `firmware/` | Application ESP32-S3, une image par carte (`boards/`) : pilotes, yeux en direct, mesures           |
+| `app/`      | App PC (React, TypeScript, Vite) et ses tests : choisir les yeux, les envoyer par USB              |
+| `scripts/`  | Données (validation, tables générées), rendus de référence, carte du code, outils de carte         |
+| `.github/`  | CI, publication des versions, règles des branches, mises à jour des outils                         |
+| `.husky/`   | Hooks git : vérifications avant chaque commit et chaque push                                       |
+
+Le code est public pour être lu, sans licence pour l'utiliser, le copier ni le modifier ([LICENSE](LICENSE)) ; ce qui
+vient d'ailleurs garde sa licence, dans [THIRD_PARTY.md](THIRD_PARTY.md).
