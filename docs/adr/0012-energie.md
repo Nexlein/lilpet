@@ -39,8 +39,9 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
     - Branchée à un PC, la carte garde son port : elle regarde les commandes, le bouton et le mouvement toutes les 20
       ms, sans veille légère.
     - Seule (sur batterie, ou sur un chargeur sans données), elle passe en veille légère, au plus 1 s à la fois : un
-      appui la réveille aussitôt (le bouton tenu, lui, la réveille quand il est relâché, pour que l'appui suivant
-      compte), et le minuteur, chaque seconde, le temps de lire le mouvement.
+      appui la réveille aussitôt, et le minuteur, chaque seconde, le temps de lire le mouvement. Un bouton tenu ne la
+      réveille pas : le relâcher sort seulement la puce de la veille légère, sans réveiller les yeux, pour que l'appui
+      suivant compte.
     - En veille légère, ESP-IDF laisse flotter toutes les broches (`CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND`), sauf
       celles qu'on lui nomme : la carte garde le maintien de son alimentation, le reset et la sélection de l'écran, et
       le bus I2C.
