@@ -12,6 +12,7 @@ idf_component_register(SRCS ${srcs} INCLUDE_DIRS ../boards/${LILPET_BOARD}
 target_compile_definitions(${COMPONENT_LIB} PRIVATE BOARD_NAME="${LILPET_BOARD}")
 # Most of the engine's warnings (engine/sources.cmake) on top of ESP-IDF's -Wall -Werror: a double literal, a narrowing
 # or sign conversion, a shadowed name fail the build here too. Not -Wpedantic, which ESP-IDF's headers trip, nor
-# -Wmissing-prototypes, since app_main has none; -Wextra stays ESP-IDF's, which does not fail the build.
+# -Wmissing-prototypes, since app_main has none; -Wextra stays ESP-IDF's, which does not fail the build. A deprecated
+# ESP-IDF call fails it too, which ESP-IDF lets through: an upgrade of ESP-IDF shows what it removes next.
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wconversion -Wsign-conversion -Wsign-compare -Wdouble-promotion
-                                                -Wshadow -Wstrict-prototypes)
+                                                -Wshadow -Wstrict-prototypes -Werror=deprecated-declarations)
