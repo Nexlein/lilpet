@@ -46,8 +46,8 @@ Pourquoi la 1,32" (recommandation) :
 
 Ce qu'on perd :
 
-- **L'accéléromètre**, utile pour réagir quand on secoue ou penche l'objet. Un petit module I2C pourra s'ajouter plus
-  tard sur le connecteur d'extension.
+- **L'accéléromètre**, utile pour réagir quand on secoue ou penche l'objet : un petit module I2C s'ajoute pour la v1,
+  sur le connecteur d'extension ([objet-v1.md](objet-v1.md)).
 - La microSD : inutile, les looks et les animations tiennent dans la flash.
 - 8 Mo de flash au lieu de 16 : largement assez pour le moteur et les données.
 
