@@ -73,10 +73,10 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   de la puce. `battery_axp2101.c` lit la puce d'alimentation de la 1,75", et règle à chaque démarrage son courant de
   charge à `BOARD_CHARGE_MA` (200 mA) : le journal le dit (« AXP2101 charges at 200 mA at most »), ou dit de laisser la
   batterie débranchée si la puce ne répond pas, et `firmware:check-device` le vérifie. `battery_none.c` est pour les
-  cartes sans batterie. Sous 3,5 V, les yeux ont l'air
-  fatigué, jusqu'à 3,6 V (`battery_rule.h`). `hello` donne les millivolts (`battery=`), ou `none` sous 2,5 V. Sur sa
-  base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans la base, G8 n'est reliée à rien : ce qu'elle lit alors
-  reste à vérifier.
+  cartes sans batterie. Sous 3,5 V, les yeux ont l'air fatigué, jusqu'à 3,6 V (`battery_rule.h`). `hello` donne les
+  millivolts (`battery=`), ou `none` sous 2,5 V. Sur sa base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans
+  la base, G8 n'est reliée à rien, et lit pourtant moins de 2,5 V : `battery=none`, cinq fois sur cinq le 2026-11-17.
+  Une broche en l'air n'y fait pas croire à une batterie.
 - **Secousse**, mesurée sur la carte : une secousse à la main monte jusqu'à 11 g, vers 6 Hz, et s'écarte en moyenne de
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.

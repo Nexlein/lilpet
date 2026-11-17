@@ -54,5 +54,6 @@ int battery_millivolts(void)
     if (adc_cali_raw_to_voltage(adc.calibration, sum / READINGS, &millivolts) != ESP_OK)
         return -1;
     millivolts *= BOARD_BATTERY_DIVIDER;
-    return millivolts < BATTERY_ABSENT_MV ? -1 : millivolts; /* nothing plugged: the divider pulls the pin down */
+    /* Without the battery base, G8 is left floating, and reads well under BATTERY_ABSENT_MV (docs/firmware.md) */
+    return millivolts < BATTERY_ABSENT_MV ? -1 : millivolts;
 }

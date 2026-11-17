@@ -285,7 +285,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **battery.h** (13) — The battery: one .c per way of reading it, picked by board.cmake.
   - exports: battery_init, battery_millivolts
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/battery_none.c, firmware/main/main.c
-- **battery_adc.c** (58) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
+- **battery_adc.c** (59) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
   - exports: battery_init, battery_millivolts
   - → firmware/main/battery.h, firmware/boards/*/board_config.h
 - **battery_axp2101.c** (61) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
