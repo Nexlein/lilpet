@@ -20,6 +20,7 @@ Projet strictement personnel, non commercial.
 - [x] Architecture choisie → [docs/architecture.md](docs/architecture.md), décisions dans [docs/adr/](docs/adr/)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
+- [x] Ce que doit faire l'objet v1 → [docs/objet-v1.md](docs/objet-v1.md)
 - [ ] Commande du matériel
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
       écran rond à tester sur la carte
