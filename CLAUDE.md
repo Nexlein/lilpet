@@ -17,7 +17,8 @@ model that will choose the reactions does not exist yet; what it will send is re
 - `docs/architecture.md` before structural work: the parts, the decisions (`docs/adr/`), the open points.
 - `docs/yeux.md` before changing how the eyes look or move: the measured style of the originals.
 - `docs/protocole.md` before changing a command, `docs/firmware.md` before firmware work, `docs/app.md` for the app's
-  spec and roadmap, `docs/materiel.md` for the hardware, `docs/recherche.md` for what is known of the original.
+  spec and roadmap, `docs/materiel.md` for the hardware, `docs/objet-v1.md` for what the first finished object must do,
+  `docs/recherche.md` for what is known of the original.
   `README.md` has the setup and the commands for a person.
 
 ## Rules
