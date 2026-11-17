@@ -8,7 +8,13 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
 - Les commandes commencent par `>` et les réponses par `<` ; toute autre ligne est du journal. Chaque réponse part sur
   une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas). Une ligne fait au plus 94
   caractères : au-delà, `< err line too long`, et le reste est jeté.
-- `> hello` répond `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1>`.
+- `> hello` répond
+  `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1> reset=<raison> storage=<état>`.
+  `reset` dit pourquoi la puce a démarré : le nom de `esp_reset_reason_t` d'ESP-IDF en minuscules, sans `ESP_RST_`
+  (`poweron` à la mise sous tension, `usb` après un flash ou un reset par le port USB, `sw`, `panic`, `task_wdt`,
+  `int_wdt`, `brownout`…). `storage` dit ce que la carte a trouvé de sa mémoire flash au démarrage : `ok`, `erased`
+  quand elle a dû l'effacer, pleine ou dans un autre format (le look gardé avec), ou `none` quand elle ne peut pas s'en
+  servir (les looks ne sont alors pas gardés).
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok`, `< err <raison>`, ou
   `< err busy` si la file de la boucle de dessin est pleine (comme les commandes des yeux, plus bas). Le look s'affiche
   même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un nouveau look est
@@ -16,7 +22,8 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là : le dernier envoyé est celui que la
   carte garde, un peu plus de 2 s plus tard au pire. Si cette écriture-là échoue, la carte a déjà répondu `< ok` : seul
   son journal le dit. Qu'une écriture échoue tout de suite ou plus tard, la carte réessaie toutes les 2 s. Un look qui
-  attend son tour se perd si la carte perd l'alimentation ou redémarre avant.
+  attend son tour se perd si la carte perd l'alimentation ou redémarre avant. Seul un look envoyé s'écrit : le look par
+  défaut qu'une carte montre après un crash ne remplace pas celui gardé, mais le même look, envoyé, le remplace.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
@@ -35,6 +42,12 @@ Ces trois dernières répondent `< ok`, `< err <raison>` pour une entrée fausse
 de la boucle de dessin est pleine (32 commandes entre deux images) : le firmware n'attend pas, sinon le port USB
 jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure
 (`stamp_s3a`), elles sont refusées, et un look y est gardé sans s'afficher.
+
+`> test hang`, pour les tests seulement, répond `< ok` puis bloque la boucle de dessin pour de bon, comme une attente
+qui ne finirait pas. Les commandes ont encore leur réponse, mais les yeux se figent, jusqu'à ce que le watchdog de la
+boucle redémarre la puce : `CONFIG_ESP_TASK_WDT_TIMEOUT_S` (5 s) plus tard, `hello` dit `reset=task_wdt`, et la carte
+montre le look par défaut, comme après tout crash (voir [firmware.md](firmware.md)). `firmware:check-device` s'en sert
+pour vérifier ce watchdog et ce démarrage ; l'app ne l'envoie jamais.
 
 ## Qui s'en sert
 

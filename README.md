@@ -20,20 +20,29 @@ Projet strictement personnel, non commercial.
 - [x] Architecture choisie → [docs/architecture.md](docs/architecture.md), décisions dans [docs/adr/](docs/adr/)
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
-- [ ] Commande du matériel
-- [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
-      écran rond à tester sur la carte
-- [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
-      recevoir
-- [ ] Boîtier 3D (`case/`, créé le moment venu)
+- [x] Ce que doit faire l'objet v1 → [docs/objet-v1.md](docs/objet-v1.md)
+- [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB,
+      watchdog et démarrage sûr ; écran rond à tester sur la carte
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
-- [ ] App PC : looks perso, réglages, animations
+- [ ] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
+      données versionnées ([#48](https://github.com/Nexlein/lilpet/issues/48)), veille et batterie sur l'AtomS3R
+      ([#51](https://github.com/Nexlein/lilpet/issues/51)), décisions et commande du matériel
+      ([#47](https://github.com/Nexlein/lilpet/issues/47))
+- [ ] Jalon A, l'objet sans caméra : banc d'essai ([#53](https://github.com/Nexlein/lilpet/issues/53)), carte écran
+      avec accéléromètre, toucher, bouton et batterie ([#54](https://github.com/Nexlein/lilpet/issues/54))
+- [ ] Jalon B, la vision : la liaison UART ([#49](https://github.com/Nexlein/lilpet/issues/49)), la carte vision avec
+      le visage et le pouce levé ([#55](https://github.com/Nexlein/lilpet/issues/55)), puis le boîtier
+      ([#56](https://github.com/Nexlein/lilpet/issues/56))
+- [ ] Après la v1 : le comportement en données ([#50](https://github.com/Nexlein/lilpet/issues/50)), et dans l'app les
+      looks perso, les réglages et l'éditeur ([#57](https://github.com/Nexlein/lilpet/issues/57) à
+      [#59](https://github.com/Nexlein/lilpet/issues/59))
 
 ## Installer
 
-Prérequis : Linux, macOS ou WSL (les tâches et les hooks git lancent des commandes POSIX, les scripts des cartes ont
-besoin de termios), [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent
-(tests du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
+Prérequis : Linux, macOS ou WSL (les tâches et les hooks git lancent des commandes POSIX,
+[décision 10](docs/adr/0010-plateformes-de-developpement.md)), [mise](https://mise.jdx.dev), Docker (compilations
+WebAssembly et firmware), clang 21 ou plus récent (tests du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app
+PC).
 
 Sous WSL, une carte n'apparaît qu'une fois attachée avec
 [usbipd-win](https://learn.microsoft.com/fr-fr/windows/wsl/connect-usb) : `usbipd bind --busid <id>` une fois, en
@@ -50,6 +59,9 @@ mise run setup
 git : sans `npm ci`, git n'y lance aucun hook.
 
 ## Lancer l'app PC
+
+La dernière version publiée est en ligne, https://nexlein.github.io/lilpet/, à ouvrir dans Chrome ou Edge (à partir de
+la prochaine version taguée, voir plus bas). Pour la version du dépôt :
 
 ```bash
 npm run app:dev
@@ -114,9 +126,9 @@ Elle prend la seule carte branchée, ou celle de `PORT` (vide, il compte comme a
 aucune (`FORCE=1` laisse alors esptool la chercher). Elle refuse une carte qui répond sous un autre nom (`FORCE=1` pour
 passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les
 étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la
-carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, commandes, entrées
-refusées ; sur l'AtomS3R, le capteur de mouvement après 40 redémarrages en pleine lecture, environ 50 s) et remet son
-look et son humeur à la fin.
+carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, le redémarrage par
+le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées ; sur l'AtomS3R, le
+capteur de mouvement après 40 redémarrages en pleine lecture, environ 50 s) et remet son look et son humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
 (`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]), sur la seule carte branchée ou celle de `PORT` :
@@ -138,7 +150,8 @@ Sous Linux, l'utilisateur doit être dans le groupe
 la rebrancher. La CI garde aussi les binaires 30 jours (`firmware-<carte>` dans les artefacts des jobs ESP32-S3). Un tag
 de version annoté (`git tag -a vX.Y.Z` sur `main`, X.Y.Z étant la version du firmware de `firmware/CMakeLists.txt`,
 puis push du tag) les publie pour de bon : `release.yml` relance la CI sur ce commit, puis crée une Release GitHub avec
-un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes.
+un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes. Il publie aussi sur GitHub Pages l'app
+PC que la CI vient de compiler et de tester.
 
 ## Arborescence
 

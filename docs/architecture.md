@@ -1,7 +1,8 @@
 # Architecture
 
 Vue d'ensemble de lilpet et ce qui reste ouvert. Les choix et leurs raisons sont dans les décisions ([adr/](adr/)),
-le détail de chaque fichier dans la carte du code (`.claude/codemap.md`).
+le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce que doit faire le premier objet fini dans
+[objet-v1.md](objet-v1.md).
 
 ## Les parties
 
@@ -39,6 +40,7 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`).
 7. [Deux cartes reliées en UART : le modèle décide, le moteur exécute](adr/0007-deux-cartes-uart.md)
 8. [Les mêmes outils, aux mêmes versions, en local et en CI](adr/0008-outils-figes.md)
 9. [Le rendu sur les deux cœurs de la puce, depuis la mémoire interne](adr/0009-rendu-deux-coeurs.md)
+10. [Linux d'abord ; sous Windows, le code dans WSL et les cartes en natif](adr/0010-plateformes-de-developpement.md)
 
 Chaque décision tient en quatre parties : contexte, options étudiées (s'il y en a eu), décision, conséquences. Une
 nouvelle décision prend le numéro suivant ; une décision remplacée garde son fichier, avec le statut « remplacée par »
@@ -72,9 +74,11 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 
 ### À décider ou à construire pour l'objet final
 
-- **Mouvement et toucher** : le 1,32" n'a pas de capteur de mouvement, et son bouton n'est pas celui de l'AtomS3R. Sans
-  module ajouté, pas d'inclinaison ni de vertige ; le toucher demande un pilote pour le CST820.
-- **Modèle** : aucun modèle ESP-DL listé dans [materiel.md](materiel.md) ne lit les expressions du visage.
+- **Mouvement et toucher** : le 1,32" n'a pas de capteur de mouvement, et son bouton n'est pas celui de l'AtomS3R. La
+  v1 aura un accéléromètre I2C ajouté (proposé : un BMI270, pour réutiliser son pilote) et le toucher par le CST820
+  ([objet-v1.md](objet-v1.md)) : restent le module, ses broches et le pilote du CST820.
+- **Modèle** : la v1 n'a besoin que du visage et du pouce levé, que les modèles ESP-DL savent faire. Aucun ne lit les
+  expressions du visage : leurs réactions attendent un modèle.
 - **Carte vision** : le projet `vision/`, dont le firmware devra répondre à `> hello`
   ([décision 6](adr/0006-une-image-par-carte.md)) ; côté carte écran, la tâche qui lira l'UART
   ([protocole](protocole.md#côté-firmware)).

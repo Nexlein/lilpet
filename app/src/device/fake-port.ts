@@ -6,7 +6,7 @@ import { HELLO } from './protocol';
 // What the fake board answers to hello, in the firmware's format (protocol.test.ts compares it with
 // firmware/main/commands.c); its versions are made up
 export const FAKE_INFO = { firmware: 'abc1234', engine: '0.6.0', board: 'atoms3r' } as const;
-export const FAKE_HELLO = `lilpet fw=${FAKE_INFO.firmware} engine=${FAKE_INFO.engine} board=${FAKE_INFO.board} camera=0 motion=1`;
+export const FAKE_HELLO = `lilpet fw=${FAKE_INFO.firmware} engine=${FAKE_INFO.engine} board=${FAKE_INFO.board} camera=0 motion=1 reset=poweron storage=ok`;
 
 export function firmware(): (command: string) => string | null {
     return (command) => {

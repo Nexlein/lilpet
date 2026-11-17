@@ -8,3 +8,10 @@ CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 # 1 ms ticks, for frame pacing and display timeouts (Waveshare's demos use the same)
 CONFIG_FREERTOS_HZ=1000
+# The task watchdog resets the chip when a task it watches hangs (the drawing loop, main.c), instead of only printing a
+# warning (PANIC). EN and INIT are ESP-IDF's defaults, written here because main.c aborts at every start without them;
+# the timeout too, ESP-IDF's, for scripts/check-device.py, which waits for that reset
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=5

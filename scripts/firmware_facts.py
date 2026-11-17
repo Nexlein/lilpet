@@ -1,6 +1,6 @@
-# What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the
-# pupil types, and the replies the checks expect, which scripts/test_board_scripts.py finds in the C sources. Standard
-# library only, so that the tests can read it before their fake pyserial is in place.
+# What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, a
+# setting of sdkconfig.defaults, the pupil types, and the replies the checks expect, which scripts/test_board_scripts.py
+# finds in the C sources. Standard library only, so that the tests can read it before their fake pyserial is in place.
 import json
 import re
 import sys
@@ -21,6 +21,23 @@ def c_define(path, name):
     if found is None:
         sys.exit(f"{path} does not define {name}")
     return int(found.group(1))
+
+
+def sdkconfig_default(name):
+    """The number firmware/sdkconfig.defaults sets for CONFIG_<name>; stops when it sets none"""
+    path = ROOT / "firmware" / "sdkconfig.defaults"
+    found = re.search(rf"^CONFIG_{name}=(\d+)$", path.read_text(), re.MULTILINE)
+    if found is None:
+        sys.exit(f"{path} does not set CONFIG_{name}")
+    return int(found.group(1))
+
+
+def default_look():
+    """The look worn until one is chosen (eyes/looks.json), as the protocol writes it (AE0002 FF5252 FF5252 dot)"""
+    looks = json.loads((ROOT / "eyes" / "looks.json").read_text())
+    swatch = next(swatch for swatch in looks["swatches"] if swatch["id"] == looks["default"]["swatch"])
+    colors = [swatch["sclera"], *swatch["pupilColor"]]
+    return " ".join([*(color.lstrip("#").upper() for color in colors), looks["default"]["pupil"]])
 
 
 def pupil_types():

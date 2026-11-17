@@ -279,11 +279,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
   - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (159) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
-  - exports: commands_start, commands_next
+- **commands.c** (174) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+  - exports: commands_start, commands_hang_asked, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (20) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them).
-  - exports: commands_start, commands_next
+- **commands.h** (31) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+  - exports: commands_hello, commands_start, commands_hang_asked, commands_next
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/main.c
 - **dcs.h** (37) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
@@ -320,18 +320,18 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id, lcd_id_match
   - ← firmware/main/display_atoms3r.c
-- **look_saving.h** (48) — When the look shown is written to flash: once it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last write or try.
-  - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_save_if_due
+- **look_saving.h** (58) — When the look shown is written to flash: once a look came by command, it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last ...
+  - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_saving_mark_sent, look_save_if_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
-- **look_store.c** (56) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
+- **look_store.c** (63) — Implements look_store.h: the look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → firmware/main/look_store.h
-- **look_store.h** (15) — The look chosen in the PC app, kept in flash (NVS) across power cycles
+- **look_store.h** (16) — The look chosen in the PC app, kept in flash (NVS) across power cycles
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (225) — Firmware entry point: the eyes, live on the display.
+- **main.c** (286) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
 
@@ -346,11 +346,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
-- **board_link.py** (104) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
+- **board_link.py** (108) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (289) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
-  - exports: Board, check, check_reply, read_lines, reset, reboot, open_booted_board, finish, run_checks, reboots_during_reads, put_back, check_board
+- **check-device.py** (354) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+  - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
 - **codemap.mjs** (653) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
@@ -365,8 +365,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **files.mjs** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
   - exports: GROUPS, trackedFiles
   - ← .lintstagedrc.mjs, mise.toml, package.json
-- **firmware_facts.py** (28) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the pupil types, and the replies t...
-  - exports: c_define, pupil_types
+- **firmware_facts.py** (45) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, a setting of sdkconfig.defaults, t...
+  - exports: c_define, sdkconfig_default, default_look, pupil_types
   - ← scripts/check-device.py
 - **flash-guard.py** (48) — Stops a flash on a board that runs a lilpet firmware and says it is another one: the image of another board drives the wrong pins.
   - exports: running_board, before_flash

@@ -112,6 +112,7 @@
     X(test_lcd_id_tells_the_two_controllers_apart)                                                                     \
     X(test_imu_axes_give_gravity_on_the_screen)                                                                        \
     X(test_a_look_is_written_at_once_then_at_most_every_gap)                                                           \
+    X(test_a_start_writes_only_the_looks_that_come_after_it)                                                           \
     X(test_frame_cores_share_the_rows_of_each_band)                                                                    \
     X(test_frame_measures_the_redrawn_share)                                                                           \
     X(test_dcs_range_is_big_endian_first_and_last)

@@ -3,18 +3,22 @@
 import os
 import re
 import sys
-import termios
 import time
 from pathlib import Path
 
 import serial
 from serial.tools import list_ports
 
+try:
+    import termios  # POSIX only: opening a port there can raise its error
+except ImportError:  # Windows, where pyserial raises SerialException, an OSError
+    termios = None
+
 ROOT = Path(__file__).resolve().parent.parent
 BOARDS = ROOT / "firmware" / "boards"
 ESPRESSIF_USB = 0x303A  # the chip's own USB port: firmware or blank, the board shows up with this vendor
 # What a failing port raises: SerialException, which is an OSError, plain OSError (DTR, RTS) or termios.error (opening)
-SERIAL_ERRORS = (OSError, termios.error)
+SERIAL_ERRORS = (OSError, termios.error) if termios else (OSError,)
 
 
 def board_from_env():
