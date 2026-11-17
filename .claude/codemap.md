@@ -251,26 +251,26 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/atoms3r
 - **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
-- **board_config.h** (37) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER, BOARD_IMU_ADDR, BOARD_IMU_AXES
+- **board_config.h** (39) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER, BOARD_IMU_ADDR, BOARD_IMU_AXES
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (22) — M5Stamp S3A, bare: no screen.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
+- **board_config.h** (24) — M5Stamp S3A, bare: no screen.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (22) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
+- **board_config.h** (24) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_175
 - **board.cmake** (2) — Parts of the board, files of firmware/main.
-- **board_config.h** (33) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
+- **board_config.h** (35) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
@@ -298,12 +298,15 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
-- **board.c** (164) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+- **board.c** (175) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
-  - → firmware/main/board.h, firmware/boards/*/board_config.h
+  - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/chip.h
 - **board.h** (38) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
   - ← firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+- **chip.h** (41) — Which chip the board's image is for: its package, its flash and its PSRAM, all of which the chip reports before any pin is touched (board_init).
+  - exports: chip, chip_psram_mb, chip_same
+  - ← firmware/main/board.c
 - **commands.c** (215) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
   - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h

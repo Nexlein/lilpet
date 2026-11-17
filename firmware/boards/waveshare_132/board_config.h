@@ -5,6 +5,8 @@
 #define BOARD_DISPLAY_SIZE 466
 #define BOARD_BENCH        0 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CHIP_PICO    1 /* ESP32-S3-PICO-1 */
+#define BOARD_FLASH_MB     8 /* the chip, as board_init checks it (chip.h): ESP32-S3-PICO-1-N8R8 */
+#define BOARD_PSRAM_MB     8
 
 #define BOARD_POWER_HOLD 18 /* keeps the board on when running on battery, once the power button is released */
 

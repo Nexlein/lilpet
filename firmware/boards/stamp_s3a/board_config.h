@@ -8,6 +8,8 @@
 #define BOARD_DISPLAY_SIZE 466
 #define BOARD_BENCH        1 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CHIP_PICO    0 /* ESP32-S3FN8, in the QFN56 package */
+#define BOARD_FLASH_MB 8 /* the chip, as board_init checks it (chip.h): ESP32-S3FN8: flash in the package, no PSRAM */
+#define BOARD_PSRAM_MB 0
 
 #define BOARD_LCD_CS            10
 #define BOARD_LCD_CLK           11

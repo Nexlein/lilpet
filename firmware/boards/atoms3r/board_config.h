@@ -5,6 +5,8 @@
 #define BOARD_DISPLAY_SIZE 128
 #define BOARD_BENCH        0 /* 1: no screen, plays the benchmark animation */
 #define BOARD_CHIP_PICO    1 /* ESP32-S3-PICO-1 */
+#define BOARD_FLASH_MB     8 /* the chip, as board_init checks it (chip.h): ESP32-S3-PICO-1-N8R8 */
+#define BOARD_PSRAM_MB     8
 
 /* Internal I2C bus: backlight driver, motion sensor */
 #define BOARD_I2C_SDA 45
