@@ -67,6 +67,7 @@ static void handle_look(const lp_command *c)
     }
     /* Shown even when it cannot be kept: the app still sees it. Written now if its turn has come, else by read_line */
     state.current = c->look;
+    look_saving_mark_sent(&state.saving);
     if (!save_if_due())
         printf("< err shown, but cannot save the look in flash\n");
     else
@@ -144,7 +145,7 @@ static void commands_task(void *arg)
     }
 }
 
-void commands_start(const lp_look *current, const commands_hello *hello)
+void commands_start(const lp_look *shown, const lp_look *kept, const commands_hello *hello)
 {
     /* Reads with a timeout (read_line) and the replies through printf: both need the port's driver, not just the
      * default console output. The driver drops what does not fit in its buffer: this one holds a burst of about 80
@@ -155,8 +156,8 @@ void commands_start(const lp_look *current, const commands_hello *hello)
     usb_serial_jtag_vfs_use_driver();
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
-    state.current = *current;
-    state.saving = look_saving_start(current);
+    state.current = *shown;
+    state.saving = look_saving_start(kept);
     state.hello = *hello;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
 }

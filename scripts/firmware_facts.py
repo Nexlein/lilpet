@@ -32,6 +32,14 @@ def sdkconfig_default(name):
     return int(found.group(1))
 
 
+def default_look():
+    """The look worn until one is chosen (eyes/looks.json), as the protocol writes it (AE0002 FF5252 FF5252 dot)"""
+    looks = json.loads((ROOT / "eyes" / "looks.json").read_text())
+    swatch = next(swatch for swatch in looks["swatches"] if swatch["id"] == looks["default"]["swatch"])
+    colors = [swatch["sclera"], *swatch["pupilColor"]]
+    return " ".join([*(color.lstrip("#").upper() for color in colors), looks["default"]["pupil"]])
+
+
 def pupil_types():
     """The pupil types of eyes/looks.json, which the engine's table is generated from"""
     return list(json.loads((ROOT / "eyes" / "looks.json").read_text())["pupils"])

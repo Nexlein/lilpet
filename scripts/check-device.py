@@ -27,11 +27,20 @@ from board_link import (
     open_port,
     read_reply,
 )
-from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define, sdkconfig_default
+from firmware_facts import (
+    REPLY_BENCH,
+    REPLY_NO_MOTION,
+    REPLY_TOO_LONG,
+    REPLY_UNKNOWN,
+    c_define,
+    default_look,
+    sdkconfig_default,
+)
 
 # The checks need two looks the board does not wear, so three. The first, kite colors with two pupil colors, is one
 # nobody keeps by chance.
 LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
+DEFAULT_LOOK = default_look()  # what a start after a crash shows, which the look kept across it must not be
 BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 # Only the log tells them: everything else works with a black screen
@@ -143,22 +152,6 @@ def run_checks(port, board, test_look, other_look):
     check(ask(port, "> look?") == f"look {test_look}", "tells the last look back")
     time.sleep(SAVE_GAP_SECONDS + 0.5)  # its turn, and the write
 
-    log = reboot(port)
-    check(bool(log), "reboots on request")
-    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
-    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
-    report = re.search(REPORT_LINE, log[-1]) if log else None
-    rate = float(report.group(1)) if report else 0.0
-    check(
-        rate >= MIN_FRAMES_PER_SECOND,
-        f"draws at least {MIN_FRAMES_PER_SECOND} frames/s",
-        f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
-    )
-    after = ask(port, "> look?")
-    check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
-    reset = hello_fields(ask_hello(port)).get("reset")
-    check(reset == "usb", "tells it was reset by its USB port", f"reset={reset}")
-
     # The eyes freeze while the commands still get answers: only the watchdog of the drawing loop can tell
     reply = ask(port, "> test hang")
     check_reply(reply == "ok", "takes the test command that hangs its drawing loop", reply)
@@ -170,6 +163,24 @@ def run_checks(port, board, test_look, other_look):
     check(bool(log) and re.search(REPORT_LINE, log[-1]), "draws again after the reset", "" if log else "no report")
     reset = hello_fields(ask_hello(port)).get("reset")
     check(reset == "task_wdt", "tells its watchdog reset it", f"reset={reset}")
+    shown = ask(port, "> look?")
+    check_reply(shown == f"look {DEFAULT_LOOK}", "starts on the default look after a crash", shown)
+
+    log = reboot(port)
+    check(bool(log), "reboots on request")
+    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
+    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
+    report = re.search(REPORT_LINE, log[-1]) if log else None
+    rate = float(report.group(1)) if report else 0.0
+    check(
+        rate >= MIN_FRAMES_PER_SECOND,
+        f"draws at least {MIN_FRAMES_PER_SECOND} frames/s",
+        f"{rate} frames/s" if report else f"no report in {REPORT_SECONDS} s",
+    )
+    after = ask(port, "> look?")  # the start after the crash showed the default look once, and kept this one
+    check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
+    reset = hello_fields(ask_hello(port)).get("reset")
+    check(reset == "usb", "tells it was reset by its USB port", f"reset={reset}")
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
@@ -293,8 +304,10 @@ def check_board(board_name):
     if not (before and before.startswith("look ")):
         finish(port)  # its look could not be put back
 
-    # Two looks the board does not wear: a run stopped by a power cut leaves one on it
-    test_look, other_look = [look for look in LOOKS if f"look {look}" != before][:2]
+    # Two looks the board does not wear: a run stopped by a power cut leaves one on it. The one kept is not the default
+    looks = [look for look in LOOKS if f"look {look}" != before]
+    test_look = next(look for look in looks if look != DEFAULT_LOOK)
+    other_look = next(look for look in looks if look != test_look)
     try:
         run_checks(port, board, test_look, other_look)
     except KeyboardInterrupt:

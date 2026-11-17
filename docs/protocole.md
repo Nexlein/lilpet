@@ -19,7 +19,8 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   `< ok` et s'écrit 2 s après le précédent, sauf si un autre le remplace d'ici là : le dernier envoyé est celui que la
   carte garde, un peu plus de 2 s plus tard au pire. Si cette écriture-là échoue, la carte a déjà répondu `< ok` : seul
   son journal le dit. Qu'une écriture échoue tout de suite ou plus tard, la carte réessaie toutes les 2 s. Un look qui
-  attend son tour se perd si la carte perd l'alimentation ou redémarre avant.
+  attend son tour se perd si la carte perd l'alimentation ou redémarre avant. Seul un look envoyé s'écrit : le look par
+  défaut qu'une carte montre après un crash ne remplace pas celui gardé, mais le même look, envoyé, le remplace.
 - `> look?` répond le look actuel, au même format : de quoi vérifier sans écran (`firmware:check-device` ; l'app ne
   s'en sert pas).
 - `> imu?` répond la gravité lue par le capteur de mouvement, en g, dans le repère de l'écran (x vers la droite, y vers
@@ -41,8 +42,9 @@ jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte 
 
 `> test hang`, pour les tests seulement, répond `< ok` puis bloque la boucle de dessin pour de bon, comme une attente
 qui ne finirait pas. Les commandes ont encore leur réponse, mais les yeux se figent, jusqu'à ce que le watchdog de la
-boucle redémarre la puce : `CONFIG_ESP_TASK_WDT_TIMEOUT_S` (5 s) plus tard, `hello` dit `reset=task_wdt`.
-`firmware:check-device` s'en sert pour vérifier ce watchdog ; l'app ne l'envoie jamais.
+boucle redémarre la puce : `CONFIG_ESP_TASK_WDT_TIMEOUT_S` (5 s) plus tard, `hello` dit `reset=task_wdt`, et la carte
+montre le look par défaut, comme après tout crash (voir [firmware.md](firmware.md)). `firmware:check-device` s'en sert
+pour vérifier ce watchdog et ce démarrage ; l'app ne l'envoie jamais.
 
 ## Qui s'en sert
 

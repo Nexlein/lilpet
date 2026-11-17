@@ -168,6 +168,13 @@ static const char *reset_name(esp_reset_reason_t reason)
     return "unknown";
 }
 
+/* A start after a crash leaves the saved data out once: if they caused it, the next start is not another crash */
+static bool after_crash(esp_reset_reason_t reason)
+{
+    return reason == ESP_RST_PANIC || reason == ESP_RST_INT_WDT || reason == ESP_RST_TASK_WDT ||
+           reason == ESP_RST_WDT || reason == ESP_RST_CPU_LOCKUP;
+}
+
 static void apply(const lp_command *c)
 {
     switch (c->type) {
@@ -201,7 +208,8 @@ void app_main(void)
     const bool motion = imu_init();
     const char *screen = display_init(BAND_BYTES);
     const bool bench = BOARD_BENCH; /* no screen: replay the host benchmark's animation, for the timings */
-    const commands_hello hello = {.motion = motion, .reset = reset_name(esp_reset_reason())};
+    const esp_reset_reason_t reason = esp_reset_reason();
+    const commands_hello hello = {.motion = motion, .reset = reset_name(reason)};
     printf(
         "\nlilpet %s, board %s, ESP32-S3 at %d MHz, display: %s, %dx%d, motion sensor: %s, animation: %s, bands of %d "
         "rows on both cores, %u bytes of internal RAM free, reset: %s\n",
@@ -215,8 +223,12 @@ void app_main(void)
 
     look_store_init();
     lp_look look = lp_default_look(); /* until the PC app sends one */
-    look_store_load(&look);
-    commands_start(&look, &hello);
+    const bool crashed = after_crash(reason);
+    if (crashed)
+        printf("started after a crash: the default look this once, the flash keeps the saved one\n");
+    else
+        look_store_load(&look);
+    commands_start(&look, crashed ? NULL : &look, &hello);
 
     lp_eyes_init(&eyes, 1); /* the benchmark starts its own eyes: start_bench_round */
     lp_eyes_set_look(&eyes, &look);

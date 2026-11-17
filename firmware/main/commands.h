@@ -14,8 +14,9 @@ typedef struct {
     const char *reset; /* why the chip last started: a name of esp_reset_reason_t, from main.c */
 } commands_hello;
 
-/* Starts the task that reads commands. `current` is the look shown at startup. */
-void commands_start(const lp_look *current, const commands_hello *hello);
+/* Starts the task that reads commands. `shown` is the look shown at startup, `kept` the one the flash holds (NULL when
+ * the start did not read it, look_saving.h). */
+void commands_start(const lp_look *shown, const lp_look *kept, const commands_hello *hello);
 
 /* True once `> test hang` came: the drawing loop then blocks for good, as a stuck wait would, for its watchdog to reset
  * the chip (docs/protocole.md) */
