@@ -16,4 +16,7 @@ if(NOT LILPET_BOARD IN_LIST boards)
 endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+# Only the components main and the engine require, and theirs: no Wi-Fi, TCP/IP or TLS stack, which the firmware never
+# uses (a smaller image, a shorter build)
+idf_build_set_property(MINIMAL_BUILD ON)
 project(lilpet)
