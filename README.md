@@ -21,14 +21,21 @@ Projet strictement personnel, non commercial.
 - [x] Moteur des yeux en C, compilé pour le PC, en WebAssembly et pour l'ESP32 (`engine/`)
 - [x] Choix du matériel → [docs/materiel.md](docs/materiel.md)
 - [x] Ce que doit faire l'objet v1 → [docs/objet-v1.md](docs/objet-v1.md)
-- [ ] Commande du matériel
-- [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB ;
-      écran rond à tester sur la carte
-- [ ] Vision : modèle dans l'objet (gestes, visage, expressions) qui choisit les réactions ; le firmware sait déjà les
-      recevoir
-- [ ] Boîtier 3D (`case/`, créé le moment venu)
+- [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB,
+      watchdog et démarrage sûr ; écran rond à tester sur la carte
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
-- [ ] App PC : looks perso, réglages, animations
+- [ ] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
+      données versionnées ([#48](https://github.com/Nexlein/lilpet/issues/48)), veille et batterie sur l'AtomS3R
+      ([#51](https://github.com/Nexlein/lilpet/issues/51)), décisions et commande du matériel
+      ([#47](https://github.com/Nexlein/lilpet/issues/47))
+- [ ] Jalon A, l'objet sans caméra : banc d'essai ([#53](https://github.com/Nexlein/lilpet/issues/53)), carte écran
+      avec accéléromètre, toucher, bouton et batterie ([#54](https://github.com/Nexlein/lilpet/issues/54))
+- [ ] Jalon B, la vision : la liaison UART ([#49](https://github.com/Nexlein/lilpet/issues/49)), la carte vision avec
+      le visage et le pouce levé ([#55](https://github.com/Nexlein/lilpet/issues/55)), puis le boîtier
+      ([#56](https://github.com/Nexlein/lilpet/issues/56))
+- [ ] Après la v1 : le comportement en données ([#50](https://github.com/Nexlein/lilpet/issues/50)), et dans l'app les
+      looks perso, les réglages et l'éditeur ([#57](https://github.com/Nexlein/lilpet/issues/57) à
+      [#59](https://github.com/Nexlein/lilpet/issues/59))
 
 ## Installer
 
