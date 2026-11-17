@@ -1,3 +1,5 @@
+/* The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the
+ * AtomS3R on M5Stack's Atomic Battery Base */
 #include "battery.h"
 
 #include "board_config.h"
@@ -5,7 +7,10 @@
 #define BATTERY_ABSENT_MV 2500 /* below it, no cell: a protected LiPo cuts out before */
 #define READINGS          16   /* averaged, for the ADC's noise */
 
-#ifdef BOARD_BATTERY_ADC
+#ifndef BOARD_BATTERY_ADC
+#error "battery_adc.c reads BOARD_BATTERY_ADC: a board without one links battery_none.c (board.cmake)"
+#endif
+
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
@@ -51,13 +56,3 @@ int battery_millivolts(void)
     millivolts *= BOARD_BATTERY_DIVIDER;
     return millivolts < BATTERY_ABSENT_MV ? -1 : millivolts; /* nothing plugged: the divider pulls the pin down */
 }
-#else
-void battery_init(void)
-{
-}
-
-int battery_millivolts(void)
-{
-    return -1;
-}
-#endif

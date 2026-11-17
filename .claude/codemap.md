@@ -253,19 +253,19 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
 - **board_config.h** (37) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER, BOARD_IMU_ADDR, BOARD_IMU_AXES
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery_adc.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — M5Stamp S3A, bare: no screen.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery_adc.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery_adc.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
 - **CMakeLists.txt** (7) — The engine as an ESP-IDF component: same sources and warnings as the host build (engine/sources.cmake)
@@ -273,12 +273,15 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **battery.c** (63) — Implements battery.h: the battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+- **battery.h** (13) — The battery: one .c per way of reading it, picked by board.cmake.
+  - exports: battery_init, battery_millivolts
+  - ← firmware/main/battery_adc.c, firmware/main/battery_none.c, firmware/main/main.c
+- **battery_adc.c** (58) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
   - exports: battery_init, battery_millivolts
   - → firmware/main/battery.h, firmware/boards/*/board_config.h
-- **battery.h** (11) — The battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+- **battery_none.c** (11) — The battery of a board that cannot read one: none, for hello (battery.h)
   - exports: battery_init, battery_millivolts
-  - ← firmware/main/battery.c, firmware/main/main.c
+  - → firmware/main/battery.h
 - **battery_rule.h** (34) — When the battery counts as low, and what the eyes do then (docs/objet-v1.md: they look tired).
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
