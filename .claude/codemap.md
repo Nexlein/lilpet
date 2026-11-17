@@ -401,7 +401,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **validate-data.mjs** (228) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
   - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
   - ← .lintstagedrc.mjs, package.json
-- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, partitions.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
 
 ## Commands
 
@@ -418,6 +418,7 @@ mise (`mise run <task>`):
 - `firmware:build` — Build the firmware of a board (BOARD) into firmware/build/$BOARD/merged-binary.bin, in the ESP-IDF image of firmware/Dockerfile
 - `firmware:build-all` — Build the firmware of every board of firmware/boards, as CI does
 - `firmware:check-device` — Check the flashed board over USB: hello, looks, screen, frame rate, commands, motion sensor (BOARD: the board plugged in; PORT, or the only board plugged in)
+- `firmware:coredump` — Show where each task of a board (BOARD) was at its last crash: reads the core dump it wrote to flash (PORT, or the only board plugged in) and decodes it with the ELF of its last build
 - `firmware:deploy` — Take care of one object: build the firmware of a board (BOARD), flash it, check it (PORT and FORCE as in firmware:flash)
 - `firmware:flash` — Flash the firmware of a board (BOARD) over USB (PORT, or the only board plugged in); refuses a board that says it is another one, unless FORCE=1
 - `firmware:monitor` — Show what the board prints over USB (port: PORT, or the only board plugged in; quit with Ctrl+])
