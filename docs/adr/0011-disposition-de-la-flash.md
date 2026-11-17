@@ -5,7 +5,8 @@
 
 ## Contexte
 
-Les cartes ont 8 Mo de flash et une appli d'environ 300 Ko. Jusqu'ici, elles prenaient la table de partitions par défaut
+Les cartes ont au moins 8 Mo de flash et une appli d'environ 300 Ko ; la 1,75" en a 16, dont elle n'utilise que 8 :
+`firmware/sdkconfig.defaults` est commun à toutes les cartes ([décision 6](0006-une-image-par-carte.md)). Jusqu'ici, elles prenaient la table de partitions par défaut
 d'ESP-IDF : `nvs` à 0x9000 (24 Ko), `phy_init`, puis une seule appli de 1 Mo, sans coredump ni place pour des mises à
 jour (OTA). La NVS garde le look choisi dans l'app.
 
@@ -15,7 +16,7 @@ bootloader, la table et l'appli, jamais la NVS
 Une table qui garde `nvs` au même endroit et de la même taille garde donc ses données. Déplacer la NVS, au contraire,
 perd ce qu'elle tenait.
 
-Depuis l'étape 13, le watchdog fait redémarrer la carte quand la boucle de dessin se bloque. Sans coredump, on sait
+Depuis la v0.7.5 ([#65](https://github.com/Nexlein/lilpet/pull/65)), le watchdog fait redémarrer la carte quand la boucle de dessin se bloque. Sans coredump, on sait
 seulement que la carte a planté (`reset=task_wdt`), pas où.
 
 ## Décision

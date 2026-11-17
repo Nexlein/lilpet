@@ -278,7 +278,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/sources.cmake
 
 ## firmware/main
-- **CMakeLists.txt** (17) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
+- **CMakeLists.txt** (17) — One image per board: each part's header (display.h, imu.h, battery.h) is an interface, and boards/<board>/board.cmake links the board's parts (docs...
 - **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
   - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c
@@ -307,10 +307,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **chip.h** (41) — Which chip the board's image is for: its package, its flash and its PSRAM, all of which the chip reports before any pin is touched (board_init).
   - exports: chip_info, chip_psram_mb, chip_same
   - ← firmware/main/board.c
-- **commands.c** (233) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+- **commands.c** (233) — Implements commands.h: commands from the PC app over the USB serial port, one per line: those lp_command_parse reads, and test hang and test sleep, the firmware's own, fo...
   - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (42) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+- **commands.h** (42) — Commands from the PC app over the USB serial port, one per line: those lp_command_parse reads, and test hang and test sleep, the firmware's own, fo...
   - exports: commands_hello, commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → engine/include/lilpet/lilpet.h, firmware/main/rest.h
   - ← firmware/main/commands.c, firmware/main/main.c
