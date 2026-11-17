@@ -67,6 +67,7 @@ typedef enum {
     LP_EMOTION_SURPRISED,
     LP_EMOTION_SLEEPY,
     LP_EMOTION_DIZZY,
+    LP_EMOTION_TIRED,
     LP_EMOTION_COUNT
 } lp_emotion;
 

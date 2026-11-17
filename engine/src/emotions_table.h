@@ -5,7 +5,7 @@
 
 #include "lilpet/lilpet.h"
 
-_Static_assert(LP_EMOTION_COUNT == 10, "lp_emotion in lilpet.h and in eyes/emotions.json differ");
+_Static_assert(LP_EMOTION_COUNT == 11, "lp_emotion in lilpet.h and in eyes/emotions.json differ");
 _Static_assert(sizeof(lp_expression) == 11 * sizeof(float), "lp_expression in lilpet.h and scripts/expression.mjs differ");
 static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
     [LP_EMOTION_NEUTRAL] = {
@@ -65,6 +65,12 @@ static const lp_emotion_def EMOTIONS[LP_EMOTION_COUNT] = {
     [LP_EMOTION_DIZZY] = { /* my own, after a shake */
         .name = "dizzy",
         .expr = {.tl = 0.3f, .ts = -0.2f, .bl = 0.12f, .sq = 0.0f, .cr = 0.0f, .rot = 0.0f, .hl = 0.0f, .ps = 0.75f, .es = 1.0f, .gy = 0.0f, .spin = 9.0f},
+        .emit = LP_PARTICLE_NONE,
+        .emit_rate = 0.0f,
+    },
+    [LP_EMOTION_TIRED] = { /* my own, when the battery runs low: heavy lids and small pupils, unlike sleepy and sad */
+        .name = "tired",
+        .expr = {.tl = 0.42f, .ts = -0.25f, .bl = 0.1f, .sq = 0.0f, .cr = 0.0f, .rot = 0.0f, .hl = 0.0f, .ps = 0.85f, .es = 0.96f, .gy = 0.25f, .spin = 0.0f},
         .emit = LP_PARTICLE_NONE,
         .emit_rate = 0.0f,
     },
