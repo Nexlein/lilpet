@@ -78,9 +78,10 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 
 ### À décider ou à construire pour l'objet final
 
-- **Mouvement, toucher et alimentation** : la 1,75" a un accéléromètre QMI8658, un toucher CST9217 et une puce
-  d'alimentation AXP2101, derrière un extenseur TCA9554 ([materiel.md](materiel.md)) : leurs pilotes restent à écrire,
-  dans un dossier de carte `waveshare_175` ([#54](https://github.com/Nexlein/lilpet/issues/54)).
+- **Mouvement, toucher et alimentation** : la 1,75" a un accéléromètre QMI8658, un toucher CST9217, un extenseur
+  TCA9554 et une puce d'alimentation AXP2101 ([materiel.md](materiel.md)). Son dossier de carte, `waveshare_175`, règle
+  déjà la charge et lit la batterie par l'AXP2101 ; les autres pilotes, le bouton et l'arrêt restent à écrire
+  ([#54](https://github.com/Nexlein/lilpet/issues/54)).
 - **Modèle** : la v1 n'a besoin que du visage et du pouce levé, que les modèles ESP-DL savent faire. Aucun ne lit les
   expressions du visage : leurs réactions attendent un modèle.
 - **Carte vision** : le projet `vision/`, dont le firmware devra répondre à `> hello`

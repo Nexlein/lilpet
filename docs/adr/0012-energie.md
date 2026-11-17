@@ -5,7 +5,7 @@
 
 ## Contexte
 
-L'objet v1 doit tenir une journée sur une batterie de 300 mAh, endormi presque tout le temps
+L'objet v1 doit tenir une journée sur une batterie de 400 mAh, endormi presque tout le temps
 ([objet-v1.md](../objet-v1.md#autonomie--une-journée-endormi-presque-tout-le-temps)). En attendant la carte écran,
 l'AtomS3R sert d'objet d'essai, posé sur l'Atomic Battery Base de M5Stack (200 mAh, sans jauge : un pont de 1 MΩ/1 MΩ
 sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
@@ -30,8 +30,9 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
   `> test hang`), le bouton, ou un mouvement : la gravité s'écarte de plus de 0,15 g, sur un axe, de celle du dernier
   mouvement. Mesurer depuis ce dernier mouvement, et non depuis l'image d'avant, compte aussi une inclinaison lente.
   L'animation de mesure (`stamp_s3a`) ne s'endort jamais seule : ses mesures s'arrêteraient. Une carte sans bouton ni
-  capteur de mouvement non plus : rien ne la réveillerait (le Waveshare, jusqu'à l'accéléromètre de
-  [#47](https://github.com/Nexlein/lilpet/issues/47)).
+  capteur de mouvement non plus : rien ne la réveillerait (les Waveshare, jusqu'au pilote de l'accéléromètre de la
+  1,75", [#54](https://github.com/Nexlein/lilpet/issues/54)). `> test sleep` l'endort quand même : elle attend alors
+  une commande, sans veille légère.
 - **Endormi** : le rétroéclairage à 0, puis l'écran en veille (`DISPOFF`, `SLPIN`) ; la boucle de dessin s'arrête et
   sort du watchdog.
     - Branchée à un PC, la carte garde son port : elle regarde les commandes, le bouton et le mouvement toutes les 20

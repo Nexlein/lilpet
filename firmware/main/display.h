@@ -1,7 +1,7 @@
 /*
  * The board's screen. This header is the interface; each display has its own .c, linked by CMake for the board
- * (board.cmake): the round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 (display_co5300.c, also on bare
- * boards, where the bands go out on unconnected pins) or the small LCD of the M5Stack AtomS3R (display_atoms3r.c).
+ * (board.cmake): the round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75 (display_co5300.c, also on
+ * bare boards, where the bands go out on unconnected pins) or the small LCD of the M5Stack AtomS3R (display_atoms3r.c).
  * Every driver takes bands of RGB565 pixels with the same calls.
  */
 #ifndef LILPET_DISPLAY_H
