@@ -1,7 +1,8 @@
 /*
- * Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd
- * panel IO. Pins, init sequence, 180-degree rotation and 6-column offset come from Waveshare's ESP-IDF demo
- * (07_LVGL_V9_Test, components/lvgl_port_bsp); to check on the board: orientation, offset, colors and tearing.
+ * Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's
+ * esp_lcd panel IO. Pins, init sequence, orientation and 6-column offset come from Waveshare's ESP-IDF demos (1.32":
+ * 07_LVGL_V9_Test, components/lvgl_port_bsp; 1.75": the esp32_s3_touch_amoled_1_75 board support package); to check on
+ * the board: orientation, offset, colors and tearing.
  * Also the driver of boards without a display: no TE pin in their board_config.h, so display_paced.c paces the frames,
  * and the bands go out on unconnected pins. The pins and the offset come from the board
  * (boards/<board>/board_config.h).
@@ -39,15 +40,18 @@ typedef struct {
 /* From Waveshare's demo, but for display on, sent after the first frame (display_flush); the full-screen window it
  * also sets is set by every display_draw here */
 static const init_cmd INIT[] = {
-    {0xFEu, 1, {0x00u}, 0},                  /* command page 0 */
-    {0xC4u, 1, {0x80u}, 0},                  /* vendor command, value from the demo */
-    {DCS_PIXEL_FORMAT, 1, {0x55u}, 0},       /* 16 bits per pixel, RGB565 */
-    {DCS_TE_ON, 1, {0x00u}, 0},              /* TE signal at each vertical blank */
-    {DCS_WRITE_CTRL_DISPLAY, 1, {0x20u}, 0}, /* brightness control on */
-    {DCS_BRIGHTNESS, 1, {BRIGHTNESS}, 0},    /* brightness */
-    {0x63u, 1, {0xFFu}, 0},                  /* vendor command, value from the demo */
-    {DCS_SLEEP_OUT, 0, {0}, 100},            /* leave sleep, then wait */
-    {DCS_ORIENTATION, 1, {0xC0u}, 0},        /* rows and columns reversed: 180 degrees, as the panel is mounted */
+#ifdef BOARD_LCD_INIT_FIRST
+    BOARD_LCD_INIT_FIRST /* the panel's own vendor commands, from the board's demo */
+#endif
+    {0xFEu, 1, {0x00u}, 0},                           /* command page 0 */
+    {0xC4u, 1, {0x80u}, 0},                           /* vendor command, value from the demo */
+    {DCS_PIXEL_FORMAT, 1, {0x55u}, 0},                /* 16 bits per pixel, RGB565 */
+    {DCS_TE_ON, 1, {0x00u}, 0},                       /* TE signal at each vertical blank */
+    {DCS_WRITE_CTRL_DISPLAY, 1, {0x20u}, 0},          /* brightness control on */
+    {DCS_BRIGHTNESS, 1, {BRIGHTNESS}, 0},             /* brightness */
+    {0x63u, 1, {0xFFu}, 0},                           /* vendor command, value from the demo */
+    {DCS_SLEEP_OUT, 0, {0}, 100},                     /* leave sleep, then wait */
+    {DCS_ORIENTATION, 1, {BOARD_LCD_ORIENTATION}, 0}, /* as the panel is mounted on the board */
 };
 
 static esp_lcd_panel_io_handle_t io;

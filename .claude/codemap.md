@@ -11,8 +11,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → scripts/data.mjs, scripts/files.mjs
 
 ## .github/rulesets
-- **dev.json** (66) — data
-- **main.json** (66) — data
+- **dev.json** (70) — data
+- **main.json** (70) — data
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
@@ -253,19 +253,25 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
 - **board_config.h** (37) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER, BOARD_IMU_ADDR, BOARD_IMU_AXES
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (21) — M5Stamp S3A, bare: no screen.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+- **board_config.h** (22) — M5Stamp S3A, bare: no screen.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
-- **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+- **board_config.h** (22) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+
+## firmware/boards/waveshare_175
+- **board.cmake** (2) — Parts of the board, files of firmware/main.
+- **board_config.h** (33) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
 - **CMakeLists.txt** (7) — The engine as an ESP-IDF component: same sources and warnings as the host build (engine/sources.cmake)
@@ -273,12 +279,21 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **battery.c** (63) — Implements battery.h: the battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+- **axp2101.h** (59) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
+  - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
+  - ← firmware/main/battery_axp2101.c
+- **battery.h** (13) — The battery: one .c per way of reading it, picked by board.cmake.
+  - exports: battery_init, battery_millivolts
+  - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/battery_none.c, firmware/main/main.c
+- **battery_adc.c** (59) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
   - exports: battery_init, battery_millivolts
   - → firmware/main/battery.h, firmware/boards/*/board_config.h
-- **battery.h** (11) — The battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+- **battery_axp2101.c** (61) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
   - exports: battery_init, battery_millivolts
-  - ← firmware/main/battery.c, firmware/main/main.c
+  - → firmware/main/axp2101.h, firmware/main/battery.h, firmware/main/board.h, firmware/boards/*/board_config.h
+- **battery_none.c** (11) — The battery of a board that cannot read one: none, for hello (battery.h)
+  - exports: battery_init, battery_millivolts
+  - → firmware/main/battery.h
 - **battery_rule.h** (34) — When the battery counts as low, and what the eyes do then (docs/objet-v1.md: they look tired).
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
@@ -288,7 +303,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → firmware/main/board.h, firmware/boards/*/board_config.h
 - **board.h** (34) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
-  - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 - **commands.c** (215) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
   - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
   - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
@@ -305,7 +320,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display_atoms3r.c** (256) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
-- **display_co5300.c** (179) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+- **display_co5300.c** (183) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
   - exports: display_wait_frame, display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
 - **display_paced.c** (24) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
@@ -360,10 +375,10 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← firmware/main/imu_bmi270.c, firmware/third_party/bmi270/bmi270_config.c
 
 ## scripts
-- **board_link.py** (108) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
-  - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
+- **board_link.py** (117) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
+  - exports: board_from_env, board_parts, has_motion_sensor, charges_battery, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (380) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+- **check-device.py** (392) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, check_sleep, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
