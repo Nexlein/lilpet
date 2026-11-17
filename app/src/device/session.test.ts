@@ -154,7 +154,7 @@ describe('device session', () => {
         vi.useRealTimers();
         await silent;
         const unplugged = expect(session.send(kite)).rejects.toThrow('lilpet n’est plus branché');
-        await vi.waitFor(() => expect(device.sent).toHaveLength(4));
+        await vi.waitFor(() => expect(device.sent).toHaveLength(5));
         device.readError({ fatal: true });
         await unplugged;
     });
