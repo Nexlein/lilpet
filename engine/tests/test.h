@@ -113,6 +113,11 @@
     X(test_imu_axes_give_gravity_on_the_screen)                                                                        \
     X(test_a_look_is_written_at_once_then_at_most_every_gap)                                                           \
     X(test_a_start_writes_only_the_looks_that_come_after_it)                                                           \
+    X(test_the_eyes_rest_after_a_while_with_nothing_happening)                                                         \
+    X(test_handling_the_board_counts_from_its_last_move)                                                               \
+    X(test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back)                                             \
+    X(test_a_low_battery_stays_low_until_it_charges_back)                                                              \
+    X(test_a_low_battery_makes_the_eyes_tired_until_it_charges_back)                                                   \
     X(test_frame_cores_share_the_rows_of_each_band)                                                                    \
     X(test_frame_measures_the_redrawn_share)                                                                           \
     X(test_dcs_range_is_big_endian_first_and_last)

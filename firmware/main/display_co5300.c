@@ -27,6 +27,8 @@
 #define OPCODE_WRITE_CMD    0x02u
 #define OPCODE_WRITE_PIXELS 0x32u
 
+#define BRIGHTNESS 0xFFu /* the most, as in Waveshare's demo */
+
 typedef struct {
     uint8_t cmd;
     uint8_t len;
@@ -42,7 +44,7 @@ static const init_cmd INIT[] = {
     {DCS_PIXEL_FORMAT, 1, {0x55u}, 0},       /* 16 bits per pixel, RGB565 */
     {DCS_TE_ON, 1, {0x00u}, 0},              /* TE signal at each vertical blank */
     {DCS_WRITE_CTRL_DISPLAY, 1, {0x20u}, 0}, /* brightness control on */
-    {DCS_BRIGHTNESS, 1, {0xFFu}, 0},         /* brightness */
+    {DCS_BRIGHTNESS, 1, {BRIGHTNESS}, 0},    /* brightness */
     {0x63u, 1, {0xFFu}, 0},                  /* vendor command, value from the demo */
     {DCS_SLEEP_OUT, 0, {0}, 100},            /* leave sleep, then wait */
     {DCS_ORIENTATION, 1, {0xC0u}, 0},        /* rows and columns reversed: 180 degrees, as the panel is mounted */
@@ -157,4 +159,21 @@ void display_flush(void)
         send(DCS_DISPLAY_ON, NULL, 0);
         panel_on = true;
     }
+}
+
+/* Not tried on the panel yet (docs/architecture.md) */
+void display_sleep(void)
+{
+    send(DCS_BRIGHTNESS, (const uint8_t[]){0x00u}, 1);
+    send(DCS_DISPLAY_OFF, NULL, 0);
+    send(DCS_SLEEP_IN, NULL, 0);
+    vTaskDelay(pdMS_TO_TICKS(120)); /* the controller takes Sleep Out only this long after Sleep In */
+}
+
+void display_wake(void)
+{
+    send(DCS_SLEEP_OUT, NULL, 0);
+    vTaskDelay(pdMS_TO_TICKS(120)); /* the controller's wake-up time before the next command */
+    send(DCS_DISPLAY_ON, NULL, 0);
+    send(DCS_BRIGHTNESS, (const uint8_t[]){BRIGHTNESS}, 1);
 }

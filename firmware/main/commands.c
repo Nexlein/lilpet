@@ -6,6 +6,7 @@
 #include "esp_app_desc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "imu.h"
 #include "look_saving.h"
@@ -34,8 +35,16 @@ static struct {
  */
 static QueueHandle_t queue;
 
-/* Set by this task, read by the drawing loop (commands_hang_asked) */
+/* Set by this task, read by the drawing loop (commands_hang_asked, commands_sleep_asked) */
 static atomic_bool hang_asked;
+static atomic_bool sleep_asked;
+
+/* Given by this task for each command line, taken by the drawing loop (commands_heard) */
+static SemaphoreHandle_t heard;
+
+/* Set by the drawing loop, read by hello (commands_set_status) */
+static atomic_int rest_now;
+static atomic_int battery_mv = -1;
 
 static bool push(const lp_command *c)
 {
@@ -99,16 +108,22 @@ static void handle(const lp_command_line *line)
     /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
     putchar('\n');
 
-    if (error && strcmp(line->text, "> test hang") == 0) { /* the firmware's own, not the engine's: the engine parses */
-        atomic_store(&hang_asked, true);
+    /* The test commands are the firmware's own, not the engine's: the engine rejects them first */
+    const bool test_hang = error && strcmp(line->text, "> test hang") == 0;
+    const bool test_sleep = error && strcmp(line->text, "> test sleep") == 0;
+    if (test_hang || test_sleep) {
         printf("< ok\n");
     } else if (error) {
         printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
         /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
-        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s\n",
+        char battery[12] = "none";
+        const int mv = atomic_load(&battery_mv);
+        if (mv >= 0)
+            snprintf(battery, sizeof battery, "%d", mv);
+        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s state=%s battery=%s\n",
                esp_app_get_description()->version, lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset,
-               state.hello.storage);
+               state.hello.storage, rest_name((rest_state)atomic_load(&rest_now)), battery);
     } else if (c.type == LP_COMMAND_LOOK_QUERY) {
         reply_look(&state.current);
     } else if (c.type == LP_COMMAND_LOOK) {
@@ -119,6 +134,15 @@ static void handle(const lp_command_line *line)
         handle_eyes_command(&c);
     }
     fflush(stdout);
+    /* Once the reply is out: what the drawing loop does about the line comes after it in the log, and hello tells the
+     * rest the eyes were in before it woke them */
+    if (test_hang)
+        atomic_store(&hang_asked, true);
+    else if (test_sleep) {
+        xSemaphoreTake(heard, 0); /* a line that came before it wakes nothing: the last of the two wins */
+        atomic_store(&sleep_asked, true);
+    } else
+        xSemaphoreGive(heard);
 }
 
 /* Waits for a line and reads it, whatever it holds. The driver's read, with a timeout: after each byte, and while the
@@ -157,6 +181,7 @@ void commands_start(const lp_look *shown, const lp_look *kept, const commands_he
     usb_serial_jtag_vfs_use_driver();
 
     queue = xQueueCreate(QUEUE_SLOTS, sizeof(lp_command));
+    heard = xSemaphoreCreateBinary();
     state.current = *shown;
     state.saving = look_saving_start(kept);
     state.hello = *hello;
@@ -166,6 +191,22 @@ void commands_start(const lp_look *shown, const lp_look *kept, const commands_he
 bool commands_hang_asked(void)
 {
     return atomic_load(&hang_asked);
+}
+
+bool commands_sleep_asked(void)
+{
+    return atomic_exchange(&sleep_asked, false);
+}
+
+bool commands_heard(int wait_ms)
+{
+    return xSemaphoreTake(heard, pdMS_TO_TICKS(wait_ms)) == pdTRUE;
+}
+
+void commands_set_status(rest_state rest, int battery)
+{
+    atomic_store(&rest_now, (int)rest);
+    atomic_store(&battery_mv, battery);
 }
 
 bool commands_next(lp_command *out)

@@ -1,13 +1,16 @@
 /* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
- * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, and the column
- * and row ranges the display drivers send */
+ * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, the column and
+ * row ranges the display drivers send, when the eyes rest and how they look then, and when the battery counts as low
+ * and the eyes look tired */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
+#include "../main/battery_rule.h"
 #include "../main/dcs.h"
 #include "../main/frame.h"
 #include "../main/imu_axes.h"
 #include "../main/lcd_id.h"
 #include "../main/look_saving.h"
+#include "../main/rest.h"
 
 void test_lcd_id_tells_the_two_controllers_apart(void)
 {
@@ -175,4 +178,106 @@ void test_dcs_range_is_big_endian_first_and_last(void)
     CHECK(bytes[0] == 0x00u && bytes[1] == 0x06u && bytes[2] == 0x01u && bytes[3] == 0xD7u);
     dcs_range(2, 129, bytes); /* the AtomS3R's 128 columns, from 2 */
     CHECK(bytes[0] == 0x00u && bytes[1] == 0x02u && bytes[2] == 0x00u && bytes[3] == 0x81u);
+}
+
+void test_the_eyes_rest_after_a_while_with_nothing_happening(void)
+{
+    const int64_t t0 = 1000;
+    rest r = rest_start(t0);
+    CHECK(rest_state_at(&r, t0) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US - 1) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US) == REST_DROWSY); /* the sleepy look first */
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US + REST_DROWSY_US - 1) == REST_DROWSY);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US + REST_DROWSY_US) == REST_ASLEEP);
+
+    /* Anything that happens wakes it, asleep or not, and the wait starts over from there */
+    const int64_t t1 = t0 + 2 * REST_IDLE_US;
+    rest_activity(&r, t1);
+    CHECK(rest_state_at(&r, t1) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t1 + REST_IDLE_US - 1) == REST_AWAKE);
+
+    rest_sleep_now(&r, t1); /* the test command: asleep at once, without the sleepy look */
+    CHECK(rest_state_at(&r, t1) == REST_ASLEEP);
+}
+
+void test_handling_the_board_counts_from_its_last_move(void)
+{
+    const float flat[3] = {0.0f, 0.0f, 1.0f};
+    const float noise[3] = {0.05f, -0.05f, 0.95f};
+    const float tilted[3] = {0.2f, 0.0f, 0.98f};
+    const float up[3] = {0.0f, -0.2f, 1.0f};
+    CHECK(!rest_moved(flat, flat) && !rest_moved(flat, noise));  /* the sensor's noise */
+    CHECK(rest_moved(flat, tilted) && rest_moved(tilted, flat)); /* either way, on any axis */
+    CHECK(rest_moved(flat, up));
+    /* A slow tilt: each frame moves little, but it adds up from the reference */
+    const float step[3] = {0.1f, 0.0f, 1.0f};
+    CHECK(!rest_moved(flat, step) && rest_moved(flat, tilted));
+
+    /* The reference is where it was the last time it moved; the first reading is where it lies, not a move */
+    rest r = rest_start(0);
+    CHECK(!rest_handled(&r, tilted));
+    CHECK(!rest_handled(&r, step) && rest_handled(&r, flat)); /* 0.1 g, then 0.2 g away from the first reading */
+    CHECK(!rest_handled(&r, flat) && !rest_handled(&r, noise));
+    CHECK(rest_handled(&r, up));
+    const float falling[3] = {0.0f, 0.0f, 0.0f}; /* no gravity at all is where it lies too, as a first reading */
+    rest dropped = rest_start(0);
+    CHECK(!rest_handled(&dropped, falling) && rest_handled(&dropped, flat));
+}
+
+void test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* the mood */
+    rest_show(&eyes, REST_DROWSY);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY && eyes.mood == LP_EMOTION_LOVE);
+    for (int i = 0; i < REST_DROWSY_US / 50000; i++) /* the whole sleepy time, in frames of 50 ms */
+        lp_eyes_update(&eyes, 0.05f);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY); /* still, when the screen goes off */
+    rest_show(&eyes, REST_ASLEEP);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY);
+    rest_show(&eyes, REST_AWAKE);
+    CHECK(eyes.emotion == LP_EMOTION_LOVE && eyes.mood == LP_EMOTION_LOVE);
+
+    /* Woken by a reaction: the reaction keeps its emotion */
+    rest_show(&eyes, REST_DROWSY);
+    lp_eyes_react(&eyes, LP_EVENT_TAP);
+    rest_show(&eyes, REST_AWAKE);
+    CHECK(eyes.emotion == LP_EMOTION_HAPPY && eyes.mood == LP_EMOTION_LOVE);
+}
+
+void test_a_low_battery_stays_low_until_it_charges_back(void)
+{
+    CHECK(!battery_low(4100, false) && !battery_low(BATTERY_LOW_MV, false));
+    CHECK(battery_low(BATTERY_LOW_MV - 1, false));
+    /* Low, it stays low between the two thresholds, so the eyes do not flicker between two moods */
+    CHECK(battery_low(BATTERY_LOW_MV + 50, true) && battery_low(BATTERY_OK_MV - 1, true));
+    CHECK(!battery_low(BATTERY_OK_MV, true));
+    CHECK(!battery_low(-1, false) && !battery_low(-1, true)); /* no battery is never low */
+}
+
+void test_a_low_battery_makes_the_eyes_tired_until_it_charges_back(void)
+{
+    lp_eyes eyes;
+    lp_eyes_init(&eyes, 1);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_HAPPY, 0.0f);
+    lp_emotion before = LP_EMOTION_NEUTRAL;
+    battery_show(&eyes, false, true, &before);
+    CHECK(eyes.mood == LP_EMOTION_TIRED && before == LP_EMOTION_HAPPY);
+    battery_show(&eyes, true, true, &before); /* still low: nothing changes */
+    CHECK(eyes.mood == LP_EMOTION_TIRED && before == LP_EMOTION_HAPPY);
+    battery_show(&eyes, true, false, &before);
+    CHECK(eyes.mood == LP_EMOTION_HAPPY);
+    battery_show(&eyes, false, false, &before);
+    CHECK(eyes.mood == LP_EMOTION_HAPPY);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_TIRED, 0.0f); /* the app's pick, with the battery fine, stays */
+    battery_show(&eyes, false, false, &before);
+    CHECK(eyes.mood == LP_EMOTION_TIRED);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_HAPPY, 0.0f);
+
+    /* A mood the app picks while the battery is low stays once it charges */
+    battery_show(&eyes, false, true, &before);
+    lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f);
+    battery_show(&eyes, true, false, &before);
+    CHECK(eyes.mood == LP_EMOTION_LOVE);
 }

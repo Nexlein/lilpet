@@ -21,6 +21,11 @@
 
 #define BOARD_BACKLIGHT_ADDR 0x30u
 
+/* The battery, on M5Stack's Atomic Battery Base: a 1 MΩ/1 MΩ divider on G8, so twice the voltage read
+ * (docs.m5stack.com/en/atom/Atomic_Battery_Base). Reads nothing without the base. */
+#define BOARD_BATTERY_ADC     8
+#define BOARD_BATTERY_DIVIDER 2
+
 #define BOARD_IMU_ADDR 0x68u
 /*
  * Sensor axes to screen axes: which sensor axis, and its sign. Measured on the board (USB port down, then on the

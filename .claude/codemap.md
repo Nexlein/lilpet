@@ -143,7 +143,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lilpet.h** (377) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_event, lp_reaction, lp_reaction_get, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
-  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c
+  - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/battery_rule.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c, firmware/main/rest.h
 - **render_state.h** (94) — What is inside a lp_renderer: the geometry of the frame being drawn and the rows being composed.
   - exports: LP_POLY_MAX, lp_affine, lp_ellipse, lp_half_plane, lp_rgb, lp_polygon, lp_edge, lp_eye_geometry, lp_row_scratch, lp_renderer
   - → engine/include/lilpet/screen.h
@@ -251,21 +251,21 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/atoms3r
 - **board.cmake** (2) — Parts of the board, files of firmware/main (third-party ones in firmware/third_party)
-- **board_config.h** (32) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
-  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_IMU_ADDR, BOARD_IMU_AXES
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+- **board_config.h** (37) — M5Stack AtomS3R: 128 px LCD, BMI270 motion sensor, the screen is a button.
+  - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_BUTTON, BOARD_LCD_SCLK, BOARD_LCD_MOSI, BOARD_LCD_DC, BOARD_LCD_CS, BOARD_LCD_RESET, BOARD_BACKLIGHT_ADDR, BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER, BOARD_IMU_ADDR, BOARD_IMU_AXES
+  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/stamp_s3a
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — M5Stamp S3A, bare: no screen.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/boards/waveshare_132
 - **board.cmake** (2) — Parts of the board, files of firmware/main
 - **board_config.h** (21) — Waveshare ESP32-S3-Touch-AMOLED-1.32: 466 px round AMOLED, no motion sensor.
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_POWER_HOLD, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET
-  - ← firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+  - ← firmware/main/battery.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 
 ## firmware/components/lilpet
 - **CMakeLists.txt** (7) — The engine as an ESP-IDF component: same sources and warnings as the host build (engine/sources.cmake)
@@ -273,32 +273,42 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **board.c** (117) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_button_pressed, board_i2c, board_i2c_device
-  - → firmware/main/board.h, firmware/boards/*/board_config.h
-- **board.h** (29) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_i2c, board_i2c_device
-  - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
-- **commands.c** (174) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
-  - exports: commands_start, commands_hang_asked, commands_next
-  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
-- **commands.h** (31) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
-  - exports: commands_hello, commands_start, commands_hang_asked, commands_next
+- **battery.c** (63) — Implements battery.h: the battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+  - exports: battery_init, battery_millivolts
+  - → firmware/main/battery.h, firmware/boards/*/board_config.h
+- **battery.h** (11) — The battery's voltage, read through the board's divider on an ADC pin (BOARD_BATTERY_ADC in board_config.h): the AtomS3R on M5Stack's Atomic Batter...
+  - exports: battery_init, battery_millivolts
+  - ← firmware/main/battery.c, firmware/main/main.c
+- **battery_rule.h** (34) — When the battery counts as low, and what the eyes do then (docs/objet-v1.md: they look tired).
+  - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
+  - ← firmware/main/main.c
+- **board.c** (155) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: board_init, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
+  - → firmware/main/board.h, firmware/boards/*/board_config.h
+- **board.h** (34) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
+  - ← firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
+- **commands.c** (215) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+  - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
+  - → firmware/main/commands.h, firmware/boards/*/board_config.h, firmware/main/imu.h, firmware/main/look_saving.h, firmware/main/look_store.h
+- **commands.h** (42) — Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
+  - exports: commands_hello, commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next
+  - → engine/include/lilpet/lilpet.h, firmware/main/rest.h
   - ← firmware/main/commands.c, firmware/main/main.c
-- **dcs.h** (37) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
-  - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_WRITE_CTRL_DISPLAY, dcs_range
+- **dcs.h** (39) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
+  - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_IN, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_OFF, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_WRITE_CTRL_DISPLAY, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
-- **display.h** (31) — The board's screen.
-  - exports: display_init, display_wait_frame, display_draw, display_flush
+- **display.h** (35) — The board's screen.
+  - exports: display_init, display_wait_frame, display_draw, display_flush, display_sleep, display_wake
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (234) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
-  - exports: display_init, display_draw, display_flush
+- **display_atoms3r.c** (256) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+  - exports: display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
-- **display_co5300.c** (160) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
-  - exports: display_wait_frame, display_init, display_draw, display_flush
+- **display_co5300.c** (179) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+  - exports: display_wait_frame, display_init, display_draw, display_flush, display_sleep, display_wake
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
-- **display_paced.c** (21) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
+- **display_paced.c** (24) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
   - exports: display_wait_frame
   - → firmware/boards/*/board_config.h, firmware/main/display.h
 - **frame.h** (42) — A frame on the board (main.c): the rows of a band each core draws, and the share of the screen a frame redraws, for the timing reports.
@@ -331,9 +341,13 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (286) — Firmware entry point: the eyes, live on the display.
+- **main.c** (394) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
-  - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+  - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
+- **rest.h** (92) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
+  - exports: REST_IDLE_US, REST_DROWSY_US, REST_MOVED_G, rest_state, rest_name, rest, rest_start, rest_activity, rest_sleep_now, rest_state_at, rest_moved, rest_handled, rest_show
+  - → engine/include/lilpet/lilpet.h
+  - ← firmware/main/commands.h, firmware/main/main.c
 
 ## firmware/tests
 - tests: test_firmware.c
@@ -349,8 +363,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (108) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, has_motion_sensor, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (354) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
-  - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, reboots_during_reads, put_back, check_board
+- **check-device.py** (380) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+  - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, check_sleep, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
 - **codemap.mjs** (653) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...

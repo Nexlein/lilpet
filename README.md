@@ -127,8 +127,9 @@ aucune (`FORCE=1` laisse alors esptool la chercher). Elle refuse une carte qui r
 passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les
 étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la
 carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, le redémarrage par
-le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées ; sur l'AtomS3R, le
-capteur de mouvement après 40 redémarrages en pleine lecture, environ 50 s) et remet son look et son humeur à la fin.
+le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées, la batterie, la veille
+et le réveil par une commande ; sur l'AtomS3R, le capteur de mouvement après 40 redémarrages en pleine lecture, environ
+50 s) et remet son look et son humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
 (`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]), sur la seule carte branchée ou celle de `PORT` :

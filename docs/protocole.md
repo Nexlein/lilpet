@@ -9,12 +9,16 @@ carte vision, sur sa liaison UART. Pourquoi du texte : [décision 5](adr/0005-pr
   une ligne à elle (le journal, coupé quand personne ne lit le port, ne s'y colle pas). Une ligne fait au plus 94
   caractères : au-delà, `< err line too long`, et le reste est jeté.
 - `> hello` répond
-  `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1> reset=<raison> storage=<état>`.
+  `< lilpet fw=<version> engine=<version> board=<carte> camera=<0|1> motion=<0|1> reset=<raison> storage=<état>
+state=<repos> battery=<mV|none>`.
   `reset` dit pourquoi la puce a démarré : le nom de `esp_reset_reason_t` d'ESP-IDF en minuscules, sans `ESP_RST_`
   (`poweron` à la mise sous tension, `usb` après un flash ou un reset par le port USB, `sw`, `panic`, `task_wdt`,
   `int_wdt`, `brownout`…). `storage` dit ce que la carte a trouvé de sa mémoire flash au démarrage : `ok`, `erased`
   quand elle a dû l'effacer, pleine ou dans un autre format (le look gardé avec), ou `none` quand elle ne peut pas s'en
-  servir (les looks ne sont alors pas gardés).
+  servir (les looks ne sont alors pas gardés). `state` dit où en sont les yeux : `awake`, `drowsy` (l'air ensommeillé
+  qui précède le sommeil) ou `asleep` (écran éteint). `battery` donne la tension de la batterie en millivolts, lue
+  toutes les 10 s, ou `none` sans batterie ou sur une carte qui ne sait pas la lire. Comme toute commande, `hello`
+  réveille les yeux, mais sa réponse dit encore l'état d'avant.
 - `> look AE0002 FF5252 FF5252 dot` (œil, pupille gauche, pupille droite, type) répond `< ok`, `< err <raison>`, ou
   `< err busy` si la file de la boucle de dessin est pleine (comme les commandes des yeux, plus bas). Le look s'affiche
   même si la mémoire flash refuse de le garder (`< err shown, but cannot save the look in flash`). Un nouveau look est
@@ -48,6 +52,11 @@ qui ne finirait pas. Les commandes ont encore leur réponse, mais les yeux se fi
 boucle redémarre la puce : `CONFIG_ESP_TASK_WDT_TIMEOUT_S` (5 s) plus tard, `hello` dit `reset=task_wdt`, et la carte
 montre le look par défaut, comme après tout crash (voir [firmware.md](firmware.md)). `firmware:check-device` s'en sert
 pour vérifier ce watchdog et ce démarrage ; l'app ne l'envoie jamais.
+
+`> test sleep`, pour les tests aussi, répond `< ok` puis endort les yeux tout de suite, sans l'air ensommeillé : écran
+éteint, boucle de dessin en pause, et le journal le dit (`asleep: screen off`). La commande suivante les réveille
+(`awake: screen on`), sauf `> test sleep` et `> test hang`, qui ne réveillent rien. Toute autre ligne qui commence par
+`> `, même refusée, compte comme quelqu'un qui s'occupe de la carte : elle la réveille, ou la garde éveillée.
 
 ## Qui s'en sert
 

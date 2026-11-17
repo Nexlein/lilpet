@@ -23,14 +23,14 @@ Les réactions sont celles de `eyes/emotions.json`, que l'app permettra un jour 
 
 ### Jalon A : l'objet sans caméra
 
-| Il perçoit                            | Par                                                     | Il réagit                                                                                                       | Déjà prêt                                                  |
-| ------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Une caresse                           | L'écran tactile de la carte écran (CST820)              | Joie et étincelles (`tap`)                                                                                      | La réaction ; le pilote du CST820 reste à écrire           |
-| Une secousse, l'envers, l'inclinaison | Un accéléromètre I2C ajouté (la carte écran n'en a pas) | Vertige (`shake`) ; colère tête en bas (`upside_down`) ; le visage reste droit et les yeux glissent du côté bas | Le moteur, essayé sur l'AtomS3R avec son BMI270            |
-| La prise en main                      | L'interruption de mouvement du même accéléromètre       | Il se réveille, quitte l'air ensommeillé et reprend ses coups d'œil                                             | Rien : à écrire                                            |
-| Le bouton                             | `PWR_KEY` de la carte écran                             | (proposé) Un appui le réveille, un appui long l'éteint en coupant la batterie (`BAT_EN`)                        | Rien : à écrire                                            |
-| Sa batterie                           | `BAT_ADC` de la carte écran                             | (proposé) Batterie faible : il a l'air fatigué (une émotion à ajouter) ; en charge : une petite animation       | Rien : à écrire ; la façon de voir la charge est à trouver |
-| Personne                              | Ni toucher ni mouvement                                 | Il prend l'air ensommeillé (`sleepy`), puis s'endort, écran éteint                                              | L'émotion `sleepy` ; la mise en veille reste à écrire      |
+| Il perçoit                            | Par                                                     | Il réagit                                                                                                       | Déjà prêt                                                   |
+| ------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Une caresse                           | L'écran tactile de la carte écran (CST820)              | Joie et étincelles (`tap`)                                                                                      | La réaction ; le pilote du CST820 reste à écrire            |
+| Une secousse, l'envers, l'inclinaison | Un accéléromètre I2C ajouté (la carte écran n'en a pas) | Vertige (`shake`) ; colère tête en bas (`upside_down`) ; le visage reste droit et les yeux glissent du côté bas | Le moteur, essayé sur l'AtomS3R avec son BMI270             |
+| La prise en main                      | L'interruption de mouvement du même accéléromètre       | Il se réveille, quitte l'air ensommeillé et reprend ses coups d'œil                                             | Sur l'AtomS3R, en lisant le mouvement chaque seconde        |
+| Le bouton                             | `PWR_KEY` de la carte écran                             | (proposé) Un appui le réveille, un appui long l'éteint en coupant la batterie (`BAT_EN`)                        | Le réveil, sur l'AtomS3R ; l'arrêt reste à écrire           |
+| Sa batterie                           | `BAT_ADC` de la carte écran                             | (proposé) Batterie faible : il a l'air fatigué (`tired`) ; en charge : une petite animation                     | L'air fatigué, sur l'AtomS3R ; voir la charge reste à faire |
+| Personne                              | Ni toucher ni mouvement                                 | Il prend l'air ensommeillé (`sleepy`), puis s'endort, écran éteint                                              | Sur l'AtomS3R ([décision 12](adr/0012-energie.md))          |
 
 ### Jalon B : la vision
 
@@ -104,9 +104,9 @@ marge (60 mAh), il reste environ 160 mAh d'éveil : environ 2 à 3 h au jalon A,
 
 ## En attendant le matériel
 
-La commande est prévue d'ici un mois. D'ici là, l'AtomS3R a déjà un écran, un bouton et le même BMI270. On peut y écrire
-la mise en veille, le réveil au mouvement et au bouton, l'air ensommeillé et la batterie faible (si sa base de batterie
-se lit). Ce code passera ensuite sur la carte écran.
+La commande est prévue d'ici un mois. D'ici là, l'AtomS3R a déjà un écran, un bouton et le même BMI270. La mise en
+veille, le réveil au mouvement et au bouton, l'air ensommeillé et la batterie faible y tournent, sur sa base de batterie
+([décision 12](adr/0012-energie.md)). Ce code passera ensuite sur la carte écran.
 
 ## L'app PC
 

@@ -28,4 +28,8 @@ void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels);
 /* Waits until every queued band is sent; after the first frame, a panel that waited for it turns on (CO5300) */
 void display_flush(void);
 
+/* While the eyes sleep (rest.h): the panel sleeps and goes dark, then wakes as it was. Called between two frames. */
+void display_sleep(void);
+void display_wake(void);
+
 #endif /* LILPET_DISPLAY_H */
