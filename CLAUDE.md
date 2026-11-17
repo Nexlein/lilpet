@@ -75,7 +75,7 @@ model that will choose the reactions does not exist yet; what it will send is re
 - `firmware:flash` writes the bootloader, the partition table and the app only, so the look kept in NVS survives;
   `merged-binary.bin`, for a blank board, erases it. `FORCE=1` flashes over another board's image: only when the owner
   asks.
-- Charging: the AXP2101 charges at `BOARD_CHARGE_MA` (200 mA, the 400 mAh battery's maximum), set at every start.
+- Charging: the AXP2101 charges at `BOARD_CHARGE_MA` (200 mA, the seller's limit for the 400 mAh battery), set at every start.
   Waveshare's factory demo charges at 400 mA: the 1.75" gets our firmware before its battery is plugged in.
 - Light sleep lets every pin float: a pin that must stay driven or pulled asleep goes in `PINS_KEPT_ASLEEP` (`board.c`).
 - A number a doc takes from the code gets a case in `scripts/docs.test.mjs`. A drawing change bumps the engine's minor

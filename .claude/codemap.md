@@ -269,7 +269,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/boards/waveshare_175
 - **board.cmake** (2) — Parts of the board, files of firmware/main.
-- **board_config.h** (35) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
+- **board_config.h** (36) — Waveshare ESP32-S3-Touch-AMOLED-1.75, standard version: 466 px round AMOLED, the final screen board (docs/materiel.md).
   - exports: BOARD_DISPLAY_SIZE, BOARD_BENCH, BOARD_CHIP_PICO, BOARD_FLASH_MB, BOARD_PSRAM_MB, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_CHARGE_MA, BOARD_LCD_CS, BOARD_LCD_CLK, BOARD_LCD_D0, BOARD_LCD_D1, BOARD_LCD_D2, BOARD_LCD_D3, BOARD_LCD_RESET, BOARD_LCD_TE, BOARD_LCD_COLUMN_OFFSET, BOARD_LCD_ORIENTATION, BOARD_LCD_INIT_FIRST
   - ← firmware/main/battery_adc.c, firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/commands.c, firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 

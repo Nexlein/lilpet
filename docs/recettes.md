@@ -71,7 +71,8 @@ Le protocole est dans [protocole.md](protocole.md). Une commande touche :
   `scripts/test_board_scripts.py` ;
 - [protocole.md](protocole.md).
 
-**Rien ne vérifie** la doc, ni que `check-device` essaie la nouvelle commande.
+`scripts/docs.test.mjs` vérifie que [protocole.md](protocole.md) nomme la commande, pas ce qu'elle prend ni ce qu'elle
+répond. **Rien ne vérifie** que `check-device` l'essaie.
 
 ## Ajouter un champ à `hello`
 
