@@ -14,26 +14,27 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 
 - **Une image par carte**, choisie à la compilation (`BOARD`).
 - **Une carte est un dossier**, `firmware/boards/<carte>/` : `board.cmake` liste ses composants, `board_config.h` ses
-  broches, son montage, sa taille d'écran et le boîtier de sa puce. Les options d'ESP-IDF sont celles de
+  broches, son montage, sa taille d'écran et sa puce (boîtier, flash et PSRAM). Les options d'ESP-IDF sont celles de
   `firmware/sdkconfig.defaults`, communes à toutes les cartes. Le dossier donne son nom à la carte. CMake, la CI et les
   scripts de carte (`scripts/board_link.py`) lisent ces dossiers.
-- Chaque en-tête (`display.h`, `imu.h`) est une interface, chaque composant un fichier `.c`, sans table de fonctions :
-  tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure (`lcd_id.h`, `imu_axes.h`,
-  `look_saving.h`, `frame.h`, `dcs.h`, `rest.h`, `battery_rule.h`), pour que les tests sur PC la voient
-  (`firmware/tests`).
+- Chaque en-tête de composant (`display.h`, `imu.h`, `battery.h`) est une interface, chaque composant un fichier `.c`,
+  sans table de fonctions : tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure, pour
+  que les tests sur PC la voient (`firmware/tests`) ; leur liste est dans [firmware.md](../firmware.md#tests).
 - **Deux gardes contre une mauvaise image.** `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et
   refuse si une autre carte répond, puis donne ce port à esptool ; `FORCE=1` passe outre sans rien demander. Au
-  démarrage, `board_init` compare le boîtier de la puce et s'arrête avant de toucher une broche.
+  démarrage, `board_init` compare la puce à celle de la carte, son boîtier, la taille de sa flash et celle de sa PSRAM
+  (`chip.h`), et s'arrête avant de toucher une broche.
 
 ## Conséquences
 
-- Ajouter un écran : un `.c` de 3 fonctions (`display_init`, `display_draw`, `display_flush`) et une ligne dans le
-  `board.cmake` ; s'il a le signal TE, il définit aussi `display_wait_frame`, sous `#ifdef BOARD_LCD_TE`, et
-  `display_paced.c` la donne aux autres. Ajouter un capteur : un `.c` de 2 fonctions et une ligne. Ajouter une carte
-  aux composants connus : son dossier, et son nom dans la liste des cartes de la CI, qu'un test compare aux dossiers
-  (README, « Tester sur un ESP32-S3 »).
+- Ajouter un écran ou un capteur : un `.c` qui suit l'en-tête de sa sorte (`display.h`, `imu.h`, `battery.h`) et une
+  ligne dans le `board.cmake`. Ajouter une carte aux composants connus : son dossier, et son nom dans la liste des
+  cartes de la CI, que des tests comparent aux dossiers. Les étapes et ce qui les vérifie :
+  [recettes.md](../recettes.md).
 - Une carte vierge, ou qui redémarre en boucle, ne répond pas à `hello` et passe la première garde. Sans carte trouvée
   sur un port USB de la puce, le flash s'arrête : esptool essaierait chaque port série et flasherait ce qui répond.
   `FORCE=1` le laisse chercher.
-- Une image `stamp_s3a` sur la XIAO n'est pas arrêtée par la seconde : les deux sont en boîtier QFN56. Le futur firmware
-  de la XIAO devra répondre à `> hello` pour que le flash la protège.
+- La XIAO, la carte caméra, partage le boîtier QFN56 de la 1,75" et du M5Stamp S3A, et son firmware d'origine ne répond
+  pas à `> hello` : la seconde garde l'arrête quand même, par sa flash (8 Mo contre 16 sur la 1,75") ou sa PSRAM (8 Mo,
+  aucune sur le M5Stamp). Un test (`scripts/boards.test.mjs`) refuse une carte qui aurait la puce de la XIAO. Deux cartes
+  à la même puce (l'AtomS3R et la 1,32") ne se distinguent que par la première garde.

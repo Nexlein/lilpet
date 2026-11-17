@@ -3,7 +3,7 @@
 # (boards/<board>): built by BOARD=<board> mise run firmware:build, locally and in CI, in the ESP-IDF image pinned in
 # firmware/Dockerfile.
 cmake_minimum_required(VERSION 3.16)
-set(PROJECT_VER "0.8.0") # firmware version, reported to the PC app
+set(PROJECT_VER "0.8.1") # firmware version, reported to the PC app
 
 # A board is a folder of boards/ with a board.cmake. Checked here, before ESP-IDF first scans the components: that scan
 # runs as a separate script, which does not see LILPET_BOARD.
@@ -16,4 +16,7 @@ if(NOT LILPET_BOARD IN_LIST boards)
 endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+# Only the components main and the engine require, and theirs: no Wi-Fi, TCP/IP or TLS stack, which the firmware never
+# uses (a smaller image, a shorter build)
+idf_build_set_property(MINIMAL_BUILD ON)
 project(lilpet)

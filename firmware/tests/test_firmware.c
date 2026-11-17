@@ -6,6 +6,7 @@
 #include "../boards/atoms3r/board_config.h"
 #include "../main/axp2101.h"
 #include "../main/battery_rule.h"
+#include "../main/chip.h"
 #include "../main/dcs.h"
 #include "../main/frame.h"
 #include "../main/imu_axes.h"
@@ -199,6 +200,28 @@ void test_the_eyes_rest_after_a_while_with_nothing_happening(void)
 
     rest_sleep_now(&r, t1); /* the test command: asleep at once, without the sleepy look */
     CHECK(rest_state_at(&r, t1) == REST_ASLEEP);
+}
+
+void test_a_held_button_counts_once(void)
+{
+    rest r = rest_start(0);
+    CHECK(rest_button_down(&r, true));
+    CHECK(!rest_button_down(&r, true) && !rest_button_down(&r, true)); /* held, in a pocket: it keeps nothing awake */
+    CHECK(!rest_button_down(&r, false) && rest_button_down(&r, true)); /* let go, then pressed again */
+}
+
+void test_the_chip_check_tells_the_camera_board_apart(void)
+{
+    /* The PSRAM_CAP eFuse, in MB */
+    CHECK(chip_psram_mb(0) == 0 && chip_psram_mb(1) == 8 && chip_psram_mb(2) == 2 && chip_psram_mb(3) == 16);
+    CHECK(chip_psram_mb(4) == 4 && chip_psram_mb(5) == 0);
+    /* The XIAO ESP32S3 Sense shares its package with the 1.75" and the M5Stamp S3A: one other fact tells each apart */
+    const chip_info xiao = {false, 8, 8};
+    const chip_info waveshare_175 = {false, 16, 8};
+    const chip_info stamp_s3a = {false, 8, 0};
+    CHECK(chip_same(waveshare_175, waveshare_175));
+    CHECK(!chip_same(xiao, waveshare_175) && !chip_same(xiao, stamp_s3a));
+    CHECK(!chip_same((chip_info){true, 8, 8}, xiao)); /* the package */
 }
 
 void test_the_test_command_sends_any_board_to_sleep(void)

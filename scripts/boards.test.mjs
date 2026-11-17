@@ -40,3 +40,22 @@ test('every fact the firmware asks about is defined by a board', () => {
         for (const [name] of line.matchAll(/\bBOARD_\w+/g))
             assert.ok(defined.has(name), `the firmware asks about ${name}, which no board defines: misspelt?`);
 });
+
+// The XIAO ESP32S3 Sense, the camera board, has its camera's outputs on pins that the boards' images drive. It never
+// gets an image of these boards, yet one flashed by mistake must stop before it touches a pin (firmware/main/chip.h):
+// its chip has to differ in its package, its flash or its PSRAM from that of every board.
+// The number a board's header defines for `name`, NaN when it defines none
+const value = (header, name) => Number(header.match(new RegExp(`^#define ${name}\\s+(\\d+)`, 'm'))?.[1]);
+
+test('no board has the chip of the camera board', () => {
+    for (const board of BOARDS) {
+        const header = readFileSync(`firmware/boards/${board}/board_config.h`, 'utf8');
+        const chip = ['BOARD_CHIP_PICO', 'BOARD_FLASH_MB', 'BOARD_PSRAM_MB'].map((name) => value(header, name));
+        assert.ok(chip.every(Number.isInteger), `${board}: its chip is not fully described`);
+        assert.notDeepEqual(
+            chip,
+            [0, 8, 8],
+            `${board}: its chip is the camera board's (QFN56, 8 MB flash, 8 MB PSRAM)`
+        );
+    }
+});

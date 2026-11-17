@@ -1,6 +1,6 @@
-// Right column: the 100 official colors, as small pairs of eyes wearing the chosen pupil
+// Right column: the official colors, as small pairs of eyes wearing the chosen pupil
 import { useMemo, useState, type KeyboardEvent } from 'react';
-import { FAMILIES, filterSwatches, type Family, type PupilType, type Swatch } from '../data/looks';
+import { FAMILIES, filterSwatches, SWATCHES, type Family, type PupilType, type Swatch } from '../data/looks';
 import { lookKey, parseLookKey, type LookChoice } from '../data/favorites';
 import { EyeGlyph } from './EyeGlyph';
 import { FAMILY_COLORS, FAMILY_LABELS, PUPIL_LABELS } from './labels';
@@ -12,7 +12,7 @@ interface Props {
     onPick(choice: LookChoice): void;
 }
 
-// The arrow keys walk the grid, so that its 100 colors take a single stop of the Tab key
+// The arrow keys walk the grid, so that its colors take a single stop of the Tab key
 function walkGrid(e: KeyboardEvent<HTMLUListElement>) {
     const columns = getComputedStyle(e.currentTarget).gridTemplateColumns.split(' ').length;
     const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns };
@@ -69,7 +69,7 @@ export function Gallery({ swatch, pupil, favorites, onPick }: Props) {
             )}
 
             <div className="filters">
-                <h2>Les 100 couleurs</h2>
+                <h2>Les {SWATCHES.length} couleurs</h2>
                 <input
                     type="search"
                     placeholder="Chercher un nom"

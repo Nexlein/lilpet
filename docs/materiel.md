@@ -98,6 +98,47 @@ Et aussi :
 - **Ce que le 3V3 de la carte écran peut fournir** à la carte vision, dont la caméra monte à 366 mA en pointe : la
   référence matérielle ne le dit pas.
 
+## Carte vision : Seeed XIAO ESP32S3 Sense
+
+- 21 × 17,8 × 15 mm avec sa carte caméra, ESP32-S3R8 (boîtier QFN56) avec 8 Mo de PSRAM et 8 Mo de flash, micro,
+  chargeur de batterie intégré ([wiki Seeed](https://github.com/Seeed-Studio/wiki-documents/blob/docusaurus-version/sites/en/docs/Sensor/SeeedStudio_XIAO/SeeedStudio_XIAO_ESP32S3/XIAO_ESP32S3_Getting_Started.md)).
+- **La caméra a changé** : l'OV2640 est arrêtée, la carte est livrée avec une OV3660 ou une OV5640 selon le stock
+  ([fiche technique, octobre 2026](https://files.seeedstudio.com/Bazaar/product_pdf/113991115.pdf)). Les deux
+  conviennent. Certains revendeurs affichent encore « OV2640 » dans le titre.
+- Consommation mesurée par Seeed sous 3,8 V : 43 mA au repos, 5 mA en veille légère, 3 mA en veille profonde, 155 mA en
+  moyenne en filmant ([wiki Seeed](https://github.com/Seeed-Studio/wiki-documents/blob/docusaurus-version/sites/en/docs/Sensor/SeeedStudio_XIAO/SeeedStudio_XIAO_ESP32S3/XIAO_ESP32S3_Getting_Started.md)).
+- UART : D6 (TX, GPIO43) et D7 (RX, GPIO44), libres même caméra active
+  ([brochage](https://www.espboards.dev/esp32/xiao-esp32s3-sense/)). À croiser avec GPIO44 et GPIO43 de la carte
+  écran.
+- Sa puce a le boîtier de la 1,75" et du M5Stamp S3A, dont les images pilotent les broches de ses sorties caméra : une
+  telle image flashée dessus par erreur s'arrête au démarrage, sans toucher une broche, par la taille de la flash ou de
+  la PSRAM ([décision 6](adr/0006-une-image-par-carte.md)).
+- La caméra est reliée à sa carte par une nappe : l'objectif peut être placé en façade, à côté de l'écran, comme sur
+  l'original. Longueur de la nappe à mesurer à la réception.
+
+Alternative écartée : M5Stack AtomS3R-CAM (24 × 24 × 13,5 mm, caméra 0,3 Mpx, pas de chargeur), caméra moins bonne
+et objectif fixé sur la carte ([documentation](https://docs.m5stack.com/en/core/AtomS3R%20Cam)).
+
+### Vision sur la puce
+
+Modèles Espressif ESP-DL, temps mesurés par Espressif sur ESP32-S3 :
+
+| Modèle                                                                                                     | Entrée  | Temps par image |
+| ---------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| [human_face_detect](https://components.espressif.com/components/espressif/human_face_detect) (MSR + MNP)   | 120×160 | 36,5 + 6,6 ms   |
+| [hand_detect](https://components.espressif.com/components/espressif/hand_detect)                           | 224×224 | 128,6 ms        |
+| [hand_gesture_recognition](https://components.espressif.com/components/espressif/hand_gesture_recognition) | 128×128 | 73,9 ms         |
+
+Calcul (non publié) : environ 20 détections de visage par seconde au plus, et environ 5 gestes par seconde si on cherche
+la main puis le geste à chaque image. Assez pour des réactions.
+
+10 gestes reconnus : one, two, three, four, five, like, ok, no_gesture, call, dislike
+([exemple ESP-DL](https://github.com/espressif/esp-dl/blob/master/examples/hand_gesture_recognition/README.md)). Le
+doigt d'honneur n'en fait pas partie : il faudra entraîner un modèle perso si on le veut.
+
+Aucun de ces modèles ne lit les expressions du visage, que le projet vise aussi : il faudra en trouver ou en entraîner
+un, à faire tourner sur le visage déjà détecté.
+
 ## Batterie
 
 - **LiPo 1S 3,7 V avec circuit de protection, fiche 1,25 mm 2 broches (MX1.25)**, le connecteur de la carte écran. Les
@@ -108,7 +149,7 @@ Et aussi :
   300 mAh prévue d'abord n'est plus en stock, et la 1,75" laisse plus de place derrière l'écran.
 - Charger à 1C au plus ([guide Adafruit](https://cdn-learn.adafruit.com/downloads/pdf/li-ion-and-lipoly-batteries.pdf)),
   et pas plus que ce que le vendeur donne : **200 mA**, à régler dans l'AXP2101 avant le premier branchement (voir
-  « À vérifier à la réception »).
+  « À la réception, dans cet ordre », [plus haut](#carte-écran--waveshare-esp32-s3-touch-amoled-175)).
 - Une seule batterie, un seul chargeur (celui de la carte écran) : ne pas relier aussi la batterie au chargeur de la
   carte vision. Elle prend son alimentation sur le 3V3 de la carte écran (plus bas, « Le câblage des deux cartes »), et
   pas sur son propre port USB tant qu'elle y est reliée.

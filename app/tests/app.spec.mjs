@@ -336,6 +336,8 @@ test('the live eyes wear the chosen look, show the mood, and answer a pet', asyn
 
 test('the live eyes follow the pointer, and let go when it leaves the page', async ({ page }) => {
     await page.addInitScript(watchScreen);
+    // Seeded: with another seed, saccades could cover most of the pointer's move and the test would fail now and then
+    await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
     await page.goto(APP);
     const screen = await page.locator('canvas.screen').boundingBox();
     const middle = screen.x + screen.width / 2;
@@ -456,7 +458,9 @@ test('says when the flash refuses a look, and when the board does', async ({ pag
 
     await page.evaluate(() => (window.board.replies.look = 'err malformed look'));
     await send.click();
-    await expect(note(page)).toHaveText('cherry n’est pas envoyé : Erreur de lilpet : malformed look');
+    await expect(note(page)).toHaveText(
+        'cherry n’est pas envoyé : lilpet refuse : malformed look (son firmware est-il à jour ?)'
+    );
 });
 
 test('sends one look at a time and keeps a failure until the next send', async ({ page }) => {
@@ -556,7 +560,7 @@ test('moods and pets reach the board, and a failure only goes to the log', async
     await page.evaluate(() => (window.board.replies.emotion = 'err unknown emotion'));
     await page.getByRole('button', { name: 'Surpris' }).click();
     await page.locator('.log summary').click();
-    await expect(page.locator('.log pre')).toContainText('> emotion surprised : Erreur de lilpet : unknown emotion');
+    await expect(page.locator('.log pre')).toContainText('> emotion surprised : lilpet refuse : unknown emotion');
     await expect(page.getByRole('alert')).toHaveCount(0);
     await expect(note(page)).toBeEmpty();
 });

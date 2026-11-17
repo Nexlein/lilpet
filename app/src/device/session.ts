@@ -3,7 +3,7 @@
 import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
 import type { Look } from '../data/looks';
 import { Connection, ConnectionClosed, NoReply, type PortLike } from './connection';
-import { BoardBusy, NotLilpet, command, hello, sendLook, type LookSent } from './device';
+import { BoardBusy, BoardRefused, NotLilpet, command, hello, sendLook, type LookSent } from './device';
 import { emotionCommand, reactCommand, type DeviceInfo } from './protocol';
 
 export type DeviceState =
@@ -18,8 +18,9 @@ interface DeviceSnapshot {
 }
 
 const LOG_LINES = 200;
-// What ESP-IDF logs as the board starts: a crash or its watchdog restarted it with the port still open
-const BOOT_LINE = 'Calling app_main';
+// What the firmware prints first as it starts (main.c, which a test compares): a crash or its watchdog restarted it
+// with the port still open. Firmware 0.8.0 and earlier did not print it.
+export const BOOT_LINE = 'lilpet starts';
 
 const NOT_LILPET =
     'Cet appareil ne répond pas comme lilpet. Flashe-le avec « BOARD=<carte> mise run firmware:deploy », puis réessaie.';
@@ -156,6 +157,11 @@ function describe(err: unknown, silent = NO_REPLY): string {
     if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
     if (err instanceof NotLilpet || err instanceof NoReply) return silent;
+    // What the board does not know may be newer than its firmware; the benchmark board, say, refuses for another reason
+    if (err instanceof BoardRefused)
+        return /^(malformed|unknown) /.test(err.reason)
+            ? `lilpet refuse : ${err.reason} (son firmware est-il à jour ?)`
+            : `lilpet refuse : ${err.reason}`;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?), ou fermé à ton compte (sous Linux : le groupe dialout). Ferme-le, ou ajoute ton compte au groupe, puis réessaie.';
     return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;

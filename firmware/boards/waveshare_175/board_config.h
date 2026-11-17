@@ -7,14 +7,17 @@
 #define LILPET_BOARD_CONFIG_H
 
 #define BOARD_DISPLAY_SIZE 466
-#define BOARD_BENCH        0 /* 1: no screen, plays the benchmark animation */
-#define BOARD_CHIP_PICO    0 /* ESP32-S3R8, in the QFN56 package */
+#define BOARD_BENCH        0  /* 1: no screen, plays the benchmark animation */
+#define BOARD_CHIP_PICO    0  /* ESP32-S3R8, in the QFN56 package */
+#define BOARD_FLASH_MB     16 /* the chip, as board_init checks it (chip.h): ESP32-S3R8 and a 16 MB flash chip */
+#define BOARD_PSRAM_MB     8
 
 /* The shared bus: AXP2101 0x34, QMI8658 0x6B, CST9217 0x5A, TCA9554 0x20, PCF85063 0x51, ES8311 0x18, ES7210 0x40 */
 #define BOARD_I2C_SDA 15
 #define BOARD_I2C_SCL 14
 
-/* The AXP2101's charge current, in mA: the chosen battery's maximum (a 400 mAh 802525, docs/materiel.md) */
+/* The AXP2101's charge current, in mA: the limit the seller gives for the chosen battery (a 400 mAh 802525,
+ * docs/materiel.md) */
 #define BOARD_CHARGE_MA 200
 
 #define BOARD_LCD_CS            12

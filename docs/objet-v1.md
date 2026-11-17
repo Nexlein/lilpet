@@ -74,15 +74,16 @@ Les courants sont des **estimations**, à mesurer au banc d'essai, pour la batte
 - **Endormi** : quelques mA. La carte vision prend 3 mA en veille profonde, d'après Seeed
   ([materiel.md](materiel.md#carte-vision--seeed-xiao-esp32s3-sense)) ; la carte écran en veille légère n'est pas
   mesurée.
-- **Éveillé, jalon A** : l'écran et la carte écran seuls, sans doute moins de 100 mA (60 mA supposés pour l'écran de
-  la 1,32", sans doute plus sur la 1,75", [materiel.md](materiel.md#batterie)).
+- **Éveillé, jalon A** : l'écran et la carte écran seuls, sans doute de 60 à 100 mA : 60 mA sont supposés pour l'écran
+  de la 1,32", et celui de la 1,75" a environ 1,7 fois sa surface ([materiel.md](materiel.md#batterie)).
 - **Éveillé, jalon B** : environ 150 à 300 mA. [materiel.md](materiel.md#batterie) estime environ 150 mA avec une
-  vision qui ne filme pas sans arrêt ; en filmant, la carte vision seule prend 155 mA d'après Seeed, et le pré-mortem
-  arrive à 280 à 400 mA pour l'ensemble.
+  vision qui ne filme pas sans arrêt ; en filmant, la carte vision seule prend 155 mA d'après Seeed, et une estimation
+  faite avant la commande arrive à 280 à 400 mA pour l'ensemble.
 
 (Proposé.) Une journée, c'est 16 h loin du chargeur ; à 5 mA endormi, elle coûte environ 80 mAh. En gardant 20 % de
-marge (80 mAh), il reste environ 240 mAh d'éveil : environ 3 à 4 h au jalon A, et environ 50 min à 1 h 30 au jalon B.
-[materiel.md](materiel.md#batterie) estimait 2 à 3,5 h éveillé en continu : la journée repose donc sur la veille.
+marge (80 mAh), il reste environ 240 mAh d'éveil : environ 2 h 30 à 4 h au jalon A, et environ 50 min à 1 h 30 au
+jalon B. [materiel.md](materiel.md#batterie) estime 2 h 40 à 4 h 40 éveillé en continu, plutôt optimiste : la journée
+repose donc sur la veille.
 **Le critère du banc d'essai** (proposé) : moins de 5 mA endormi, et moins de 300 mA éveillé avec la vision.
 
 ## Ce qu'il faut de chaque partie

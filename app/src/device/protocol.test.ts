@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import ENGINE_COMMAND_TESTS from '../../../engine/tests/test_command.c?raw';
 import COMMANDS_C from '../../../firmware/main/commands.c?raw';
 import { findSwatch, makeLook } from '../data/looks';
 import {
@@ -44,6 +45,8 @@ describe('protocol', () => {
 
     it('writes the look command the firmware reads', () => {
         expect(lookCommand(socks)).toBe('> look B865A8 76D8EB 8F1716 acorn');
+        // The engine's own tests take that very line: a change of the look's text in look.c fails one of the two
+        expect(ENGINE_COMMAND_TESTS).toContain(`check_accepted("${lookCommand(socks)}", LP_COMMAND_LOOK`);
     });
 
     it('writes the commands that move the eyes', () => {
@@ -275,9 +278,16 @@ describe('connection', () => {
         vi.unstubAllGlobals();
     });
 
-    it('closes the port when it cannot set its signals', async () => {
+    it('closes and forgets the port when it cannot set its signals', async () => {
         const device = fakePort(firmware(), { failSignals: true });
         await expect(Connection.open(device.port)).rejects.toThrow('signals');
         expect(device.closed()).toBe(true);
+        expect(device.forgotten()).toBe(true);
+    });
+
+    it('leaves a port that does not open to whoever holds it, another tab maybe', async () => {
+        const device = fakePort(firmware(), { failOpen: true });
+        await expect(Connection.open(device.port)).rejects.toThrow('Failed to open');
+        expect(device.forgotten()).toBe(false);
     });
 });

@@ -5,6 +5,8 @@ import { classify, LineSplitter } from './protocol';
 export interface PortLike {
     open(options: { baudRate: number; bufferSize?: number }): Promise<void>;
     close(): Promise<void>;
+    // Chrome 103 and later: drops the permission to open this port again without asking
+    forget?(): Promise<void>;
     setSignals(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
@@ -62,6 +64,8 @@ export class Connection {
 
     static async open(port: PortLike, events: ConnectionEvents = {}): Promise<Connection> {
         // A larger buffer than the default 255 bytes: the board's startup log comes in one burst
+        // A port that does not open is not forgotten: another tab of the app may hold it, and forgetting revokes the
+        // site's permission, which closes that tab's port too
         await port.open({ baudRate: 115200, bufferSize: 8192 });
         try {
             // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS
@@ -71,6 +75,7 @@ export class Connection {
             return new Connection(port, events);
         } catch (err) {
             await port.close().catch(() => undefined);
+            await port.forget?.().catch(() => undefined);
             throw err;
         }
     }
@@ -112,6 +117,9 @@ export class Connection {
         this.#pending?.reject(new ConnectionClosed());
         this.#writer.releaseLock();
         await this.#port.close().catch(() => undefined);
+        // Chrome keeps a port's permission per site, and nexlein.github.io holds other repos' pages too: forgotten, the
+        // port opens again only through the picker, which the app shows on every connect anyway
+        await this.#port.forget?.().catch(() => undefined);
         this.#events.onClose?.();
     }
 

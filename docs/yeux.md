@@ -6,7 +6,7 @@ référence.
 
 ## Base commune
 
-- Deux ovales sur fond noir, très rapprochés et un peu inclinés vers l'intérieur.
+- Deux ovales sur fond noir, très rapprochés et un peu inclinés, le haut de chaque œil vers l'extérieur.
 - Une couleur unie pour l'œil (le « blanc »), sans dégradé.
 
 ## Les 4 types de pupilles
@@ -123,8 +123,9 @@ yeux (`tiktok-eye-picking.png`), réaction au geste (`tiktok-gesture-reaction.pn
 
 Source : la page [creature.company/eyes](https://creature.company/eyes?swatch=dot-socks), mesurée dans le navigateur
 sur le rendu : couleurs lues sur les appels de dessin du canvas (valeurs exactes), formes mesurées sur les pixels du
-grand œil central, yeux au repos. Aucun fichier du site téléchargé. Les noms officiels servent de repère, pour un
-usage perso.
+grand œil central, yeux au repos. Aucun fichier du site téléchargé. Les noms et les couleurs officiels servent de
+repère, pour un usage perso et non commercial ; ils sont publiés avec l'app PC sur GitHub Pages (choix du 2026-11-17,
+[#80](https://github.com/Nexlein/lilpet/issues/80)).
 
 ### La page
 

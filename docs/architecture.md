@@ -74,7 +74,7 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 - **Renovate** : il voit les outils de `mise.toml`, ceux de ses tâches (esptool) et `scripts/requirements.txt`, mais
   n'a encore ouvert aucune pull request. Tant qu'aucune n'est fusionnée, Mend ne le lance qu'une fois par jour, à une
   heure quelconque, qui ne tombait jamais dans son ancien créneau du lundi matin : il couvre désormais tout le lundi.
-  Vérifier sa pull request groupée le lundi 23 novembre 2026.
+  Sa première pull request groupée se suit dans [#44](https://github.com/Nexlein/lilpet/issues/44).
 
 ### À décider ou à construire pour l'objet final
 

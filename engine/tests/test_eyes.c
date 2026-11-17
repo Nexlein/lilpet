@@ -332,9 +332,9 @@ void test_clock_keeps_running_for_days(void)
             blinks++;
     }
     CHECK(eyes.time < 600.0f); /* wound back once */
-    /* By whole breaths (render.c: sin(time * 2.1)): the breathing does not hiccup */
+    /* By whole breaths (LP_BREATH_RATE): the breathing does not hiccup */
     CHECK(wound_back > 0.0f);
-    CHECK_NEAR(remainderf(wound_back * 2.1f, 2.0f * LP_PI), 0.0f, 0.01f);
+    CHECK_NEAR(remainderf(wound_back * LP_BREATH_RATE, 2.0f * LP_PI), 0.0f, 0.01f);
     CHECK(blinks >= 10 && blinks <= 40);
     /* Deadlines wound back with it: each is a few seconds ahead at most */
     CHECK(eyes.next_blink - eyes.time < 8.0f);

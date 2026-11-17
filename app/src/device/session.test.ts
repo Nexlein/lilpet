@@ -3,7 +3,8 @@ import { findSwatch, makeLook } from '../data/looks';
 import type { PortLike } from './connection';
 import { FAKE_INFO, fakePort, firmware } from './fake-port';
 import { HELLO } from './protocol';
-import { DeviceSession } from './session';
+import MAIN_C from '../../../firmware/main/main.c?raw';
+import { BOOT_LINE, DeviceSession } from './session';
 
 const kite = makeLook(findSwatch('kite')!, 'dot');
 
@@ -27,6 +28,7 @@ describe('device session', () => {
         await session.disconnect();
         expect(session.snapshot().state).toEqual({ status: 'idle' });
         expect(device.closed()).toBe(true);
+        expect(device.forgotten()).toBe(true); // no other page of the site opens it again without asking
         await expect(session.send(kite)).rejects.toThrow('plus branché');
     });
 
@@ -140,7 +142,11 @@ describe('device session', () => {
         const device = fakePort((c) => (c === HELLO ? answer(c) : reply));
         const session = new DeviceSession(async () => device.port);
         await session.connect();
-        await expect(session.send(kite)).rejects.toThrow('Erreur de lilpet : malformed look');
+        await expect(session.send(kite)).rejects.toThrow(
+            'lilpet refuse : malformed look (son firmware est-il à jour ?)'
+        );
+        reply = 'err benchmark animation running'; // a refusal an update would not change
+        await expect(session.send(kite)).rejects.toThrow(/^lilpet refuse : benchmark animation running$/);
         reply = null;
         vi.useFakeTimers();
         const silent = expect(session.send(kite)).rejects.toThrow('lilpet ne répond pas');
@@ -148,7 +154,7 @@ describe('device session', () => {
         vi.useRealTimers();
         await silent;
         const unplugged = expect(session.send(kite)).rejects.toThrow('lilpet n’est plus branché');
-        await vi.waitFor(() => expect(device.sent).toHaveLength(4));
+        await vi.waitFor(() => expect(device.sent).toHaveLength(5));
         device.readError({ fatal: true });
         await unplugged;
     });
@@ -239,13 +245,17 @@ describe('device session', () => {
         await session.disconnect();
     });
 
+    it('tells a restart by the line the firmware prints first', () => {
+        expect(MAIN_C).toContain(`printf("\\n${BOOT_LINE}\\n");`);
+    });
+
     it('gives the mood again to a board that restarted with the port open', async () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
         session.emotion('sad');
         await session.connect();
         await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
-        device.log('I (250) main_task: Calling app_main()'); // a crash or the watchdog: the port stayed open
+        device.log(BOOT_LINE); // a crash or the watchdog: the port stayed open
         await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']));
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
@@ -257,11 +267,11 @@ describe('device session', () => {
         session.emotion('sad');
         await session.connect();
         await vi.waitFor(() => expect(device.sent).toEqual([HELLO, '> emotion sad']));
-        for (let i = 0; i < 5; i++) device.log('I (250) main_task: Calling app_main()');
+        for (let i = 0; i < 5; i++) device.log(BOOT_LINE);
         await vi.waitFor(() => expect(device.sent).toHaveLength(6));
         await new Promise((r) => setTimeout(r, 200)); // time for a third hello, if there were one
         expect(device.sent.slice(2)).toEqual([HELLO, '> emotion sad', HELLO, '> emotion sad']);
-        device.log('I (250) main_task: Calling app_main()'); // once over, a boot gets its hello again
+        device.log(BOOT_LINE); // once over, a boot gets its hello again
         await vi.waitFor(() => expect(device.sent.slice(6)).toEqual([HELLO, '> emotion sad']));
         await session.disconnect();
     });
@@ -273,8 +283,8 @@ describe('device session', () => {
         const session = new DeviceSession(async () => device.port);
         await session.connect();
         booted = true;
-        device.log('I (250) main_task: Calling app_main()');
-        device.log('I (250) main_task: Calling app_main()');
+        device.log(BOOT_LINE);
+        device.log(BOOT_LINE);
         await vi.waitFor(() => expect(device.sent).toHaveLength(2));
         const close = device.port.close;
         device.port.close = async () => {
@@ -292,7 +302,7 @@ describe('device session', () => {
         const device = fakePort(firmware());
         const session = new DeviceSession(async () => device.port);
         await session.connect();
-        device.log('I (250) main_task: Calling app_main()');
+        device.log(BOOT_LINE);
         await vi.waitFor(() => expect(device.sent).toEqual([HELLO, HELLO]));
         await session.disconnect();
     });
@@ -317,7 +327,9 @@ describe('device session', () => {
         expect(device.sent).toEqual([HELLO]);
         session.emotion('furious');
         await vi.waitFor(() =>
-            expect(session.snapshot().log).toContain('> emotion furious : Erreur de lilpet : unknown emotion')
+            expect(session.snapshot().log).toContain(
+                '> emotion furious : lilpet refuse : unknown emotion (son firmware est-il à jour ?)'
+            )
         );
         expect(session.snapshot().state.status).toBe('connected');
         await session.disconnect();
