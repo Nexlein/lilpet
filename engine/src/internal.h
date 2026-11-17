@@ -6,8 +6,10 @@
 
 #include <math.h>
 
-#define LP_PI     3.14159265f
-#define LP_CENTER ((float)LP_SCREEN_SIZE / 2.0f)
+#define LP_PI 3.14159265f
+/* Radians per second of the eyes' breathing (render.c), which the clock's wrap counts in whole breaths (eyes.c) */
+#define LP_BREATH_RATE 2.1f
+#define LP_CENTER      ((float)LP_SCREEN_SIZE / 2.0f)
 
 /* Blink phase durations measured on the official footage (see docs/yeux.md) */
 #define LP_BLINK_ANTICIP_TIME 0.06f

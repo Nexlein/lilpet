@@ -574,7 +574,7 @@ lp_rect lp_render_begin(lp_renderer *r, const lp_eyes *eyes)
     const float st = lp_minf(speed * 0.025f, 0.12f);
     const float ax = speed > 0.0f ? fabsf(eyes->gaze.vx) / speed : 0.0f;
     const float ay = speed > 0.0f ? fabsf(eyes->gaze.vy) / speed : 0.0f;
-    const float breath = 1.0f + 0.012f * sinf(eyes->time * 2.1f);
+    const float breath = 1.0f + 0.012f * sinf(eyes->time * LP_BREATH_RATE);
     const float squash_x = 1.0f + st * ax - st * ay * 0.5f;
     const float squash_y = (1.0f + st * ay - st * ax * 0.5f) * breath;
 
