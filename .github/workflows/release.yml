@@ -1,6 +1,6 @@
 # On a version tag, checks the tagged commit with the whole CI, then publishes a GitHub Release that holds the firmware
-# of each board: the CI artifacts expire after 30 days, a Release stays. The tag is annotated (git tag -a) and its
-# message becomes the release notes.
+# of each board (the CI artifacts expire after 30 days, a Release stays), and the PC app on GitHub Pages. The tag is
+# annotated (git tag -a) and its message becomes the release notes.
 name: Release
 
 on:
@@ -80,3 +80,30 @@ jobs:
         run: |
           notes=$(gh api "repos/$GH_REPO/git/tags/$TAG_OBJECT" -q .message)
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" lilpet-*.zip
+
+  # The PC app the CI built and tested on the tagged commit, with its engine, at https://nexlein.github.io/lilpet/. Its
+  # paths are relative (app/vite.config.mjs), so it works from that folder. The github-pages environment allows the v*
+  # tags to deploy.
+  pages:
+    name: PC app on GitHub Pages
+    needs: [tag, ci]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      pages: write # deploys; this job only
+      id-token: write # proves to Pages that the deployment comes from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pc-app
+          path: app
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: app
+
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

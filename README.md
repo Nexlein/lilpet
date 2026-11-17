@@ -39,9 +39,10 @@ Projet strictement personnel, non commercial.
 
 ## Installer
 
-Prérequis : Linux, macOS ou WSL (les tâches et les hooks git lancent des commandes POSIX, les scripts des cartes ont
-besoin de termios), [mise](https://mise.jdx.dev), Docker (compilations WebAssembly et firmware), clang 21 ou plus récent
-(tests du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app PC).
+Prérequis : Linux, macOS ou WSL (les tâches et les hooks git lancent des commandes POSIX,
+[décision 10](docs/adr/0010-plateformes-de-developpement.md)), [mise](https://mise.jdx.dev), Docker (compilations
+WebAssembly et firmware), clang 21 ou plus récent (tests du moteur sur le PC) et Chrome ou Edge (Web Serial, pour l'app
+PC).
 
 Sous WSL, une carte n'apparaît qu'une fois attachée avec
 [usbipd-win](https://learn.microsoft.com/fr-fr/windows/wsl/connect-usb) : `usbipd bind --busid <id>` une fois, en
@@ -58,6 +59,9 @@ mise run setup
 git : sans `npm ci`, git n'y lance aucun hook.
 
 ## Lancer l'app PC
+
+La dernière version publiée est en ligne, https://nexlein.github.io/lilpet/, à ouvrir dans Chrome ou Edge (à partir de
+la prochaine version taguée, voir plus bas). Pour la version du dépôt :
 
 ```bash
 npm run app:dev
@@ -146,7 +150,8 @@ Sous Linux, l'utilisateur doit être dans le groupe
 la rebrancher. La CI garde aussi les binaires 30 jours (`firmware-<carte>` dans les artefacts des jobs ESP32-S3). Un tag
 de version annoté (`git tag -a vX.Y.Z` sur `main`, X.Y.Z étant la version du firmware de `firmware/CMakeLists.txt`,
 puis push du tag) les publie pour de bon : `release.yml` relance la CI sur ce commit, puis crée une Release GitHub avec
-un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes.
+un zip par carte (`lilpet-<tag>-<carte>.zip`) et le message du tag comme notes. Il publie aussi sur GitHub Pages l'app
+PC que la CI vient de compiler et de tester.
 
 ## Arborescence
 

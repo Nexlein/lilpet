@@ -10,7 +10,8 @@ commandes `emotion`, `react` et `face` répondent sur l'AtomS3R depuis le 6 nove
 
 - **Style soigné**, avec une identité propre à lilpet : ludique, fond sombre, l'écran rond au centre. Pas de copie du
   site officiel.
-- Hébergement possible sur GitHub Pages, à décider au moment de publier : la page serait publique.
+- En ligne sur GitHub Pages, https://nexlein.github.io/lilpet/, publiée à chaque version par `release.yml`
+  ([décision 4](adr/0004-app-web-serial.md)).
 
 ## Version 1
 
