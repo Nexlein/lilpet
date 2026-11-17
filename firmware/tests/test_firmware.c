@@ -1,13 +1,15 @@
 /* Pure parts of the firmware, run with the engine's host tests: which LCD controller answers, the motion sensor's axes,
- * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, and the column
- * and row ranges the display drivers send */
+ * when a look is written to flash, the rows of a band each core draws, the share of the screen redrawn, the column and
+ * row ranges the display drivers send, when the eyes rest, and when the battery counts as low */
 #include "../../engine/tests/test.h"
 #include "../boards/atoms3r/board_config.h"
+#include "../main/battery_rule.h"
 #include "../main/dcs.h"
 #include "../main/frame.h"
 #include "../main/imu_axes.h"
 #include "../main/lcd_id.h"
 #include "../main/look_saving.h"
+#include "../main/rest.h"
 
 void test_lcd_id_tells_the_two_controllers_apart(void)
 {
@@ -175,4 +177,47 @@ void test_dcs_range_is_big_endian_first_and_last(void)
     CHECK(bytes[0] == 0x00u && bytes[1] == 0x06u && bytes[2] == 0x01u && bytes[3] == 0xD7u);
     dcs_range(2, 129, bytes); /* the AtomS3R's 128 columns, from 2 */
     CHECK(bytes[0] == 0x00u && bytes[1] == 0x02u && bytes[2] == 0x00u && bytes[3] == 0x81u);
+}
+
+void test_the_eyes_rest_after_a_while_with_nothing_happening(void)
+{
+    const int64_t t0 = 1000;
+    rest r = rest_start(t0);
+    CHECK(rest_state_at(&r, t0) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US - 1) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US) == REST_DROWSY); /* the sleepy look first */
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US + REST_DROWSY_US - 1) == REST_DROWSY);
+    CHECK(rest_state_at(&r, t0 + REST_IDLE_US + REST_DROWSY_US) == REST_ASLEEP);
+
+    /* Anything that happens wakes it, asleep or not, and the wait starts over from there */
+    const int64_t t1 = t0 + 2 * REST_IDLE_US;
+    rest_activity(&r, t1);
+    CHECK(rest_state_at(&r, t1) == REST_AWAKE);
+    CHECK(rest_state_at(&r, t1 + REST_IDLE_US - 1) == REST_AWAKE);
+
+    rest_sleep_now(&r, t1); /* the test command: asleep at once, without the sleepy look */
+    CHECK(rest_state_at(&r, t1) == REST_ASLEEP);
+}
+
+void test_handling_the_board_counts_from_its_last_move(void)
+{
+    const float flat[3] = {0.0f, 0.0f, 1.0f};
+    const float noise[3] = {0.05f, -0.05f, 0.95f};
+    const float tilted[3] = {0.2f, 0.0f, 0.98f};
+    const float up[3] = {0.0f, -0.2f, 1.0f};
+    CHECK(!rest_moved(flat, flat) && !rest_moved(flat, noise));  /* the sensor's noise */
+    CHECK(rest_moved(flat, tilted) && rest_moved(tilted, flat)); /* either way, on any axis */
+    CHECK(rest_moved(flat, up));
+    /* A slow tilt: each frame moves little, but it adds up from the reference */
+    const float step[3] = {0.1f, 0.0f, 1.0f};
+    CHECK(!rest_moved(flat, step) && rest_moved(flat, tilted));
+}
+
+void test_a_low_battery_stays_low_until_it_charges_back(void)
+{
+    CHECK(!battery_low(4100, false) && !battery_low(BATTERY_LOW_MV, false));
+    CHECK(battery_low(BATTERY_LOW_MV - 1, false));
+    /* Low, it stays low between the two thresholds, so the eyes do not flicker between two moods */
+    CHECK(battery_low(BATTERY_LOW_MV + 50, true) && battery_low(BATTERY_OK_MV - 1, true));
+    CHECK(!battery_low(BATTERY_OK_MV, true));
 }

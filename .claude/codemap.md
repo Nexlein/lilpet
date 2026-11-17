@@ -273,6 +273,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
+- **battery_rule.h** (19) — When the battery counts as low (docs/objet-v1.md: the eyes look tired then).
+  - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low
 - **board.c** (117) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_button_pressed, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h
@@ -334,6 +336,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **main.c** (286) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h
+- **rest.h** (58) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
+  - exports: REST_IDLE_US, REST_DROWSY_US, REST_MOVED_G, rest_state, rest, rest_start, rest_activity, rest_sleep_now, rest_state_at, rest_moved
 
 ## firmware/tests
 - tests: test_firmware.c
