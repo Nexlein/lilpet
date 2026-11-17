@@ -40,10 +40,18 @@ export interface Engine {
     setEmotion(name: string): void;
     blink(): void;
     setPointer(point: { x: number; y: number } | null): void;
+    // Gravity in g on the screen's axes, as a motion sensor gives it, or null for none
+    setGravity(gravity: { x: number; y: number } | null): void;
+    setShaking(shaking: boolean): void;
+    // Kept for the eye editor (#59): follow the pointer with the head, the eye shape, how much the head moves
+    setFollow(follow: boolean): void;
+    setShape(shape: { rx: number; ry: number; gap: number; tilt: number }): void;
+    setHeadAmount(amount: number): void;
     react(event: EyeEvent): void;
     update(dt: number): void;
-    // RGBA pixels of the whole screen (size × size × 4), without a copy, in the engine's memory: valid until the next
-    // render
+    // RGBA pixels of the whole screen (size × size × 4), as a copy to keep
+    render(): Uint8ClampedArray<ArrayBuffer>;
+    // The same, without a copy, in the engine's memory: valid until the next render
     renderView(): Uint8ClampedArray<ArrayBuffer>;
     // The region the last render changed: the rest of the frame is the one before
     dirty(): Region;
