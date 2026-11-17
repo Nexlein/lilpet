@@ -36,6 +36,7 @@ typedef struct {
     float moved_at[3];     /* gravity the last time the board moved, in g */
     bool gravity_known;
     bool waking_press; /* the press that woke it is still held */
+    bool button_held;  /* the button was down at the last look */
 } rest;
 
 static inline rest rest_start(int64_t now)
@@ -56,6 +57,15 @@ static inline void rest_woke(rest *r, int64_t now, bool by_press)
     r->last_activity = now;
     r->woke_at = now;
     r->waking_press = by_press;
+}
+
+/* Whether the button just went down, which is activity. Held (a board pressed in a pocket), it keeps nothing awake and
+ * wakes nothing: only the press counts. */
+static inline bool rest_button_down(rest *r, bool pressed)
+{
+    const bool down = pressed && !r->button_held;
+    r->button_held = pressed;
+    return down;
 }
 
 /* Whether the button counts as pressed for the eyes: the press that woke the board does not, until it is let go, or it

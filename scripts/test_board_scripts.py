@@ -138,7 +138,8 @@ class Board:
         self.tried_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
         self.reads_from = math.inf if self.boots == self.mute_at else clock.now + 1
         crash_log = self.crash_boot_log if crash else ()
-        for line in ["I (250) main_task: Calling app_main()", *self.boot_log, *crash_log, "lilpet 0.13.0, board ..."]:
+        boot = ["I (250) main_task: Calling app_main()", "", "lilpet starts"]
+        for line in [*boot, *self.boot_log, *crash_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
         if self.report:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
@@ -269,6 +270,7 @@ class Serial:
 
     def __init__(self):
         self.port, self.baudrate, self.timeout, self.exclusive = None, None, None, None
+        self.write_timeout = None
         self.board = None  # once open
         self._dtr = self._rts = True
         self._rest = b""  # the second part of a cut line
@@ -323,6 +325,13 @@ class Serial:
     def write(self, data):
         if self.board.lost:
             raise OSError("device disconnected")
+        if self.board.reads_from == math.inf:
+            # A board that never reads its port (stopped by its chip check, hung before it reads) holds the write: the
+            # USB endpoint takes nothing more, and pyserial waits for good without a write timeout
+            if self.write_timeout is None:
+                raise AssertionError("this write would wait for good: the board never reads its port")
+            clock.now += self.write_timeout
+            raise serial.SerialTimeoutException("Write timeout")
         clock.now += 0.001
         self.board.receive(data)
 
@@ -345,6 +354,7 @@ class Serial:
 
 serial = types.ModuleType("serial")
 serial.Serial = Serial
+serial.SerialTimeoutException = type("SerialTimeoutException", (OSError,), {})  # pyserial's is an OSError too
 serial.tools = types.ModuleType("serial.tools")
 serial.tools.list_ports = types.ModuleType("serial.tools.list_ports")
 serial.tools.list_ports.comports = lambda: [types.SimpleNamespace(device=port, vid=0x303A) for port in plugged]
@@ -433,6 +443,10 @@ class FirmwareFacts(unittest.TestCase):
     def test_the_charge_line_the_checks_look_for_is_the_firmware_s(self):
         battery = (ROOT / "firmware" / "main" / "battery_axp2101.c").read_text()
         self.assertIn(f'printf("battery: {check_device_constant("CHARGE_LINE")} %d mA at most\\n"', battery)
+
+    def test_the_boot_line_the_checks_wait_for_is_the_firmware_s(self):
+        main_c = (ROOT / "firmware" / "main" / "main.c").read_text()
+        self.assertIn(f'printf("\\n{check_device_constant("BOOT_LINE")}\\n");', main_c)
 
     def test_the_sleep_lines_the_checks_wait_for_are_the_firmware_s(self):
         main_c = (ROOT / "firmware" / "main" / "main.c").read_text()

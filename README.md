@@ -125,7 +125,8 @@ BOARD=atoms3r mise run firmware:deploy
 
 Elle prend la seule carte branchée, ou celle de `PORT` (vide, il compte comme absent), et s'arrête si elle n'en trouve
 aucune (`FORCE=1` laisse alors esptool la chercher). Elle refuse une carte qui répond sous un autre nom (`FORCE=1` pour
-passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les
+passer outre), et chaque image s'arrête au démarrage sur une autre puce que celle de sa carte (boîtier, flash ou
+PSRAM), avant de toucher une broche. Les
 étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la
 carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, le redémarrage par
 le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées, la batterie, la veille

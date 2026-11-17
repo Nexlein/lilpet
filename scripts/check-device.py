@@ -29,6 +29,7 @@ from board_link import (
     next_line,
     open_port,
     read_reply,
+    send,
 )
 from firmware_facts import (
     REPLY_BENCH,
@@ -44,7 +45,10 @@ from firmware_facts import (
 # nobody keeps by chance.
 LOOKS = ("7DB5F4 C10787 8F1716 cat", "AE0002 FF5252 FF5252 dot", "2E7D32 FFD54F FFD54F acorn")
 DEFAULT_LOOK = default_look()  # what a start after a crash shows, which the look kept across it must not be
-BOOT_LINE = "Calling app_main"
+# What the firmware prints first as it starts (main.c, which a test compares), or for firmware 0.8.0 and earlier, which
+# did not print it, what ESP-IDF logs just before
+BOOT_LINE = "lilpet starts"
+BOOT = rf"{BOOT_LINE}|Calling app_main"
 BOOT_SECONDS = 3
 # Only the log tells them: everything else works with a black screen
 SCREEN_FAULTS = ("not recognized", "backlight:", "no TE signal")
@@ -120,8 +124,8 @@ def reset(port):
 
 def booted(port, seconds):
     """Returns what the board prints from a boot within `seconds` to its first report, nothing if it does not boot"""
-    boot = read_lines(port, seconds, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
-    if not (boot and BOOT_LINE in boot[0]):
+    boot = read_lines(port, seconds, until=BOOT)[-1:]  # what comes before may be a report from before it
+    if not (boot and re.search(BOOT, boot[0])):
         return []
     return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
 
@@ -311,10 +315,10 @@ def reboots_during_reads(port):
     transfer; returns how many boots came back without the sensor, and how many did not answer hello"""
     lost = silent = 0
     for i in range(REBOOTS_DURING_READS):
-        port.write(b"> imu?\n" * 20)
+        send(port, b"> imu?\n" * 20)  # a boot that does not read its port shows as one with no hello
         time.sleep(i % 20 / 1000)  # from 0 to 19 ms: the reset lands while the board reads, at another point each time
         reset(port)
-        read_lines(port, BOOT_SECONDS, until=BOOT_LINE)
+        read_lines(port, BOOT_SECONDS, until=BOOT)
         read_lines(port, 1)  # until it reads: a board still booting keeps only a few bytes of what it is sent
         hello = ask_hello(port)
         silent += hello is None
@@ -346,7 +350,8 @@ def check_board(board_name):
     )
 
     port = open_booted_board()
-    check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
+    rebooted = any(re.search(BOOT, line) for line in read_lines(port, 1.5))
+    check(not rebooted, "opening the port does not reboot the board")
 
     hello = ask_hello(port)
     check_reply(bool(hello) and hello.startswith("lilpet fw="), "answers hello", hello)

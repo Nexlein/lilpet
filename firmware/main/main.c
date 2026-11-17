@@ -241,13 +241,13 @@ static int64_t sleep_until_woken(bool rests)
     for (;;) {
         const bool light = rests && !usb_serial_jtag_is_connected();
         if (light)
-            board_light_sleep(LIGHT_SLEEP_US);
+            board_light_sleep(LIGHT_SLEEP_US, power.rest.button_held);
         /* A tick at least: on a board whose loop never waits otherwise, the idle task would starve its own watchdog */
         const bool heard = commands_heard(light ? 1 : ASLEEP_POLL_MS);
         const int64_t now = esp_timer_get_time();
         read_battery(now);
         float g[3];
-        by_press = board_button_pressed();
+        by_press = rest_button_down(&power.rest, board_button_pressed());
         if (heard || by_press || commands_hang_asked() || (imu_gravity(g) && rest_handled(&power.rest, g)))
             break;
     }
@@ -289,6 +289,9 @@ static void apply(const lp_command *c)
 
 void app_main(void)
 {
+    /* First, before anything that could stop: the PC app and check-device tell a restart by this line, whatever the
+     * log level */
+    printf("\nlilpet starts\n");
     board_init();
     battery_init();
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
@@ -362,11 +365,12 @@ void app_main(void)
         float g[3];
         const bool gravity = imu_gravity(g);
         const bool button = board_button_pressed();
+        const bool pressed = rest_button_down(&power.rest, button);
         /* Before what came after it: a command that follows `> test sleep` wakes the eyes */
         const bool sleep_asked = commands_sleep_asked();
         const bool heard = commands_heard(0); /* every frame: a command taken now wakes nothing later */
         rest_frame(&power.rest, start, rests, sleep_asked,
-                   heard || button || (gravity && rest_handled(&power.rest, g)));
+                   heard || pressed || (gravity && rest_handled(&power.rest, g)));
         enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */
         read_battery(start);
         const int brightness = rest_brightness(&power.rest, start);

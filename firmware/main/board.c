@@ -1,9 +1,12 @@
 #include "board.h"
 
 #include "board_config.h"
+#include "chip.h"
 #include "driver/gpio.h"
 #include "esp_efuse.h"
+#include "esp_efuse_table.h"
 #include "esp_err.h"
+#include "esp_flash.h"
 #include "esp_rom_sys.h"
 #include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
@@ -14,14 +17,22 @@
 
 void board_init(void)
 {
-    /* The XIAO's camera outputs sit on the display pins, so nothing touches a pin until the chip package matches. It
-     * cannot tell two boards with the same package apart: mise run firmware:flash asks the board first for that. */
-    const bool pico = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO;
-    while (pico != BOARD_CHIP_PICO) {
+    /* The XIAO's camera outputs sit on the display pins, so nothing touches a pin until the chip matches (chip.h). Two
+     * boards with the same chip cannot be told apart: mise run firmware:flash asks the board first for that. */
+    uint32_t flash_bytes = 0;
+    uint8_t psram_cap = 0;
+    (void)esp_flash_get_physical_size(NULL, &flash_bytes); /* a failure reads 0 MB, which no board has */
+    (void)esp_efuse_read_field_blob(ESP_EFUSE_PSRAM_CAP, &psram_cap, 3);
+    const chip_info found = {.pico = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO,
+                             .flash_mb = (int)(flash_bytes >> 20),
+                             .psram_mb = chip_psram_mb(psram_cap)};
+    const chip_info image = {.pico = BOARD_CHIP_PICO, .flash_mb = BOARD_FLASH_MB, .psram_mb = BOARD_PSRAM_MB};
+    while (!chip_same(found, image)) {
         /* Over and over, for a monitor opened later; USB stays up, so the right image can be flashed */
-        printf("stopped, no pin touched: this is the image of %s, and the chip is not a%s ESP32-S3%s. "
-               "Flash the image of this board.\n",
-               BOARD_NAME, BOARD_CHIP_PICO ? "n" : " QFN56", BOARD_CHIP_PICO ? "-PICO" : "");
+        printf("stopped, no pin touched: this is the image of %s, for an ESP32-S3%s with %d MB of flash and %d MB of "
+               "PSRAM, and this chip is an ESP32-S3%s with %d MB and %d MB. Flash the image of this board.\n",
+               BOARD_NAME, image.pico ? "-PICO" : " in QFN56", image.flash_mb, image.psram_mb,
+               found.pico ? "-PICO" : " in QFN56", found.flash_mb, found.psram_mb);
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
@@ -58,7 +69,7 @@ bool board_button_pressed(void)
 /*
  * In light sleep, ESP-IDF lets every pin float, against a reset that a small electrostatic pulse could cause
  * (CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND). These keep driving or pulling as they do awake; the button is kept by
- * gpio_wakeup_enable.
+ * gpio_wakeup_enable, armed whether it is held or not.
  */
 static const int PINS_KEPT_ASLEEP[] = {
 #ifdef BOARD_POWER_HOLD
@@ -76,14 +87,18 @@ static const int PINS_KEPT_ASLEEP[] = {
 #endif
     -1};
 
-void board_light_sleep(uint64_t us)
+void board_light_sleep(uint64_t us, bool button_held)
 {
     for (int i = 0; PINS_KEPT_ASLEEP[i] >= 0; i++)
         ESP_ERROR_CHECK(gpio_sleep_sel_dis(PINS_KEPT_ASLEEP[i]));
 #ifdef BOARD_BUTTON
-    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: pressed is low */
-    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, GPIO_INTR_LOW_LEVEL));
+    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: a press, which is low, or while it is held (a
+     * board pressed in a pocket) its release, else each sleep would end at once. The caller then sees the release, and
+     * the next press wakes the board. */
+    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, button_held ? GPIO_INTR_HIGH_LEVEL : GPIO_INTR_LOW_LEVEL));
     ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+#else
+    (void)button_held;
 #endif
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(us));
     (void)esp_light_sleep_start(); /* refused when a wake-up is already pending: the caller looks again */
@@ -94,7 +109,7 @@ void board_light_sleep(uint64_t us)
 
 #ifdef BOARD_I2C_SDA
 /* Drives a pin of the bus by hand, open drain, then waits half a clock (100 kHz) */
-static void i2c_pin(int pin, int level)
+static void i2c_pin(int pin, uint32_t level)
 {
     gpio_set_level(pin, level);
     esp_rom_delay_us(5);
