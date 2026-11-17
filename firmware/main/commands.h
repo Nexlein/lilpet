@@ -17,7 +17,7 @@ typedef struct {
 } commands_hello;
 
 /* Starts the task that reads commands. `shown` is the look shown at startup, `kept` the one the flash holds (NULL when
- * the start did not read it, look_saving.h). */
+ * the start read none: nothing saved, unreadable, or not read after a crash, look_saving.h). */
 void commands_start(const lp_look *shown, const lp_look *kept, const commands_hello *hello);
 
 /* True once `> test hang` came: the drawing loop then blocks for good, as a stuck wait would, for its watchdog to reset

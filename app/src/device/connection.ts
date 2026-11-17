@@ -64,10 +64,9 @@ export class Connection {
 
     static async open(port: PortLike, events: ConnectionEvents = {}): Promise<Connection> {
         // A larger buffer than the default 255 bytes: the board's startup log comes in one burst
-        await port.open({ baudRate: 115200, bufferSize: 8192 }).catch(async (err: unknown) => {
-            await port.forget?.().catch(() => undefined); // a port that does not open keeps no permission either
-            throw err;
-        });
+        // A port that does not open is not forgotten: another tab of the app may hold it, and forgetting revokes the
+        // site's permission, which closes that tab's port too
+        await port.open({ baudRate: 115200, bufferSize: 8192 });
         try {
             // On the ESP32-S3 USB port, RTS asserted without DTR resets the chip. Opening asserts both: release RTS
             // first, then DTR (checked on an AtomS3R: the other order reboots it).

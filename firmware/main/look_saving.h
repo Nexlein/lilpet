@@ -27,7 +27,7 @@ static inline bool look_same(const lp_look *a, const lp_look *b)
 
 typedef struct {
     lp_look kept;     /* the last look written to flash, when `known` */
-    bool known;       /* false when the start did not read the flash: any look that comes is then written */
+    bool known;       /* false when the start read nothing from the flash: any look that comes is then written */
     bool sent;        /* a look came by command since the start */
     int64_t tried_at; /* the last write or try, in microseconds */
 } look_saving;

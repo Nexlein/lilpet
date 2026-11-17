@@ -157,7 +157,11 @@ function describe(err: unknown, silent = NO_REPLY): string {
     if (err instanceof ConnectionClosed) return 'lilpet n’est plus branché.';
     if (err instanceof BoardBusy) return 'lilpet est occupé. Réessaie dans un instant.';
     if (err instanceof NotLilpet || err instanceof NoReply) return silent;
-    if (err instanceof BoardRefused) return `lilpet refuse : ${err.reason} (son firmware est-il à jour ?)`;
+    // What the board does not know may be newer than its firmware; the benchmark board, say, refuses for another reason
+    if (err instanceof BoardRefused)
+        return /^(malformed|unknown) /.test(err.reason)
+            ? `lilpet refuse : ${err.reason} (son firmware est-il à jour ?)`
+            : `lilpet refuse : ${err.reason}`;
     if (err instanceof DOMException && err.name === 'NetworkError')
         return 'Le port est déjà ouvert ailleurs (moniteur série ?), ou fermé à ton compte (sous Linux : le groupe dialout). Ferme-le, ou ajoute ton compte au groupe, puis réessaie.';
     return `Erreur de lilpet : ${err instanceof Error ? err.message : String(err)}`;

@@ -285,9 +285,9 @@ describe('connection', () => {
         expect(device.forgotten()).toBe(true);
     });
 
-    it('forgets a port that does not open', async () => {
+    it('leaves a port that does not open to whoever holds it, another tab maybe', async () => {
         const device = fakePort(firmware(), { failOpen: true });
         await expect(Connection.open(device.port)).rejects.toThrow('Failed to open');
-        expect(device.forgotten()).toBe(true);
+        expect(device.forgotten()).toBe(false);
     });
 });
