@@ -57,6 +57,7 @@ WAIT_SECONDS = 10  # for a board that is rebooting, after a flash
 REBOOTS_DURING_READS = 40
 
 failures = 0
+hung = False  # the drawing loop was told to hang, and the watchdog has yet to reset the chip
 
 
 @dataclass
@@ -73,6 +74,9 @@ QUEUE_SLOTS = c_define(ROOT / "firmware" / "main" / "commands.c", "QUEUE_SLOTS")
 SAVE_GAP_SECONDS = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
 # A drawing loop hung this long resets the chip
 WATCHDOG_SECONDS = sdkconfig_default("ESP_TASK_WDT_TIMEOUT_S")
+# Why a start shows the default look and leaves the flash out, once (after_crash in firmware/main/main.c, which a test
+# compares)
+CRASH_RESETS = ("panic", "int_wdt", "task_wdt", "wdt", "cpu_lockup")
 
 
 def check(ok, what, detail=""):
@@ -110,6 +114,15 @@ def booted(port, seconds):
     if not (boot and BOOT_LINE in boot[0]):
         return []
     return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
+
+
+def reset_reason(port):
+    """Why the board last started, as its hello tells it"""
+    return hello_fields(ask_hello(port)).get("reset")
+
+
+def screen_faults(log):
+    return "; ".join(line for line in log if any(fault in line for fault in SCREEN_FAULTS))
 
 
 def reboot(port):
@@ -153,24 +166,33 @@ def run_checks(port, board, test_look, other_look):
     check(ask(port, "> look?") == f"look {test_look}", "tells the last look back")
     time.sleep(SAVE_GAP_SECONDS + 0.5)  # its turn, and the write
 
-    # The eyes freeze while the commands still get answers: only the watchdog of the drawing loop can tell
+    # The eyes freeze while the commands still get answers: only the watchdog of the drawing loop can tell. The start
+    # that follows resets the CPU only, not the display or the I2C bus: the screen and the sensor are checked again.
+    global hung
+    hung = True
     reply = ask(port, "> test hang")
-    check_reply(reply == "ok", "takes the test command that hangs its drawing loop", reply)
+    hung = reply == "ok"
+    check_reply(hung, "takes the test command that hangs its drawing loop", reply)
     seconds = WATCHDOG_SECONDS + BOOT_SECONDS
     log = booted(port, seconds)
     check(bool(log), "resets itself when its drawing loop hangs", "" if log else f"no reboot in {seconds} s")
     if not log:
         log = reboot(port)  # its drawing loop stays hung until then
+    hung = False
+    faults = screen_faults(log)
+    check(bool(log) and not faults, "starts its screen again after the reset", faults)
     check(bool(log) and re.search(REPORT_LINE, log[-1]), "draws again after the reset", "" if log else "no report")
-    reset = hello_fields(ask_hello(port)).get("reset")
-    check(reset == "task_wdt", "tells its watchdog reset it", f"reset={reset}")
+    fields = hello_fields(ask_hello(port))
+    check(fields.get("reset") == "task_wdt", "tells its watchdog reset it", f"reset={fields.get('reset')}")
+    if board.motion:
+        check(fields.get("motion") == "1", "keeps its motion sensor after the reset", f"motion={fields.get('motion')}")
     shown = ask(port, "> look?")
     check_reply(shown == f"look {DEFAULT_LOOK}", "starts on the default look after a crash", shown)
 
     log = reboot(port)
     check(bool(log), "reboots on request")
-    faults = [line for line in log if any(fault in line for fault in SCREEN_FAULTS)]
-    check(bool(log) and not faults, "starts its screen", "; ".join(faults))
+    faults = screen_faults(log)
+    check(bool(log) and not faults, "starts its screen", faults)
     report = re.search(REPORT_LINE, log[-1]) if log else None
     rate = float(report.group(1)) if report else 0.0
     check(
@@ -180,8 +202,8 @@ def run_checks(port, board, test_look, other_look):
     )
     after = ask(port, "> look?")  # the start after the crash showed the default look once, and kept this one
     check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
-    reset = hello_fields(ask_hello(port)).get("reset")
-    check(reset == "usb", "tells it was reset by its USB port", f"reset={reset}")
+    reason = reset_reason(port)
+    check(reason == "usb", "tells it was reset by its USB port", f"reset={reason}")
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)
@@ -272,6 +294,8 @@ def put_back(port, board, before):
         if port.rts:  # stopped during a reboot: the chip stays in reset until RTS is released
             port.rts = False
             read_lines(port, BOOT_SECONDS)
+        if hung:  # stopped while its drawing loop hangs: a look sent now would give way to the default one at the reset
+            booted(port, WATCHDOG_SECONDS + BOOT_SECONDS)
         port.write(b"\n")  # ends the half line a stop may have left
         read_lines(port, 0.3)  # and lets the replies still on their way go by
         check(ask(port, f"> {before}") == "ok", "gets its own look back", before[5:])
@@ -301,6 +325,8 @@ def check_board(board_name):
     check(bool(fields.get("reset")), "tells why it last started", fields.get("reset", "no field"))
     storage = fields.get("storage")
     check(storage == "ok", "finds its flash storage as it left it", f"storage={storage}")
+    if fields.get("reset") in CRASH_RESETS:  # it shows the default look this once: its own is in flash, back at a reset
+        reboot(port)
 
     before = ask(port, "> look?")
     check_reply(bool(before) and before.startswith("look "), "tells its look", before)
