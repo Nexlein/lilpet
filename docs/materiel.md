@@ -75,20 +75,28 @@ Les broches, d'après la
 | Son, microSD                   | I2S GPIO8, 9, 10, 42, 45, ampli GPIO46 ; microSD GPIO1, 2, 3 (et 41)          |
 | Connecteur 8 broches (2,54 mm) | VBUS, GND, 3V3, GPIO44 (RX de l'UART0), GPIO43 (TX), GPIO17, GPIO18, GPIO16   |
 
-À vérifier à la réception :
+À la réception, dans cet ordre :
 
-- **Le courant de charge, avant de brancher la batterie.** Le réglage d'usine de l'AXP2101 n'est pas publié. Flasher
-  d'abord un firmware qui règle la charge à 200 mA (le maximum de la batterie choisie, plus bas), puis, l'USB toujours
-  branché, brancher la batterie et mesurer le courant au multimètre, en série sur son fil. L'AXP2101 oublie ce réglage
-  quand il n'a plus ni USB ni batterie : le firmware le refait à chaque démarrage, et entre-temps, environ une seconde,
-  le réglage d'usine s'applique. Le mesurer aussi.
+1. **Sans la batterie, flasher le firmware** (`BOARD=waveshare_175 mise run firmware:flash`). La démo d'usine de
+   Waveshare charge à 400 mA, le double du maximum de la batterie choisie, et le réglage de départ de l'AXP2101 n'est
+   pas publié : le firmware règle la charge à 200 mA à chaque démarrage, et son journal le dit (« AXP2101 charges at
+   200 mA at most »). Sans cette ligne, la batterie reste débranchée.
+2. **Le premier affichage** : le pilote de l'écran a été écrit d'après les démos, sans carte. Vérifier le sens de
+   l'image, le décalage de colonnes, les couleurs et l'absence de déchirure (voir [firmware.md](firmware.md)). Une
+   première image noire ou pleine de bruit peut venir d'une attente trop courte après la sortie de veille de l'écran :
+   le pilote de la démo attend 600 ms, le nôtre 100.
+3. **La polarité de la batterie**, au multimètre, avant de la brancher.
+4. **Brancher la batterie, l'USB toujours branché**, puis mesurer le courant de charge au multimètre, en série sur son
+   fil. L'AXP2101 oublie ce réglage quand il n'a plus ni USB ni batterie : entre le démarrage et ce réglage, environ une
+   seconde, celui de départ s'applique. Le mesurer aussi.
+
+Et aussi :
+
+- **Ce que l'AXP2101 doit allumer** au démarrage pour l'écran et le toucher : la référence matérielle ne le dit pas,
+  et la démo ESP-IDF de Waveshare n'en allume aucun (ses réglages des rails sont en commentaire) : ceux de départ
+  suffisent sans doute.
 - **Ce que le 3V3 de la carte écran peut fournir** à la carte vision, dont la caméra monte à 366 mA en pointe : la
   référence matérielle ne le dit pas.
-- **La polarité de la batterie**, au multimètre, avant de la brancher.
-- **Le premier affichage** : le pilote de l'écran a été écrit d'après la démo de la 1,32", sans carte. Vérifier le sens
-  de l'image, le décalage de colonnes, les couleurs et l'absence de déchirure (voir [firmware.md](firmware.md)).
-- **Ce que l'AXP2101 doit allumer** au démarrage pour l'écran et le toucher : la référence matérielle ne le dit pas,
-  la démo ESP-IDF de Waveshare le montrera.
 
 ## Batterie
 

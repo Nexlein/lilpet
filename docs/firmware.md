@@ -6,16 +6,22 @@ Le firmware ESP-IDF de la carte écran (`firmware/`) : une image par carte
 
 ## Les cartes
 
-| Carte           | Écran                                           | Capteur de mouvement    | Cadence                |
-| --------------- | ----------------------------------------------- | ----------------------- | ---------------------- |
-| `atoms3r`       | LCD 128 px en SPI (`display_atoms3r.c`)         | BMI270 (`imu_bmi270.c`) | 62,5 images/s, sans TE |
-| `waveshare_132` | AMOLED rond 466 px en QSPI (`display_co5300.c`) | aucun (`imu_none.c`)    | signal TE de l'écran   |
-| `stamp_s3a`     | aucun : le pilote CO5300 envoie dans le vide    | aucun (`imu_none.c`)    | 62,5 images/s, sans TE |
+| Carte           | Écran                                           | Capteur de mouvement      | Cadence                |
+| --------------- | ----------------------------------------------- | ------------------------- | ---------------------- |
+| `atoms3r`       | LCD 128 px en SPI (`display_atoms3r.c`)         | BMI270 (`imu_bmi270.c`)   | 62,5 images/s, sans TE |
+| `waveshare_132` | AMOLED rond 466 px en QSPI (`display_co5300.c`) | aucun (`imu_none.c`)      | signal TE de l'écran   |
+| `waveshare_175` | AMOLED rond 466 px en QSPI (`display_co5300.c`) | pas encore (`imu_none.c`) | signal TE de l'écran   |
+| `stamp_s3a`     | aucun : le pilote CO5300 envoie dans le vide    | aucun (`imu_none.c`)      | 62,5 images/s, sans TE |
 
 - `atoms3r` : l'AtomS3R de M5Stack, l'objet d'essai. Quand on le tourne, le visage reste à l'horizontale, et il
   réagit : fâché à l'envers, étourdi quand on le secoue, content quand on appuie sur son écran.
 - `waveshare_132` : l'écran rond 1,32", choisi d'abord pour l'objet puis remplacé par la 1,75"
   ([materiel.md](materiel.md)), jamais essayé sur la vraie carte. Il partira quand la 1,75" tournera.
+- `waveshare_175` : l'écran rond 1,75", la carte écran de l'objet ([materiel.md](materiel.md)), écrite avant de
+  l'avoir : jamais essayée sur la carte. Elle règle déjà la charge de la batterie (`battery_axp2101.c`, plus bas) ; son
+  accéléromètre QMI8658, son toucher, son extenseur et son bouton viennent avec la carte
+  ([#54](https://github.com/Nexlein/lilpet/issues/54)). Sans bouton ni capteur pour la réveiller, elle ne s'endort pas
+  seule.
 - `stamp_s3a` : une M5Stamp S3A sans écran, qui mesure la vitesse du moteur à 466 px sur la puce.
 
 Une carte sans signal TE (sans `BOARD_LCD_TE` dans son `board_config.h`) cadence ses images avec `display_paced.c`,
@@ -62,8 +68,12 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   tout de suite. L'animation de mesure ne s'endort pas seule, ni une carte qui ne saurait pas se réveiller seule, sans
   bouton ni capteur de mouvement (le Waveshare, aujourd'hui). En veille légère, ESP-IDF laisse flotter toutes les
   broches : `board.c` garde le maintien de l'alimentation, le reset et la sélection de l'écran, et le bus I2C.
-- **Batterie** : lue toutes les 10 s par `battery.c`, à travers le pont diviseur de la carte (`BOARD_BATTERY_ADC`,
-  `BOARD_BATTERY_DIVIDER`), avec l'étalonnage de l'ADC gardé dans les eFuses de la puce. Sous 3,5 V, les yeux ont l'air
+- **Batterie** : lue toutes les 10 s, d'une des trois façons que `board.cmake` choisit. `battery_adc.c` lit le pont
+  diviseur de la carte (`BOARD_BATTERY_ADC`, `BOARD_BATTERY_DIVIDER`), avec l'étalonnage de l'ADC gardé dans les eFuses
+  de la puce. `battery_axp2101.c` lit la puce d'alimentation de la 1,75", et règle à chaque démarrage son courant de
+  charge à `BOARD_CHARGE_MA` (200 mA) : le journal le dit (« AXP2101 charges at 200 mA at most »), ou dit de laisser la
+  batterie débranchée si la puce ne répond pas, et `firmware:check-device` le vérifie. `battery_none.c` est pour les
+  cartes sans batterie. Sous 3,5 V, les yeux ont l'air
   fatigué, jusqu'à 3,6 V (`battery_rule.h`). `hello` donne les millivolts (`battery=`), ou `none` sous 2,5 V. Sur sa
   base, l'AtomS3R lit 4,05 V en charge, stable à 4 mV près. Sans la base, G8 n'est reliée à rien : ce qu'elle lit alors
   reste à vérifier.
@@ -95,6 +105,9 @@ Sur la carte :
 - **Écran rond** (`firmware/main/display_co5300.c`) : il reprend la démo ESP-IDF officielle de Waveshare pour la carte
   1,32" : broches, séquence de démarrage du CO5300, QSPI à 40 MHz, rotation à 180°, décalage de 6 colonnes
   ([démo](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.32/blob/main/Example/ESP-IDF/07_LVGL_V9_Test/components/lvgl_port_bsp/lvgl_port_bsp.cpp)).
+  Pour la 1,75", d'après le pilote de sa démo
+  ([esp32_s3_touch_amoled_1_75.c](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/examples/esp-idf/03_esp-brookesia/components/esp32_s3_touch_amoled_1_75/esp32_s3_touch_amoled_1_75.c)) :
+  ses broches, pas de rotation, le même décalage, et trois commandes du fabricant d'abord (`BOARD_LCD_INIT_FIRST`).
   Il n'a encore jamais tourné sur la carte : au premier essai, vérifier le sens de l'image, le décalage, les couleurs,
   l'absence de déchirure, et que le signal TE vient avant que l'écran s'allume. L'écran ne s'allume qu'après la première
   image, car sa mémoire garde du bruit au démarrage, et `display_init` cherche le TE avant : s'il n'en voit pas, le
