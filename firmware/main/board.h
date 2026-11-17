@@ -11,8 +11,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Sets the pins of the board itself: power hold, button. First thing at startup. On a chip package that is not the
- * board's, it prints why and never returns, with no pin touched. */
+/* Sets the pins of the board itself: power hold, button. First thing at startup. On a chip that is not the board's
+ * (chip.h: package, flash, PSRAM), it prints why and never returns, with no pin touched. */
 void board_init(void);
 
 /* Whether the board has a user button (the AtomS3R's screen is one), which can wake it up */
@@ -21,9 +21,9 @@ bool board_has_button(void);
 /* The user button is held down; false on boards without one */
 bool board_button_pressed(void);
 
-/* Light sleep for up to `us` microseconds, or until the button is pressed. Only with no USB host: light sleep turns the
- * chip's USB pad off, and a PC would lose the port. */
-void board_light_sleep(uint64_t us);
+/* Light sleep for up to `us` microseconds, or until the button leaves the state `button_held` says: pressed, or let go
+ * while it is held. Only with no USB host: light sleep turns the chip's USB pad off, and a PC would lose the port. */
+void board_light_sleep(uint64_t us, bool button_held);
 
 /* The board's internal I2C bus (backlight driver, motion sensor, power chip), started on first use; only on boards with
  * one */

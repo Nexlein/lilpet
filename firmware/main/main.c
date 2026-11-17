@@ -241,7 +241,7 @@ static int64_t sleep_until_woken(bool rests)
     for (;;) {
         const bool light = rests && !usb_serial_jtag_is_connected();
         if (light)
-            board_light_sleep(LIGHT_SLEEP_US);
+            board_light_sleep(LIGHT_SLEEP_US, power.rest.button_held);
         /* A tick at least: on a board whose loop never waits otherwise, the idle task would starve its own watchdog */
         const bool heard = commands_heard(light ? 1 : ASLEEP_POLL_MS);
         const int64_t now = esp_timer_get_time();

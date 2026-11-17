@@ -69,7 +69,7 @@ bool board_button_pressed(void)
 /*
  * In light sleep, ESP-IDF lets every pin float, against a reset that a small electrostatic pulse could cause
  * (CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND). These keep driving or pulling as they do awake; the button is kept by
- * gpio_wakeup_enable.
+ * gpio_wakeup_enable, armed whether it is held or not.
  */
 static const int PINS_KEPT_ASLEEP[] = {
 #ifdef BOARD_POWER_HOLD
@@ -87,24 +87,23 @@ static const int PINS_KEPT_ASLEEP[] = {
 #endif
     -1};
 
-void board_light_sleep(uint64_t us)
+void board_light_sleep(uint64_t us, bool button_held)
 {
     for (int i = 0; PINS_KEPT_ASLEEP[i] >= 0; i++)
         ESP_ERROR_CHECK(gpio_sleep_sel_dis(PINS_KEPT_ASLEEP[i]));
 #ifdef BOARD_BUTTON
-    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: pressed is low. Not while it is held (a board
-     * pressed in a pocket): each sleep would end at once, and the timer alone wakes it then. */
-    const bool armed = !board_button_pressed();
-    if (armed) {
-        ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, GPIO_INTR_LOW_LEVEL));
-        ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
-    }
+    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: a press, which is low, or while it is held (a
+     * board pressed in a pocket) its release, else each sleep would end at once. The caller then sees the release, and
+     * the next press wakes the board. */
+    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, button_held ? GPIO_INTR_HIGH_LEVEL : GPIO_INTR_LOW_LEVEL));
+    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+#else
+    (void)button_held;
 #endif
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(us));
     (void)esp_light_sleep_start(); /* refused when a wake-up is already pending: the caller looks again */
 #ifdef BOARD_BUTTON
-    if (armed)
-        ESP_ERROR_CHECK(gpio_wakeup_disable(BOARD_BUTTON));
+    ESP_ERROR_CHECK(gpio_wakeup_disable(BOARD_BUTTON));
 #endif
 }
 

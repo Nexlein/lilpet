@@ -298,7 +298,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
-- **board.c** (180) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+- **board.c** (179) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/chip.h
 - **board.h** (38) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
