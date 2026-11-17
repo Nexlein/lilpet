@@ -90,12 +90,17 @@ class Board:
         held_bus_at=None,  # this reset (from 1) among those during motion sensor reads leaves the I2C bus held
         mute_at=None,  # this boot (from 1) never reads its port
         usb_reset="usb",  # why it tells it started after its USB port reset it
-        old_hello=False,  # its hello has no reset or storage field, like firmware 0.7.4 and before
+        old_hello=False,  # its hello has no reset, storage, state or battery field, like firmware 0.7.4 and before
         watchdog=True,  # resets the chip when its drawing loop hangs
         safe_start=True,  # starts on the default look after a crash, without reading the flash
         storage="ok",  # what it found of its flash storage at the start (look_store_init)
         crash_boot_log=(),  # what it prints past the boot line on a start after a crash only, which resets the CPU only
         crash_motion=True,  # has its motion sensor on a start after a crash
+        battery="none",  # what its hello tells of the battery
+        sleeps=True,  # takes `> test sleep`, like firmware 0.8.0 and after
+        wakes=True,  # a command wakes it up
+        sleep_log=(),  # what it prints as its screen goes off, before the asleep line
+        wake_log=(),  # what it prints as its screen comes back, before the awake line
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -115,13 +120,16 @@ class Board:
         self.crash_boot_log, self.crash_motion = crash_boot_log, crash_motion
         self.watchdog, self.hung_at, self.queued, self.safe_start = watchdog, math.inf, 0, safe_start
         self.storage = storage
+        self.battery, self.sleeps, self.wakes = battery, sleeps, wakes
+        self.sleep_log, self.wake_log = sleep_log, wake_log
+        self.asleep = False
         self.in_reset = False
         self.input = b""
         self.opened = 0
 
     def boot(self):
         self.boots += 1
-        self.hung_at, self.queued = math.inf, 0
+        self.hung_at, self.queued, self.asleep = math.inf, 0, False
         crash = self.reset == "task_wdt"
         self.motion = self.fitted and not self.bus_held and (self.crash_motion or not crash)
         self.known = not (self.safe_start and crash)  # main.c: after a crash, the flash is not read
@@ -187,8 +195,16 @@ class Board:
             reply = self.reply(line.decode())
             if reply:
                 self.output.append((clock.now, f"< {reply}"))
+            self.wake_if(line.decode())
             self.stop_if(line.decode())
             self.lost = self.lost or line.decode() == self.lost_at
+
+    def wake_if(self, text):
+        """Any command but the test ones wakes it, once its reply is out (commands_heard in commands.h)"""
+        if self.asleep and self.wakes and text.startswith("> ") and text not in ("> test sleep", "> test hang"):
+            self.asleep = False
+            for line in [*self.wake_log, "awake: screen on"]:  # after the screen's wait for Sleep Out
+                self.output.append((clock.now + 0.15, line))
 
     def stop_if(self, event):
         if event == self.stop_at:
@@ -201,11 +217,17 @@ class Board:
         if len(text) > LINE_MAX:
             return REPLY_TOO_LONG
         if text == "> hello":
-            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset, self.storage)
-            return re.sub(r" (reset|storage)=\S*", "", hello) if self.old_hello else hello
+            state = "asleep" if self.asleep else "awake"
+            hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset, self.storage, state, self.battery)
+            return re.sub(r" (reset|storage|state|battery)=\S*", "", hello) if self.old_hello else hello
         if text == "> test hang":
             self.hung_at = clock.now
             self.output = [(at, line) for at, line in self.output if not re.match(r"\d+\.\d frames/s", line)]
+            return "ok"
+        if text == "> test sleep" and self.sleeps:
+            self.asleep = True
+            for line in [*self.sleep_log, "asleep: screen off"]:  # a frame later, by the drawing loop
+                self.output.append((clock.now + 0.02, line))
             return "ok"
         if text == "> look?":
             return f"look {self.look}"
@@ -408,6 +430,15 @@ class FirmwareFacts(unittest.TestCase):
         for fault in faults:
             self.assertIn(fault, code)
 
+    def test_the_charge_line_the_checks_look_for_is_the_firmware_s(self):
+        battery = (ROOT / "firmware" / "main" / "battery_axp2101.c").read_text()
+        self.assertIn(f'printf("battery: {check_device_constant("CHARGE_LINE")} %d mA at most\\n"', battery)
+
+    def test_the_sleep_lines_the_checks_wait_for_are_the_firmware_s(self):
+        main_c = (ROOT / "firmware" / "main" / "main.c").read_text()
+        for name in ("ASLEEP_LINE", "AWAKE_LINE"):
+            self.assertIn(f'printf("{check_device_constant(name)}\\n");', main_c)
+
     def test_the_report_window_holds_a_round_at_the_lowest_rate(self):
         # LP_BENCH_FRAMES, from the enum of bench_script.h (sums of products of names and numbers), with the emotion
         # count of eyes/emotions.json
@@ -465,6 +496,14 @@ class MotionSensor(unittest.TestCase):
         self.assertTrue(board_link.has_motion_sensor("atoms3r"))
         self.assertFalse(board_link.has_motion_sensor("waveshare_132"))
         self.assertFalse(board_link.has_motion_sensor("stamp_s3a"))
+        self.assertFalse(board_link.has_motion_sensor("waveshare_175"))  # imu_none.c, until the QMI8658's driver
+
+    def test_knows_which_boards_charge_their_battery(self):
+        self.assertTrue(board_link.charges_battery("waveshare_175"))
+        for board in ("atoms3r", "stamp_s3a", "waveshare_132"):
+            self.assertFalse(board_link.charges_battery(board), board)
+        with mock.patch.object(Path, "read_text", return_value="# battery_axp2101.c later\nlist(APPEND srcs a.c)\n"):
+            self.assertFalse(board_link.charges_battery("atoms3r"))
 
     def test_any_sensor_counts(self):
         with mock.patch.object(Path, "read_text", return_value="list(APPEND srcs display.c imu_other.c)\n"):
@@ -594,6 +633,27 @@ class DeviceCheck(unittest.TestCase):
     def test_passes_a_benchmark_board(self):
         self.assert_passes(Board("stamp_s3a", bench=True, motion=False))
 
+    def test_passes_a_board_on_battery(self):
+        self.assert_passes(Board("atoms3r", battery="3912"))
+
+    def test_passes_a_board_that_sets_its_charge_current(self):
+        charging = ["battery: AXP2101 charges at 200 mA at most"]
+        _, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=charging))
+        self.assertIn("ok   sets its battery's charge current", out)
+        self.assert_passes(Board("waveshare_175", motion=False, boot_log=charging))
+
+    def test_fails_a_board_that_does_not_set_its_charge_current(self):
+        fault = "battery: the AXP2101 does not answer, its charge current is not set: keep the battery unplugged"
+        status, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=[fault]))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL sets its battery's charge current (keep the battery unplugged)", out)
+        _, out, _ = check_device(Board("atoms3r"))
+        self.assertNotIn("charge current", out)  # a board that does not charge its battery is not asked
+        # One that does not come back after the reboot says nothing of its charge: no blame on the power chip
+        charging = ["battery: AXP2101 charges at 200 mA at most"]
+        _, out, _ = check_device(Board("waveshare_175", motion=False, boot_log=charging, comes_back=False))
+        self.assertIn("FAIL sets its battery's charge current (no boot log)", out)
+
     def test_stops_on_another_board(self):
         board = Board("waveshare_132", motion=False)
         look = board.look
@@ -659,6 +719,8 @@ class DeviceCheck(unittest.TestCase):
         self.assertIn("FAIL tells why it last started (no field)", out)
         self.assertIn("FAIL finds its flash storage as it left it (storage=None)", out)
         self.assertIn("FAIL tells it was reset by its USB port (reset=None)", out)
+        self.assertIn("FAIL tells its battery (battery=None)", out)
+        self.assertIn("FAIL tells it sleeps (state=None)", out)
 
     def test_fails_a_board_that_had_to_wipe_its_flash_storage(self):
         for storage in ("erased", "none"):
@@ -730,6 +792,43 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(board)
         self.assertEqual(status, 1)
         self.assertIn(f"FAIL takes the test command that hangs its drawing loop ({REPLY_UNKNOWN})", out)
+
+    def test_fails_a_board_that_tells_a_battery_it_cannot_have(self):
+        for battery in ("-1", "low"):
+            with self.subTest(battery):
+                status, out, _ = check_device(Board("atoms3r", battery=battery))
+                self.assertEqual(status, 1)
+                self.assertIn(f"FAIL tells its battery (battery={battery})", out)
+
+    def test_fails_a_firmware_without_the_test_sleep(self):
+        status, out, _ = check_device(Board("atoms3r", sleeps=False))
+        self.assertEqual(status, 1)
+        self.assertIn(f"FAIL takes the test command that puts it to sleep ({REPLY_UNKNOWN})", out)
+        self.assertIn("FAIL falls asleep, its screen off (no 'asleep: screen off' in 2 s)", out)
+        self.assertIn("FAIL tells it sleeps (state=awake)", out)
+
+    def test_fails_a_board_whose_hello_does_not_tell_it_sleeps(self):
+        board = Board("atoms3r")
+        board.reply = lambda text, reply=board.reply: (reply(text) or "").replace("state=asleep", "state=awake") or None
+        status, out, _ = check_device(board)
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL tells it sleeps (state=awake)", out)
+        self.assertIn("ok   wakes up on a command, its screen on", out)
+
+    def test_fails_a_board_that_a_command_does_not_wake(self):
+        status, out, _ = check_device(Board("atoms3r", wakes=False))
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL wakes up on a command, its screen on (no 'awake: screen on' in 2 s)", out)
+        self.assertIn("FAIL tells it is awake again (state=asleep)", out)
+
+    def test_fails_a_board_whose_screen_fails_as_it_sleeps_or_wakes(self):
+        fault = "backlight: no answer from the driver at I2C 0x30"
+        for log in ("sleep_log", "wake_log"):
+            with self.subTest(log):
+                status, out, _ = check_device(Board("atoms3r", **{log: [fault]}))
+                self.assertEqual(status, 1)
+                self.assertIn(f"FAIL turns its screen off and on without a fault ({fault})", out)
+                self.assertIn("ok   starts its screen\n", out)
 
     def test_fails_a_board_that_does_not_come_back_after_the_reboot(self):
         status, out, _ = check_device(Board("atoms3r", comes_back=False))

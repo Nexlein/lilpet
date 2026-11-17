@@ -11,11 +11,14 @@
 
 #define FRAME_MS 16 /* 62.5 frames per second: ticks of 1 ms cannot do 60 */
 
+#define LATE_MS 100 /* this far behind (the eyes slept), the frames start over from now instead of catching up */
+
 void display_wait_frame(void)
 {
     static TickType_t wake;
-    if (!wake)
-        wake = xTaskGetTickCount();
+    const TickType_t now = xTaskGetTickCount();
+    if (!wake || now - wake > pdMS_TO_TICKS(LATE_MS))
+        wake = now;
     vTaskDelayUntil(&wake, pdMS_TO_TICKS(FRAME_MS));
 }
 #endif

@@ -24,9 +24,10 @@ Projet strictement personnel, non commercial.
 - [ ] Firmware ESP32 (`firmware/`) : une image par carte, yeux en direct, look, émotions et réactions reçus par USB,
       watchdog et démarrage sûr ; écran rond à tester sur la carte
 - [x] App PC, version 1 : choisir les yeux et les envoyer à l'objet → `app/`, [docs/app.md](docs/app.md)
-- [ ] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
+- [x] Avant le matériel : travailler depuis Windows ([#52](https://github.com/Nexlein/lilpet/issues/52)), partitions et
       données versionnées ([#48](https://github.com/Nexlein/lilpet/issues/48)), veille et batterie sur l'AtomS3R
-      ([#51](https://github.com/Nexlein/lilpet/issues/51)), décisions et commande du matériel
+      ([#51](https://github.com/Nexlein/lilpet/issues/51))
+- [ ] Le matériel : choisi (la carte écran 1,75", [materiel.md](docs/materiel.md)), à commander
       ([#47](https://github.com/Nexlein/lilpet/issues/47))
 - [ ] Jalon A, l'objet sans caméra : banc d'essai ([#53](https://github.com/Nexlein/lilpet/issues/53)), carte écran
       avec accéléromètre, toucher, bouton et batterie ([#54](https://github.com/Nexlein/lilpet/issues/54))
@@ -127,14 +128,22 @@ aucune (`FORCE=1` laisse alors esptool la chercher). Elle refuse une carte qui r
 passer outre), et chaque image s'arrête au démarrage sur une puce d'un autre boîtier, avant de toucher une broche. Les
 étapes existent aussi une par une : `firmware:build`, `firmware:flash`, `firmware:check-device`. Le contrôle parle à la
 carte comme l'app (réponse, le dernier de deux looks envoyés d'affilée gardé après un redémarrage, le redémarrage par
-le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées ; sur l'AtomS3R, le
-capteur de mouvement après 40 redémarrages en pleine lecture, environ 50 s) et remet son look et son humeur à la fin.
+le watchdog d'une boucle de dessin bloquée puis le look par défaut, commandes, entrées refusées, la batterie, la veille
+et le réveil par une commande ; sur l'AtomS3R, le capteur de mouvement après 40 redémarrages en pleine lecture, environ
+50 s) et remet son look et son humeur à la fin.
 
 Pour lire ce que la carte écrit, dont les temps de dessin et d'envoi, relevés sur un tour de l'animation de mesure
 (`LP_BENCH_FRAMES` images ; quitter avec Ctrl+]), sur la seule carte branchée ou celle de `PORT` :
 
 ```bash
 mise run firmware:monitor
+```
+
+Après un crash, pour voir où en était chaque tâche : le coredump que la carte a écrit en flash, décodé avec l'ELF de sa
+dernière compilation (la même image que celle flashée), sur la seule carte branchée ou celle de `PORT` :
+
+```bash
+BOARD=atoms3r mise run firmware:coredump
 ```
 
 Pour ajouter une carte dont les composants existent : créer `firmware/boards/<carte>/` avec `board.cmake` et

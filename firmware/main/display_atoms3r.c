@@ -144,7 +144,8 @@ static const panel *detect(void)
     return &GC9107;
 }
 
-#define BRIGHTNESS 160u /* out of 255 */
+#define BRIGHTNESS     160u  /* out of 255 */
+#define BRIGHTNESS_REG 0x0Eu /* the LP5562's brightness register, as M5GFX writes it */
 
 static void set_backlight(i2c_master_dev_handle_t backlight, uint8_t reg, uint8_t value)
 {
@@ -153,11 +154,14 @@ static void set_backlight(i2c_master_dev_handle_t backlight, uint8_t reg, uint8_
         printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
 }
 
+/* The backlight's LED driver, once found on the I2C bus */
+static i2c_master_dev_handle_t backlight;
+
 /* The backlight goes through a LED driver on I2C, not a GPIO: without it the screen draws but stays dark */
 static void backlight_on(void)
 {
     /* On the I2C bus it shares with the motion sensor */
-    const i2c_master_dev_handle_t backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR);
+    backlight = board_i2c_device(BOARD_BACKLIGHT_ADDR);
     if (!backlight) {
         printf("backlight: cannot reach its driver on the I2C bus\n");
         return;
@@ -167,7 +171,7 @@ static void backlight_on(void)
     vTaskDelay(pdMS_TO_TICKS(1));
     set_backlight(backlight, 0x08u, 0x01u); /* internal clock */
     set_backlight(backlight, 0x70u, 0x00u); /* outputs driven by the brightness registers */
-    set_backlight(backlight, 0x0Eu, BRIGHTNESS);
+    set_backlight(backlight, BRIGHTNESS_REG, BRIGHTNESS);
 }
 
 const char *display_init(size_t max_band_bytes)
@@ -231,4 +235,26 @@ void display_draw(int x0, int y0, int x1, int y1, const uint16_t *pixels)
 void display_flush(void)
 {
     send(DCS_NOP, NULL, 0); /* a command waits for the queued bands to be sent */
+}
+
+void display_sleep(void)
+{
+    if (backlight)
+        set_backlight(backlight, BRIGHTNESS_REG, 0);
+    send(DCS_DISPLAY_OFF, NULL, 0);
+    send(DCS_SLEEP_IN, NULL, 0);
+    vTaskDelay(pdMS_TO_TICKS(120)); /* both controllers take Sleep Out only this long after Sleep In */
+}
+
+void display_wake(void)
+{
+    send(DCS_SLEEP_OUT, NULL, 0);
+    vTaskDelay(pdMS_TO_TICKS(120)); /* both controllers' wake-up time before the next command */
+    send(DCS_DISPLAY_ON, NULL, 0);
+}
+
+void display_set_brightness(int level)
+{
+    if (backlight)
+        set_backlight(backlight, BRIGHTNESS_REG, (uint8_t)(BRIGHTNESS * (unsigned)level / 255u));
 }

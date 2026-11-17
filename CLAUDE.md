@@ -5,7 +5,7 @@ expressive eyes that react to what a camera sees (gestures, faces, the person's 
 the eyes (no rarity, no random draw); looks and, later, animations stay data, not code, for the PC app to edit and send.
 
 Stage: the C eye engine runs on the host, in WebAssembly and on the ESP32-S3; PC app v1 picks the eyes and sends them
-over USB. The final hardware (Waveshare ESP32-S3-Touch-AMOLED-1.32 + XIAO ESP32S3 Sense camera over UART,
+over USB. The final hardware (Waveshare ESP32-S3-Touch-AMOLED-1.75 + XIAO ESP32S3 Sense camera over UART,
 `docs/materiel.md`) is not bought yet: until then the eyes run on an M5Stack AtomS3R (128 px LCD, no camera). The AI
 model that will choose the reactions does not exist yet; what it will send is ready (`docs/protocole.md`).
 
@@ -67,6 +67,8 @@ model that will choose the reactions does not exist yet; what it will send is re
 - On the chip, loads must be aligned: GCC turns a copy it cannot prove aligned into a call to `memcpy`, which the host
   and WebAssembly builds hide. In a hot loop, read a float's bits through a union, and check a speed-up on the board.
 - The Playwright tests serve on port 8468, so two runs at once collide; the app needs `mise run engine:wasm` first.
+- `nvs` stays at 0x9000 with 0x6000 in `firmware/partitions.csv` (ADR 0011, `scripts/partitions.test.mjs`): moving it
+  loses the saved look. A new partition goes after the last one.
 - `firmware:flash` writes the bootloader, the partition table and the app only, so the look kept in NVS survives;
   `merged-binary.bin`, for a blank board, erases it. `FORCE=1` flashes over another board's image: only when the owner
   asks.

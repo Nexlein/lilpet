@@ -1,12 +1,13 @@
 # Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening
 # the port does not reboot it, it answers hello and tells its board, why it last started and that its flash storage is
-# as it left it, keeps the last of two looks sent in a row across a reboot, which it tells came from its USB port, logs
-# no fault of its screen, keeps drawing, resets itself and tells so when its drawing loop hangs, then starts once on the
-# default look, takes the commands that drive the eyes, and rejects bad commands and lines too long, which change
-# nothing.
-# With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
-# has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
-# knows about a board comes from its hello and firmware/boards/<board>.
+# as it left it, keeps the last of two looks sent in a row across a reboot, which it tells came from its USB port,
+# logs no fault of its screen, sets its battery's charge current if it charges one, keeps drawing, resets itself and
+# tells so when its drawing loop hangs, then starts once on the default look, takes the commands that drive the eyes,
+# and rejects bad commands and lines too long, which change nothing. It tells its battery, falls asleep when told, its
+# screen off, tells so, and a command wakes it. With a motion sensor, it reads about 1 g at rest, and keeps it across
+# reboots in the middle of its reads; a board that has one must have it working. The board's own look and usual mood
+# are put back at the end, also after Ctrl+C. What it knows about a board comes from its hello and
+# firmware/boards/<board>.
 # Usage: BOARD=<board> mise run firmware:check-device (PORT, or the only board plugged in; BOARD must be that board).
 # uv installs pyserial, from scripts/requirements.txt.
 import re
@@ -21,6 +22,7 @@ from board_link import (
     ask,
     ask_hello,
     board_from_env,
+    charges_battery,
     find_port,
     has_motion_sensor,
     hello_fields,
@@ -46,7 +48,14 @@ BOOT_LINE = "Calling app_main"
 BOOT_SECONDS = 3
 # Only the log tells them: everything else works with a black screen
 SCREEN_FAULTS = ("not recognized", "backlight:", "no TE signal")
+# What a board that charges its battery prints at each start once the charge current is set (battery_axp2101.c, which a
+# test compares): without it, the battery stays unplugged
+CHARGE_LINE = "AXP2101 charges at"
 REPORT_LINE = r"^(\d+\.\d) frames/s"
+# What the drawing loop prints as it falls asleep and wakes up (main.c, which a test compares)
+ASLEEP_LINE = "asleep: screen off"
+AWAKE_LINE = "awake: screen on"
+SLEEP_SECONDS = 2  # for either: a frame, then the screen's own wait
 # Catches a dead or crawling drawing loop, not a slow screen: a board reports every LP_BENCH_FRAMES frames
 # (engine/tools/bench_script.h), and REPORT_SECONDS waits for a whole round at this rate (a test checks it)
 MIN_FRAMES_PER_SECOND = 20
@@ -65,6 +74,7 @@ class Board:
     name: str
     bench: bool  # plays the benchmark animation, and refuses what would change it
     motion: bool  # has a motion sensor: one that does not answer is a fault
+    charges: bool  # sets the charge current of its battery at each start
 
 
 LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COMMAND_LINE_MAX")  # longest line
@@ -193,6 +203,10 @@ def run_checks(port, board, test_look, other_look):
     check(bool(log), "reboots on request")
     faults = screen_faults(log)
     check(bool(log) and not faults, "starts its screen", faults)
+    if board.charges:
+        charging = any(CHARGE_LINE in line for line in log)
+        detail = "" if charging else "keep the battery unplugged" if log else "no boot log"
+        check(charging, "sets its battery's charge current", detail)
     report = re.search(REPORT_LINE, log[-1]) if log else None
     rate = float(report.group(1)) if report else 0.0
     check(
@@ -254,6 +268,8 @@ def run_checks(port, board, test_look, other_look):
     expected = f"{replies.count(accepted)} as expected"
     check(replies == [accepted] * burst, f"answers a burst of {burst} commands", expected)
 
+    check_sleep(port)
+
     imu = ask(port, "> imu?")
     if imu == REPLY_NO_MOTION and not board.motion:
         print("-    no motion sensor on this board")
@@ -270,6 +286,24 @@ def run_checks(port, board, test_look, other_look):
                 f"keeps its motion sensor across {REBOOTS_DURING_READS} reboots during its reads",
                 f"lost on {lost} of {REBOOTS_DURING_READS} boots, no hello on {silent}" if lost or silent else "",
             )
+
+
+def check_sleep(port):
+    """Asleep, the screen is off and hello tells it; a command, that hello, wakes it, and the screen comes back"""
+    reply = ask(port, "> test sleep")
+    check_reply(reply == "ok", "takes the test command that puts it to sleep", reply)
+    log = read_lines(port, SLEEP_SECONDS, until=ASLEEP_LINE)
+    asleep = any(ASLEEP_LINE in line for line in log)
+    check(asleep, "falls asleep, its screen off", "" if asleep else f"no {ASLEEP_LINE!r} in {SLEEP_SECONDS} s")
+    state = hello_fields(ask_hello(port)).get("state")
+    check(state == "asleep", "tells it sleeps", f"state={state}")
+    woken = read_lines(port, SLEEP_SECONDS, until=AWAKE_LINE)
+    awake = any(AWAKE_LINE in line for line in woken)
+    check(awake, "wakes up on a command, its screen on", "" if awake else f"no {AWAKE_LINE!r} in {SLEEP_SECONDS} s")
+    faults = screen_faults(log + woken)
+    check(not faults, "turns its screen off and on without a fault", faults)
+    state = hello_fields(ask_hello(port)).get("state")
+    check(state == "awake", "tells it is awake again", f"state={state}")
 
 
 def reboots_during_reads(port):
@@ -307,7 +341,9 @@ def put_back(port, board, before):
 
 def check_board(board_name):
     config = BOARDS / board_name / "board_config.h"
-    board = Board(board_name, c_define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name))
+    board = Board(
+        board_name, c_define(config, "BOARD_BENCH") == 1, has_motion_sensor(board_name), charges_battery(board_name)
+    )
 
     port = open_booted_board()
     check(not any(BOOT_LINE in line for line in read_lines(port, 1.5)), "opening the port does not reboot the board")
@@ -325,6 +361,8 @@ def check_board(board_name):
     check(bool(fields.get("reset")), "tells why it last started", fields.get("reset", "no field"))
     storage = fields.get("storage")
     check(storage == "ok", "finds its flash storage as it left it", f"storage={storage}")
+    battery = fields.get("battery")  # millivolts, or none: without a battery, or on a board that cannot read one
+    check(battery == "none" or str(battery).isdigit(), "tells its battery", f"battery={battery}")
     if fields.get("reset") in CRASH_RESETS:  # it shows the default look this once: its own is in flash, back at a reset
         reboot(port)
 

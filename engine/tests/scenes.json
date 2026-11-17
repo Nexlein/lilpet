@@ -55,6 +55,7 @@
             "emotion": "sleepy",
             "particles": { "seed": 3, "time": 3 }
         },
+        { "id": "emotion-tired", "swatch": "cherry", "pupil": "dot", "emotion": "tired" },
 
         { "id": "blink-anticip", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "anticip", "t": 0.06 } },
         { "id": "blink-close-40", "swatch": "popcorn", "pupil": "dot", "blink": { "phase": "close", "t": 0.04 } },

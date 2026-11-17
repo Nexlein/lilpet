@@ -21,8 +21,8 @@ extern "C" {
 /* Bumped when the public API or the rendering changes; a drawing change bumps the minor part at least, which the PC
  * app relies on to tell a board that draws unlike its preview (drawsLike, app/src/device/protocol.ts) */
 #define LP_VERSION_MAJOR 0
-#define LP_VERSION_MINOR 15
-#define LP_VERSION_PATCH 1
+#define LP_VERSION_MINOR 16
+#define LP_VERSION_PATCH 0
 
 /* Engine version as "MAJOR.MINOR.PATCH" */
 const char *lp_version(void);
@@ -67,6 +67,7 @@ typedef enum {
     LP_EMOTION_SURPRISED,
     LP_EMOTION_SLEEPY,
     LP_EMOTION_DIZZY,
+    LP_EMOTION_TIRED,
     LP_EMOTION_COUNT
 } lp_emotion;
 

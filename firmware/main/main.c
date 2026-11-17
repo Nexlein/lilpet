@@ -2,14 +2,18 @@
  * Firmware entry point: the eyes, live on the display. Each frame draws its dirty region band by band into two small
  * buffers in internal RAM, every other row of a band on each core, and sends a band by DMA while the next one is drawn:
  * no whole frame in memory, so it runs without PSRAM. Without a display, the eyes play the benchmark animation instead
- * (engine/tools/bench_script.h). What the firmware does, board by board: docs/firmware.md; why both cores:
- * docs/adr/0009-rendu-deux-coeurs.md.
+ * (engine/tools/bench_script.h). With nothing happening, the eyes get sleepy, then sleep, the screen off, until a
+ * command, the button or a move wakes them; a low battery makes them look tired. What the firmware does, board by
+ * board: docs/firmware.md; why both cores: docs/adr/0009-rendu-deux-coeurs.md; power: docs/adr/0012-energie.md.
  */
 #include "../../engine/tools/bench_script.h"
+#include "battery.h"
+#include "battery_rule.h"
 #include "board.h"
 #include "board_config.h"
 #include "commands.h"
 #include "display.h"
+#include "driver/usb_serial_jtag.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
@@ -21,6 +25,7 @@
 #include "imu.h"
 #include "lilpet/lilpet.h"
 #include "look_store.h"
+#include "rest.h"
 #include "sdkconfig.h"
 
 #include <inttypes.h>
@@ -68,6 +73,21 @@ static void second_core_task(void *arg)
         xSemaphoreGive(second_core.done);
     }
 }
+
+#define BATTERY_EVERY_US 10000000 /* how often the battery is read, in microseconds */
+#define ASLEEP_POLL_MS   20       /* asleep without light sleep (a PC on USB): how often it looks for what wakes it */
+#define LIGHT_SLEEP_US   1000000  /* asleep on its own: how long a light sleep lasts at most, between two looks */
+
+/* The eyes' rest and the battery (rest.h, battery_rule.h) */
+static struct {
+    rest rest;
+    rest_state state;     /* as the eyes show it */
+    int brightness;       /* the screen's, as last set: 0 to 255 (rest_brightness) */
+    int64_t battery_read; /* when, in microseconds; 0: not yet */
+    int battery_mv;       /* -1: none */
+    bool battery_low;
+    lp_emotion mood_before_tired;
+} power = {.battery_mv = -1, .brightness = 255};
 
 /* Sums over the frames since the last report, in microseconds */
 static struct {
@@ -175,6 +195,75 @@ static bool after_crash(esp_reset_reason_t reason)
            reason == ESP_RST_WDT || reason == ESP_RST_CPU_LOCKUP;
 }
 
+/* The eyes, and what hello tells, as they enter `state` */
+static void enter_rest(rest_state state)
+{
+    if (state == power.state)
+        return;
+    rest_show(&eyes, power.state, state);
+    power.state = state;
+    commands_set_status(state, power.battery_mv);
+}
+
+/* Reads the battery every BATTERY_EVERY_US: the eyes look tired while it is low (battery_show) */
+static void read_battery(int64_t now)
+{
+    if (power.battery_read != 0 && now - power.battery_read < BATTERY_EVERY_US)
+        return;
+    power.battery_read = now;
+    power.battery_mv = battery_millivolts();
+    const bool low = battery_low(power.battery_mv, power.battery_low);
+    battery_show(&eyes, power.battery_low, low, &power.mood_before_tired);
+    if (low && !power.battery_low)
+        printf("battery low: %d mV, the eyes look tired\n", power.battery_mv);
+    else if (!low && power.battery_low && power.battery_mv >= 0)
+        printf("battery back: %d mV\n", power.battery_mv);
+    else if (!low && power.battery_low)
+        printf("battery no longer read\n");
+    power.battery_low = low;
+    commands_set_status(power.state, power.battery_mv);
+}
+
+/*
+ * Asleep: the screen off and the drawing loop out of its watchdog, until a command, the button or a move wakes the
+ * eyes. Light sleep only with no USB host (board_light_sleep), and on a board that rests by itself (`rests`): the
+ * others wake on a command only, which needs the USB pad on. Returns how long it slept, in microseconds.
+ */
+static int64_t sleep_until_woken(bool rests)
+{
+    const int64_t start = esp_timer_get_time();
+    enter_rest(REST_ASLEEP);
+    display_sleep();
+    power.brightness = 0; /* the frames fade it in once awake (rest_brightness) */
+    printf("asleep: screen off\n");
+    ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
+    bool by_press;
+    for (;;) {
+        const bool light = rests && !usb_serial_jtag_is_connected();
+        if (light)
+            board_light_sleep(LIGHT_SLEEP_US);
+        /* A tick at least: on a board whose loop never waits otherwise, the idle task would starve its own watchdog */
+        const bool heard = commands_heard(light ? 1 : ASLEEP_POLL_MS);
+        const int64_t now = esp_timer_get_time();
+        read_battery(now);
+        float g[3];
+        by_press = board_button_pressed();
+        if (heard || by_press || commands_hang_asked() || (imu_gravity(g) && rest_handled(&power.rest, g)))
+            break;
+    }
+    (void)commands_sleep_asked(); /* a `> test sleep` that came while asleep asks for nothing more */
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+    if (commands_hang_asked()) /* `> test hang`: the drawing loop hangs in its watchdog, the screen still off */
+        return esp_timer_get_time() - start;
+    display_wake();
+    start_renderer(); /* the next frame is drawn whole, whatever the panel kept while it slept */
+    /* Once the screen is back: its fade in starts now, not before the wait for its wake-up */
+    rest_woke(&power.rest, esp_timer_get_time(), by_press);
+    enter_rest(REST_AWAKE); /* before the log line: a hello that follows it finds the eyes awake */
+    printf("awake: screen on\n");
+    return esp_timer_get_time() - start;
+}
+
 static void apply(const lp_command *c)
 {
     switch (c->type) {
@@ -201,6 +290,7 @@ static void apply(const lp_command *c)
 void app_main(void)
 {
     board_init();
+    battery_init();
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                           heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)};
     /* Before the display: starting the sensor takes 0.25 s, with the backlight on it would show noise until the first
@@ -238,6 +328,10 @@ void app_main(void)
     xTaskCreateStaticPinnedToCore(second_core_task, "second core", SECOND_CORE_STACK, NULL, uxTaskPriorityGet(NULL),
                                   second_core.stack, &second_core.task, 1);
     lp_senses_init(&senses);
+    power.rest = rest_start(esp_timer_get_time());
+    /* Only a board that can wake by itself, on its button or on motion, rests by itself; the benchmark animation never
+     * does: its timings would stop. `> test sleep` puts any board to sleep. */
+    const bool rests = !bench && (motion || board_has_button());
     /* A frame that does not end within CONFIG_ESP_TASK_WDT_TIMEOUT_S resets the chip, whatever it waits for: a band
      * from the second core, the display's bus. The benchmark's first frame too. */
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
@@ -247,7 +341,12 @@ void app_main(void)
     int64_t report_start = last;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
         esp_task_wdt_reset();
-        while (commands_hang_asked())
+        if (rest_state_at(&power.rest, esp_timer_get_time()) == REST_ASLEEP) {
+            const int64_t slept = sleep_until_woken(rests); /* out of the frame times and of the report */
+            last += slept;
+            report_start += slept;
+        }
+        while (commands_hang_asked()) /* after the sleep, which leaves early for it: the hang comes before a frame */
             vTaskDelay(portMAX_DELAY);
         display_wait_frame();
 
@@ -261,7 +360,21 @@ void app_main(void)
         if (bench)
             lp_bench_script(&eyes, f);
         float g[3];
-        lp_senses_update(&senses, &eyes, imu_gravity(g) ? g : NULL, board_button_pressed(), dt);
+        const bool gravity = imu_gravity(g);
+        const bool button = board_button_pressed();
+        /* Before what came after it: a command that follows `> test sleep` wakes the eyes */
+        const bool sleep_asked = commands_sleep_asked();
+        const bool heard = commands_heard(0); /* every frame: a command taken now wakes nothing later */
+        rest_frame(&power.rest, start, rests, sleep_asked,
+                   heard || button || (gravity && rest_handled(&power.rest, g)));
+        enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */
+        read_battery(start);
+        const int brightness = rest_brightness(&power.rest, start);
+        if (brightness != power.brightness) { /* only while it fades, out before sleep or in after it */
+            display_set_brightness(brightness);
+            power.brightness = brightness;
+        }
+        lp_senses_update(&senses, &eyes, gravity ? g : NULL, rest_press(&power.rest, button), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         int64_t render;

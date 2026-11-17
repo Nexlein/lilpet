@@ -37,6 +37,16 @@
             "ps": 0.75,
             "spin": 9,
             "note": "my own, after a shake"
+        },
+        "tired": {
+            "label": "Fatigué",
+            "tl": 0.42,
+            "ts": -0.25,
+            "bl": 0.1,
+            "ps": 0.85,
+            "es": 0.96,
+            "gy": 0.25,
+            "note": "my own, when the battery runs low: heavy lids and small pupils, unlike sleepy and sad"
         }
     },
     "reactions": {

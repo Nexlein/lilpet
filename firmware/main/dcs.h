@@ -11,10 +11,12 @@
 #define DCS_NOP                0x00u
 #define DCS_SOFT_RESET         0x01u
 #define DCS_READ_ID            0x04u
+#define DCS_SLEEP_IN           0x10u
 #define DCS_SLEEP_OUT          0x11u
 #define DCS_NORMAL_MODE        0x13u
 #define DCS_INVERT_OFF         0x20u
 #define DCS_INVERT_ON          0x21u
+#define DCS_DISPLAY_OFF        0x28u
 #define DCS_DISPLAY_ON         0x29u
 #define DCS_COLUMNS            0x2Au /* followed by a range (dcs_range) */
 #define DCS_ROWS               0x2Bu /* same */

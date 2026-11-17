@@ -155,6 +155,17 @@ run = [
     { task = "firmware:check-device" }, # waits for the board, which reboots at the end of the flash
 ]
 
+[tasks."firmware:coredump"]
+description = "Show where each task of a board (BOARD) was at its last crash: reads the core dump it wrote to flash (PORT, or the only board plugged in) and decodes it with the ELF of its last build"
+depends = ["firmware:board"]
+tools = { "pypi:esptool" = "5.6.0" }
+# The partition's place comes from firmware/partitions.csv. The ELF must be the one the board runs: build, flash, crash,
+# then read. Decoded in the ESP-IDF image, which has esp-coredump.
+run = [
+    '''port=$(uv run --with-requirements scripts/requirements.txt scripts/flash-guard.py) && set -- $(awk -F', *' '$1 == "coredump" {print $4, $5}' firmware/partitions.csv) && esptool --chip esp32s3 ${port:+--port "$port"} read-flash "$1" "$2" "firmware/build/$BOARD/coredump.bin"''',
+    'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/project" -w /project/firmware lilpet-idf esp-coredump info_corefile --core-format raw --core "build/$BOARD/coredump.bin" "build/$BOARD/lilpet.elf"',
+]
+
 [tasks."firmware:monitor"]
 description = "Show what the board prints over USB (port: PORT, or the only board plugged in; quit with Ctrl+])"
 # Without rebooting the board: scripts/monitor.py says how

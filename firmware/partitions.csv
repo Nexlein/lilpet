@@ -1,0 +1,9 @@
+# The boards' flash layout (docs/adr/0011-disposition-de-la-flash.md). nvs stays at 0x9000 with 0x6000, where ESP-IDF's
+# default table put it: the look saved there then survives a change of this table, since flashing never writes it. New
+# partitions go after the last one. scripts/partitions.test.mjs checks that nvs stays, and that the partitions do not
+# overlap.
+# Name,   Type, SubType,  Offset,   Size
+nvs,      data, nvs,      0x9000,   0x6000
+phy_init, data, phy,      0xf000,   0x1000
+factory,  app,  factory,  0x10000,  0x200000
+coredump, data, coredump, 0x210000, 0x10000

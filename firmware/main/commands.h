@@ -1,10 +1,11 @@
 /* Commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face
- * (lp_command_parse reads them), and test hang, the firmware's own, for the checks. What each takes and answers is in
- * docs/protocole.md; the timing reports share the port. */
+ * (lp_command_parse reads them), and test hang and test sleep, the firmware's own, for the checks. What each takes and
+ * answers is in docs/protocole.md; the timing reports share the port. */
 #ifndef LILPET_COMMANDS_H
 #define LILPET_COMMANDS_H
 
 #include "lilpet/lilpet.h"
+#include "rest.h"
 
 #include <stdbool.h>
 
@@ -22,6 +23,16 @@ void commands_start(const lp_look *shown, const lp_look *kept, const commands_he
 /* True once `> test hang` came: the drawing loop then blocks for good, as a stuck wait would, for its watchdog to reset
  * the chip (docs/protocole.md) */
 bool commands_hang_asked(void);
+
+/* True once `> test sleep` came, then false until the next one: the drawing loop sleeps at once */
+bool commands_sleep_asked(void);
+
+/* True when a command line came since the last call, waiting up to `wait_ms` for one: a command wakes the eyes. The
+ * test commands do not count, or `> test sleep` would wake what it put to sleep. */
+bool commands_heard(int wait_ms);
+
+/* What hello tells of the eyes' rest and of the battery (millivolts, or -1 for none), kept by the drawing loop */
+void commands_set_status(rest_state rest, int battery_mv);
 
 /* Takes the next command for the eyes; false when none is waiting. The engine is not thread-safe: the drawing loop
  * carries them out, every frame. It lists every lp_command_type, so a new command does not build until it is handled
