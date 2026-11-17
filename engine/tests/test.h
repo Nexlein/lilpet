@@ -116,6 +116,8 @@
     X(test_the_eyes_rest_after_a_while_with_nothing_happening)                                                         \
     X(test_handling_the_board_counts_from_its_last_move)                                                               \
     X(test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back)                                             \
+    X(test_the_press_that_wakes_the_board_is_no_tap)                                                                   \
+    X(test_the_screen_fades_out_before_sleep_and_in_after_it)                                                          \
     X(test_a_low_battery_stays_low_until_it_charges_back)                                                              \
     X(test_a_low_battery_makes_the_eyes_tired_until_it_charges_back)                                                   \
     X(test_the_axp2101_charges_at_most_the_current_asked)                                                              \

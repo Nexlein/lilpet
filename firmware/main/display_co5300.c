@@ -179,5 +179,9 @@ void display_wake(void)
     send(DCS_SLEEP_OUT, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(120)); /* the controller's wake-up time before the next command */
     send(DCS_DISPLAY_ON, NULL, 0);
-    send(DCS_BRIGHTNESS, (const uint8_t[]){BRIGHTNESS}, 1);
+}
+
+void display_set_brightness(int level)
+{
+    send(DCS_BRIGHTNESS, (const uint8_t[]){(uint8_t)(BRIGHTNESS * (unsigned)level / 255u)}, 1);
 }

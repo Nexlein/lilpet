@@ -251,6 +251,10 @@ void display_wake(void)
     send(DCS_SLEEP_OUT, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(120)); /* both controllers' wake-up time before the next command */
     send(DCS_DISPLAY_ON, NULL, 0);
+}
+
+void display_set_brightness(int level)
+{
     if (backlight)
-        set_backlight(backlight, BRIGHTNESS_REG, BRIGHTNESS);
+        set_backlight(backlight, BRIGHTNESS_REG, (uint8_t)(BRIGHTNESS * (unsigned)level / 255u));
 }

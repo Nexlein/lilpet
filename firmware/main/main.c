@@ -88,11 +88,12 @@ static void second_core_task(void *arg)
 static struct {
     rest rest;
     rest_state state;     /* as the eyes show it */
+    int brightness;       /* the screen's, as last set: 0 to 255 (rest_brightness) */
     int64_t battery_read; /* when, in microseconds; 0: not yet */
     int battery_mv;       /* -1: none */
     bool battery_low;
     lp_emotion mood_before_tired;
-} power = {.battery_mv = -1};
+} power = {.battery_mv = -1, .brightness = 255};
 
 /* Sums over the frames since the last report, in microseconds */
 static struct {
@@ -205,7 +206,7 @@ static void enter_rest(rest_state state)
 {
     if (state == power.state)
         return;
-    rest_show(&eyes, state);
+    rest_show(&eyes, power.state, state);
     power.state = state;
     commands_set_status(state, power.battery_mv);
 }
@@ -238,8 +239,10 @@ static int64_t sleep_until_woken(void)
     const int64_t start = esp_timer_get_time();
     enter_rest(REST_ASLEEP);
     display_sleep();
+    power.brightness = 0; /* the frames fade it in once awake (rest_brightness) */
     printf("asleep: screen off\n");
     ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
+    bool by_press;
     for (;;) {
         const bool host = usb_serial_jtag_is_connected();
         if (!host)
@@ -249,15 +252,16 @@ static int64_t sleep_until_woken(void)
         const int64_t now = esp_timer_get_time();
         read_battery(now);
         float g[3];
-        if (heard || board_button_pressed() || (imu_gravity(g) && rest_handled(&power.rest, g))) {
-            rest_activity(&power.rest, now);
+        by_press = board_button_pressed();
+        if (heard || by_press || (imu_gravity(g) && rest_handled(&power.rest, g)))
             break;
-        }
     }
     (void)commands_sleep_asked(); /* a `> test sleep` that came while asleep asks for nothing more */
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
     display_wake();
-    start_renderer();       /* the next frame is drawn whole, whatever the panel kept while it slept */
+    start_renderer(); /* the next frame is drawn whole, whatever the panel kept while it slept */
+    /* Once the screen is back: its fade in starts now, not before the wait for its wake-up */
+    rest_woke(&power.rest, esp_timer_get_time(), by_press);
     enter_rest(REST_AWAKE); /* before the log line: a hello that follows it finds the eyes awake */
     printf("awake: screen on\n");
     return esp_timer_get_time() - start;
@@ -369,7 +373,12 @@ void app_main(void)
             rest_activity(&power.rest, start);
         enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */
         read_battery(start);
-        lp_senses_update(&senses, &eyes, gravity ? g : NULL, button, dt);
+        const int brightness = rest_brightness(&power.rest, start);
+        if (brightness != power.brightness) { /* only while it fades, out before sleep or in after it */
+            display_set_brightness(brightness);
+            power.brightness = brightness;
+        }
+        lp_senses_update(&senses, &eyes, gravity ? g : NULL, rest_press(&power.rest, button), dt);
         lp_eyes_update(&eyes, bench ? 1.0f / LP_BENCH_FPS : dt);
 
         int64_t render;

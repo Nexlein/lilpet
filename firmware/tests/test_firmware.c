@@ -230,21 +230,83 @@ void test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back(void)
     lp_eyes eyes;
     lp_eyes_init(&eyes, 1);
     lp_eyes_set_emotion(&eyes, LP_EMOTION_LOVE, 0.0f); /* the mood */
-    rest_show(&eyes, REST_DROWSY);
+    rest_show(&eyes, REST_AWAKE, REST_DROWSY);
     CHECK(eyes.emotion == LP_EMOTION_SLEEPY && eyes.mood == LP_EMOTION_LOVE);
     for (int i = 0; i < REST_DROWSY_US / 50000; i++) /* the whole sleepy time, in frames of 50 ms */
         lp_eyes_update(&eyes, 0.05f);
     CHECK(eyes.emotion == LP_EMOTION_SLEEPY); /* still, when the screen goes off */
-    rest_show(&eyes, REST_ASLEEP);
+    rest_show(&eyes, REST_DROWSY, REST_ASLEEP);
     CHECK(eyes.emotion == LP_EMOTION_SLEEPY);
-    rest_show(&eyes, REST_AWAKE);
+
+    /* Woken from sleep: still sleepy for a while, then the mood */
+    rest_show(&eyes, REST_ASLEEP, REST_AWAKE);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY && eyes.mood == LP_EMOTION_LOVE);
+    for (int i = 0; i < REST_WAKING_US / 50000 - 1; i++)
+        lp_eyes_update(&eyes, 0.05f);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY);
+    lp_eyes_update(&eyes, 0.1f);
+    CHECK(eyes.emotion == LP_EMOTION_LOVE);
+
+    /* Woken during the sleepy look: the mood at once */
+    rest_show(&eyes, REST_AWAKE, REST_DROWSY);
+    rest_show(&eyes, REST_DROWSY, REST_AWAKE);
     CHECK(eyes.emotion == LP_EMOTION_LOVE && eyes.mood == LP_EMOTION_LOVE);
 
-    /* Woken by a reaction: the reaction keeps its emotion */
-    rest_show(&eyes, REST_DROWSY);
+    /* Woken during the sleepy look by a reaction: the reaction keeps its emotion */
+    rest_show(&eyes, REST_AWAKE, REST_DROWSY);
     lp_eyes_react(&eyes, LP_EVENT_TAP);
-    rest_show(&eyes, REST_AWAKE);
+    rest_show(&eyes, REST_DROWSY, REST_AWAKE);
     CHECK(eyes.emotion == LP_EMOTION_HAPPY && eyes.mood == LP_EMOTION_LOVE);
+
+    /* Put to sleep straight from awake (`> test sleep`), or in the middle of a reaction: the same waking look */
+    lp_eyes_react(&eyes, LP_EVENT_TAP);
+    rest_show(&eyes, REST_AWAKE, REST_ASLEEP);
+    rest_show(&eyes, REST_ASLEEP, REST_AWAKE);
+    CHECK(eyes.emotion == LP_EMOTION_SLEEPY && eyes.mood == LP_EMOTION_LOVE);
+    lp_eyes_react(&eyes, LP_EVENT_TAP); /* what woke it comes after, and takes over */
+    CHECK(eyes.emotion == LP_EMOTION_HAPPY);
+}
+
+void test_the_press_that_wakes_the_board_is_no_tap(void)
+{
+    rest r = rest_start(0);
+    CHECK(rest_press(&r, true) && !rest_press(&r, false)); /* awake, a press is a press */
+    rest_woke(&r, 1000, true);
+    CHECK(!rest_press(&r, true) && !rest_press(&r, true)); /* held from the wake on: not a press */
+    CHECK(!rest_press(&r, false) && rest_press(&r, true)); /* let go, then pressed again: a press */
+    rest_woke(&r, 2000, false);                            /* woken by something else: the next press counts */
+    CHECK(rest_press(&r, true));
+}
+
+void test_the_screen_fades_out_before_sleep_and_in_after_it(void)
+{
+    const int64_t t0 = 1000;
+    rest r = rest_start(t0);
+    CHECK(rest_brightness(&r, t0) == 255); /* no fade in at start */
+    const int64_t sleep = t0 + REST_IDLE_US + REST_DROWSY_US;
+    CHECK(rest_brightness(&r, sleep - REST_FADE_OUT_US) == 255);
+    CHECK(rest_brightness(&r, sleep - REST_FADE_OUT_US / 2) == 127);
+    CHECK(rest_brightness(&r, sleep - 1) == 0 && rest_brightness(&r, sleep) == 0);
+    CHECK(rest_brightness(&r, sleep + 1000000) == 0);
+    CHECK(rest_state_at(&r, sleep - REST_FADE_OUT_US) == REST_DROWSY); /* the fade is the end of the sleepy look */
+
+    const int64_t woke = sleep + 60000000;
+    rest_woke(&r, woke, false);
+    CHECK(rest_brightness(&r, woke) == 0);
+    CHECK(rest_brightness(&r, woke + REST_FADE_IN_US / 2) == 127);
+    CHECK(rest_brightness(&r, woke + REST_FADE_IN_US) == 255);
+
+    /* Something during the fade out: awake again, the screen at once as it was */
+    const int64_t fading = woke + REST_IDLE_US + REST_DROWSY_US - REST_FADE_OUT_US / 2;
+    CHECK(rest_brightness(&r, fading) == 127);
+    rest_activity(&r, fading);
+    CHECK(rest_brightness(&r, fading) == 255);
+
+    rest_sleep_now(&r, woke + 10000000); /* `> test sleep`: dark at once */
+    CHECK(rest_brightness(&r, woke + 10000000) == 0);
+    rest_woke(&r, woke + 20000000, false);
+    rest_sleep_now(&r, woke + 20000000 + REST_FADE_IN_US / 2); /* even in the middle of fading in */
+    CHECK(rest_brightness(&r, woke + 20000000 + REST_FADE_IN_US / 2) == 0);
 }
 
 void test_a_low_battery_stays_low_until_it_charges_back(void)
