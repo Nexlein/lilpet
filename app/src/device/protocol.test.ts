@@ -278,9 +278,16 @@ describe('connection', () => {
         vi.unstubAllGlobals();
     });
 
-    it('closes the port when it cannot set its signals', async () => {
+    it('closes and forgets the port when it cannot set its signals', async () => {
         const device = fakePort(firmware(), { failSignals: true });
         await expect(Connection.open(device.port)).rejects.toThrow('signals');
         expect(device.closed()).toBe(true);
+        expect(device.forgotten()).toBe(true);
+    });
+
+    it('forgets a port that does not open', async () => {
+        const device = fakePort(firmware(), { failOpen: true });
+        await expect(Connection.open(device.port)).rejects.toThrow('Failed to open');
+        expect(device.forgotten()).toBe(true);
     });
 });
