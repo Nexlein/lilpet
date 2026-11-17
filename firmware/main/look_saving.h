@@ -32,8 +32,8 @@ typedef struct {
     int64_t tried_at; /* the last write or try, in microseconds */
 } look_saving;
 
-/* kept: what the flash holds, the default look that stands for nothing kept, or NULL when the start did not read the
- * flash (after a crash, main.c). The first new look is written at once */
+/* kept: what the flash holds, or NULL when it holds nothing the start could read (none saved, unreadable, or not read
+ * after a crash, main.c): any look that comes is then written. The first new look is written at once */
 static inline look_saving look_saving_start(const lp_look *kept)
 {
     return (look_saving){.kept = kept ? *kept : (lp_look){0}, .known = kept != NULL, .tried_at = -LOOK_SAVE_GAP_US};

@@ -336,11 +336,14 @@ void app_main(void)
     hello.storage = look_store_init();
     lp_look look = lp_default_look(); /* until the PC app sends one */
     const bool crashed = after_crash(reason);
+    bool kept = false;
     if (crashed)
         printf("started after a crash: the default look this once, the flash keeps the saved one\n");
     else
-        look_store_load(&look);
-    commands_start(&look, crashed ? NULL : &look, &hello);
+        kept = look_store_load(&look);
+    /* Nothing kept (none saved yet, unreadable, or not read after a crash): the first look sent is written, the default
+     * one too, so that a later firmware's default does not replace a look picked on purpose */
+    commands_start(&look, kept ? &look : NULL, &hello);
 
     lp_eyes_init(&eyes, 1); /* the benchmark starts its own eyes: start_bench_round */
     lp_eyes_set_look(&eyes, &look);
