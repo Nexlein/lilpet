@@ -4,6 +4,7 @@
 # Usage: npm run check:scripts
 import ast
 import contextlib
+import importlib.util
 import io
 import json
 import math
@@ -434,6 +435,16 @@ class FirmwareFacts(unittest.TestCase):
     def test_c_define_stops_on_a_missing_define(self):
         with self.assertRaises(SystemExit):
             c_define(COMMANDS, "NO_SUCH_DEFINE")
+
+
+class Windows(unittest.TestCase):
+    def test_the_board_link_loads_without_termios(self):
+        with mock.patch.dict(sys.modules, {"termios": None}):  # importing it then fails, as on Windows
+            spec = importlib.util.spec_from_file_location("board_link_on_windows", SCRIPTS / "board_link.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        self.assertEqual(module.SERIAL_ERRORS, (OSError,))
+        self.assertIn(termios.error, board_link.SERIAL_ERRORS)  # still caught where it exists
 
 
 class HelloFields(unittest.TestCase):
