@@ -37,6 +37,7 @@ export function fakePort(
     let readable: ReadableStream<Uint8Array> | null = null;
     let writable: WritableStream<Uint8Array> | null = null;
     let closed = false;
+    let forgotten = false;
     let writesFail = false;
 
     const output = () =>
@@ -81,6 +82,9 @@ export function fakePort(
             readable = null;
             writable = null;
         },
+        forget: async () => {
+            forgotten = true;
+        },
         setSignals: async (s) => {
             if (failSignals) throw new Error('cannot set the signals');
             signals.push(s);
@@ -110,6 +114,7 @@ export function fakePort(
         log: (line: string) => device.enqueue(encoder.encode(`${line}\r\n`)),
         failWrites: () => void (writesFail = true),
         options: () => options,
-        closed: () => closed
+        closed: () => closed,
+        forgotten: () => forgotten
     };
 }

@@ -50,7 +50,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: looks.test.ts
 
 ## app/src/device
-- **connection.ts** (169) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
+- **connection.ts** (175) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
@@ -58,7 +58,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BoardBusy, NotLilpet, hello, command, LookSent, sendLook
   - → app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/protocol.ts
   - ← app/src/device/session.ts, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
-- **fake-port.ts** (115) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
+- **fake-port.ts** (120) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
   - exports: FAKE_INFO, FAKE_HELLO, firmware, fakePort
   - → app/src/device/connection.ts, app/src/device/protocol.ts
 - **protocol.ts** (86) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.

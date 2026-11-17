@@ -27,6 +27,7 @@ describe('device session', () => {
         await session.disconnect();
         expect(session.snapshot().state).toEqual({ status: 'idle' });
         expect(device.closed()).toBe(true);
+        expect(device.forgotten()).toBe(true); // no other page of the site opens it again without asking
         await expect(session.send(kite)).rejects.toThrow('plus branché');
     });
 
