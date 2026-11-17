@@ -1,5 +1,6 @@
 // Tests .github/workflows/ci.yml against what depends on it. Its board list must be the folders of firmware/boards
-// that hold a board.cmake, so that a board added there cannot go unbuilt. It must run every part of `mise run check`.
+// that hold a board.cmake, so that a board added there cannot go unbuilt, and the board table of docs/firmware.md
+// lists them. It must run every part of `mise run check`.
 // The rulesets of .github/rulesets must require its jobs by their names. Built-in test runner, no dependency.
 // Usage: npm run check:scripts
 import assert from 'node:assert/strict';
@@ -25,6 +26,15 @@ test('the CI builds the firmware of every board, and of nothing else', () => {
 
 // docs/adr/0008-outils-figes.md: the CI runs the parts of `mise run check`, each in its own job, instead of copying
 // their steps; a part added to the check must not be missing in CI
+// Adding a board also means a row in the table of docs/firmware.md, which nothing else would notice missing
+test('the board table of docs/firmware.md has every board', () => {
+    const table =
+        readFileSync('docs/firmware.md', 'utf8')
+            .split(/^## Les cartes$/m)[1]
+            ?.split(/^## /m)[0] ?? '';
+    for (const board of builtBoards()) assert.match(table, new RegExp(`^\\| \`${board}\``, 'm'), `${board} is missing`);
+});
+
 test('the CI runs every part of mise run check', () => {
     const task = /^\[tasks\.check\]$[^[]*?^run = \[([^\n]*)\]$/m.exec(readFileSync('mise.toml', 'utf8'))?.[1];
     assert.ok(task !== undefined, 'no "run = [...]" in the [tasks.check] of mise.toml');

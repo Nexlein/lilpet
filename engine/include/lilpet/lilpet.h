@@ -267,7 +267,8 @@ void lp_senses_face(lp_senses *senses, lp_eyes *eyes, bool seen, float x, float 
 
 #define LP_COMMAND_LINE_MAX 94 /* longest line, in bytes, without its end */
 
-/* A line as it arrives; starts zeroed */
+/* A line as it arrives; starts zeroed, and is zeroed again once a line ended, before the next byte: the struct holds
+ * one line, not a stream (a reader of a second link, the UART of #49, needs its own) */
 typedef struct {
     char text[LP_COMMAND_LINE_MAX + 1];
     size_t length;
