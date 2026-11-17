@@ -14,6 +14,7 @@
 #define AXP2101_ADC_CTRL 0x30u /* bit 0: measure the battery's voltage; bit 1: measure the TS (temperature) pin */
 #define AXP2101_VBAT     0x34u /* battery voltage in mV: its 5 high bits here, its 8 low bits in the next register */
 #define AXP2101_ICC_CHG  0x62u /* bits 4-0: the constant charge current, axp2101_charge_code */
+#define AXP2101_TS_CTRL  0x50u /* the TS pin: whether the charger reads it as the battery's temperature sensor */
 #define AXP2101_BAT_DET  0x68u /* bit 0: detect the battery, for the bit of AXP2101_STATUS1 */
 
 #define AXP2101_BATTERY_CONNECTED 0x08u
@@ -37,8 +38,15 @@ static inline uint8_t axp2101_charge_register(uint8_t was, int ma)
     return (uint8_t)((was & 0xE0u) | axp2101_charge_code(ma));
 }
 
-/* The ADC register with the battery's voltage measured and the TS pin's not: a board without the battery's temperature
- * sensor charges wrong otherwise (Waveshare's demo, examples/esp-idf/01_AXP2101) */
+/* The TS pin's register with the pin as a fixed input, which the charger ignores. A board without the battery's
+ * temperature sensor charges wrong otherwise (Waveshare's demo, examples/esp-idf/01_AXP2101): XPowersLib's
+ * disableTSPinMeasure, which it calls at every start, writes this, then axp2101_adc_register */
+static inline uint8_t axp2101_ts_register(uint8_t was)
+{
+    return (uint8_t)((was & 0xF0u) | 0x10u);
+}
+
+/* The ADC register with the battery's voltage measured and the TS pin's not */
 static inline uint8_t axp2101_adc_register(uint8_t was)
 {
     return (uint8_t)((was | 0x01u) & ~0x02u);

@@ -378,10 +378,14 @@ void test_the_axp2101_charges_at_most_the_current_asked(void)
     CHECK(axp2101_charge_code(5000) == 16);
     /* The register's other bits stay */
     CHECK(axp2101_charge_register(0xE9u, 200) == 0xE8u && axp2101_charge_register(0x00u, 200) == 0x08u);
+    CHECK(axp2101_charge_register(0x1Fu, 200) == 0x08u && axp2101_charge_register(0xF0u, 200) == 0xE8u);
 }
 
 void test_the_axp2101_measures_the_battery_and_not_its_temperature_pin(void)
 {
+    /* The TS pin a fixed input, out of the charger's way: bit 4 set, its 4 low bits cleared, the others kept */
+    CHECK(axp2101_ts_register(0x00u) == 0x10u && axp2101_ts_register(0xFFu) == 0xF0u);
+    CHECK(axp2101_ts_register(0x27u) == 0x30u);
     CHECK(axp2101_adc_register(0x02u) == 0x01u && axp2101_adc_register(0xFFu) == 0xFDu);
     CHECK(axp2101_adc_register(0x00u) == 0x01u && axp2101_adc_register(0x1Cu) == 0x1Du);
     CHECK(axp2101_detection_register(0x00u) == 0x01u && axp2101_detection_register(0xF0u) == 0xF1u);

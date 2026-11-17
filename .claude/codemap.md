@@ -279,8 +279,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## firmware/main
 - **CMakeLists.txt** (12) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
-- **axp2101.h** (59) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
-  - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
+- **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
+  - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c
 - **battery.h** (13) — The battery: one .c per way of reading it, picked by board.cmake.
   - exports: battery_init, battery_millivolts
@@ -288,7 +288,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **battery_adc.c** (59) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
   - exports: battery_init, battery_millivolts
   - → firmware/main/battery.h, firmware/boards/*/board_config.h
-- **battery_axp2101.c** (61) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
+- **battery_axp2101.c** (63) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
   - exports: battery_init, battery_millivolts
   - → firmware/main/axp2101.h, firmware/main/battery.h, firmware/main/board.h, firmware/boards/*/board_config.h
 - **battery_none.c** (11) — The battery of a board that cannot read one: none, for hello (battery.h)
