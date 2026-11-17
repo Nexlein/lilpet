@@ -1,6 +1,7 @@
 // Renovate keeps the tool versions of mise.toml, the dependency of scripts/requirements.txt and the mise version of
-// CI up to date, one pull request per new release. Dependabot cannot read them; it still covers npm, the Docker
-// images and the GitHub Actions (dependabot.yml).
+// CI up to date, in one pull request a week for all of them (major releases together in a second one), merged by hand
+// once CI is green: no automerge, the owner picks the moment. Dependabot cannot read them; it still covers npm, the
+// Docker images and the GitHub Actions (dependabot.yml).
 {
     $schema: 'https://docs.renovatebot.com/renovate-schema.json',
     extends: ['config:recommended'],
@@ -17,13 +18,19 @@
             extractVersionTemplate: '^v(?<version>.+)$'
         }
     ],
-    dependencyDashboard: false,
+    // An issue that lists the updates Renovate found, those waiting for the schedule and its config errors: without it
+    // a Renovate that opens nothing shows no reason. A box ticked there opens the pull request before Monday. In its
+    // object form: Renovate asks for a config migration of the older boolean one.
+    dependencyDashboard: { enabled: true },
     timezone: 'Europe/Paris',
-    schedule: ['* 0-5 * * 1'], // Monday morning, like Dependabot
+    // On Mondays, like Dependabot, and all day: Mend runs a repo with no merged Renovate pull request once a day, at
+    // any hour, which never fell in a Monday morning window (docs.renovatebot.com/mend-hosted/job-scheduling)
+    schedule: ['* * * * 1'],
     semanticCommits: 'enabled',
     packageRules: [
         {
             matchManagers: ['mise', 'pip_requirements', 'custom.regex'],
+            groupName: 'tool versions',
             semanticCommitType: 'build',
             semanticCommitScope: 'deps'
         }

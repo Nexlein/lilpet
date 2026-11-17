@@ -1,6 +1,6 @@
 # 8. Les mêmes outils, aux mêmes versions, en local et en CI
 
-- Date : 2026-10-27, complété le 2026-11-03
+- Date : 2026-10-27, complété le 2026-11-03 et le 2026-11-17
 - Statut : accepté
 
 ## Contexte
@@ -25,7 +25,13 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
 - **Chaque nouvelle version arrive en pull request**, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils
   de `mise.toml`, que Dependabot ne sait pas lire, Dependabot pour npm, les images Docker et les actions. Les actions
   sont épinglées par commit et les images par tag et digest, puisqu'un tag peut être déplacé ; les paquets npm, par
-  `package-lock.json`, que `npm ci` suit à la lettre.
+  `package-lock.json`, que `npm ci` suit à la lettre. Renovate regroupe ses mises à jour en une pull request par
+  semaine (les versions majeures ensemble dans une seconde), avec un tableau de bord (une issue) qui montre ce qu'il
+  attend. Rien ne se fusionne seul : on choisit le moment.
+- **Les règles de GitHub et les versions publiées passent par le dépôt.** Les rulesets de `dev` et `main` sont dans
+  `.github/rulesets/` : un test compare leurs checks requis aux jobs de la CI, et `mise run github:rulesets` les
+  applique. Un tag de version publie le firmware de chaque carte dans une Release (`release.yml`), après avoir relancé
+  la CI sur ce commit, au lieu de dépendre des artefacts de la CI, gardés 30 jours.
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
   `engine:check`, les tests Playwright). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au
   lieu de recopier leurs étapes : une étape ajoutée au contrôle ne peut pas manquer en CI. `npm run check`, la partie
