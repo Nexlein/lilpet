@@ -12,6 +12,7 @@
 #include "display.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
+#include "esp_task_wdt.h"
 #include "esp_timer.h"
 #include "frame.h"
 #include "freertos/FreeRTOS.h"
@@ -225,11 +226,17 @@ void app_main(void)
     xTaskCreateStaticPinnedToCore(second_core_task, "second core", SECOND_CORE_STACK, NULL, uxTaskPriorityGet(NULL),
                                   second_core.stack, &second_core.task, 1);
     lp_senses_init(&senses);
+    /* A frame that does not end within CONFIG_ESP_TASK_WDT_TIMEOUT_S resets the chip, whatever it waits for: a band
+     * from the second core, the display's bus. The benchmark's first frame too. */
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
     if (bench)
         start_bench_round(bands);
     int64_t last = esp_timer_get_time();
     int64_t report_start = last;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
+        esp_task_wdt_reset();
+        while (commands_hang_asked())
+            vTaskDelay(portMAX_DELAY);
         display_wait_frame();
 
         const int64_t start = esp_timer_get_time();

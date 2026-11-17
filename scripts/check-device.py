@@ -1,7 +1,7 @@
-# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md):
-# opening the port does not reboot it, it answers hello and tells its board and why it last started, keeps the last of
-# two looks sent in a row across a reboot, which it tells came from its USB port, logs no fault of its screen, keeps
-# drawing, takes the commands that drive the eyes, and rejects bad
+# Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening
+# the port does not reboot it, it answers hello and tells its board and why it last started, keeps the last of two looks
+# sent in a row across a reboot, which it tells came from its USB port, logs no fault of its screen, keeps drawing,
+# resets itself and tells so when its drawing loop hangs, takes the commands that drive the eyes, and rejects bad
 # commands and lines too long, which change nothing.
 # With a motion sensor, it reads about 1 g at rest, and keeps it across reboots in the middle of its reads; a board that
 # has one must have it working. The board's own look and usual mood are put back at the end, also after Ctrl+C. What it
@@ -27,7 +27,7 @@ from board_link import (
     open_port,
     read_reply,
 )
-from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define
+from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define, sdkconfig_default
 
 # The checks need two looks the board does not wear, so three. The first, kite colors with two pupil colors, is one
 # nobody keeps by chance.
@@ -61,6 +61,8 @@ LINE_MAX = c_define(ROOT / "engine" / "include" / "lilpet" / "lilpet.h", "LP_COM
 QUEUE_SLOTS = c_define(ROOT / "firmware" / "main" / "commands.c", "QUEUE_SLOTS")
 # A look sent sooner than this after the last write to flash is written once this time has passed
 SAVE_GAP_SECONDS = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP_US") / 1e6
+# A drawing loop hung this long resets the chip
+WATCHDOG_SECONDS = sdkconfig_default("ESP_TASK_WDT_TIMEOUT_S")
 
 
 def check(ok, what, detail=""):
@@ -92,13 +94,18 @@ def reset(port):
     port.rts = False
 
 
-def reboot(port):
-    """Returns what the board prints from its boot to its first report, nothing if it does not boot"""
-    reset(port)
-    boot = read_lines(port, BOOT_SECONDS, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
+def booted(port, seconds):
+    """Returns what the board prints from a boot within `seconds` to its first report, nothing if it does not boot"""
+    boot = read_lines(port, seconds, until=BOOT_LINE)[-1:]  # what comes before may be a report from before it
     if not (boot and BOOT_LINE in boot[0]):
         return []
     return boot + read_lines(port, REPORT_SECONDS, until=REPORT_LINE)
+
+
+def reboot(port):
+    """Returns what the board prints from its boot to its first report, nothing if it does not boot"""
+    reset(port)
+    return booted(port, BOOT_SECONDS)
 
 
 def open_booted_board():
@@ -151,6 +158,18 @@ def run_checks(port, board, test_look, other_look):
     check_reply(after == f"look {test_look}", "still has the last look after the reboot", after)
     reset = hello_fields(ask_hello(port)).get("reset")
     check(reset == "usb", "tells it was reset by its USB port", f"reset={reset}")
+
+    # The eyes freeze while the commands still get answers: only the watchdog of the drawing loop can tell
+    reply = ask(port, "> test hang")
+    check_reply(reply == "ok", "takes the test command that hangs its drawing loop", reply)
+    seconds = WATCHDOG_SECONDS + BOOT_SECONDS
+    log = booted(port, seconds)
+    check(bool(log), "resets itself when its drawing loop hangs", "" if log else f"no reboot in {seconds} s")
+    if not log:
+        log = reboot(port)  # its drawing loop stays hung until then
+    check(bool(log) and re.search(REPORT_LINE, log[-1]), "draws again after the reset", "" if log else "no report")
+    reset = hello_fields(ask_hello(port)).get("reset")
+    check(reset == "task_wdt", "tells its watchdog reset it", f"reset={reset}")
 
     bad = ask(port, "> look 7DB5F4 C10787 slit")
     check_reply(bool(bad) and bad.startswith("err "), "rejects a malformed look", bad)

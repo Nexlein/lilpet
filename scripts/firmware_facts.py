@@ -1,6 +1,6 @@
-# What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, the
-# pupil types, and the replies the checks expect, which scripts/test_board_scripts.py finds in the C sources. Standard
-# library only, so that the tests can read it before their fake pyserial is in place.
+# What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, a
+# setting of sdkconfig.defaults, the pupil types, and the replies the checks expect, which scripts/test_board_scripts.py
+# finds in the C sources. Standard library only, so that the tests can read it before their fake pyserial is in place.
 import json
 import re
 import sys
@@ -20,6 +20,15 @@ def c_define(path, name):
     found = re.search(rf"#define\s+{name}\s+(\d+)\b", Path(path).read_text())
     if found is None:
         sys.exit(f"{path} does not define {name}")
+    return int(found.group(1))
+
+
+def sdkconfig_default(name):
+    """The number firmware/sdkconfig.defaults sets for CONFIG_<name>; stops when it sets none"""
+    path = ROOT / "firmware" / "sdkconfig.defaults"
+    found = re.search(rf"^CONFIG_{name}=(\d+)$", path.read_text(), re.MULTILINE)
+    if found is None:
+        sys.exit(f"{path} does not set CONFIG_{name}")
     return int(found.group(1))
 
 

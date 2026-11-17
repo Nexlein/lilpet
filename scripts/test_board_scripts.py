@@ -17,7 +17,15 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from firmware_facts import REPLY_BENCH, REPLY_NO_MOTION, REPLY_TOO_LONG, REPLY_UNKNOWN, c_define, pupil_types
+from firmware_facts import (
+    REPLY_BENCH,
+    REPLY_NO_MOTION,
+    REPLY_TOO_LONG,
+    REPLY_UNKNOWN,
+    c_define,
+    pupil_types,
+    sdkconfig_default,
+)
 
 SCRIPTS = Path(__file__).resolve().parent
 ROOT = SCRIPTS.parent
@@ -31,6 +39,7 @@ SAVE_GAP = c_define(ROOT / "firmware" / "main" / "look_saving.h", "LOOK_SAVE_GAP
 # Seconds: the firmware may notice that a late look's turn came this much later (read_line in commands.c)
 READ_WAIT = c_define(COMMANDS, "READ_WAIT_MS") / 1000
 QUEUE_SLOTS = c_define(COMMANDS, "QUEUE_SLOTS")
+WATCHDOG = sdkconfig_default("ESP_TASK_WDT_TIMEOUT_S")  # seconds
 REPORT = "62.5 frames/s | draw mean 2800 max 6100 us | redrawn 96 per mille of the screen"
 LOOK = rf"[0-9A-F]{{6}} [0-9A-F]{{6}} [0-9A-F]{{6}} ({'|'.join(pupil_types())})"
 DRIVES = {  # what the eyes take, in the fake's few words: enough for what the check sends
@@ -79,6 +88,7 @@ class Board:
         mute_at=None,  # this boot (from 1) never reads its port
         usb_reset="usb",  # why it tells it started after its USB port reset it
         tells_reset=True,  # its hello has the reset field (firmware 0.7.4 and before do not)
+        watchdog=True,  # resets the chip when its drawing loop hangs
     ):
         self.name, self.bench, self.motion = name, bench, motion
         self.boot_log, self.report, self.report_after = boot_log, report, report_after
@@ -94,12 +104,14 @@ class Board:
         self.kept, self.tried_at = self.look, -SAVE_GAP
         self.mood = "neutral"
         self.reset, self.usb_reset, self.tells_reset = "poweron", usb_reset, tells_reset
+        self.watchdog, self.hung_at, self.queued = watchdog, math.inf, 0
         self.in_reset = False
         self.input = b""
         self.opened = 0
 
     def boot(self):
         self.boots += 1
+        self.hung_at, self.queued = math.inf, 0
         self.motion = self.fitted and not self.bus_held
         self.look, self.mood = self.kept, "neutral"
         self.tried_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
@@ -108,6 +120,15 @@ class Board:
             self.output.append((clock.now + 0.3, line))
         if self.report:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
+
+    def tick(self):
+        """The watchdog resets the chip once the drawing loop has hung that long: the commands, still answered, have
+        written a late look by then"""
+        if self.watchdog and clock.now >= self.hung_at + WATCHDOG:
+            self.write_late_look()
+            self.output = [(at, line) for at, line in self.output if at <= clock.now]
+            self.reset = "task_wdt"
+            self.boot()
 
     def write_late_look(self):
         """What the firmware does while it runs, by its one rule: the shown look is written once it is not the kept one
@@ -133,6 +154,7 @@ class Board:
         self.in_reset = held
 
     def receive(self, data):
+        self.tick()
         if self.in_reset or clock.now < self.reads_from:
             return
         *lines, self.input = (self.input + data).split(b"\n")
@@ -156,6 +178,10 @@ class Board:
         if text == "> hello":
             hello = HELLO % ("0.5.0", "0.13.0", self.name, self.motion, self.reset)
             return hello if self.tells_reset else re.sub(r" reset=\S*", "", hello)
+        if text == "> test hang":
+            self.hung_at = clock.now
+            self.output = [(at, line) for at, line in self.output if not re.match(r"\d+\.\d frames/s", line)]
+            return "ok"
         if text == "> look?":
             return f"look {self.look}"
         if text == "> imu?":
@@ -176,11 +202,16 @@ class Board:
             return f"err malformed {word}"
         if self.bench:
             return REPLY_BENCH
+        if self.hung_at < math.inf:  # the drawing loop no longer takes the commands for the eyes off the queue
+            self.queued += 1
+            if self.queued > QUEUE_SLOTS:
+                return "err busy"
         if word == "emotion" and " " not in rest:
             self.mood = rest
         return "ok"
 
     def next_line(self):
+        self.tick()
         for item in self.output:
             if item[0] <= clock.now:
                 self.output.remove(item)
@@ -546,6 +577,7 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(Board("atoms3r", report=None))
         self.assertEqual(status, 1)
         self.assertIn("FAIL draws at least 20 frames/s (no report", out)
+        self.assertIn("FAIL draws again after the reset\n", out)
 
     def test_fails_a_drawing_loop_that_crawls(self):
         status, out, _ = check_device(Board("atoms3r", report="19.9 frames/s | draw mean", report_after=39.2))
@@ -587,6 +619,20 @@ class DeviceCheck(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("FAIL tells it was reset by its USB port (reset=poweron)", out)
 
+    def test_fails_a_board_whose_hung_drawing_loop_does_not_reset_it(self):
+        status, out, _ = check_device(Board("atoms3r", watchdog=False))
+        self.assertEqual(status, 1)
+        self.assertIn(f"FAIL resets itself when its drawing loop hangs (no reboot in {WATCHDOG + 3} s)", out)
+        self.assertIn("FAIL tells its watchdog reset it (reset=usb)", out)  # brought back by a reset of its port
+        self.assertIn(f"ok   answers a burst of {QUEUE_SLOTS} commands", out)  # its drawing loop takes them again
+
+    def test_fails_a_firmware_without_the_test_hang(self):
+        board = Board("atoms3r")
+        board.reply = lambda text, reply=board.reply: REPLY_UNKNOWN if text == "> test hang" else reply(text)
+        status, out, _ = check_device(board)
+        self.assertEqual(status, 1)
+        self.assertIn(f"FAIL takes the test command that hangs its drawing loop ({REPLY_UNKNOWN})", out)
+
     def test_fails_a_board_that_does_not_come_back_after_the_reboot(self):
         status, out, _ = check_device(Board("atoms3r", comes_back=False))
         self.assertEqual(status, 1)
@@ -607,14 +653,16 @@ class DeviceCheck(unittest.TestCase):
         status, out, _ = check_device(board)
         self.assertEqual(status, 1)
         self.assertIn("FAIL has its motion sensor", out)
-        self.assertEqual(board.boots, 1)  # no reboots during reads: they would tell nothing more
+        self.assertEqual(
+            board.boots, 2
+        )  # the reboot and the watchdog's: none during reads, they would tell nothing more
 
     def test_fails_when_a_reboot_during_reads_loses_the_motion_sensor(self):
         board = Board("atoms3r", held_bus_at=4)
         status, out, _ = check_device(board)
         self.assertEqual(status, 1)
         self.assertIn("FAIL keeps its motion sensor across 40 reboots during its reads (lost on 1 of 40 boots,", out)
-        self.assertEqual(board.boots, 41)
+        self.assertEqual(board.boots, 42)  # the reboot, the watchdog's and those during reads
 
     def test_tells_a_board_that_stops_answering_from_a_lost_motion_sensor(self):
         status, out, _ = check_device(Board("atoms3r", mute_at=10))

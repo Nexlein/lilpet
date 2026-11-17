@@ -39,6 +39,11 @@ de la boucle de dessin est pleine (32 commandes entre deux images) : le firmware
 jetterait les octets qui suivent et collerait des bouts de lignes. Sur la carte qui joue l'animation de mesure
 (`stamp_s3a`), elles sont refusées, et un look y est gardé sans s'afficher.
 
+`> test hang`, pour les tests seulement, répond `< ok` puis bloque la boucle de dessin pour de bon, comme une attente
+qui ne finirait pas. Les commandes ont encore leur réponse, mais les yeux se figent, jusqu'à ce que le watchdog de la
+boucle redémarre la puce : `CONFIG_ESP_TASK_WDT_TIMEOUT_S` (5 s) plus tard, `hello` dit `reset=task_wdt`.
+`firmware:check-device` s'en sert pour vérifier ce watchdog ; l'app ne l'envoie jamais.
+
 ## Qui s'en sert
 
 - **L'app PC** n'utilise que `hello`, `look`, `emotion` sans durée et `react`, et ne lit de `hello` que les versions et

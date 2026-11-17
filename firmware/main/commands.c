@@ -13,7 +13,9 @@
 
 #include "esp_timer.h"
 
+#include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 
 #define QUEUE_SLOTS  32   /* the drawing loop empties them every frame: a burst of 32 lines between two frames fits */
 #define RX_BUFFER    1024 /* bytes of commands waiting on the USB port */
@@ -31,6 +33,9 @@ static struct {
  * reads the USB port, and the driver drops the packets that no longer fit RX_BUFFER, which splices the lines behind.
  */
 static QueueHandle_t queue;
+
+/* Set by this task, read by the drawing loop (commands_hang_asked) */
+static atomic_bool hang_asked;
 
 static bool push(const lp_command *c)
 {
@@ -93,7 +98,10 @@ static void handle(const lp_command_line *line)
     /* With no one reading, the log stops mid-line when the USB buffer fills: a reply must start on a line of its own */
     putchar('\n');
 
-    if (error) {
+    if (error && strcmp(line->text, "> test hang") == 0) { /* the firmware's own, not the engine's: the engine parses */
+        atomic_store(&hang_asked, true);
+        printf("< ok\n");
+    } else if (error) {
         printf("< err %s\n", error);
     } else if (c.type == LP_COMMAND_HELLO) {
         /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
@@ -151,6 +159,11 @@ void commands_start(const lp_look *current, const commands_hello *hello)
     state.saving = look_saving_start(current);
     state.hello = *hello;
     xTaskCreate(commands_task, "commands", 4096, NULL, 5, NULL);
+}
+
+bool commands_hang_asked(void)
+{
+    return atomic_load(&hang_asked);
 }
 
 bool commands_next(lp_command *out)
