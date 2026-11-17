@@ -341,13 +341,13 @@ void app_main(void)
     int64_t report_start = last;
     for (int f = 0;; f = (f + 1) % LP_BENCH_FRAMES) {
         esp_task_wdt_reset();
-        while (commands_hang_asked())
-            vTaskDelay(portMAX_DELAY);
         if (rest_state_at(&power.rest, esp_timer_get_time()) == REST_ASLEEP) {
             const int64_t slept = sleep_until_woken(rests); /* out of the frame times and of the report */
             last += slept;
             report_start += slept;
         }
+        while (commands_hang_asked()) /* after the sleep, which leaves early for it: the hang comes before a frame */
+            vTaskDelay(portMAX_DELAY);
         display_wait_frame();
 
         const int64_t start = esp_timer_get_time();
