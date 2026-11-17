@@ -48,6 +48,8 @@ export interface Engine {
     setShape(shape: { rx: number; ry: number; gap: number; tilt: number }): void;
     setHeadAmount(amount: number): void;
     react(event: EyeEvent): void;
+    // The emotion the eyes show now: the mood, or a reaction's for as long as it lasts
+    emotion(): string;
     update(dt: number): void;
     // RGBA pixels of the whole screen (size × size × 4), as a copy to keep
     render(): Uint8ClampedArray<ArrayBuffer>;

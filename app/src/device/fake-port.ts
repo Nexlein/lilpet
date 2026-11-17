@@ -20,7 +20,7 @@ export function firmware(): (command: string) => string | null {
 // atOpen: what the board still had to say when the port opened, which comes a moment later, as on a real port
 export function fakePort(
     answer: (command: string) => string | null,
-    { failSignals = false, delay = (): number => 0, atOpen = '', quiet = (): boolean => false } = {}
+    { failSignals = false, failOpen = false, delay = (): number => 0, atOpen = '', quiet = (): boolean => false } = {}
 ) {
     const encoder = new TextEncoder();
     let device!: ReadableStreamDefaultController<Uint8Array>;
@@ -69,6 +69,7 @@ export function fakePort(
         // As in Chrome, a port does not open twice
         open: async (opts) => {
             if (writable) throw new DOMException('The port is already open.', 'InvalidStateError');
+            if (failOpen) throw new DOMException('Failed to open serial port.', 'NetworkError'); // held by a monitor
             options = opts;
             closed = false;
             readable = stream();

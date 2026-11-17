@@ -27,8 +27,9 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
   dernières ; puis endormi. Durées choisies le 2026-11-17 après l'essai sur l'AtomS3R : 5 s et un écran coupé net
   faisaient un endormissement trop bref.
 - **Ce qui le garde éveillé ou le réveille** : une commande (toute ligne qui commence par `> `, sauf `> test sleep` et
-  `> test hang`), le bouton, ou un mouvement : la gravité s'écarte de plus de 0,15 g, sur un axe, de celle du dernier
-  mouvement. Mesurer depuis ce dernier mouvement, et non depuis l'image d'avant, compte aussi une inclinaison lente.
+  `> test hang`), un appui sur le bouton, ou un mouvement : la gravité s'écarte de plus de 0,15 g, sur un axe, de celle
+  du dernier mouvement. Seul l'appui compte, pas le bouton tenu : une carte appuyée dans une poche s'endort quand même
+  (corrigé en 0.8.1, [#80](https://github.com/Nexlein/lilpet/issues/80)). Mesurer depuis ce dernier mouvement, et non depuis l'image d'avant, compte aussi une inclinaison lente.
   L'animation de mesure (`stamp_s3a`) ne s'endort jamais seule : ses mesures s'arrêteraient. Une carte sans bouton ni
   capteur de mouvement non plus : rien ne la réveillerait (les Waveshare, jusqu'au pilote de l'accéléromètre de la
   1,75", [#54](https://github.com/Nexlein/lilpet/issues/54)). `> test sleep` l'endort quand même : elle attend alors
@@ -37,8 +38,9 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
   sort du watchdog.
     - Branchée à un PC, la carte garde son port : elle regarde les commandes, le bouton et le mouvement toutes les 20
       ms, sans veille légère.
-    - Seule (sur batterie, ou sur un chargeur sans données), elle passe en veille légère, au plus 1 s à la fois : le
-      bouton la réveille aussitôt, et le minuteur, chaque seconde, le temps de lire le mouvement.
+    - Seule (sur batterie, ou sur un chargeur sans données), elle passe en veille légère, au plus 1 s à la fois : un
+      appui la réveille aussitôt (le bouton tenu, lui, la réveille quand il est relâché, pour que l'appui suivant
+      compte), et le minuteur, chaque seconde, le temps de lire le mouvement.
     - En veille légère, ESP-IDF laisse flotter toutes les broches (`CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND`), sauf
       celles qu'on lui nomme : la carte garde le maintien de son alimentation, le reset et la sélection de l'écran, et
       le bus I2C.

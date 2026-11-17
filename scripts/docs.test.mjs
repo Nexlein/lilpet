@@ -13,7 +13,7 @@ const read = (path) => readFileSync(path, 'utf8');
 function numberIn(path, words) {
     const pattern = new RegExp(
         words
-            .replace(/[.()`]/g, '\\$&')
+            .replace(/[.()`*]/g, '\\$&')
             .replace(/ /g, '\\s+')
             .replace('N', '(\\d+(?:,\\d+)?|\\w+)')
     );
@@ -33,6 +33,7 @@ const WATCHDOG = codeNumber('firmware/sdkconfig.defaults', /^CONFIG_ESP_TASK_WDT
 // the bench day (#53) may change the values marked proposed
 const REST_US = (name) => codeNumber('firmware/main/rest.h', new RegExp(`#define ${name}\\s+(\\d+)`));
 const ENGINE_SECONDS = (path, name) => codeNumber(path, new RegExp(`#define ${name}\\s+([\\d.]+)f`));
+const CHARGE_MA = codeNumber('firmware/boards/waveshare_175/board_config.h', /#define BOARD_CHARGE_MA (\d+)/);
 const CASES = [
     ['docs/firmware.md', 'après N min sans commande', REST_US('REST_IDLE_US') / 60e6],
     ['docs/firmware.md', "l'air ensommeillé N s", REST_US('REST_DROWSY_US') / 1e6],
@@ -50,6 +51,27 @@ const CASES = [
         '`BOARD_CHARGE_MA` (N mA)',
         codeNumber('firmware/boards/waveshare_175/board_config.h', /#define BOARD_CHARGE_MA (\d+)/)
     ],
+    // The same values, copied where a decision or a plan quotes them (ADR 0012, objet-v1.md, materiel.md, CLAUDE.md)
+    ['docs/adr/0012-energie.md', 'après N min sans rien', REST_US('REST_IDLE_US') / 60e6],
+    ['docs/adr/0012-energie.md', 'pendant N s, l', REST_US('REST_DROWSY_US') / 1e6],
+    ['docs/adr/0012-energie.md', 'en fondu sur les N dernières', REST_US('REST_FADE_OUT_US') / 1e6],
+    ['docs/adr/0012-energie.md', 'en fondu (N s)', REST_US('REST_FADE_IN_US') / 1e6],
+    ['docs/adr/0012-energie.md', 'ensommeillés N s avant', REST_US('REST_WAKING_US') / 1e6],
+    [
+        'docs/adr/0012-energie.md',
+        'Sous N V',
+        codeNumber('firmware/main/battery_rule.h', /#define BATTERY_LOW_MV (\d+)/) / 1000
+    ],
+    [
+        'docs/adr/0012-energie.md',
+        'au-dessus de N V',
+        codeNumber('firmware/main/battery_rule.h', /#define BATTERY_OK_MV\s+(\d+)/) / 1000
+    ],
+    ['docs/objet-v1.md', 'après N min sans toucher', REST_US('REST_IDLE_US') / 60e6],
+    ['docs/objet-v1.md', 'courant de charge sûr : **N mA', CHARGE_MA],
+    ['docs/materiel.md', 'règle la charge à N mA', CHARGE_MA],
+    ['docs/materiel.md', 'que le vendeur donne : **N mA', CHARGE_MA],
+    ['CLAUDE.md', '`BOARD_CHARGE_MA` (N mA', CHARGE_MA],
     ['docs/protocole.md', 'au plus toutes les N s, quelle', ENGINE_SECONDS('engine/src/eyes.c', 'BURST_GAP')],
     ['docs/protocole.md', 'sans nouvelle position pendant N s', ENGINE_SECONDS('engine/src/senses.c', 'FACE_LOST')],
     ['docs/protocole.md', 'absent depuis N s', ENGINE_SECONDS('engine/src/senses.c', 'FACE_NEW')],

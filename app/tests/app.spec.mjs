@@ -458,7 +458,9 @@ test('says when the flash refuses a look, and when the board does', async ({ pag
 
     await page.evaluate(() => (window.board.replies.look = 'err malformed look'));
     await send.click();
-    await expect(note(page)).toHaveText('cherry n’est pas envoyé : Erreur de lilpet : malformed look');
+    await expect(note(page)).toHaveText(
+        'cherry n’est pas envoyé : lilpet refuse : malformed look (son firmware est-il à jour ?)'
+    );
 });
 
 test('sends one look at a time and keeps a failure until the next send', async ({ page }) => {
@@ -558,7 +560,7 @@ test('moods and pets reach the board, and a failure only goes to the log', async
     await page.evaluate(() => (window.board.replies.emotion = 'err unknown emotion'));
     await page.getByRole('button', { name: 'Surpris' }).click();
     await page.locator('.log summary').click();
-    await expect(page.locator('.log pre')).toContainText('> emotion surprised : Erreur de lilpet : unknown emotion');
+    await expect(page.locator('.log pre')).toContainText('> emotion surprised : lilpet refuse : unknown emotion');
     await expect(page.getByRole('alert')).toHaveCount(0);
     await expect(note(page)).toBeEmpty();
 });

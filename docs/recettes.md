@@ -34,7 +34,8 @@ dans `engine/tests/test.h`. Une broche qui doit rester tenue pendant la veille l
 
 Ce qui réveille les yeux, ou les garde éveillés, se lit à un seul endroit, `read_inputs` dans `main.c` : un nouveau
 capteur (un toucher, une touche) s'y ajoute. Il faut aussi le compter dans `rests`, ce qui permet à une carte de
-s'endormir seule.
+s'endormir seule, et en faire une source de réveil de la veille légère dans `board_light_sleep` (`board.c`) : sinon,
+endormie sur batterie, la carte ne le lit qu'une fois par seconde. **Rien ne vérifie** ces deux endroits.
 
 ## Ajouter une émotion ou une réaction
 
@@ -43,8 +44,9 @@ s'endormir seule.
    `engine/include/lilpet/lilpet.h`, avant le `_COUNT` qui la termine.
 3. `npm run tables` : la table générée nomme chaque entrée par son `LP_EMOTION_<NOM>`, et vérifie que les deux listes
    ont la même longueur ; un oubli fait échouer la compilation.
-4. Ajouter une scène qui la montre à `engine/tests/scenes.json` (`npm run check:data` échoue sinon), puis
-   `mise run engine:wasm` et `npm run goldens`, et regarder les images réécrites.
+4. Pour une émotion, ajouter une scène qui la montre à `engine/tests/scenes.json` (`npm run check:data` échoue sinon ;
+   une réaction se voit par son émotion), puis `mise run engine:wasm` et `npm run goldens`, et regarder les images
+   réécrites.
 5. Le dessin a changé : la prochaine version augmente la version mineure du moteur (voir plus bas).
 
 Une réaction qui se répète tant que sa cause dure (comme `shake`) doit aussi entrer dans la liste `HELD` de
@@ -88,7 +90,8 @@ Ce que la CI ne peut pas faire, faute de carte :
   maison : l'AtomS3R et le M5Stamp S3A). Un correctif de carte se prouve d'abord sur l'ancien firmware : le zip de la
   Release précédente se flashe tel quel ([firmware.md](firmware.md#tests)).
 - Sur batterie, sans câble ([décision 12](adr/0012-energie.md)) : l'endormissement après 2 min, le réveil au bouton et
-  au mouvement, les couleurs après un long sommeil, l'air fatigué.
+  au mouvement, l'endormissement le doigt posé sur le bouton puis le réveil à l'appui suivant, les couleurs après un
+  long sommeil, l'air fatigué.
 - L'app PC avec une vraie carte, dans Chrome : le panneau de l'app de développement n'a pas de sélecteur de port série.
 - À l'arrivée de la carte écran : les étapes « À la réception, dans cet ordre » de
   [materiel.md](materiel.md#carte-écran--waveshare-esp32-s3-touch-amoled-175).

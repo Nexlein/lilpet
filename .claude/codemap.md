@@ -50,22 +50,22 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: looks.test.ts
 
 ## app/src/device
-- **connection.ts** (175) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
+- **connection.ts** (178) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
-- **device.ts** (61) — What the app asks the device, on top of a connection
-  - exports: BoardBusy, NotLilpet, hello, command, LookSent, sendLook
+- **device.ts** (68) — What the app asks the device, on top of a connection
+  - exports: BoardBusy, BoardRefused, NotLilpet, hello, command, LookSent, sendLook
   - → app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/protocol.ts
   - ← app/src/device/session.ts, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
-- **fake-port.ts** (120) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
+- **fake-port.ts** (121) — A fake board on the other end of a serial port, for the tests: answers commands like the firmware, logs in between, and can fail like a real port (...
   - exports: FAKE_INFO, FAKE_HELLO, firmware, fakePort
   - → app/src/device/connection.ts, app/src/device/protocol.ts
 - **protocol.ts** (86) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, drawsLike, isCommandReply, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/DeviceBar.tsx
-- **session.ts** (163) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
+- **session.ts** (164) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, BOOT_LINE, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
   - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
@@ -98,7 +98,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → app/src/data/looks.ts
   - packages: react
   - ← app/src/ui/Gallery.tsx, app/src/ui/Stage.tsx
-- **Gallery.tsx** (125) — Right column: the 100 official colors, as small pairs of eyes wearing the chosen pupil
+- **Gallery.tsx** (125) — Right column: the official colors, as small pairs of eyes wearing the chosen pupil
   - exports: Gallery
   - → app/src/data/looks.ts, app/src/data/favorites.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/labels.ts
   - packages: react
@@ -140,7 +140,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← engine/CMakeLists.txt, firmware/components/lilpet/CMakeLists.txt
 
 ## engine/include/lilpet
-- **lilpet.h** (378) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
+- **lilpet.h** (379) — lilpet eye engine, shared by the ESP32-S3 firmware and the WebAssembly build (see docs/architecture.md).
   - exports: LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_PATCH, LP_LOOK_TEXT_SIZE, LP_COMMAND_LINE_MAX, lp_version, lp_rng, lp_pupil, lp_look, lp_look_parse, lp_default_look, lp_look_format, lp_emotion, lp_expression, lp_particle_type, lp_emotion_def, lp_emotion_get, lp_event, lp_reaction, lp_reaction_get, lp_shape, lp_blink_phase, lp_particle, lp_eyes, lp_eyes_init, lp_eyes_set_look, lp_eyes_set_emotion, lp_eyes_react, lp_eyes_blink, lp_eyes_set_pointer, lp_eyes_set_gravity, lp_eyes_set_shaking, lp_eyes_set_follow, lp_eyes_set_shape, lp_eyes_set_head_amount, lp_eyes_update, lp_shake, lp_senses, lp_senses_init, lp_senses_update, lp_senses_face, lp_command_line, lp_command_line_add, lp_command_type, lp_command, lp_command_parse, lp_scene, lp_eyes_set_scene, lp_renderer_init, lp_renderer_set_size, lp_renderer_set_big_endian, lp_render, lp_render_begin, lp_render_rows, lp_render_rows_with
   - → engine/include/lilpet/render_state.h, engine/include/lilpet/screen.h
   - ← engine/src/command.c, engine/src/emotions.c, engine/src/emotions_table.h, engine/src/eyes.c, engine/src/internal.h, engine/src/look.c, engine/src/looks_table.h, engine/src/motion.c, engine/src/pose.c, engine/src/raster.h, engine/src/render.c, engine/src/rng.c, engine/src/senses.c, engine/src/version.c, engine/tests/scenes_table.h, engine/tools/bench.c, engine/tools/bench_script.h, engine/wasm/bindings.c, engine/wasm/bindings.h, firmware/main/battery_rule.h, firmware/main/commands.h, firmware/main/frame.h, firmware/main/look_saving.h, firmware/main/look_store.h, firmware/main/main.c, firmware/main/rest.h
@@ -228,7 +228,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (60) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
+- **engine.d.mts** (62) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
   - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
   - → eyes/emotions.json
 - **engine.mjs** (102) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
@@ -245,7 +245,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/firmware_facts.py, scripts/gen-looks-table.mjs
 
 ## firmware
-- **CMakeLists.txt** (19) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
+- **CMakeLists.txt** (22) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
 - **Dockerfile** (6) — ESP-IDF used to build the firmware, locally and in CI (mise run firmware:build): the latest release, pinned here only, by its tag and by the digest...
   - ← .github/workflows/ci.yml, mise.toml
 
@@ -278,7 +278,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/sources.cmake
 
 ## firmware/main
-- **CMakeLists.txt** (17) — One image per board: each part's header (display.h, imu.h, battery.h) is an interface, and boards/<board>/board.cmake links the board's parts (docs...
+- **CMakeLists.txt** (18) — One image per board: each part's header (display.h, imu.h, battery.h) is an interface, and boards/<board>/board.cmake links the board's parts (docs...
 - **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
   - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c
@@ -359,7 +359,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (417) — Firmware entry point: the eyes, live on the display.
+- **main.c** (420) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
 - **rest.h** (161) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...

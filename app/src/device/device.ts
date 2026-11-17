@@ -15,6 +15,13 @@ export class BoardBusy extends Error {
     }
 }
 
+// The board answered "err <reason>": most often a firmware older than the app, which does not know what it was sent
+export class BoardRefused extends Error {
+    constructor(readonly reason: string) {
+        super(reason);
+    }
+}
+
 // Something answered hello, but not lilpet
 export class NotLilpet extends Error {
     constructor(reply: string | null) {
@@ -43,7 +50,7 @@ export async function hello(connection: Connection): Promise<DeviceInfo> {
 async function ask(connection: Connection, line: string, timeoutMs?: number): Promise<'ok' | 'shown'> {
     const reply = parseReply(await connection.request(line, timeoutMs, isCommandReply));
     if (reply.kind === 'busy') throw new BoardBusy();
-    if (reply.kind === 'refused') throw new Error(reply.reason);
+    if (reply.kind === 'refused') throw new BoardRefused(reply.reason);
     return reply.kind;
 }
 
