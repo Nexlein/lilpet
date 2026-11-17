@@ -278,7 +278,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → engine/sources.cmake
 
 ## firmware/main
-- **CMakeLists.txt** (16) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
+- **CMakeLists.txt** (17) — One image per board: each header (display.h, imu.h) is an interface, and boards/<board>/board.cmake links the board's parts.
 - **axp2101.h** (67) — The AXP2101 power chip's registers and their values, free of ESP-IDF so that the host tests check them (firmware/tests): it charges and measures th...
   - exports: AXP2101_ADDR, AXP2101_STATUS1, AXP2101_ADC_CTRL, AXP2101_VBAT, AXP2101_ICC_CHG, AXP2101_TS_CTRL, AXP2101_BAT_DET, AXP2101_BATTERY_CONNECTED, axp2101_charge_code, axp2101_charge_register, axp2101_ts_register, axp2101_adc_register, axp2101_detection_register, axp2101_millivolts
   - ← firmware/main/battery_axp2101.c
@@ -305,7 +305,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
   - ← firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 - **chip.h** (41) — Which chip the board's image is for: its package, its flash and its PSRAM, all of which the chip reports before any pin is touched (board_init).
-  - exports: chip, chip_psram_mb, chip_same
+  - exports: chip_info, chip_psram_mb, chip_same
   - ← firmware/main/board.c
 - **commands.c** (233) — Implements commands.h: commands from the PC app over the USB serial port, one per line: hello, look, look?, imu?, emotion, react and face (lp_command_parse reads them), a...
   - exports: commands_start, commands_hang_asked, commands_sleep_asked, commands_heard, commands_set_status, commands_next

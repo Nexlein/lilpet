@@ -23,10 +23,10 @@ void board_init(void)
     uint8_t psram_cap = 0;
     (void)esp_flash_get_physical_size(NULL, &flash_bytes); /* a failure reads 0 MB, which no board has */
     (void)esp_efuse_read_field_blob(ESP_EFUSE_PSRAM_CAP, &psram_cap, 3);
-    const chip found = {.pico = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO,
-                        .flash_mb = (int)(flash_bytes >> 20),
-                        .psram_mb = chip_psram_mb(psram_cap)};
-    const chip image = {.pico = BOARD_CHIP_PICO, .flash_mb = BOARD_FLASH_MB, .psram_mb = BOARD_PSRAM_MB};
+    const chip_info found = {.pico = esp_efuse_get_pkg_ver() == EFUSE_PKG_VERSION_ESP32S3PICO,
+                             .flash_mb = (int)(flash_bytes >> 20),
+                             .psram_mb = chip_psram_mb(psram_cap)};
+    const chip_info image = {.pico = BOARD_CHIP_PICO, .flash_mb = BOARD_FLASH_MB, .psram_mb = BOARD_PSRAM_MB};
     while (!chip_same(found, image)) {
         /* Over and over, for a monitor opened later; USB stays up, so the right image can be flashed */
         printf("stopped, no pin touched: this is the image of %s, for an ESP32-S3%s with %d MB of flash and %d MB of "

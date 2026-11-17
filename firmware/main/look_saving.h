@@ -48,7 +48,7 @@ static inline void look_saving_mark_sent(look_saving *s)
 /* Writes `shown` with `save` once its turn comes; false when `save` fails. now in microseconds */
 static inline bool look_save_if_due(look_saving *s, const lp_look *shown, int64_t now, bool (*save)(const lp_look *))
 {
-    if (!s->sent || (s->known && look_same(shown, &s->kept)) || now - s->tried_at < LOOK_SAVE_GAP_US)
+    if (!s->sent || now - s->tried_at < LOOK_SAVE_GAP_US || (s->known && look_same(shown, &s->kept)))
         return true;
     s->tried_at = now;
     if (!save(shown))

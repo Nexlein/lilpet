@@ -14,7 +14,7 @@ typedef struct {
     bool pico;    /* ESP32-S3-PICO-1 package, else QFN56 */
     int flash_mb; /* the flash's size, read from the flash chip itself */
     int psram_mb; /* PSRAM inside the package, from its eFuse; 0 for none */
-} chip;
+} chip_info;
 
 /* The PSRAM_CAP eFuse's value in MB, as ESP-IDF's eFuse table lists it (esp32s3/esp_efuse_table.csv) */
 static inline int chip_psram_mb(unsigned cap)
@@ -33,7 +33,7 @@ static inline int chip_psram_mb(unsigned cap)
     }
 }
 
-static inline bool chip_same(chip a, chip b)
+static inline bool chip_same(chip_info a, chip_info b)
 {
     return a.pico == b.pico && a.flash_mb == b.flash_mb && a.psram_mb == b.psram_mb;
 }
