@@ -113,6 +113,9 @@ yeux (`tiktok-eye-picking.png`), réaction au geste (`tiktok-gesture-reaction.pn
   un coup de poignet bref ne compte pas. « Étourdi » est une émotion à moi, absente des originaux (la surprise seule se voyait
   trop peu) ; touché (l'écran de l'AtomS3R est un bouton) ou caressé dans l'app, il est content
   1,8 s avec des étincelles. Après une réaction, il revient à l'émotion choisie avant, pas forcément à neutre.
+- **Fatigué** (le 2026-11-17, pour la batterie faible, [objet-v1.md](objet-v1.md)) : une émotion à moi aussi. Paupières
+  lourdes qui tombent vers l'extérieur, petites pupilles, regard un peu bas, sans particule : plus ouvert
+  qu'« ensommeillé », qui annonce la veille avec ses étincelles, et avec de plus petites pupilles que « triste ».
 - **Taille** : les yeux occupent presque tout l'écran et se touchent souvent.
 - Sur l'écran réel, les couleurs « bavent » un peu (lueur OLED à travers le verre bombé).
 

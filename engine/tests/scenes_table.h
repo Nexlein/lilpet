@@ -21,7 +21,7 @@ static const lp_look SCENE_LOOKS[11] = {
 };
 
 typedef struct { const char *id; const lp_look *look; lp_scene scene; } reference_scene; /* look: in SCENE_LOOKS */
-static const reference_scene SCENES[38] = {
+static const reference_scene SCENES[39] = {
     {"look-cherry", &SCENE_LOOKS[0], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"look-popcorn", &SCENE_LOOKS[1], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"look-laser", &SCENE_LOOKS[2], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
@@ -41,6 +41,7 @@ static const reference_scene SCENES[38] = {
     {"emotion-angry-circle", &SCENE_LOOKS[8], {.emotion = LP_EMOTION_ANGRY, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"emotion-dizzy", &SCENE_LOOKS[9], {.emotion = LP_EMOTION_DIZZY, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.1f, .gaze_x = 0.45f, .gaze_y = -0.3f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"emotion-sleepy", &SCENE_LOOKS[6], {.emotion = LP_EMOTION_SLEEPY, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = true, .particle_seed = 3u, .particle_time = 3.0f}},
+    {"emotion-tired", &SCENE_LOOKS[0], {.emotion = LP_EMOTION_TIRED, .blink_phase = LP_BLINK_NONE, .blink_t = 0.0f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"blink-anticip", &SCENE_LOOKS[1], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_ANTICIP, .blink_t = 0.06f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"blink-close-40", &SCENE_LOOKS[1], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_CLOSE, .blink_t = 0.04f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},
     {"blink-close-80", &SCENE_LOOKS[1], {.emotion = LP_EMOTION_NEUTRAL, .blink_phase = LP_BLINK_CLOSE, .blink_t = 0.08f, .yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f, .gaze_x = 0.0f, .gaze_y = 0.0f, .has_particles = false, .particle_seed = 0u, .particle_time = 0.0f}},

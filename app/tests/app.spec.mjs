@@ -200,7 +200,8 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
         'Triste',
         'Surpris',
         'Endormi',
-        'Étourdi'
+        'Étourdi',
+        'Fatigué'
     ]);
     await page.getByRole('button', { name: 'Étourdi' }).click();
     await expect(page.getByRole('button', { name: 'Étourdi' })).toHaveAttribute('aria-pressed', 'true');
