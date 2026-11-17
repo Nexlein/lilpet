@@ -45,6 +45,14 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
 - **Réactions** : le moteur reçoit des événements (`lp_eyes_react` : appui, visage vu…) et des états (secousse, gravité,
   dont il tire seul la position à l'envers) ; chaque cause mène à une réaction décrite comme une donnée (émotion, durée,
   étincelles, dans `eyes/emotions.json`), pour que l'app puisse un jour les changer.
+- **Pannes** : la boucle de dessin est sous le task watchdog d'ESP-IDF. Une image qui ne finit pas en 5 s
+  (`CONFIG_ESP_TASK_WDT_TIMEOUT_S`), quelle que soit l'attente qui bloque (une bande du second cœur, le bus de l'écran),
+  redémarre la puce, alors que les commandes, dans leur propre tâche, auraient continué de répondre. Le démarrage dit
+  pourquoi la puce a redémarré, dans le journal et dans `hello` (`reset=`, [protocole](protocole.md)). Après un crash
+  (`panic`, un watchdog, un blocage du processeur), la carte démarre une fois sur le look par défaut, sans lire la
+  flash : si les données gardées l'ont fait planter, le démarrage suivant ne replante pas, et un look envoyé alors
+  s'écrit. Le look gardé reste en flash et revient au démarrage d'après. Une mémoire flash pleine ou dans un autre
+  format est effacée, look gardé compris : le journal le dit, et `hello` aussi (`storage=erased`).
 - **Secousse**, mesurée sur la carte : une secousse à la main monte jusqu'à 11 g, vers 6 Hz, et s'écarte en moyenne de
   3 à 6 g de la gravité (1 g), contre 0,01 g au repos ; une petite secousse et une franche ont la même force, seule
   leur durée change. Elle compte après environ 0,4 s : un choc ou un coup de poignet bref ne comptent pas.
