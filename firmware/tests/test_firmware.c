@@ -202,6 +202,14 @@ void test_the_eyes_rest_after_a_while_with_nothing_happening(void)
     CHECK(rest_state_at(&r, t1) == REST_ASLEEP);
 }
 
+void test_a_held_button_counts_once(void)
+{
+    rest r = rest_start(0);
+    CHECK(rest_button_down(&r, true));
+    CHECK(!rest_button_down(&r, true) && !rest_button_down(&r, true)); /* held, in a pocket: it keeps nothing awake */
+    CHECK(!rest_button_down(&r, false) && rest_button_down(&r, true)); /* let go, then pressed again */
+}
+
 void test_the_chip_check_tells_the_camera_board_apart(void)
 {
     /* The PSRAM_CAP eFuse, in MB */

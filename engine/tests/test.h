@@ -115,6 +115,7 @@
     X(test_a_start_writes_only_the_looks_that_come_after_it)                                                           \
     X(test_the_eyes_rest_after_a_while_with_nothing_happening)                                                         \
     X(test_the_test_command_sends_any_board_to_sleep)                                                                  \
+    X(test_a_held_button_counts_once)                                                                                  \
     X(test_the_chip_check_tells_the_camera_board_apart)                                                                \
     X(test_handling_the_board_counts_from_its_last_move)                                                               \
     X(test_the_eyes_look_sleepy_before_they_sleep_and_get_their_mood_back)                                             \

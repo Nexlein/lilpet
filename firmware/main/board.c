@@ -92,14 +92,19 @@ void board_light_sleep(uint64_t us)
     for (int i = 0; PINS_KEPT_ASLEEP[i] >= 0; i++)
         ESP_ERROR_CHECK(gpio_sleep_sel_dis(PINS_KEPT_ASLEEP[i]));
 #ifdef BOARD_BUTTON
-    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: pressed is low */
-    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, GPIO_INTR_LOW_LEVEL));
-    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+    /* Any pin wakes the ESP32-S3 from light sleep, not only the RTC ones: pressed is low. Not while it is held (a board
+     * pressed in a pocket): each sleep would end at once, and the timer alone wakes it then. */
+    const bool armed = !board_button_pressed();
+    if (armed) {
+        ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_BUTTON, GPIO_INTR_LOW_LEVEL));
+        ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+    }
 #endif
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(us));
     (void)esp_light_sleep_start(); /* refused when a wake-up is already pending: the caller looks again */
 #ifdef BOARD_BUTTON
-    ESP_ERROR_CHECK(gpio_wakeup_disable(BOARD_BUTTON));
+    if (armed)
+        ESP_ERROR_CHECK(gpio_wakeup_disable(BOARD_BUTTON));
 #endif
 }
 

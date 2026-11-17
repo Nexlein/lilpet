@@ -247,7 +247,7 @@ static int64_t sleep_until_woken(bool rests)
         const int64_t now = esp_timer_get_time();
         read_battery(now);
         float g[3];
-        by_press = board_button_pressed();
+        by_press = rest_button_down(&power.rest, board_button_pressed());
         if (heard || by_press || commands_hang_asked() || (imu_gravity(g) && rest_handled(&power.rest, g)))
             break;
     }
@@ -365,8 +365,9 @@ void app_main(void)
         /* Before what came after it: a command that follows `> test sleep` wakes the eyes */
         const bool sleep_asked = commands_sleep_asked();
         const bool heard = commands_heard(0); /* every frame: a command taken now wakes nothing later */
+        const bool pressed = rest_button_down(&power.rest, button);
         rest_frame(&power.rest, start, rests, sleep_asked,
-                   heard || button || (gravity && rest_handled(&power.rest, g)));
+                   heard || pressed || (gravity && rest_handled(&power.rest, g)));
         enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */
         read_battery(start);
         const int brightness = rest_brightness(&power.rest, start);

@@ -298,7 +298,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
-- **board.c** (175) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+- **board.c** (180) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
   - exports: board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/chip.h
 - **board.h** (38) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
@@ -359,11 +359,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (399) — Firmware entry point: the eyes, live on the display.
+- **main.c** (400) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
-- **rest.h** (151) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
-  - exports: REST_IDLE_US, REST_DROWSY_US, REST_FADE_OUT_US, REST_FADE_IN_US, REST_WAKING_US, REST_MOVED_G, rest_state, rest_name, rest, rest_start, rest_activity, rest_woke, rest_press, rest_sleep_now, rest_state_at, rest_frame, rest_brightness, rest_moved, rest_handled, rest_show
+- **rest.h** (161) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
+  - exports: REST_IDLE_US, REST_DROWSY_US, REST_FADE_OUT_US, REST_FADE_IN_US, REST_WAKING_US, REST_MOVED_G, rest_state, rest_name, rest, rest_start, rest_activity, rest_woke, rest_button_down, rest_press, rest_sleep_now, rest_state_at, rest_frame, rest_brightness, rest_moved, rest_handled, rest_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.h, firmware/main/main.c
 
