@@ -56,8 +56,10 @@ Ce qu'on perd :
 - **Le premier affichage** : le pilote de l'écran a été écrit d'après la démo Waveshare, sans la carte. Vérifier le
   sens de l'image, le décalage de colonnes, les couleurs et l'absence de déchirure (voir
   [firmware.md](firmware.md)).
-- **La puce de charge et son courant de charge** : non publiés. Il faut les connaître avant de choisir définitivement la
-  batterie (voir plus bas).
+- **La puce de charge et son courant de charge** : une ETA6098, réglée à 2 A d'après le schéma (R4 = 82 kΩ,
+  [schéma](https://files.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.32/ESP32-S3-Touch-AMOLED-1.32-Schematic.pdf)), trop
+  pour la batterie de 300 mAh (voir plus bas). À mesurer à la réception et à corriger avant d'y laisser la batterie en
+  charge.
 - **Le brochage du connecteur d'extension SH1.0 12 broches** (câble fourni) : non publié en texte. D'après le tableau
   des broches, GPIO43 et GPIO44 (l'UART) sont libres, ainsi que GPIO0 à 3, 5, 21 et 45.
 - Disponibilité : vendue sur waveshare.com, aucun revendeur européen trouvé. Frais de port et TVA à voir au panier.
@@ -114,7 +116,8 @@ un, à faire tourner sur le visage déjà détecté.
   [Amazon.fr](https://www.amazon.fr/602030-Liter-Rechargeable-thermistance-Radiocommande/dp/B0CY8NS7ZM)). Plus petite
   si le boîtier manque de place : 502030 (250 mAh, 5 mm d'épaisseur).
 - Charger à 1C au plus, donc 300 mA pour 300 mAh ([guide Adafruit](https://cdn-learn.adafruit.com/downloads/pdf/li-ion-and-lipoly-batteries.pdf)).
-  Le courant de charge de la carte n'est pas publié : à vérifier avant d'y laisser la batterie en charge.
+  Le schéma de la carte écran règle sa charge à 2 A, plus de six fois trop : à mesurer, puis à corriger (la résistance
+  R4), avant d'y laisser la batterie en charge.
 - Une seule batterie, un seul chargeur (celui de la carte écran) : ne pas relier aussi la batterie au chargeur de la
   carte vision. L'alimentation de la carte vision (3,3 V de la carte écran ou directement la batterie) sera choisie au
   montage, selon ce que le régulateur de la carte écran peut fournir (la caméra monte à 366 mA en pointe).
@@ -199,14 +202,17 @@ Options écartées, relevées du 27 au 31 octobre :
 | Reichelt (Allemagne) pour la caméra                         | 24,88 € sans les câbles          | 15,40 € + 9,48 € de port DPD vers la France ; en stock tout de suite                                                         |
 | DigiKey, Mouser ou Farnell pour la caméra                   | 14,50 à 15 € + 12 à 25 € de port | Intéressant seulement avec d'autres achats                                                                                   |
 
+À ajouter pour la v1 ([objet-v1.md](objet-v1.md)) : un module accéléromètre I2C avec une broche d'interruption, pour
+les secousses, l'inclinaison et le réveil à la prise en main. Proposé : un BMI270, le capteur de l'AtomS3R, dont le
+pilote est déjà écrit. Le choix du module et la commande se font à l'étape de la commande
+([#47](https://github.com/Nexlein/lilpet/issues/47)).
+
 Plus tard, avec le boîtier :
 
-- Vibreur pastille 10 mm 3 V ([Gotronic](https://www.gotronic.fr/cat-vibreurs-1932.htm), environ 1,30 €) avec un
-  transistor NPN (PN2222) ou un MOSFET, une diode de roue libre et une résistance : le moteur tire 60 à 120 mA, trop pour
-  une broche de l'ESP32 ([Adafruit](https://www.adafruit.com/product/1201)).
-- Petit module accéléromètre I2C, si on veut réagir aux secousses.
 - Anneau de porte-clé et chaînette.
 - Boîtier imprimé en 3D.
+
+Écarté : le vibreur ([objet-v1.md](objet-v1.md)).
 
 Outils, si tu ne les as pas : fer à souder à panne fine, multimètre (polarité de la batterie, courant de charge), câble
 USB-C qui transmet les données.
