@@ -14,7 +14,6 @@
 #include "imu_axes.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #define REG_CHIP_ID         0x00u
 #define REG_STATUS          0x03u
@@ -40,31 +39,17 @@ static const imu_axis SCREEN_AXES[3] = BOARD_IMU_AXES;
 
 static i2c_master_dev_handle_t dev;
 
-static bool write_reg(uint8_t reg, const uint8_t *data, size_t len)
-{
-    uint8_t bytes[1 + CHUNK];
-    if (len > CHUNK)
-        return false;
-    bytes[0] = reg;
-    memcpy(bytes + 1, data, len);
-    return i2c_master_transmit(dev, bytes, len + 1, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
-}
-
 static bool write_reg8(uint8_t reg, uint8_t value)
 {
-    return write_reg(reg, &value, 1);
-}
-
-static bool read_reg(uint8_t reg, uint8_t *data, size_t len)
-{
-    return i2c_master_transmit_receive(dev, &reg, 1, data, len, BOARD_I2C_TIMEOUT_MS) == ESP_OK;
+    return board_i2c_write(dev, reg, &value, 1);
 }
 
 static bool upload_config(void)
 {
     for (size_t at = 0; at < BMI270_CONFIG_SIZE; at += CHUNK) {
         const uint8_t offset[2] = {(uint8_t)((at / 2u) & 0x0Fu), (uint8_t)(at / 32u)};
-        if (!write_reg(REG_INIT_ADDR, offset, sizeof offset) || !write_reg(REG_INIT_DATA, BMI270_CONFIG + at, CHUNK))
+        if (!board_i2c_write(dev, REG_INIT_ADDR, offset, sizeof offset) ||
+            !board_i2c_write(dev, REG_INIT_DATA, BMI270_CONFIG + at, CHUNK))
             return false;
     }
     return true;
@@ -73,7 +58,7 @@ static bool upload_config(void)
 static bool start(void)
 {
     uint8_t id = 0;
-    if (!read_reg(REG_CHIP_ID, &id, 1) || id != CHIP_ID) {
+    if (!board_i2c_read(dev, REG_CHIP_ID, &id, 1) || id != CHIP_ID) {
         printf("motion sensor: not a BMI270 (chip ID 0x%02X)\n", id);
         return false;
     }
@@ -88,7 +73,7 @@ static bool start(void)
     uint8_t status = 0;
     for (int i = 0; i < 40 && (status & 0x0Fu) != INIT_OK; i++) { /* at most 20 ms, says the datasheet */
         vTaskDelay(pdMS_TO_TICKS(1));
-        if (!read_reg(REG_INTERNAL_STATUS, &status, 1))
+        if (!board_i2c_read(dev, REG_INTERNAL_STATUS, &status, 1))
             status = 0;
     }
     if ((status & 0x0Fu) != INIT_OK) {
@@ -101,7 +86,7 @@ static bool start(void)
     uint8_t ready = 0;
     for (int i = 0; i < 20 && !(ready & DATA_READY); i++) {
         vTaskDelay(pdMS_TO_TICKS(10));
-        if (!read_reg(REG_STATUS, &ready, 1))
+        if (!board_i2c_read(dev, REG_STATUS, &ready, 1))
             ready = 0;
     }
     if (!(ready & DATA_READY))
@@ -132,7 +117,7 @@ bool imu_init(void)
 bool imu_gravity(float out[3])
 {
     uint8_t raw[6];
-    if (!dev || !read_reg(REG_ACC_X, raw, sizeof raw))
+    if (!dev || !board_i2c_read(dev, REG_ACC_X, raw, sizeof raw))
         return false;
     imu_axes_to_screen(raw, SCREEN_AXES, LSB_PER_G, out);
     return true;

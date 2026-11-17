@@ -35,4 +35,11 @@ i2c_master_bus_handle_t board_i2c(void);
 /* A device of that bus at its 7-bit address, at the bus's one speed; NULL when there is no bus or it cannot be added */
 i2c_master_dev_handle_t board_i2c_device(uint16_t address);
 
+/* Writes `len` bytes to the register `reg` of a device of that bus; false when it does not answer within
+ * BOARD_I2C_TIMEOUT_MS */
+bool board_i2c_write(i2c_master_dev_handle_t device, uint8_t reg, const uint8_t *data, size_t len);
+
+/* Reads `len` bytes from the register `reg` of a device of that bus; false when it does not answer */
+bool board_i2c_read(i2c_master_dev_handle_t device, uint8_t reg, uint8_t *data, size_t len);
+
 #endif

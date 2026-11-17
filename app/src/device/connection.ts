@@ -5,6 +5,8 @@ import { classify, LineSplitter } from './protocol';
 export interface PortLike {
     open(options: { baudRate: number; bufferSize?: number }): Promise<void>;
     close(): Promise<void>;
+    // Chrome 103 and later: drops the permission to open this port again without asking
+    forget?(): Promise<void>;
     setSignals(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
@@ -71,6 +73,7 @@ export class Connection {
             return new Connection(port, events);
         } catch (err) {
             await port.close().catch(() => undefined);
+            await port.forget?.().catch(() => undefined);
             throw err;
         }
     }
@@ -112,6 +115,9 @@ export class Connection {
         this.#pending?.reject(new ConnectionClosed());
         this.#writer.releaseLock();
         await this.#port.close().catch(() => undefined);
+        // Chrome keeps a port's permission per site, and nexlein.github.io holds other repos' pages too: forgotten, the
+        // port opens again only through the picker, which the app shows on every connect anyway
+        await this.#port.forget?.().catch(() => undefined);
         this.#events.onClose?.();
     }
 

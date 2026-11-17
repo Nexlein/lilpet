@@ -337,11 +337,11 @@ static gaze_aim update_gaze(lp_eyes *e, float dt, float t, float slide)
 }
 
 /*
- * The clock goes back by a whole number of breaths (render.c: sin(time * 2.1)) about every 17 minutes, with every
+ * The clock goes back by a whole number of breaths (LP_BREATH_RATE) about every 17 minutes, with every
  * deadline: a float clock that keeps growing loses its fractions, runs fast after 3 days and stops after 6 at 60
  * frames/s.
  */
-#define CLOCK_WRAP (336.0f * 2.0f * LP_PI / 2.1f)
+#define CLOCK_WRAP (336.0f * 2.0f * LP_PI / LP_BREATH_RATE)
 
 static void wrap_clock(lp_eyes *e)
 {
