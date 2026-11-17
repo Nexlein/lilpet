@@ -61,13 +61,15 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
   s'écrit. Le look gardé reste en flash et revient au démarrage d'après. Une mémoire flash pleine ou dans un autre
   format est effacée, look gardé compris : le journal le dit, et `hello` aussi (`storage=erased`).
 - **Repos** ([décision 12](adr/0012-energie.md)) : après 2 min sans commande, sans appui ni mouvement, les yeux prennent
-  l'air ensommeillé 5 s, puis s'endorment : rétroéclairage et écran éteints, boucle de dessin en pause, hors du
-  watchdog. Branchée à un PC, la carte garde son port USB et guette une commande, le bouton ou un mouvement toutes les
-  20 ms ; seule, elle passe en veille légère, réveillée par le bouton ou, chaque seconde, pour lire le mouvement.
-  Réveillée, elle redessine l'image entière. `hello` dit où en sont les yeux (`state=`), et `> test sleep` les endort
-  tout de suite. L'animation de mesure ne s'endort pas seule, ni une carte qui ne saurait pas se réveiller seule, sans
-  bouton ni capteur de mouvement (le Waveshare, aujourd'hui). En veille légère, ESP-IDF laisse flotter toutes les
-  broches : `board.c` garde le maintien de l'alimentation, le reset et la sélection de l'écran, et le bus I2C.
+  l'air ensommeillé 10 s, l'écran s'éteignant en fondu sur les 2 dernières, puis s'endorment : écran éteint, boucle de
+  dessin en pause, hors du watchdog. Branchée à un PC, la carte garde son port USB et guette une commande, le bouton ou
+  un mouvement toutes les 20 ms ; seule, elle passe en veille légère, réveillée par le bouton ou, chaque seconde, pour
+  lire le mouvement. Réveillée, elle redessine l'image entière et rallume l'écran en fondu (0,5 s) ; les yeux restent
+  ensommeillés 2 s avant leur humeur, et l'appui qui l'a réveillée ne compte pas comme une caresse (`rest.h`). `hello`
+  dit où en sont les yeux (`state=`), et `> test sleep` les endort tout de suite. L'animation de mesure ne s'endort pas
+  seule, ni une carte qui ne saurait pas se réveiller seule, sans bouton ni capteur de mouvement (les Waveshare,
+  aujourd'hui). En veille légère, ESP-IDF laisse flotter toutes les broches : `board.c` garde le maintien de
+  l'alimentation, le reset et la sélection de l'écran, et le bus I2C.
 - **Batterie** : lue toutes les 10 s, d'une des trois façons que `board.cmake` choisit. `battery_adc.c` lit le pont
   diviseur de la carte (`BOARD_BATTERY_ADC`, `BOARD_BATTERY_DIVIDER`), avec l'étalonnage de l'ADC gardé dans les eFuses
   de la puce. `battery_axp2101.c` lit la puce d'alimentation de la 1,75", et règle à chaque démarrage son courant de

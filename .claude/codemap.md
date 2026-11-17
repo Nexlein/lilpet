@@ -314,14 +314,14 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **dcs.h** (39) — What both display drivers send: the standard MIPI DCS commands their controllers take (GC9107 and ST7735S of the AtomS3R, CO5300 of the round scree...
   - exports: DCS_NOP, DCS_SOFT_RESET, DCS_READ_ID, DCS_SLEEP_IN, DCS_SLEEP_OUT, DCS_NORMAL_MODE, DCS_INVERT_OFF, DCS_INVERT_ON, DCS_DISPLAY_OFF, DCS_DISPLAY_ON, DCS_COLUMNS, DCS_ROWS, DCS_WRITE_RAM, DCS_TE_ON, DCS_ORIENTATION, DCS_PIXEL_FORMAT, DCS_BRIGHTNESS, DCS_WRITE_CTRL_DISPLAY, dcs_range
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c
-- **display.h** (35) — The board's screen.
-  - exports: display_init, display_wait_frame, display_draw, display_flush, display_sleep, display_wake
+- **display.h** (38) — The board's screen.
+  - exports: display_init, display_wait_frame, display_draw, display_flush, display_sleep, display_wake, display_set_brightness
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (256) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
-  - exports: display_init, display_draw, display_flush, display_sleep, display_wake
+- **display_atoms3r.c** (260) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+  - exports: display_init, display_draw, display_flush, display_sleep, display_wake, display_set_brightness
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
-- **display_co5300.c** (183) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
-  - exports: display_wait_frame, display_init, display_draw, display_flush, display_sleep, display_wake
+- **display_co5300.c** (187) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
+  - exports: display_wait_frame, display_init, display_draw, display_flush, display_sleep, display_wake, display_set_brightness
   - → firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h
 - **display_paced.c** (24) — Frame timing of the displays without a TE signal: the AtomS3R's small LCD, or no display at all on a bare board.
   - exports: display_wait_frame
@@ -356,11 +356,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (394) — Firmware entry point: the eyes, live on the display.
+- **main.c** (403) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
-- **rest.h** (92) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
-  - exports: REST_IDLE_US, REST_DROWSY_US, REST_MOVED_G, rest_state, rest_name, rest, rest_start, rest_activity, rest_sleep_now, rest_state_at, rest_moved, rest_handled, rest_show
+- **rest.h** (138) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
+  - exports: REST_IDLE_US, REST_DROWSY_US, REST_FADE_OUT_US, REST_FADE_IN_US, REST_WAKING_US, REST_MOVED_G, rest_state, rest_name, rest, rest_start, rest_activity, rest_woke, rest_press, rest_sleep_now, rest_state_at, rest_brightness, rest_moved, rest_handled, rest_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.h, firmware/main/main.c
 

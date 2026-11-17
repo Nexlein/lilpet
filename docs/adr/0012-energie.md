@@ -23,7 +23,9 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
 ## Décision
 
 - **Trois états, une règle pure.** `firmware/main/rest.h`, testé sur PC avec ce que les yeux montrent : éveillé ;
-  après 2 min sans rien (proposé), l'air ensommeillé (`sleepy`) pendant 5 s ; puis endormi.
+  après 2 min sans rien (proposé), l'air ensommeillé (`sleepy`) pendant 10 s, l'écran s'éteignant en fondu sur les 2
+  dernières ; puis endormi. Durées choisies le 2026-11-17 après l'essai sur l'AtomS3R : 5 s et un écran coupé net
+  faisaient un endormissement trop bref.
 - **Ce qui le garde éveillé ou le réveille** : une commande (toute ligne qui commence par `> `, sauf `> test sleep` et
   `> test hang`), le bouton, ou un mouvement : la gravité s'écarte de plus de 0,15 g, sur un axe, de celle du dernier
   mouvement. Mesurer depuis ce dernier mouvement, et non depuis l'image d'avant, compte aussi une inclinaison lente.
@@ -39,7 +41,10 @@ sur G8, [M5Stack](https://docs.m5stack.com/en/atom/Atomic_Battery_Base)).
     - En veille légère, ESP-IDF laisse flotter toutes les broches (`CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND`), sauf
       celles qu'on lui nomme : la carte garde le maintien de son alimentation, le reset et la sélection de l'écran, et
       le bus I2C.
-- **Au réveil** : l'écran se rallume, l'image est redessinée en entier, et les yeux reprennent leur humeur.
+- **Au réveil** : l'écran se rallume en fondu (0,5 s), l'image est redessinée en entier, et les yeux restent
+  ensommeillés 2 s avant de reprendre leur humeur, sauf si une réaction l'a remplacée. L'appui qui réveille ne compte
+  pas comme une caresse tant qu'il n'est pas relâché : sans cela, chaque réveil au bouton finissait dans la joie et les
+  étincelles.
 - **La batterie** est lue toutes les 10 s. Sous 3,5 V, les yeux prennent l'air fatigué (`tired`) jusqu'à ce qu'elle
   remonte au-dessus de 3,6 V (proposé) ; ils reprennent alors leur humeur, sauf si l'app en a choisi une autre
   entre-temps. `hello` dit `battery=<mV>`, ou `none`, et `state=awake|drowsy|asleep` ([protocole](../protocole.md)).
