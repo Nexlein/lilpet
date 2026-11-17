@@ -149,8 +149,7 @@ static const panel *detect(void)
 
 static void set_backlight(i2c_master_dev_handle_t backlight, uint8_t reg, uint8_t value)
 {
-    const uint8_t bytes[2] = {reg, value};
-    if (i2c_master_transmit(backlight, bytes, sizeof bytes, BOARD_I2C_TIMEOUT_MS) != ESP_OK)
+    if (!board_i2c_write(backlight, reg, &value, 1))
         printf("backlight: no answer from the driver at I2C 0x%02X\n", BOARD_BACKLIGHT_ADDR);
 }
 

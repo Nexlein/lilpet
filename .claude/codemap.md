@@ -288,7 +288,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **battery_adc.c** (59) — The battery read through a divider on an ADC pin (BOARD_BATTERY_ADC, BOARD_BATTERY_DIVIDER in board_config.h): the AtomS3R on M5Stack's Atomic Batt...
   - exports: battery_init, battery_millivolts
   - → firmware/main/battery.h, firmware/boards/*/board_config.h
-- **battery_axp2101.c** (63) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
+- **battery_axp2101.c** (62) — The battery on a board whose AXP2101 power chip charges and measures it: the Waveshare 1.75".
   - exports: battery_init, battery_millivolts
   - → firmware/main/axp2101.h, firmware/main/battery.h, firmware/main/board.h, firmware/boards/*/board_config.h
 - **battery_none.c** (11) — The battery of a board that cannot read one: none, for hello (battery.h)
@@ -298,11 +298,11 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: BATTERY_LOW_MV, BATTERY_OK_MV, battery_low, battery_show
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/main.c
-- **board.c** (179) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
+- **board.c** (192) — Implements board.h: the board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device, board_i2c_write, board_i2c_read
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/chip.h
-- **board.h** (38) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
-  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device
+- **board.h** (45) — The board this image is built for: its pins and mounting are in boards/<board>/board_config.h, picked at build time.
+  - exports: BOARD_I2C_TIMEOUT_MS, board_init, board_has_button, board_button_pressed, board_light_sleep, board_i2c, board_i2c_device, board_i2c_write, board_i2c_read
   - ← firmware/main/battery_axp2101.c, firmware/main/board.c, firmware/main/display_atoms3r.c, firmware/main/imu_bmi270.c, firmware/main/main.c
 - **chip.h** (41) — Which chip the board's image is for: its package, its flash and its PSRAM, all of which the chip reports before any pin is touched (board_init).
   - exports: chip_info, chip_psram_mb, chip_same
@@ -320,7 +320,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **display.h** (38) — The board's screen.
   - exports: display_init, display_wait_frame, display_draw, display_flush, display_sleep, display_wake, display_set_brightness
   - ← firmware/main/display_atoms3r.c, firmware/main/display_co5300.c, firmware/main/display_paced.c, firmware/main/main.c
-- **display_atoms3r.c** (260) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
+- **display_atoms3r.c** (259) — Small LCD of the M5Stack AtomS3R: 128x128 over SPI, with a ST7735S or a GC9107 depending on the batch (M5Stack changed it in 2026), told apart by t...
   - exports: display_init, display_draw, display_flush, display_sleep, display_wake, display_set_brightness
   - → firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/dcs.h, firmware/main/display.h, firmware/main/lcd_id.h
 - **display_co5300.c** (193) — Round AMOLED of the Waveshare ESP32-S3-Touch-AMOLED-1.32 and 1.75: 466x466, CO5300 controller, QSPI, with ESP-IDF's esp_lcd panel IO.
@@ -339,7 +339,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **imu_axes.h** (26) — From the raw sample of a motion sensor to gravity on the screen axes (x right, y down, z toward the viewer), with the mounting of the board (BOARD_...
   - exports: imu_axis, imu_axes_to_screen
   - ← firmware/main/imu_bmi270.c
-- **imu_bmi270.c** (139) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
+- **imu_bmi270.c** (124) — Motion sensor of the AtomS3R: a Bosch BMI270 on the internal I2C bus, accelerometer only, read when asked.
   - exports: imu_init, imu_gravity
   - → firmware/main/imu.h, firmware/third_party/bmi270/bmi270_config.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/imu_axes.h
 - **imu_none.c** (13) — Boards without a motion sensor
@@ -359,7 +359,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (403) — Firmware entry point: the eyes, live on the display.
+- **main.c** (417) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
 - **rest.h** (161) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
