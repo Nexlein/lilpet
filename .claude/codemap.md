@@ -50,7 +50,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - tests: looks.test.ts
 
 ## app/src/device
-- **connection.ts** (178) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
+- **connection.ts** (177) — Serial connection to the device (Web Serial): reads its lines, sends commands one at a time and waits for each reply.
   - exports: PortLike, portPicker, ConnectionClosed, NoReply, Connection
   - → app/src/device/protocol.ts
   - ← app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/hooks.ts
