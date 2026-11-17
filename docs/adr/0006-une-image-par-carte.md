@@ -14,13 +14,12 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
 
 - **Une image par carte**, choisie à la compilation (`BOARD`).
 - **Une carte est un dossier**, `firmware/boards/<carte>/` : `board.cmake` liste ses composants, `board_config.h` ses
-  broches, son montage, sa taille d'écran et le boîtier de sa puce. Les options d'ESP-IDF sont celles de
+  broches, son montage, sa taille d'écran et sa puce (boîtier, flash et PSRAM). Les options d'ESP-IDF sont celles de
   `firmware/sdkconfig.defaults`, communes à toutes les cartes. Le dossier donne son nom à la carte. CMake, la CI et les
   scripts de carte (`scripts/board_link.py`) lisent ces dossiers.
-- Chaque en-tête (`display.h`, `imu.h`) est une interface, chaque composant un fichier `.c`, sans table de fonctions :
-  tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure (`lcd_id.h`, `imu_axes.h`,
-  `look_saving.h`, `frame.h`, `dcs.h`, `rest.h`, `battery_rule.h`), pour que les tests sur PC la voient
-  (`firmware/tests`).
+- Chaque en-tête de composant (`display.h`, `imu.h`, `battery.h`) est une interface, chaque composant un fichier `.c`,
+  sans table de fonctions : tout est choisi à la compilation. Seuls quelques en-têtes portent de la logique pure, pour
+  que les tests sur PC la voient (`firmware/tests`) ; leur liste est dans [firmware.md](../firmware.md#tests).
 - **Deux gardes contre une mauvaise image.** `firmware:flash` (`scripts/flash-guard.py`) demande `> hello` à la carte et
   refuse si une autre carte répond, puis donne ce port à esptool ; `FORCE=1` passe outre sans rien demander. Au
   démarrage, `board_init` compare la puce à celle de la carte, son boîtier, la taille de sa flash et celle de sa PSRAM

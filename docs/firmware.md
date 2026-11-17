@@ -63,8 +63,8 @@ compilé pour toutes les cartes, à 62,5 images/s : des ticks de 1 ms ne font pa
 - **Repos** ([décision 12](adr/0012-energie.md)) : après 2 min sans commande, sans appui ni mouvement, les yeux prennent
   l'air ensommeillé 10 s, l'écran s'éteignant en fondu sur les 2 dernières, puis s'endorment : écran éteint, boucle de
   dessin en pause, hors du watchdog. Branchée à un PC, la carte garde son port USB et guette une commande, le bouton ou
-  un mouvement toutes les 20 ms ; seule, elle passe en veille légère, réveillée par le bouton ou, chaque seconde, pour
-  lire le mouvement. Réveillée, elle redessine l'image entière et rallume l'écran en fondu (0,5 s) ; les yeux restent
+  un mouvement toutes les 20 ms ; seule, elle passe en veille légère, réveillée par un appui ou, chaque seconde, pour
+  lire le mouvement. Seul l'appui compte : un bouton tenu ne garde pas la carte éveillée. Réveillée, elle redessine l'image entière et rallume l'écran en fondu (0,5 s) ; les yeux restent
   ensommeillés 2 s avant leur humeur, et l'appui qui l'a réveillée ne compte pas comme une caresse (`rest.h`). `hello`
   dit où en sont les yeux (`state=`), et `> test sleep` les endort tout de suite, sur toutes les cartes. L'animation de
   mesure ne s'endort pas seule, ni une carte qui ne saurait pas se réveiller seule, sans bouton ni capteur de mouvement
@@ -93,8 +93,8 @@ Les parties pures du firmware ont leurs tests sur PC, dans `firmware/tests`, lan
 jamais tourné sur une carte), le passage des axes du capteur de mouvement aux axes de l'écran (`imu_axes.h`), le moment
 où un look s'écrit en flash (`look_saving.h`), les lignes d'une bande que dessine chaque cœur et la part de l'écran
 qu'une image redessine (`frame.h`), les plages de colonnes et de lignes que les deux pilotes d'écran envoient
-(`dcs.h`), le repos et ses fondus (`rest.h`), la batterie faible (`battery_rule.h`) et les registres de l'AXP2101
-(`axp2101.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
+(`dcs.h`), le repos et ses fondus (`rest.h`), la batterie faible (`battery_rule.h`), les registres de l'AXP2101
+(`axp2101.h`) et la puce qu'une image accepte (`chip.h`). Le reste se vérifie sur la carte, avec `firmware:check-device`.
 
 Sur la carte :
 

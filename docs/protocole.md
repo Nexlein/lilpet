@@ -69,6 +69,10 @@ pour vérifier ce watchdog et ce démarrage ; l'app ne l'envoie jamais.
 - **Les scripts de carte** : `firmware:flash` vérifie la carte par `hello` avant de la flasher
   ([décision 6](adr/0006-une-image-par-carte.md)), `firmware:check-device` essaie toutes les commandes.
 
+Au démarrage, la carte écrit `lilpet starts` sur une ligne à elle, avant tout le reste (depuis le firmware 0.8.1) : l'app
+et `firmware:check-device` reconnaissent ainsi un redémarrage, le port resté ouvert, et redemandent `hello`. Ce n'est
+pas un journal d'ESP-IDF, que son niveau de journal ne retire donc pas.
+
 ## Côté firmware
 
 `lp_command_parse` (moteur, testé sur PC) lit les lignes et ignore tout ce qui ne commence pas par `> `, donc aussi le
