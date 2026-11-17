@@ -99,6 +99,18 @@ static void reply_imu(void)
         printf("< err no motion sensor\n");
 }
 
+static void reply_hello(void)
+{
+    /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
+    char battery[12] = "none";
+    const int mv = atomic_load(&battery_mv);
+    if (mv >= 0)
+        snprintf(battery, sizeof battery, "%d", mv);
+    printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s state=%s battery=%s\n",
+           esp_app_get_description()->version, lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset,
+           state.hello.storage, rest_name((rest_state)atomic_load(&rest_now)), battery);
+}
+
 static void handle(const lp_command_line *line)
 {
     lp_command c;
@@ -115,23 +127,29 @@ static void handle(const lp_command_line *line)
         printf("< ok\n");
     } else if (error) {
         printf("< err %s\n", error);
-    } else if (c.type == LP_COMMAND_HELLO) {
-        /* No board has a camera: the camera will be another board, on the UART (docs/architecture.md) */
-        char battery[12] = "none";
-        const int mv = atomic_load(&battery_mv);
-        if (mv >= 0)
-            snprintf(battery, sizeof battery, "%d", mv);
-        printf("< lilpet fw=%s engine=%s board=%s camera=0 motion=%d reset=%s storage=%s state=%s battery=%s\n",
-               esp_app_get_description()->version, lp_version(), BOARD_NAME, state.hello.motion, state.hello.reset,
-               state.hello.storage, rest_name((rest_state)atomic_load(&rest_now)), battery);
-    } else if (c.type == LP_COMMAND_LOOK_QUERY) {
-        reply_look(&state.current);
-    } else if (c.type == LP_COMMAND_LOOK) {
-        handle_look(&c);
-    } else if (c.type == LP_COMMAND_IMU_QUERY) {
-        reply_imu();
     } else {
-        handle_eyes_command(&c);
+        /* No default: a new command type fails the build until it is answered here */
+        switch (c.type) {
+        case LP_COMMAND_HELLO:
+            reply_hello();
+            break;
+        case LP_COMMAND_LOOK_QUERY:
+            reply_look(&state.current);
+            break;
+        case LP_COMMAND_LOOK:
+            handle_look(&c);
+            break;
+        case LP_COMMAND_IMU_QUERY:
+            reply_imu();
+            break;
+        case LP_COMMAND_EMOTION:
+        case LP_COMMAND_REACT:
+        case LP_COMMAND_FACE:
+            handle_eyes_command(&c);
+            break;
+        case LP_COMMAND_NONE: /* returned above */
+            break;
+        }
     }
     fflush(stdout);
     /* Once the reply is out: what the drawing loop does about the line comes after it in the log, and hello tells the
