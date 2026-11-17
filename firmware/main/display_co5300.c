@@ -21,6 +21,12 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+/* Without TE the frames are paced (display_paced.c) and tear: only a board with no screen, the benchmark one, may do
+ * without it */
+#if !BOARD_BENCH && !defined(BOARD_LCD_TE)
+#error "a CO5300 screen needs BOARD_LCD_TE in its board_config.h"
+#endif
+
 #define QSPI_HZ       (40 * 1000 * 1000) /* Waveshare's value; the controller may take 80 MHz, to try on the board */
 #define TE_TIMEOUT_MS 50                 /* a frame still starts if the signal is missed */
 
