@@ -12,14 +12,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 /* Microseconds: a new look is written to flash at most this often (read by scripts/check-device.py and its tests) */
 #define LOOK_SAVE_GAP_US 2000000
 
+/* Whether the flash would get the same text: a field added to the look counts here without a word */
 static inline bool look_same(const lp_look *a, const lp_look *b)
 {
-    return a->sclera == b->sclera && a->pupil == b->pupil && a->pupil_color[0] == b->pupil_color[0] &&
-           a->pupil_color[1] == b->pupil_color[1];
+    char text_a[LP_LOOK_TEXT_SIZE];
+    char text_b[LP_LOOK_TEXT_SIZE];
+    return lp_look_format(a, text_a) >= 0 && lp_look_format(b, text_b) >= 0 && strcmp(text_a, text_b) == 0;
 }
 
 typedef struct {

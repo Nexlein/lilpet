@@ -348,7 +348,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **lcd_id.h** (32) — Which controller drives the AtomS3R's LCD, from its answer to the read-ID command, as M5GFX tells them apart.
   - exports: LCD_ID_ANSWER, lcd_id, lcd_id_match
   - ← firmware/main/display_atoms3r.c
-- **look_saving.h** (58) — When the look shown is written to flash: once a look came by command, it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last ...
+- **look_saving.h** (61) — When the look shown is written to flash: once a look came by command, it differs from the one kept and LOOK_SAVE_GAP_US have passed since the last ...
   - exports: LOOK_SAVE_GAP_US, look_same, look_saving, look_saving_start, look_saving_mark_sent, look_save_if_due
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c
