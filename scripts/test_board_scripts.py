@@ -138,7 +138,8 @@ class Board:
         self.tried_at = clock.now - SAVE_GAP  # as commands_start: the first new look is written at once
         self.reads_from = math.inf if self.boots == self.mute_at else clock.now + 1
         crash_log = self.crash_boot_log if crash else ()
-        for line in ["I (250) main_task: Calling app_main()", *self.boot_log, *crash_log, "lilpet 0.13.0, board ..."]:
+        boot = ["I (250) main_task: Calling app_main()", "", "lilpet starts"]
+        for line in [*boot, *self.boot_log, *crash_log, "lilpet 0.13.0, board ..."]:
             self.output.append((clock.now + 0.3, line))
         if self.report:
             self.output.append((clock.now + 0.3 + self.report_after, self.report))
@@ -433,6 +434,10 @@ class FirmwareFacts(unittest.TestCase):
     def test_the_charge_line_the_checks_look_for_is_the_firmware_s(self):
         battery = (ROOT / "firmware" / "main" / "battery_axp2101.c").read_text()
         self.assertIn(f'printf("battery: {check_device_constant("CHARGE_LINE")} %d mA at most\\n"', battery)
+
+    def test_the_boot_line_the_checks_wait_for_is_the_firmware_s(self):
+        main_c = (ROOT / "firmware" / "main" / "main.c").read_text()
+        self.assertIn(f'printf("\\n{check_device_constant("BOOT_LINE")}\\n");', main_c)
 
     def test_the_sleep_lines_the_checks_wait_for_are_the_firmware_s(self):
         main_c = (ROOT / "firmware" / "main" / "main.c").read_text()

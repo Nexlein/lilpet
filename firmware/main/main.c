@@ -289,6 +289,9 @@ static void apply(const lp_command *c)
 
 void app_main(void)
 {
+    /* First, before anything that could stop: the PC app and check-device tell a restart by this line, whatever the
+     * log level */
+    printf("\nlilpet starts\n");
     board_init();
     battery_init();
     uint16_t *bands[2] = {heap_caps_malloc(BAND_BYTES, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
@@ -362,10 +365,10 @@ void app_main(void)
         float g[3];
         const bool gravity = imu_gravity(g);
         const bool button = board_button_pressed();
+        const bool pressed = rest_button_down(&power.rest, button);
         /* Before what came after it: a command that follows `> test sleep` wakes the eyes */
         const bool sleep_asked = commands_sleep_asked();
         const bool heard = commands_heard(0); /* every frame: a command taken now wakes nothing later */
-        const bool pressed = rest_button_down(&power.rest, button);
         rest_frame(&power.rest, start, rests, sleep_asked,
                    heard || pressed || (gravity && rest_handled(&power.rest, g)));
         enter_rest(rest_state_at(&power.rest, start)); /* asleep: at the top of the next frame */

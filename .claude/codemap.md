@@ -65,8 +65,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, drawsLike, isCommandReply, parseReply, MAX_LINE, LineSplitter
   - → engine/wasm/engine.mjs, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/DeviceBar.tsx
-- **session.ts** (162) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
-  - exports: DeviceState, DeviceSession
+- **session.ts** (163) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
+  - exports: DeviceState, BOOT_LINE, DeviceSession
   - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
   - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
 - tests: protocol.test.ts, session.test.ts
@@ -359,7 +359,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: look_store_init, look_store_load, look_store_save
   - → engine/include/lilpet/lilpet.h
   - ← firmware/main/commands.c, firmware/main/look_store.c, firmware/main/main.c
-- **main.c** (400) — Firmware entry point: the eyes, live on the display.
+- **main.c** (403) — Firmware entry point: the eyes, live on the display.
   - exports: app_main
   - → engine/tools/bench_script.h, firmware/main/battery.h, firmware/main/battery_rule.h, firmware/main/board.h, firmware/boards/*/board_config.h, firmware/main/commands.h, firmware/main/display.h, firmware/main/frame.h, firmware/main/imu.h, engine/include/lilpet/lilpet.h, firmware/main/look_store.h, firmware/main/rest.h
 - **rest.h** (161) — When the eyes rest (docs/objet-v1.md): after REST_IDLE_US with nothing happening (a touch, the button, motion, a command), the board looks sleepy f...
@@ -381,7 +381,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **board_link.py** (117) — What the scripts that talk to a board share: which board, its port, and how to ask it things (protocol in docs/protocole.md).
   - exports: board_from_env, board_parts, has_motion_sensor, charges_battery, next_line, read_reply, ask, ask_hello, find_port, open_port, hello_fields
   - ← scripts/check-device.py, scripts/flash-guard.py, scripts/monitor.py
-- **check-device.py** (392) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
+- **check-device.py** (396) — Checks a board flashed with the lilpet firmware, over USB, like the PC app talks to it (docs/protocole.md): opening the port does not reboot it, it...
   - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, check_sleep, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
