@@ -9,14 +9,11 @@ import { test } from 'node:test';
 
 const WORDS: Record<string, number> = { deux: 2, trois: 3, quatre: 4, cinq: 5 };
 const read = (path: string) => readFileSync(path, 'utf8');
+// A text as it reads, inside a regular expression
+const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // A number in a text, found by a pattern whose spaces may be any line break and indent
 function numberIn(path: string, words: string) {
-    const pattern = new RegExp(
-        words
-            .replace(/[.()`*]/g, '\\$&')
-            .replace(/ /g, '\\s+')
-            .replace('N', '(\\d+(?:,\\d+)?|\\w+)')
-    );
+    const pattern = new RegExp(literal(words).replace(/ /g, '\\s+').replace('N', '(\\d+(?:,\\d+)?|\\w+)'));
     const found = pattern.exec(read(path))?.[1];
     assert.ok(found, `${path}: "${words}" not found`);
     return WORDS[found] ?? Number(found.replace(',', '.')); // a French decimal: 0,5
@@ -128,5 +125,5 @@ test('docs/protocole.md has every command', () => {
     assert.ok(engine.length >= 7 && firmware.length >= 2, 'the commands were not found in the code');
     // The name and what follows it in the doc: `> look ...` and `> look?` are two commands
     for (const name of [...engine, ...firmware])
-        assert.match(protocol, new RegExp(`\`> ${name.replace(/[?]/g, '\\?')}[\` ]`), `> ${name} is missing`);
+        assert.match(protocol, new RegExp(`\`> ${literal(name)}[\` ]`), `> ${name} is missing`);
 });
