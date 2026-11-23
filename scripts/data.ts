@@ -94,10 +94,14 @@ export interface ScenesFile {
 // A data file as read, before scripts/validate-data.ts has checked it: nothing about its shape is assumed
 export type Unchecked = any;
 
-export const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
+// The data files, as their types say they are: scripts/validate-data.ts checks them (npm run check:data)
+const readJson = (path: string): Unchecked => JSON.parse(readFileSync(path, 'utf8'));
+export const readLooks = (): LooksFile => readJson(LOOKS);
+export const readEmotions = (): EmotionsFile => readJson(EMOTIONS);
+export const readScenes = (): ScenesFile => readJson(SCENES);
 
 /** The swatches of the catalogue by id. */
-export const swatchesById = () => new Map(readJson<LooksFile>(LOOKS).swatches.map((s) => [s.id, s]));
+export const swatchesById = () => new Map(readLooks().swatches.map((s) => [s.id, s]));
 
 /** The look a scene wears, as engine/wasm/engine.ts takes it: its swatch's colors and its pupil type. */
 export function lookOf(swatches: Map<string, Swatch>, scene: { swatch: string; pupil: PupilType }): Look {

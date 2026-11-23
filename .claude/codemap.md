@@ -387,8 +387,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **codemap.ts** (675) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
-- **data.ts** (116) — Where the data files and the C tables generated from them are, what they hold, and the look a scene wears: shared by the scripts that read them (th...
-  - exports: LOOKS, EMOTIONS, SCENES, EMOTIONS_TABLE, LOOKS_TABLE, SCENES_TABLE, GENERATORS, EXPRESSION, ExpressionField, Swatch, PupilShape, LooksFile, Emotion, Reaction, EmotionsFile, ReferenceScene, ScenesFile, Unchecked, readJson, swatchesById, lookOf, withNeutral
+- **data.ts** (120) — Where the data files and the C tables generated from them are, what they hold, and the look a scene wears: shared by the scripts that read them (th...
+  - exports: LOOKS, EMOTIONS, SCENES, EMOTIONS_TABLE, LOOKS_TABLE, SCENES_TABLE, GENERATORS, EXPRESSION, ExpressionField, Swatch, PupilShape, LooksFile, Emotion, Reaction, EmotionsFile, ReferenceScene, ScenesFile, Unchecked, readLooks, readEmotions, readScenes, swatchesById, lookOf, withNeutral
   - → engine/wasm/engine.ts
   - ← .lintstagedrc.ts, engine/src/emotions_table.h, scripts/gen-emotions-table.ts, scripts/gen-looks-table.ts, scripts/gen-scenes-table.ts, scripts/goldens.ts, scripts/tables.ts, scripts/validate-data.ts
 - **files.ts** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.ts).
@@ -413,7 +413,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **gen-scenes-table.ts** (56) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json, as the fields of lp_scene that sceneFields (engine/wasm/en...
   - → engine/wasm/engine.ts, scripts/data.ts, scripts/gen-common.ts
   - ← scripts/data.ts
-- **goldens.ts** (246) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+- **goldens.ts** (243) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
   - exports: strict, Drawn, compare
   - → engine/wasm/engine.ts, scripts/data.ts, scripts/png.ts
   - ← mise.toml, package.json

@@ -2,10 +2,10 @@
 // eye shape and the pupil shapes. The swatches stay in the JSON: the PC app sends a look's colors, the engine never
 // needs the catalogue. Run it after changing looks.json (npm run tables runs every generator).
 // Usage: node scripts/gen-looks-table.ts [--check]   (--check: fail if the committed file is out of date)
-import { LOOKS, LOOKS_TABLE, readJson, type LooksFile } from './data.ts';
+import { LOOKS, LOOKS_TABLE, readLooks } from './data.ts';
 import { hexColor, num, pupilEnum, writeGenerated } from './gen-common.ts';
 
-const data = readJson<LooksFile>(LOOKS);
+const data = readLooks();
 
 const swatch = data.swatches.find((s) => s.id === data.default.swatch);
 if (!swatch) {

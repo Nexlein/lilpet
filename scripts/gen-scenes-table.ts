@@ -4,11 +4,11 @@
 // gen-emotions-table.ts, so that a fault in the scenes never stops the tables that the engine builds from.
 // Usage: node scripts/gen-scenes-table.ts [--check]   (--check: fail if the committed file is out of date)
 import { sceneFields } from '../engine/wasm/engine.ts';
-import { SCENES, SCENES_TABLE, lookOf, readJson, swatchesById, type ReferenceScene, type ScenesFile } from './data.ts';
+import { SCENES_TABLE, lookOf, readScenes, swatchesById, type ReferenceScene } from './data.ts';
 import { emotionEnum, hexColor, num, pupilEnum, writeGenerated } from './gen-common.ts';
 
 const swatches = swatchesById();
-const scenes = readJson<ScenesFile>(SCENES).scenes;
+const scenes = readScenes().scenes;
 // The looks the scenes wear, each once, in the order they first appear: the first scene that wears each one
 const lookKey = (scene: ReferenceScene) => `${scene.swatch} ${scene.pupil}`;
 const firstWearers = scenes.filter((scene, i) => scenes.findIndex((s) => lookKey(s) === lookKey(scene)) === i);

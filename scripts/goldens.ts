@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'nod
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadEngine, type Engine, type PupilType } from '../engine/wasm/engine.ts';
-import { EMOTIONS, SCENES, lookOf, readJson, swatchesById, type EmotionsFile, type ScenesFile } from './data.ts';
+import { lookOf, readEmotions, readScenes, swatchesById } from './data.ts';
 import { decodePng, differingPixels, encodePng, rgbOf } from './png.ts';
 
 const MODULE = 'engine/build/wasm/lilpet.mjs';
@@ -93,13 +93,10 @@ export interface Drawn {
  * frame is kept, not the hundreds of others.
  */
 async function renders(expected: string[]): Promise<Drawn> {
-    const engine = strict(
-        await loadEngine(pathToFileURL(resolve(MODULE)).href),
-        Object.keys(readJson<EmotionsFile>(EMOTIONS).reactions)
-    );
+    const engine = strict(await loadEngine(pathToFileURL(resolve(MODULE)).href), Object.keys(readEmotions().reactions));
     const swatches = swatchesById();
     const images: Image[] = [];
-    for (const scene of readJson<ScenesFile>(SCENES).scenes) {
+    for (const scene of readScenes().scenes) {
         const rgb = rgbOf(engine.renderScene(scene, lookOf(swatches, scene)));
         images.push({ name: `scene-${scene.id}`, label: `scene ${scene.id}`, height: engine.size, rgb });
     }
