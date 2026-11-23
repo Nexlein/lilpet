@@ -1,6 +1,6 @@
 # 8. Les mêmes outils, aux mêmes versions, en local et en CI
 
-- Date : 2026-10-27, complété le 2026-11-03 et le 2026-11-17
+- Date : 2026-10-27, complété le 2026-11-03, le 2026-11-17 et le 2026-11-23
 - Statut : accepté
 
 ## Contexte
@@ -22,12 +22,16 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
   Rien à installer d'ESP-IDF : flash et port USB passent par esptool et pyserial (`scripts/requirements.txt`, par uv).
 - **Le compilateur C du PC reste celui du système**, mais `engine/CMakeLists.txt` refuse un clang plus ancien que celui
   de la CI (21), qui n'est pas testé.
-- **Chaque nouvelle version arrive en pull request**, que la CI vérifie avant qu'on l'accepte : Renovate pour les outils
-  de `mise.toml`, que Dependabot ne sait pas lire, Dependabot pour npm, les images Docker et les actions. Les actions
+- **Chaque nouvelle version arrive en pull request**, que la CI vérifie avant qu'on l'accepte, toutes par Renovate : les
+  outils de `mise.toml`, la version de mise de la CI, pyserial, npm, les images Docker et les actions. Les actions
   sont épinglées par commit et les images par tag et digest, puisqu'un tag peut être déplacé ; les paquets npm, par
   `package-lock.json`, que `npm ci` suit à la lettre. Renovate regroupe ses mises à jour en une pull request par
   semaine (les versions majeures ensemble dans une seconde), avec un tableau de bord (une issue) qui montre ce qu'il
-  attend. Rien ne se fusionne seul : on choisit le moment.
+  attend. Rien ne se fusionne seul : on choisit le moment. Jusqu'au 2026-11-23, Dependabot gérait npm, les images et
+  les actions : il ne lit pas `mise.toml`, ne suit pas les versions correctives d'ESP-IDF depuis un tag à deux
+  chiffres (`v6.2`), et laissait monter `@types/node` à la main avec Node. Il ne garde que ses alertes de sécurité et
+  ses correctifs de sécurité, réglés dans les paramètres du dépôt : Renovate les lui laisse, pour qu'une alerte ne
+  donne pas deux pull requests.
 - **Les règles de GitHub et les versions publiées passent par le dépôt.** Les rulesets de `dev` et `main` sont dans
   `.github/rulesets/` : un test compare leurs checks requis aux jobs de la CI, et `mise run github:rulesets` les
   applique. Un tag de version publie le firmware de chaque carte dans une Release (`release.yml`), après avoir relancé

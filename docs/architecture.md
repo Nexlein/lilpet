@@ -73,10 +73,9 @@ Les audits de novembre 2026 n'ont trouvé ni crash, ni corruption mémoire, ni p
 - **AtomS3R à ST7735S** : cette variante d'écran n'a jamais tourné.
 - **App et vraie carte dans Chrome** : les pannes de port (écriture morte, réponse restée en attente) sont prouvées sur
   un faux port seulement.
-- **Renovate** : il voit les outils de `mise.toml`, ceux de ses tâches (esptool) et `scripts/requirements.txt`, mais
-  n'a encore ouvert aucune pull request. Tant qu'aucune n'est fusionnée, Mend ne le lance qu'une fois par jour, à une
-  heure quelconque, qui ne tombait jamais dans son ancien créneau du lundi matin : il couvre désormais tout le lundi.
-  Sa première pull request groupée se suit dans [#44](https://github.com/Nexlein/lilpet/issues/44).
+- **Renovate pour tout** : depuis le 2026-11-23, il gère aussi npm, les images Docker et les actions, à la place de
+  Dependabot ([décision 8](adr/0008-outils-figes.md)). Son passage sur les outils de `mise.toml` a fait ses preuves
+  (#90) ; sur ces paquets-là, sa première pull request n'est pas encore passée.
 
 ### À décider ou à construire pour l'objet final
 

@@ -1,11 +1,13 @@
-// Renovate keeps the tool versions of mise.toml, the dependency of scripts/requirements.txt and the mise version of
-// CI up to date, in one pull request a week for all of them (major releases together in a second one), merged by hand
-// once CI is green: no automerge, the owner picks the moment. Dependabot cannot read them; it still covers npm, the
-// Docker images and the GitHub Actions (dependabot.yml).
+// Renovate keeps every pinned version up to date, in one pull request a week (major releases together in a second
+// one), merged by hand once CI is green: no automerge, the owner picks the moment. It reads the tool versions of
+// mise.toml, the dependency of scripts/requirements.txt, the mise version of CI, the npm packages (package.json and
+// package-lock.json), the Docker images (firmware/Dockerfile, engine/wasm/Dockerfile) and the GitHub Actions, pinned
+// by commit. GitHub's Dependabot keeps only its security alerts and security updates, set in the repo's settings:
+// Renovate leaves the alerts to it (vulnerabilityAlerts), or each one would come as two pull requests.
 {
     $schema: 'https://docs.renovatebot.com/renovate-schema.json',
     extends: ['config:recommended'],
-    enabledManagers: ['mise', 'pip_requirements', 'custom.regex'],
+    enabledManagers: ['mise', 'pip_requirements', 'custom.regex', 'npm', 'dockerfile', 'github-actions'],
     pip_requirements: { managerFilePatterns: ['/^scripts/requirements\\.txt$/'] }, // pyserial
     customManagers: [
         {
@@ -23,16 +25,44 @@
     // object form: Renovate asks for a config migration of the older boolean one.
     dependencyDashboard: { enabled: true },
     timezone: 'Europe/Paris',
-    // On Mondays, like Dependabot, and all day: Mend runs a repo with no merged Renovate pull request once a day, at
-    // any hour, which never fell in a Monday morning window (docs.renovatebot.com/mend-hosted/job-scheduling)
+    // On Mondays, and all day: Mend runs a repo with no merged Renovate pull request once a day, at any hour, which
+    // never fell in a Monday morning window (docs.renovatebot.com/mend-hosted/job-scheduling)
     schedule: ['* * * * 1'],
     semanticCommits: 'enabled',
+    vulnerabilityAlerts: { enabled: false },
+    // A new version in package.json too, not only in the lock: package.json says which version is in use
+    npm: { rangeStrategy: 'bump' },
+    // Later rules win over earlier ones (docs.renovatebot.com/configuration-options/#packagerules)
     packageRules: [
         {
-            matchManagers: ['mise', 'pip_requirements', 'custom.regex'],
-            groupName: 'tool versions',
+            // Every update but the majors in the weekly pull request, the majors together in a second one. Node and
+            // @types/node both wait for a major's LTS date (node versioning, workarounds:typesNodeVersioning in
+            // config:recommended), so their majors normally come in the same pull request; scripts/mise.test.ts fails
+            // one that brings only one of them, until the next run brings the other.
+            matchUpdateTypes: ['minor', 'patch', 'digest', 'pin', 'pinDigest'],
+            groupName: 'all non-major dependencies',
             semanticCommitType: 'build',
             semanticCommitScope: 'deps'
+        },
+        {
+            matchUpdateTypes: ['major'],
+            groupName: 'all major dependencies',
+            semanticCommitType: 'build',
+            semanticCommitScope: 'deps'
+        },
+        {
+            // The oldest Node the scripts run on (engines in package.json): set by hand, not bumped with each release
+            matchManagers: ['npm'],
+            matchDepTypes: ['engines'],
+            enabled: false
+        },
+        {
+            // The first release of an ESP-IDF minor version has two parts (v6.2), its bugfix releases three (v6.2.1):
+            // Docker versioning compares only tags with as many parts, and ranks the shorter one higher. Read as
+            // 6.2.0, v6.2 is followed by v6.2.1; beta, rc, dev and release-* tags do not match
+            matchDatasources: ['docker'],
+            matchPackageNames: ['espressif/idf'],
+            versioning: 'regex:^v(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?$'
         }
     ]
 }
