@@ -186,8 +186,8 @@ export async function loadEngine(moduleUrl: string): Promise<Engine> {
             const index = events.get(event);
             if (index !== undefined) m._lpw_react(index);
         },
-        // lpw_emotion is always one of the names: the fallback is only there for the type
-        emotion: () => names[m._lpw_emotion()] ?? 'neutral',
+        // lpw_emotion is always one of the names (engine.test.ts checks the lists against lilpet.h)
+        emotion: () => names[m._lpw_emotion()]!,
         update: (dt) => m._lpw_update(dt),
         render,
         renderView,
