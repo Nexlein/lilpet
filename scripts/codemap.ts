@@ -265,7 +265,7 @@ export function jsExports(src: string) {
     const code = scanJs(src);
     const names: string[] = [];
     for (const m of code.matchAll(
-        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var|interface|type)\s+([A-Za-z_$][\w$]*)/gm
+        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|abstract\s+class|class|const|let|var|interface|type)\s+([A-Za-z_$][\w$]*)/gm
     ))
         names.push(m[1]!);
     // export { a, b as c }

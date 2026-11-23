@@ -116,13 +116,27 @@ export declare function six(): void;
 const a = 1, b = 2;
 export { a, b as seven };
 export default class Eight {}
+export abstract class Nine {}
+export function* ten() {}
 // import { nope } from './commented';
 import x from './x';
 import './side-effect.css';
 const lazy = await import('./lazy.ts');
 const wasm = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url);
 export * from './again';`;
-    assert.deepEqual(jsExports(src), ['one', 'two', 'THREE', 'Four', 'Five', 'six', 'Eight', 'a', 'seven']);
+    assert.deepEqual(jsExports(src), [
+        'one',
+        'two',
+        'THREE',
+        'Four',
+        'Five',
+        'six',
+        'Eight',
+        'Nine',
+        'ten',
+        'a',
+        'seven'
+    ]);
     assert.deepEqual(jsSpecifiers(src), [
         './x',
         './again',
