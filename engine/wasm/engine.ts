@@ -186,7 +186,7 @@ export async function loadEngine(moduleUrl: string): Promise<Engine> {
             const index = events.get(event);
             if (index !== undefined) m._lpw_react(index);
         },
-        // lpw_emotion is always one of the names (engine.test.ts checks the lists against lilpet.h)
+        // lpw_emotion is always below lpw_emotion_count, the length of names (both come from the module)
         emotion: () => names[m._lpw_emotion()]!,
         update: (dt) => m._lpw_update(dt),
         render,

@@ -34,8 +34,8 @@ test('a tool pinned by several tasks, or by a task and [tools], has one version'
 });
 
 // @types/node describes the API of one Node major: that of mise.toml, which CI and every machine run. Renovate bumps
-// one and Dependabot the other (major updates of @types/node are left out, .github/dependabot.yml): they must move
-// together.
+// Node; Dependabot leaves out the major updates of @types/node (.github/dependabot.yml), which is bumped by hand in
+// Renovate's pull request: this test fails until then.
 test('the Node types are those of the Node of mise.toml', () => {
     const node = /^node = "(\d+)\./m.exec(readFileSync('mise.toml', 'utf8'))?.[1];
     const types: string = JSON.parse(readFileSync('package.json', 'utf8')).devDependencies['@types/node'];

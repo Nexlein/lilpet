@@ -13,8 +13,8 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
     ignore:
-      # Its major is the Node major of mise.toml, which Renovate bumps: both move in that pull request
-      # (scripts/mise.test.ts)
+      # Its major is the Node major of mise.toml, which Renovate bumps: it is bumped by hand in that pull request,
+      # which scripts/mise.test.ts fails until then
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
 
