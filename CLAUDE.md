@@ -37,16 +37,17 @@ model that will choose the reactions does not exist yet; what it will send is re
   What Node runs imports with the `.ts` extension, types with `import type`, and uses no `enum` or `namespace`
   (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file, and on `.mts` or
   `.cts` (TypeScript is `.ts` and `.tsx`, which the linters and the code map read).
-- Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
-  pull requests with every required CI check green, merged with a merge commit (GitHub rulesets, kept in
-  `.github/rulesets/`: no direct push, no force push, no deletion). The rulesets name the required checks by job name,
-  which a test checks against ci.yml: renaming a CI job, or adding, renaming or removing a board (also in ci.yml's board
-  list), means editing both files, then applying them with `mise run github:rulesets`.
+- Branches: `main` is the only branch (`docs/adr/0014-une-seule-branche.md`). It changes only through pull requests
+  with every required CI check green, merged with a merge commit; a release is an annotated tag on it, never moved or
+  deleted (GitHub rulesets, kept in `.github/rulesets/`: no direct push, no force push, no deletion). The ruleset of
+  `main` names the required checks by job name, which a test checks against ci.yml: renaming a CI job, or adding,
+  renaming or removing a board (also in ci.yml's board list), means editing both files, then applying them with
+  `mise run github:rulesets`.
 - C: float literals with `f`, no `double`, warnings are errors (the firmware adds the engine's); in the engine, also the
   `lp_` prefix, no `malloc` and no globals.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
 - Tool versions are exact, in `mise.toml` and the Dockerfiles, and npm's in `package-lock.json`; Renovate proposes
-  the updates as pull requests against `dev`, one a week and one for the majors, and Dependabot only its security
+  the updates as pull requests against `main`, one a week and one for the majors, and Dependabot only its security
   updates (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals (`docs/yeux.md`): recreate the style, never copy their assets.
   Their frame sheets were deleted on 2026-11-17; `references/` stays ignored by git, never published.

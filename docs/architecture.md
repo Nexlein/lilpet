@@ -46,6 +46,7 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
 11. [La NVS reste à sa place, et la flash se remplit après elle](adr/0011-disposition-de-la-flash.md)
 12. [Les yeux s'endorment, et la veille légère attend que le PC soit débranché](adr/0012-energie.md)
 13. [Les scripts en TypeScript, que Node lance tel quel](adr/0013-typescript-sans-build.md)
+14. [Une seule branche, `main`, et des tags pour les versions](adr/0014-une-seule-branche.md)
 
 Chaque décision tient en quatre parties : contexte, options étudiées (s'il y en a eu), décision, conséquences. Une
 nouvelle décision prend le numéro suivant ; une décision remplacée garde son fichier, avec le statut « remplacée par »

@@ -32,10 +32,11 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
   chiffres (`v6.2`), et laissait monter `@types/node` à la main avec Node. Il ne garde que ses alertes de sécurité et
   ses correctifs de sécurité, réglés dans les paramètres du dépôt : Renovate les lui laisse, pour qu'une alerte ne
   donne pas deux pull requests.
-- **Les règles de GitHub et les versions publiées passent par le dépôt.** Les rulesets de `dev` et `main` sont dans
-  `.github/rulesets/` : un test compare leurs checks requis aux jobs de la CI, et `mise run github:rulesets` les
-  applique. Un tag de version publie le firmware de chaque carte dans une Release (`release.yml`), après avoir relancé
-  la CI sur ce commit, au lieu de dépendre des artefacts de la CI, gardés 30 jours.
+- **Les règles de GitHub et les versions publiées passent par le dépôt.** Les rulesets de `main` et des tags de version
+  sont dans `.github/rulesets/` : un test compare les checks requis de `main` aux jobs de la CI, et
+  `mise run github:rulesets` les applique ([décision 14](0014-une-seule-branche.md) : une seule branche depuis le
+  2026-11-23). Un tag de version publie le firmware de chaque carte dans une Release (`release.yml`), après avoir
+  relancé la CI sur ce commit, au lieu de dépendre des artefacts de la CI, gardés 30 jours.
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
   `engine:check`, les tests Playwright). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au
   lieu de recopier leurs étapes : une étape ajoutée au contrôle ne peut pas manquer en CI. `npm run check`, la partie

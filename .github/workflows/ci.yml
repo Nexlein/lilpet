@@ -2,14 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
   workflow_call: # by release.yml, on a version tag, before it publishes the firmware
 
 permissions:
   contents: read
 
-# A newer push to a pull request replaces its run. Each push to dev or main has a group of its own, so that every merge
+# A newer push to a pull request replaces its run. Each push to main has a group of its own, so that every merge
 # commit gets a whole result: in a shared group, the next run cancels the one running, or without cancel-in-progress,
 # the one waiting behind it. No other run joins a push's group, so cancel-in-progress cancels only pull request runs.
 concurrency:
@@ -94,8 +94,8 @@ jobs:
       fail-fast: false
       matrix:
         # The folders of firmware/boards that hold a board.cmake, which scripts/ci.test.ts checks: a board added there
-        # goes here too, and its job into the required checks of both rulesets. Written here rather than listed by a
-        # job, which the firmware jobs waited for, 6 to 10 s.
+        # goes here too, and its job into the required checks of the ruleset of main. Written here rather than listed
+        # by a job, which the firmware jobs waited for, 6 to 10 s.
         board: [atoms3r, stamp_s3a, waveshare_132, waveshare_175]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -110,9 +110,8 @@ jobs:
           cache: false
 
       # Compiler cache of the firmware build (firmware/.ccache): a full ESP-IDF build takes about 2 minutes without it.
-      # Each push run of dev saves a new entry per board, read from then on by the runs that start from the latest one
-      # of the same board, ESP-IDF image and options. Pull requests, main and tags read dev's entries and save none:
-      # main's own, older ones would come first for its next runs.
+      # Each push run of main saves a new entry per board, read from then on by the runs that start from the latest one
+      # of the same board, ESP-IDF image and options. Pull requests and tags read main's entries and save none.
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: ccache
         with:
@@ -130,7 +129,7 @@ jobs:
 
       # Not when the exact entry was found: a re-run of the same commit
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.ref == 'refs/heads/dev' && steps.ccache.outputs.cache-hit != 'true'
+        if: github.ref == 'refs/heads/main' && steps.ccache.outputs.cache-hit != 'true'
         with:
           path: firmware/.ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}

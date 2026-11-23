@@ -11,8 +11,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → scripts/data.ts, scripts/files.ts
 
 ## .github/rulesets
-- **dev.json** (70) — data
 - **main.json** (70) — data
+- **tags.json** (23) — data
 
 ## .husky
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
