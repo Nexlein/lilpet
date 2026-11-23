@@ -47,9 +47,10 @@ test('an unknown group stops with the list of groups', () => {
 });
 
 // The code is TypeScript that Node runs as it is and tsc checks (tsconfig.json, app/tsconfig*.json): a JavaScript file
-// would escape the type check. The WebAssembly build (engine/build/wasm/lilpet.mjs) is built, never tracked.
-test('no JavaScript file is tracked', () => {
-    assert.deepEqual(tracked('*.js', '*.mjs', '*.cjs', '*.jsx'), []);
+// would escape the type check, and a .mts or .cts one the linters and the code map, which read .ts and .tsx. The
+// WebAssembly build (engine/build/wasm/lilpet.mjs) is built, never tracked.
+test('no JavaScript file is tracked, and TypeScript only as .ts and .tsx', () => {
+    assert.deepEqual(tracked('*.js', '*.mjs', '*.cjs', '*.jsx', '*.mts', '*.cts'), []);
 });
 
 // A path of the list that is renamed would no longer match, and git diff --exit-code on a missing path passes: the

@@ -29,7 +29,8 @@ en TypeScript.
 ## Décision
 
 - **Plus de JavaScript suivi par git.** Scripts, tests, configurations et côté JavaScript du moteur sont en TypeScript
-  (`.ts`) ; `scripts/files.test.ts` échoue sur un fichier `.js`, `.mjs` ou `.cjs`. Seule la sortie d'Emscripten,
+  (`.ts`, `.tsx` pour l'app) ; `scripts/files.test.ts` échoue sur un fichier `.js`, `.mjs` ou `.cjs`, et sur `.mts` ou
+  `.cts`, que les linters et la carte du code ne lisent pas. Seule la sortie d'Emscripten,
   `engine/build/wasm/lilpet.mjs`, reste en JavaScript : elle est construite, jamais suivie.
 - **Node lance les fichiers tels quels**, sans build. `tsc` les vérifie dans `npm run check:types`, avec trois
   configurations : `tsconfig.json` pour ce que Node lance (`scripts/`, `engine/wasm/`, `.lintstagedrc.ts`, en
@@ -45,6 +46,6 @@ en TypeScript.
 ## Conséquences
 
 - Une annotation fausse fait échouer `npm run check`, et donc la CI, avant que le script ne tourne.
-- Écrire un script demande de suivre les règles de la syntaxe effaçable (rappelées dans `CLAUDE.md`) ; `tsc` refuse ce
-  que Node ne saurait pas lancer.
+- Écrire un script demande de suivre les règles de la syntaxe effaçable (rappelées dans `CLAUDE.md`) ; `tsc` refuse
+  l'essentiel de ce que Node ne saurait pas lancer : `enum`, `namespace`, un import relatif sans son extension.
 - Le jour où Renovate passe Node à une nouvelle version majeure, sa pull request doit aussi monter `@types/node`.

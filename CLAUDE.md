@@ -35,7 +35,8 @@ model that will choose the reactions does not exist yet; what it will send is re
 - No JavaScript: scripts, configs and tests are TypeScript, which Node runs as it is (type stripping, no build) and
   `tsc` checks (`tsconfig.json` for what Node runs, `app/tsconfig.json` and `app/tsconfig.node.json` for the app).
   What Node runs imports with the `.ts` extension, types with `import type`, and uses no `enum` or `namespace`
-  (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file.
+  (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file, and on `.mts` or
+  `.cts` (TypeScript is `.ts` and `.tsx`, which the linters and the code map read).
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets, kept in
   `.github/rulesets/`: no direct push, no force push, no deletion). The rulesets name the required checks by job name,
