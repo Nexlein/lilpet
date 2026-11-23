@@ -45,8 +45,9 @@ model that will choose the reactions does not exist yet; what it will send is re
 - C: float literals with `f`, no `double`, warnings are errors (the firmware adds the engine's); in the engine, also the
   `lp_` prefix, no `malloc` and no globals.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).
-- Tool versions are exact, in `mise.toml` and the Dockerfiles, and npm's in `package-lock.json`; Renovate (one grouped pull request a week) and
-  Dependabot propose the updates as pull requests against `dev` (`docs/adr/0008-outils-figes.md`).
+- Tool versions are exact, in `mise.toml` and the Dockerfiles, and npm's in `package-lock.json`; Renovate proposes
+  the updates as pull requests against `dev`, one a week and one for the majors, and Dependabot only its security
+  updates (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals (`docs/yeux.md`): recreate the style, never copy their assets.
   Their frame sheets were deleted on 2026-11-17; `references/` stays ignored by git, never published.
 - After changing `eyes/*.json`, `engine/tests/scenes.json`, `EXPRESSION` in `scripts/data.ts` or `sceneFields` in

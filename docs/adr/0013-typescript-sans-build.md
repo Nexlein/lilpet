@@ -38,9 +38,9 @@ en TypeScript.
   le navigateur ; `app/tsconfig.json` ne fait que les nommer, pour les éditeurs et pour Vite, qui le lisent d'abord.
 - **`engine/wasm/engine.ts` porte ses propres types** : `engine.d.mts` disparaît, et avec lui le test qui le comparait
   au code.
-- **Les types de Node (`@types/node`) suivent la version majeure de Node de `mise.toml`** : Renovate change l'une ;
-  Dependabot ne propose plus les versions majeures de l'autre, qu'on monte à la main dans la pull request de Renovate :
-  `scripts/mise.test.ts` échoue tant qu'elles diffèrent.
+- **Les types de Node (`@types/node`) suivent la version majeure de Node de `mise.toml`** : Renovate monte les deux,
+  chacun à la date LTS d'une nouvelle version majeure, si bien qu'elles arrivent d'ordinaire dans la même pull request ;
+  `scripts/mise.test.ts` échoue si elles diffèrent.
 - **Les scripts Python restent en Python** : ils parlent aux cartes avec pyserial et esptool, l'outillage d'Espressif.
   En TypeScript, il leur faudrait un module natif (`serialport`), pour rien de plus.
 
@@ -49,5 +49,6 @@ en TypeScript.
 - Une annotation fausse fait échouer `npm run check`, et donc la CI, avant que le script ne tourne.
 - Écrire un script demande de suivre les règles de la syntaxe effaçable (rappelées dans `CLAUDE.md`) ; `tsc` refuse
   l'essentiel de ce que Node ne saurait pas lancer : `enum`, `namespace`, un import relatif sans son extension.
-- Le jour où Renovate passe Node à une nouvelle version majeure, sa pull request doit aussi monter `@types/node`, à la
-  main : Renovate ne gère pas les paquets npm.
+- Le jour où Renovate propose une nouvelle version majeure de Node, `@types/node` monte d'ordinaire dans la même pull
+  request (décision 8, complétée le 2026-11-23 : Renovate gère aussi npm) ; sinon le test la bloque jusqu'à son
+  passage suivant.
