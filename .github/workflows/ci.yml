@@ -36,7 +36,7 @@ jobs:
 
       # Installs the tools from mise.toml, same as local development and as the engine and playwright jobs, with no
       # list here to keep in step with mise.toml. No cache: mise installs the 11 tools in about 4 s, and restoring the
-      # 281 MB entry took as long. Actions are pinned by commit, since a tag can be moved; Dependabot updates the pin
+      # 281 MB entry took as long. Actions are pinned by commit, since a tag can be moved; Renovate updates the pin
       # and its comment.
       - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
