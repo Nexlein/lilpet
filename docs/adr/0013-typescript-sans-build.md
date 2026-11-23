@@ -34,8 +34,8 @@ en TypeScript.
   `engine/build/wasm/lilpet.mjs`, reste en JavaScript : elle est construite, jamais suivie.
 - **Node lance les fichiers tels quels**, sans build. `tsc` les vérifie dans `npm run check:types`, avec trois
   configurations : `tsconfig.json` pour ce que Node lance (`scripts/`, `engine/wasm/`, `.lintstagedrc.ts`, en
-  `nodenext`), `app/tsconfig.json` pour l'app, `app/tsconfig.node.json` pour ses configurations et ses tests dans le
-  navigateur.
+  `nodenext`), `app/tsconfig.app.json` pour l'app, `app/tsconfig.node.json` pour ses configurations et ses tests dans
+  le navigateur ; `app/tsconfig.json` ne fait que les nommer, pour les éditeurs.
 - **`engine/wasm/engine.ts` porte ses propres types** : `engine.d.mts` disparaît, et avec lui le test qui le comparait
   au code.
 - **Les types de Node (`@types/node`) suivent la version majeure de Node de `mise.toml`** : Renovate change l'une,

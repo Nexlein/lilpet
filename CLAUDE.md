@@ -33,7 +33,7 @@ model that will choose the reactions does not exist yet; what it will send is re
   after what it checks when that is not a module (`scripts/docs.test.ts`); the app's browser tests are in `app/tests`,
   the engine's in `engine/tests`, the firmware's pure parts in `firmware/tests` (run with the engine's).
 - No JavaScript: scripts, configs and tests are TypeScript, which Node runs as it is (type stripping, no build) and
-  `tsc` checks (`tsconfig.json` for what Node runs, `app/tsconfig.json` and `app/tsconfig.node.json` for the app).
+  `tsc` checks (`tsconfig.json` for what Node runs, `app/tsconfig.app.json` and `app/tsconfig.node.json` for the app).
   What Node runs imports with the `.ts` extension, types with `import type`, and uses no `enum` or `namespace`
   (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file, and on `.mts` or
   `.cts` (TypeScript is `.ts` and `.tsx`, which the linters and the code map read).

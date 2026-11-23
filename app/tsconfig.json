@@ -1,21 +1,6 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["ES2023", "DOM", "DOM.Iterable"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "jsx": "react-jsx",
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUncheckedIndexedAccess": true,
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "verbatimModuleSyntax": true,
-        "skipLibCheck": true,
-        "noEmit": true,
-        "types": ["vite/client"]
-    },
-    "include": ["src"]
+    // For editors, which open the nearest tsconfig.json: the app (tsconfig.app.json, browser) and what runs in Node
+    // around it (tsconfig.node.json). npm run check:types checks each one.
+    "files": [],
+    "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

@@ -52,7 +52,7 @@ describe('protocol', () => {
     it('writes the commands that move the eyes', () => {
         expect(emotionCommand('happy')).toBe('> emotion happy');
         expect(reactCommand('tap')).toBe('> react tap');
-        // @ts-expect-error -- tsc -p app fails here if the type stops coming from the reactions of eyes/emotions.json
+        // @ts-expect-error -- tsc fails here if the type stops coming from the reactions of eyes/emotions.json
         expect(reactCommand('purr')).toBe('> react purr');
     });
 

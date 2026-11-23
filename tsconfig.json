@@ -1,6 +1,7 @@
 {
     // Type checks the TypeScript that Node runs as it is (type stripping, no build): the scripts, the engine's
-    // JavaScript side and the commit hook config. The PC app has its own: app/tsconfig.json, app/tsconfig.node.json.
+    // JavaScript side and the commit hook config. The PC app has its own: app/tsconfig.app.json and
+    // app/tsconfig.node.json.
     "compilerOptions": {
         "target": "esnext",
         "lib": ["esnext"],
