@@ -42,9 +42,15 @@ jobs:
           fi
           # A drawing change bumps the engine's minor version at least: the PC app tells a board that draws unlike its
           # preview by it (drawsLike, app/src/device/protocol.ts). Drawing changed when the goldens did since the last
-          # Release: their folder's tree differs. Each value is read on its own line, so that a failed call stops here.
+          # Release: an image, or a frame line of animation.txt. Its comment lines name the script that writes it, and
+          # change with it, not with the drawing. Each value is read on its own line, so that a failed call stops here.
           previous=$(gh api "repos/$GH_REPO/releases/latest" -q .tag_name)
-          goldens() { gh api "repos/$GH_REPO/contents/engine/tests?ref=$1" -q '.[] | select(.name == "goldens") | .sha'; }
+          goldens() {
+            gh api "repos/$GH_REPO/contents/engine/tests/goldens?ref=$1" \
+              -q '.[] | select(.name != "animation.txt") | "\(.name) \(.sha)"' &&
+              gh api "repos/$GH_REPO/contents/engine/tests/goldens/animation.txt?ref=$1" \
+                -H 'Accept: application/vnd.github.raw' | grep -v -e '^#' -e '^$' | sha256sum
+          }
           engine() {
             gh api "repos/$GH_REPO/contents/engine/include/lilpet/lilpet.h?ref=$1" -H 'Accept: application/vnd.github.raw' |
               sed -n 's/^#define LP_VERSION_\(MAJOR\|MINOR\) *\([0-9]*\).*/\2/p' | paste -sd.
