@@ -1,4 +1,4 @@
-// Tests of scripts/validate-data.mjs and of the generators of the engine's C tables (gen-*-table.mjs), on copies of the
+// Tests of scripts/validate-data.ts and of the generators of the engine's C tables (gen-*-table.ts), on copies of the
 // data: each case breaks a copy of a data file and reads the error. Built-in test runner, no dependency; the copies are
 // checked side by side.
 // Usage: npm run check:scripts
@@ -8,23 +8,39 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
-import { EMOTIONS, EMOTIONS_TABLE, GENERATORS, LOOKS, LOOKS_TABLE, SCENES, SCENES_TABLE } from './data.mjs';
+import {
+    EMOTIONS,
+    EMOTIONS_TABLE,
+    GENERATORS,
+    LOOKS,
+    LOOKS_TABLE,
+    SCENES,
+    SCENES_TABLE,
+    type Unchecked
+} from './data.ts';
 
-const SCRIPT = 'scripts/validate-data.mjs';
+// How a script ended: its exit code (null if it was stopped) and its error output
+interface Result {
+    status: number | null;
+    stderr: string;
+}
+type Edit = (data: Unchecked) => void;
+
+const SCRIPT = 'scripts/validate-data.ts';
 const EMOTIONS_SCRIPT = GENERATORS[EMOTIONS_TABLE];
 const SCENES_SCRIPT = GENERATORS[SCENES_TABLE];
 const PARALLEL = { concurrency: availableParallelism() }; // the options of a suite whose tests run side by side
 
 // Calls `use` with a copy of the data and of the scripts, with the generated files and the engine's names the validator
-// imports (engine/wasm/engine.mjs).
-async function withCopy(use) {
+// imports (engine/wasm/engine.ts).
+async function withCopy<T>(use: (dir: string) => Promise<T>): Promise<T> {
     const dir = mkdtempSync(join(tmpdir(), 'lilpet-data-'));
     try {
         for (const path of [
             'package.json',
             'scripts',
             'eyes',
-            'engine/wasm/engine.mjs',
+            'engine/wasm/engine.ts',
             'engine/include/lilpet/screen.h',
             SCENES,
             ...Object.keys(GENERATORS)
@@ -37,22 +53,22 @@ async function withCopy(use) {
 }
 
 // Runs a script in a copy; gives its exit code (null if it was stopped) and error output
-function run(dir, ...command) {
-    return new Promise((done) =>
+function run(dir: string, ...command: string[]) {
+    return new Promise<Result>((done) =>
         execFile(process.execPath, command, { cwd: dir, timeout: 10_000 }, (error, _stdout, stderr) =>
             done({ status: error ? (typeof error.code === 'number' ? error.code : null) : 0, stderr })
         )
     );
 }
 
-function changeFile(dir, file, edit) {
+function changeFile(dir: string, file: string, edit: Edit) {
     const data = JSON.parse(readFileSync(file, 'utf8'));
     edit(data);
     writeFileSync(join(dir, file), JSON.stringify(data));
 }
 
 // Runs the validator on a copy of the data, after `edit(data)`
-function validate(file, edit) {
+function validate(file?: string, edit: Edit = () => {}) {
     return withCopy((dir) => {
         if (file) changeFile(dir, file, edit);
         return run(dir, SCRIPT);
@@ -60,7 +76,7 @@ function validate(file, edit) {
 }
 
 // An error message that says `message`, not a stack trace, and a failure
-function assertRefused({ status, stderr }, message) {
+function assertRefused({ status, stderr }: Result, message: string) {
     assert.ok(stderr.includes(message), `expected ${JSON.stringify(message)} in:\n${stderr}`);
     assert.ok(!stderr.includes('    at '), `a stack trace:\n${stderr}`);
     assert.equal(status, 1);
@@ -75,9 +91,9 @@ test('upright eyes that reach the edge of the screen are valid', async () => {
     assert.deepEqual(status, { status: 0, stderr: '' });
 });
 
-const sleepy = (d) => d.scenes.find((s) => s.id === 'emotion-sleepy');
+const sleepy = (d: Unchecked) => d.scenes.find((s: Unchecked) => s.id === 'emotion-sleepy');
 
-const CASES = [
+const CASES: [file: string, what: string, change: Edit, message: string][] = [
     [LOOKS, 'a color that is not a string', (d) => (d.swatches[0].sclera = ['#AE0002']), '"sclera" must be'],
     [LOOKS, 'a pupil color that is not a string', (d) => (d.swatches[0].pupilColor[1] = ['#AE0002']), '"pupilColor"'],
     [LOOKS, 'one pupil color', (d) => d.swatches[0].pupilColor.pop(), '"pupilColor"'],
@@ -120,13 +136,13 @@ const CASES = [
     [
         SCENES,
         'an emotion that no scene shows',
-        (d) => (d.scenes = d.scenes.filter((scene) => scene.emotion !== 'tired')),
+        (d) => (d.scenes = d.scenes.filter((scene: Unchecked) => scene.emotion !== 'tired')),
         'no scene shows the emotion "tired"'
     ],
     [
         SCENES,
         'a pupil that no scene shows',
-        (d) => (d.scenes = d.scenes.filter((scene) => scene.pupil !== 'circle')),
+        (d) => (d.scenes = d.scenes.filter((scene: Unchecked) => scene.pupil !== 'circle')),
         'no scene shows the pupil "circle"'
     ],
     [SCENES, 'an emotion inherited from Object', (d) => (d.scenes[0].emotion = 'toString'), '"emotion" must be'],
@@ -207,7 +223,7 @@ describe('the table generators', PARALLEL, () => {
         withCopy(async (dir) => {
             changeFile(dir, EMOTIONS, (d) => (d.emotions.sad.tl = 0.5)); // the first generator fails
             writeFileSync(join(dir, SCENES), 'not JSON'); // and the last one
-            const { status, stderr } = await run(dir, 'scripts/tables.mjs', '--check');
+            const { status, stderr } = await run(dir, 'scripts/tables.ts', '--check');
             assert.equal(status, 1);
             assert.ok(stderr.includes(`${EMOTIONS_TABLE}: out of date`), stderr);
             assert.ok(stderr.includes('Unexpected token'), stderr);

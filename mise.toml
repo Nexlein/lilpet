@@ -36,7 +36,7 @@ run = ["npm run check", { task = "engine:check" }, "npm run test:playwright"]
 
 [tasks."github:rulesets"]
 description = "Apply the rulesets of .github/rulesets to the GitHub repo (gh, logged in): replaces each one with the same name, or creates it"
-# scripts/ci.test.mjs checks the files against the CI jobs; GitHub enforces what was last sent to it
+# scripts/ci.test.ts checks the files against the CI jobs; GitHub enforces what was last sent to it
 run = '''
 for file in .github/rulesets/*.json; do
   name=$(node -p "require('./$file').name") || exit 1
@@ -60,13 +60,13 @@ description = "Build the WebAssembly module (Emscripten image of engine/wasm/Doc
 run = [
     "docker build -t lilpet-emsdk - < engine/wasm/Dockerfile",
     'docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e EM_CACHE=/src/engine/build/emcache -v "$PWD:/src" -w /src/engine lilpet-emsdk cmake --workflow --preset wasm',
-    "node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs",
+    "node engine/wasm/smoke.ts engine/build/wasm/lilpet.mjs",
 ]
 
 [tasks."engine:goldens"]
 description = "Compare what the WebAssembly module draws with the reference renders of engine/tests/goldens (npm run goldens rewrites them on purpose)"
 depends = ["engine:wasm"]
-run = "node scripts/goldens.mjs --check"
+run = "node scripts/goldens.ts --check"
 
 [tasks."engine:bench"]
 description = "Time the renderer per reference scene and over an animation (Release build); compare on one machine"
@@ -79,15 +79,15 @@ run = [
     'cat build/host-release/bench.md; cat build/host-release/bench.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"',
 ]
 
-# The files the format and tidy tasks work on: the groups of scripts/files.mjs, the ones git tracks, so that an untracked
+# The files the format and tidy tasks work on: the groups of scripts/files.ts, the ones git tracks, so that an untracked
 # file is never touched
 [tasks."engine:format"]
 description = "Format the C sources"
-run = "node scripts/files.mjs c | xargs -0 -r clang-format -i"
+run = "node scripts/files.ts c | xargs -0 -r clang-format -i"
 
 [tasks."engine:format:check"]
 description = "Fail if a C source is not formatted"
-run = "node scripts/files.mjs c | xargs -0 -r clang-format --dry-run --Werror"
+run = "node scripts/files.ts c | xargs -0 -r clang-format --dry-run --Werror"
 
 [tasks."engine:tidy"]
 description = "Static analysis of the engine sources, tests and tools, and of the firmware tests (engine/wasm and the firmware's chip code need their own compilers, so they are not covered)"
@@ -97,7 +97,7 @@ description = "Static analysis of the engine sources, tests and tools, and of th
 wait_for = ["engine:test"]
 run = [
     "cd engine && cmake --preset host-debug > /dev/null",
-    "node scripts/files.mjs tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug",
+    "node scripts/files.ts tidy | xargs -0 -r clang-tidy --quiet -p engine/build/host-debug",
 ]
 
 [tasks."engine:check"]

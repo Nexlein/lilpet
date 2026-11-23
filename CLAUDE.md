@@ -27,11 +27,15 @@ model that will choose the reactions does not exist yet; what it will send is re
 
 - Code, comments, commits and this file: English. `docs/` and README: French.
 - File names: C and Python in snake_case (`look_store.c`, `board_link.py`: Python imports need it, and a Python test is
-  `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like JS and TS
-  files (`gen-scenes-table.mjs`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A JS test sits next
-  to its module, `<module>.test.mjs` (Node) or `<module>.test.ts` (Vitest), or is named after what it checks when that
-  is not a module (`scripts/docs.test.mjs`); the app's browser tests are in `app/tests`, the engine's in `engine/tests`,
-  the firmware's pure parts in `firmware/tests` (run with the engine's).
+  `test_*.py` by convention), but the other scripts that are only run in kebab-case (`check-device.py`), like TS files
+  (`gen-scenes-table.ts`, `fake-port.ts`); React components in PascalCase (`SendPanel.tsx`). A TS test sits next to its
+  module, `<module>.test.ts` (Node's test runner in `scripts/` and `engine/wasm/`, Vitest in `app/src`), or is named
+  after what it checks when that is not a module (`scripts/docs.test.ts`); the app's browser tests are in `app/tests`,
+  the engine's in `engine/tests`, the firmware's pure parts in `firmware/tests` (run with the engine's).
+- No JavaScript: scripts, configs and tests are TypeScript, which Node runs as it is (type stripping, no build) and
+  `tsc` checks (`tsconfig.json` for what Node runs, `app/tsconfig.json` and `app/tsconfig.node.json` for the app).
+  What Node runs imports with the `.ts` extension, types with `import type`, and uses no `enum` or `namespace`
+  (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file.
 - Branches: `dev` is the default and integration branch, `main` only takes merges of `dev`. Both change only through
   pull requests with every required CI check green, merged with a merge commit (GitHub rulesets, kept in
   `.github/rulesets/`: no direct push, no force push, no deletion). The rulesets name the required checks by job name,
@@ -44,8 +48,8 @@ model that will choose the reactions does not exist yet; what it will send is re
   Dependabot propose the updates as pull requests against `dev` (`docs/adr/0008-outils-figes.md`).
 - Eye style comes from measurements of the originals (`docs/yeux.md`): recreate the style, never copy their assets.
   Their frame sheets were deleted on 2026-11-17; `references/` stays ignored by git, never published.
-- After changing `eyes/*.json`, `engine/tests/scenes.json`, `scripts/expression.mjs` or `sceneFields` in
-  `engine/wasm/engine.mjs`: `npm run tables` (CI fails on a stale generated file).
+- After changing `eyes/*.json`, `engine/tests/scenes.json`, `EXPRESSION` in `scripts/data.ts` or `sceneFields` in
+  `engine/wasm/engine.ts`: `npm run tables` (CI fails on a stale generated file).
 - A visual change to the eyes goes with a scene in `engine/tests/scenes.json` that shows it. After changing how the eyes
   look or move: `mise run engine:wasm`, `npm run goldens`, then look at the images it rewrote before committing them.
 
@@ -70,7 +74,7 @@ model that will choose the reactions does not exist yet; what it will send is re
 - On the chip, loads must be aligned: GCC turns a copy it cannot prove aligned into a call to `memcpy`, which the host
   and WebAssembly builds hide. In a hot loop, read a float's bits through a union, and check a speed-up on the board.
 - The Playwright tests serve on port 8468, so two runs at once collide; the app needs `mise run engine:wasm` first.
-- `nvs` stays at 0x9000 with 0x6000 in `firmware/partitions.csv` (ADR 0011, `scripts/partitions.test.mjs`): moving it
+- `nvs` stays at 0x9000 with 0x6000 in `firmware/partitions.csv` (ADR 0011, `scripts/partitions.test.ts`): moving it
   loses the saved look. A new partition goes after the last one.
 - `firmware:flash` writes the bootloader, the partition table and the app only, so the look kept in NVS survives;
   `merged-binary.bin`, for a blank board, erases it. `FORCE=1` flashes over another board's image: only when the owner
@@ -78,7 +82,7 @@ model that will choose the reactions does not exist yet; what it will send is re
 - Charging: the AXP2101 charges at `BOARD_CHARGE_MA` (200 mA, the seller's limit for the 400 mAh battery), set at every start.
   Waveshare's factory demo charges at 400 mA: the 1.75" gets our firmware before its battery is plugged in.
 - Light sleep lets every pin float: a pin that must stay driven or pulled asleep goes in `PINS_KEPT_ASLEEP` (`board.c`).
-- A number a doc takes from the code gets a case in `scripts/docs.test.mjs`. A drawing change bumps the engine's minor
+- A number a doc takes from the code gets a case in `scripts/docs.test.ts`. A drawing change bumps the engine's minor
   version before the next release (`release.yml` checks it).
 
 ## Done

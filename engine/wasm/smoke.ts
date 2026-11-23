@@ -1,23 +1,23 @@
 // Loads the WebAssembly build in Node and checks the C API answers and renders something.
-// Usage: node engine/wasm/smoke.mjs engine/build/wasm/lilpet.mjs
+// Usage: node engine/wasm/smoke.ts engine/build/wasm/lilpet.mjs
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { loadEngine } from './engine.mjs';
+import { loadEngine, type EyeEvent, type Look, type Shape } from './engine.ts';
 
 const modulePath = process.argv[2] ?? 'engine/build/wasm/lilpet.mjs';
 const engine = await loadEngine(pathToFileURL(resolve(modulePath)).href);
 
-const fail = (msg) => {
+const fail = (msg: string): never => {
     console.error(msg);
     process.exit(1);
 };
 if (!/^\d+\.\d+\.\d+$/.test(engine.version)) fail(`lp_version() returned "${engine.version}"`);
 if (!engine.emotions.includes('love')) fail(`unexpected emotion list: ${engine.emotions.join(', ')}`);
 
-const look = { sclera: '#FD0C0D', pupil: 'dot', pupilColor: ['#2905E6', '#2905E6'] }; // siren
+const look: Look = { sclera: '#FD0C0D', pupil: 'dot', pupilColor: ['#2905E6', '#2905E6'] }; // siren
 const pixels = engine.renderScene({}, look);
 let lit = 0;
-for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 200) lit++;
+for (let i = 0; i < pixels.length; i += 4) if ((pixels[i] ?? 0) > 200) lit++;
 const share = lit / (engine.size * engine.size);
 if (share < 0.05 || share > 0.5) fail(`rendered frame looks wrong: ${(share * 100).toFixed(1)}% red pixels`);
 
@@ -33,31 +33,31 @@ engine.init(1);
 engine.setLook(look);
 engine.setEmotion('love');
 for (const name of ['furious', undefined]) {
-    engine.setEmotion(name);
-    engine.react(name);
+    engine.setEmotion(name as string);
+    engine.react(name as EyeEvent);
 }
 if (engine.emotion() !== 'love') fail(`an unknown name changed the emotion to ${engine.emotion()}`);
 const before = engine.render();
-engine.setLook({ ...look, pupil: 'slit' });
-engine.setLook({ ...look, pupil: undefined });
+engine.setLook({ ...look, pupil: 'slit' } as unknown as Look);
+engine.setLook({ ...look, pupil: undefined } as unknown as Look);
 if (!engine.render().every((v, i) => v === before[i])) fail('an unknown pupil changed the look');
 
 // Eyes past the edge of the screen, and a shape with holes in it, render without a memory error
 engine.setShape({ rx: 93, ry: 109, gap: 400, tilt: 0.37 });
 engine.render();
-engine.setShape({ gap: 400 });
+engine.setShape({ gap: 400 } as Shape);
 engine.render();
 
 // The settings kept for the app's future eye editor reach the module: without following, a pointer changes nothing;
 // with the head held still, a pointer moves the eyes but not the face
-const after = (setup) => {
+const after = (setup: () => void) => {
     engine.init(1);
     engine.setLook(look);
     setup();
     for (let i = 0; i < 64; i++) engine.update(1 / 64);
     return engine.render();
 };
-const same = (a, b) => a.every((v, i) => v === b[i]);
+const same = (a: Uint8ClampedArray, b: Uint8ClampedArray) => a.every((v, i) => v === b[i]);
 const pointer = { x: 1, y: 0 };
 const idle = after(() => {});
 const following = after(() => engine.setPointer(pointer));

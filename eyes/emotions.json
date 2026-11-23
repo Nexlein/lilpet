@@ -1,6 +1,6 @@
 {
     "schema": {
-        "emotions": "name: { label, expression fields (scripts/expression.mjs gives the ones left out), emit: { type: heart | sparkle, rate per second } }, one per lp_emotion of lilpet.h, in any order",
+        "emotions": "name: { label, expression fields (EXPRESSION of scripts/data.ts gives the ones left out), emit: { type: heart | sparkle, rate per second } }, one per lp_emotion of lilpet.h, in any order",
         "reactions": "name, also the protocol name: { emotion, duration in seconds, sparkles }, one per lp_event of lilpet.h, in any order",
         "note": "optional comment on a row, copied to the generated C table"
     },

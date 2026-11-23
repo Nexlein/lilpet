@@ -11,12 +11,12 @@ const BOARDS = readdirSync('firmware/boards').filter((board) => existsSync(`firm
 const DEFINE = /^#define (BOARD_\w+)/gm;
 
 // The text of the files of a folder that end with one of `extensions`
-const sources = (folder, extensions) =>
+const sources = (folder: string, extensions: string[]) =>
     readdirSync(folder)
         .filter((name) => extensions.some((extension) => name.endsWith(extension)))
         .map((name) => readFileSync(`${folder}/${name}`, 'utf8'));
 // C without its comments: a name in a comment reads nothing
-const withoutComments = (c) => c.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+const withoutComments = (c: string) => c.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 // What reads the boards' facts: the firmware, its tests, and the board scripts (check-device.py reads BOARD_BENCH)
 const FIRMWARE = [...sources('firmware/main', ['.c', '.h']), ...sources('firmware/tests', ['.c'])].map(withoutComments);
@@ -31,10 +31,10 @@ test('every fact a board defines is read', () => {
 });
 
 test('every fact the firmware asks about is defined by a board', () => {
-    const defined = new Set();
+    const defined = new Set<string>();
     for (const board of BOARDS)
         for (const [, name] of readFileSync(`firmware/boards/${board}/board_config.h`, 'utf8').matchAll(DEFINE))
-            defined.add(name);
+            if (name) defined.add(name);
     // #ifdef, #ifndef, and #if or #elif with a value or defined(): an unknown name is not defined, or 0, without a word
     for (const [line] of FIRMWARE.join('\n').matchAll(/^\s*#\s*(?:if|elif|ifdef|ifndef)\b.*$/gm))
         for (const [name] of line.matchAll(/\bBOARD_\w+/g))
@@ -45,7 +45,8 @@ test('every fact the firmware asks about is defined by a board', () => {
 // gets an image of these boards, yet one flashed by mistake must stop before it touches a pin (firmware/main/chip.h):
 // its chip has to differ in its package, its flash or its PSRAM from that of every board.
 // The number a board's header defines for `name`, NaN when it defines none
-const value = (header, name) => Number(header.match(new RegExp(`^#define ${name}\\s+(\\d+)`, 'm'))?.[1]);
+const value = (header: string, name: string) =>
+    Number(header.match(new RegExp(`^#define ${name}\\s+(\\d+)`, 'm'))?.[1]);
 
 test('no board has the chip of the camera board', () => {
     for (const board of BOARDS) {

@@ -49,8 +49,8 @@ jobs:
 
       - run: npm ci
 
-      # The same command as locally (package.json): format, lint (JS, shell, workflow, Python), data, generated files,
-      # board scripts on a fake port, code map, PC app types and tests. No browser or engine build needed.
+      # The same command as locally (package.json): format, lint (TS, shell, workflow, Python), types, data, generated
+      # files, board scripts on a fake port, code map, PC app tests. No browser or engine build needed.
       - name: Check
         run: npm run check
 
@@ -72,7 +72,7 @@ jobs:
       - name: Check the engine
         run: mise run engine:check
 
-      # What the engine drew instead of a reference render (scripts/goldens.mjs), to look at
+      # What the engine drew instead of a reference render (scripts/goldens.ts), to look at
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
@@ -93,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The folders of firmware/boards that hold a board.cmake, which scripts/ci.test.mjs checks: a board added there
+        # The folders of firmware/boards that hold a board.cmake, which scripts/ci.test.ts checks: a board added there
         # goes here too, and its job into the required checks of both rulesets. Written here rather than listed by a
         # job, which the firmware jobs waited for, 6 to 10 s.
         board: [atoms3r, stamp_s3a, waveshare_132, waveshare_175]
@@ -180,7 +180,7 @@ jobs:
       - name: Install Chromium
         run: npm exec -w app -- playwright install --only-shell chromium
 
-      # Builds the PC app first: it ships the engine it was built with, and app/tests/app.spec.mjs opens this build
+      # Builds the PC app first: it ships the engine it was built with, and app/tests/app.spec.ts opens this build
       - name: Open the PC app with a fake board
         run: npm run test:playwright
 

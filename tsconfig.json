@@ -1,0 +1,24 @@
+{
+    // Type checks the TypeScript that Node runs as it is (type stripping, no build): the scripts, the engine's
+    // JavaScript side and the commit hook config. The PC app has its own: app/tsconfig.json, app/tsconfig.node.json.
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": ["esnext"],
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "types": ["node"],
+        // What Node can strip: relative imports end in .ts, types are imported with `import type`, no enum
+        "allowImportingTsExtensions": true,
+        "erasableSyntaxOnly": true,
+        "verbatimModuleSyntax": true,
+        "resolveJsonModule": true,
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "include": ["scripts", "engine/wasm", ".lintstagedrc.ts"]
+}

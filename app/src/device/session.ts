@@ -1,6 +1,6 @@
 // The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a
 // lilpet, send looks, notice when it goes away. The UI subscribes to its snapshot (ui/hooks.ts).
-import type { EyeEvent } from '../../../engine/wasm/engine.mjs';
+import type { EyeEvent } from '../../../engine/wasm/engine';
 import type { Look } from '../data/looks';
 import { Connection, ConnectionClosed, NoReply, type PortLike } from './connection';
 import { BoardBusy, BoardRefused, NotLilpet, command, hello, sendLook, type LookSent } from './device';

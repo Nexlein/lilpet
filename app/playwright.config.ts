@@ -1,4 +1,4 @@
-// Browser tests of the PC app: its build (npm run app:build) with a fake board on navigator.serial (tests/app.spec.mjs),
+// Browser tests of the PC app: its build (npm run app:build) with a fake board on navigator.serial (tests/app.spec.ts),
 // in headless Chromium. The build needs the WebAssembly engine (mise run engine:wasm). The tests serve this folder on
 // their own port, 8468, so no other server is ever tested instead; their reports stay in this folder too.
 import { defineConfig, devices } from '@playwright/test';

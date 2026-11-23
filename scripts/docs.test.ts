@@ -7,10 +7,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-const WORDS = { deux: 2, trois: 3, quatre: 4, cinq: 5 };
-const read = (path) => readFileSync(path, 'utf8');
+const WORDS: Record<string, number> = { deux: 2, trois: 3, quatre: 4, cinq: 5 };
+const read = (path: string) => readFileSync(path, 'utf8');
 // A number in a text, found by a pattern whose spaces may be any line break and indent
-function numberIn(path, words) {
+function numberIn(path: string, words: string) {
     const pattern = new RegExp(
         words
             .replace(/[.()`*]/g, '\\$&')
@@ -21,7 +21,7 @@ function numberIn(path, words) {
     assert.ok(found, `${path}: "${words}" not found`);
     return WORDS[found] ?? Number(found.replace(',', '.')); // a French decimal: 0,5
 }
-const codeNumber = (path, pattern) => {
+const codeNumber = (path: string, pattern: RegExp) => {
     const found = pattern.exec(read(path))?.[1];
     assert.ok(found, `${path}: ${pattern} not found`);
     return Number(found);
@@ -31,10 +31,10 @@ const CLANG = codeNumber('engine/CMakeLists.txt', /set\(LILPET_MIN_CLANG (\d+)\)
 const WATCHDOG = codeNumber('firmware/sdkconfig.defaults', /^CONFIG_ESP_TASK_WDT_TIMEOUT_S=(\d+)$/m);
 // The rest and the battery (docs/firmware.md), and the engine's timings that a camera model must know (protocole.md):
 // the bench day (#53) may change the values marked proposed
-const REST_US = (name) => codeNumber('firmware/main/rest.h', new RegExp(`#define ${name}\\s+(\\d+)`));
-const ENGINE_SECONDS = (path, name) => codeNumber(path, new RegExp(`#define ${name}\\s+([\\d.]+)f`));
+const REST_US = (name: string) => codeNumber('firmware/main/rest.h', new RegExp(`#define ${name}\\s+(\\d+)`));
+const ENGINE_SECONDS = (path: string, name: string) => codeNumber(path, new RegExp(`#define ${name}\\s+([\\d.]+)f`));
 const CHARGE_MA = codeNumber('firmware/boards/waveshare_175/board_config.h', /#define BOARD_CHARGE_MA (\d+)/);
-const CASES = [
+const CASES: [path: string, words: string, value: number][] = [
     ['docs/firmware.md', 'après N min sans commande', REST_US('REST_IDLE_US') / 60e6],
     ['docs/firmware.md', "l'air ensommeillé N s", REST_US('REST_DROWSY_US') / 1e6],
     ['docs/firmware.md', 'en fondu sur les N dernières', REST_US('REST_FADE_OUT_US') / 1e6],
@@ -115,14 +115,16 @@ const CASES = [
 ];
 
 for (const [path, words, value] of CASES)
-    test(`${path}: "${words.replace('N', value)}"`, () => assert.equal(numberIn(path, words), value));
+    test(`${path}: "${words.replace('N', String(value))}"`, () => assert.equal(numberIn(path, words), value));
 
 // Every command the engine reads, and the firmware's own test commands, is in the protocol a camera model or the app is
 // written from: one added to the code and not to docs/protocole.md would not exist for them
 test('docs/protocole.md has every command', () => {
     const protocol = read('docs/protocole.md');
-    const engine = [...read('engine/src/command.c').matchAll(/strcmp\(name, "([^"]+)"\)/g)].map(([, name]) => name);
-    const firmware = [...read('firmware/main/commands.c').matchAll(/"> (test \w+)"/g)].map(([, name]) => name);
+    const engine = [...read('engine/src/command.c').matchAll(/strcmp\(name, "([^"]+)"\)/g)].map(
+        ([, name = '']) => name
+    );
+    const firmware = [...read('firmware/main/commands.c').matchAll(/"> (test \w+)"/g)].map(([, name = '']) => name);
     assert.ok(engine.length >= 7 && firmware.length >= 2, 'the commands were not found in the code');
     // The name and what follows it in the doc: `> look ...` and `> look?` are two commands
     for (const name of [...engine, ...firmware])

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadEngine, type Engine } from '../../../engine/wasm/engine.mjs';
+import { loadEngine, type Engine } from '../../../engine/wasm/engine';
 import { Preview, loadEyeEngine, pointerIn } from './preview';
 
-vi.mock('../../../engine/wasm/engine.mjs', () => ({ loadEngine: vi.fn(async () => ({})) }));
+vi.mock('../../../engine/wasm/engine', () => ({ loadEngine: vi.fn(async () => ({})) }));
 
 const SIZE = 2;
 

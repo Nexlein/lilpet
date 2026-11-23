@@ -6,9 +6,9 @@ Per file: lines, purpose, exports (C headers: functions, types and macros; C sou
 file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## (root)
-- **.lintstagedrc.mjs** (45) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
-  - exports: default
-  - → scripts/data.mjs, scripts/files.mjs
+- **.lintstagedrc.ts** (44) — What the pre-commit hook runs on the staged files (lint-staged, one glob after the other): check the data and the files generated from it when one ...
+  - exports: DATA, default
+  - → scripts/data.ts, scripts/files.ts
 
 ## .github/rulesets
 - **dev.json** (70) — data
@@ -18,19 +18,19 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **commit-msg** (11) — Enforces Conventional Commits on the first line: type(scope)!: subject.
 - **in-mise.sh** (9) — Sourced by the hooks that need the tools of mise.toml (pre-commit, pre-push): runs the hook again inside mise, also for a Git client started outsid...
 - **no-secrets.sh** (20) — Blocks commits that stage .env files or secrets (gitleaks, from mise.toml: the hook runs inside mise, and refuses the commit if gitleaks is still m...
-- **pre-commit** (9) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map regenerated from what is staged.
+- **pre-commit** (9) — Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.ts), and the code map regenerated from what is staged.
 - **pre-push** (8) — Before each push: the fast checks of CI (npm run check, about 10 s).
 
 ## app
 - **index.html** (13) — Page of the PC app (Vite builds it): the app mounts into #root from src/main.tsx
   - → app/src/main.tsx
-- **playwright.config.mjs** (16) — Browser tests of the PC app: its build (npm run app:build) with a fake board on navigator.serial (tests/app.spec.mjs), in headless Chromium.
+- **playwright.config.ts** (16) — Browser tests of the PC app: its build (npm run app:build) with a fake board on navigator.serial (tests/app.spec.ts), in headless Chromium.
   - exports: default
   - packages: @playwright/test
-- **vite.config.mjs** (42) — PC app: React + Vite.
+- **vite.config.ts** (44) — PC app: React + Vite.
   - exports: default
   - → built: engine/build/wasm/
-  - packages: @vitejs/plugin-react, vitest
+  - packages: @vitejs/plugin-react, vite, vitest
 
 ## app/src
 - **main.tsx** (12) — Entry point of the PC app: loads the font and the styles, and renders the app into #root
@@ -45,7 +45,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/ui/App.tsx, app/src/ui/Gallery.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx
 - **looks.ts** (114) — The official swatches (eyes/looks.json) and the looks built from them: a look is a swatch worn with a pupil type.
   - exports: LookColors, Swatch, SWATCHES, DEFAULT_LOOK, EYE_SHAPE, PUPIL_LEAN, PupilShape, PUPIL_SHAPES, makeLook, findSwatch, isPupilType, hasTwoPupilColors, FAMILIES, Family, hsl, family, SwatchFilter, filterSwatches, contrast, inkOn, Look, PupilType
-  - → eyes/looks.json, engine/wasm/engine.mjs
+  - → eyes/looks.json, engine/wasm/engine.ts
   - ← app/src/data/favorites.ts, app/src/device/device.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/ui/App.tsx, app/src/ui/EyeGlyph.tsx, app/src/ui/Gallery.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/labels.ts
 - tests: looks.test.ts
 
@@ -63,18 +63,18 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → app/src/device/connection.ts, app/src/device/protocol.ts
 - **protocol.ts** (86) — Text protocol with the device over USB (docs/protocole.md): commands start with "> ", replies with "< ", any other line is the device's log.
   - exports: DeviceInfo, HELLO, lookCommand, emotionCommand, reactCommand, classify, parseHello, drawsLike, isCommandReply, parseReply, MAX_LINE, LineSplitter
-  - → engine/wasm/engine.mjs, app/src/data/looks.ts
+  - → engine/wasm/engine.ts, app/src/data/looks.ts
   - ← app/src/device/connection.ts, app/src/device/device.ts, app/src/device/fake-port.ts, app/src/device/session.ts, app/src/ui/DeviceBar.tsx
 - **session.ts** (168) — The connection to lilpet as a small state machine, outside React so it can be tested: pick a port, check it is a lilpet, send looks, notice when it...
   - exports: DeviceState, BOOT_LINE, DeviceSession
-  - → engine/wasm/engine.mjs, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
+  - → engine/wasm/engine.ts, app/src/data/looks.ts, app/src/device/connection.ts, app/src/device/device.ts, app/src/device/protocol.ts
   - ← app/src/ui/DeviceBar.tsx, app/src/ui/DeviceLog.tsx, app/src/ui/SendPanel.tsx, app/src/ui/Stage.tsx, app/src/ui/hooks.ts
 - tests: protocol.test.ts, session.test.ts
 
 ## app/src/engine
 - **preview.ts** (83) — Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
   - exports: loadEyeEngine, Preview, pointerIn, Engine
-  - → engine/wasm/engine.mjs
+  - → engine/wasm/engine.ts
   - ← app/src/ui/Screen.tsx, app/src/ui/hooks.ts
 - tests: preview.test.ts
 
@@ -115,7 +115,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/ui/Stage.tsx
 - **Stage.tsx** (121) — Left column: the device with the eyes, the chosen look and what can be done with it
   - exports: Stage
-  - → engine/wasm/engine.mjs, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
+  - → engine/wasm/engine.ts, app/src/data/favorites.ts, app/src/data/looks.ts, app/src/device/device.ts, app/src/device/session.ts, app/src/ui/hooks.ts, app/src/ui/EyeGlyph.tsx, app/src/ui/Screen.tsx, app/src/ui/SendPanel.tsx, app/src/ui/labels.ts
   - packages: react
   - ← app/src/ui/App.tsx
 - **hooks.ts** (63) — React state around the engine, the device connection and the browser
@@ -131,7 +131,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - ← app/src/main.tsx
 
 ## app/tests
-- tests: app.spec.mjs
+- tests: app.spec.ts
 
 ## engine
 - **CMakeLists.txt** (53) — The eye engine: on the host, the library, its tests and the renderer benchmark (presets host-debug and host-release); with Emscripten, the WebAssem...
@@ -159,7 +159,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **emotions.c** (36) — Emotions and reactions by number or name, from the tables generated from eyes/emotions.json (emotions_table.h)
   - exports: lp_reaction_get, lp_emotion_get, lp_emotion_from_name, lp_event_from_name
   - → engine/src/emotions_table.h, engine/src/internal.h, engine/include/lilpet/lilpet.h
-- **emotions_table.h** (96) — Generated by scripts/gen-emotions-table.mjs from eyes/emotions.json: do not edit.
+- **emotions_table.h** (96) — Generated by scripts/gen-emotions-table.ts from eyes/emotions.json: do not edit.
   - → engine/include/lilpet/lilpet.h
   - ← engine/src/emotions.c
 - **eyes.c** (434) — State and animation of the eyes: emotions, gaze, head, blink, particles.
@@ -172,7 +172,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 - **look.c** (118) — Looks: the default look, eye shape and pupil types of eyes/looks.json (looks_table.h), and looks as text, for the USB protocol with the PC app (doc...
   - exports: lp_default_look, lp_default_shape, lp_pupils_get, lp_look_malformed, lp_look_parse, lp_look_format
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h, engine/src/looks_table.h
-- **looks_table.h** (25) — Generated by scripts/gen-looks-table.mjs from eyes/looks.json: do not edit.
+- **looks_table.h** (25) — Generated by scripts/gen-looks-table.ts from eyes/looks.json: do not edit.
   - → engine/src/internal.h, engine/include/lilpet/lilpet.h
   - ← engine/src/look.c
 - **motion.c** (27) — Motion sensor input that is not gravity: telling a shake from the accelerometer.
@@ -203,8 +203,8 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 
 ## engine/tests
 - **scenes.json** (130) — data
-  - ← scripts/data.mjs
-- **scenes_table.h** (66) — Generated by scripts/gen-scenes-table.mjs from engine/tests/scenes.json, eyes/looks.json and the scene fields of engine/wasm/engine.mjs: do not edit.
+  - ← scripts/data.ts
+- **scenes_table.h** (66) — Generated by scripts/gen-scenes-table.ts from engine/tests/scenes.json, eyes/looks.json and the scene fields of engine/wasm/engine.ts: do not edit.
   - → engine/include/lilpet/lilpet.h
   - ← engine/tools/bench.c
 - tests: test.h, test_command.c, test_eyes.c, test_look.c, test_main.c, test_motion.c, test_pose.c, test_reactions.c, test_render.c, test_senses.c, test_version.c
@@ -221,28 +221,27 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
 ## engine/wasm
 - **Dockerfile** (4) — Emscripten used to build the WebAssembly module, locally and in CI (mise run engine:wasm): the latest release, pinned here only, by its tag and by ...
   - ← mise.toml
-- **bindings.c** (156) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+- **bindings.c** (156) — Implements bindings.h: javaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.ts).
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/wasm/bindings.h, engine/include/lilpet/lilpet.h
-- **bindings.h** (41) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+- **bindings.h** (41) — JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.ts).
   - exports: lpw_screen_size, lpw_emotion_count, lpw_emotion_name, lpw_event_count, lpw_event_name, lpw_init, lpw_set_look, lpw_set_emotion, lpw_blink, lpw_set_pointer, lpw_set_gravity, lpw_set_shaking, lpw_set_follow, lpw_set_shape, lpw_set_head_amount, lpw_react, lpw_emotion, lpw_update, lpw_set_scene, lpw_render, lpw_dirty
   - → engine/include/lilpet/lilpet.h
   - ← engine/wasm/bindings.c
-- **engine.d.mts** (62) — Types of engine.mjs, for the TypeScript PC app (app/): only what the app uses, the module offers more.
-  - exports: PUPILS, PupilType, EyeEvent, Look, Scene, Region, Engine, loadEngine
+- **engine.ts** (196) — TypeScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
+  - exports: PUPILS, BLINK_PHASES, PupilType, BlinkPhase, EyeEvent, Look, Scene, Shape, Region, Engine, sceneFields, loadEngine
   - → eyes/emotions.json
-- **engine.mjs** (102) — JavaScript side of the WebAssembly engine: loads the module built by `mise run engine:wasm` and drives it with scene objects as in engine/tests/sce...
-  - exports: PUPILS, BLINK_PHASES, sceneFields, loadEngine
-  - ← app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/smoke.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/validate-data.mjs
-- **smoke.mjs** (94) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
-  - → engine/wasm/engine.mjs
-- tests: engine.test.mjs
+  - ← .lintstagedrc.ts, app/src/data/looks.ts, app/src/device/protocol.ts, app/src/device/session.ts, app/src/engine/preview.ts, app/src/ui/Stage.tsx, engine/wasm/bindings.c, engine/wasm/smoke.ts, scripts/data.ts, scripts/gen-scenes-table.ts, scripts/goldens.ts, scripts/validate-data.ts
+- **smoke.ts** (94) — Loads the WebAssembly build in Node and checks the C API answers and renders something.
+  - → engine/wasm/engine.ts
+  - ← mise.toml
+- tests: engine.test.ts
 
 ## eyes
 - **emotions.json** (77) — data
-  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.d.mts, scripts/data.mjs, scripts/gen-emotions-table.mjs
+  - ← app/src/ui/labels.ts, engine/src/emotions_table.h, engine/wasm/engine.ts, scripts/data.ts, scripts/gen-emotions-table.ts
 - **looks.json** (122) — data
-  - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.mjs, scripts/firmware_facts.py, scripts/gen-looks-table.mjs
+  - ← app/src/data/looks.ts, engine/src/looks_table.h, scripts/data.ts, scripts/firmware_facts.py, scripts/gen-looks-table.ts
 
 ## firmware
 - **CMakeLists.txt** (22) — ESP-IDF application for the ESP32-S3 (target and options in sdkconfig.defaults).
@@ -385,18 +384,16 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: Board, check, check_reply, read_lines, reset, booted, reset_reason, screen_faults, reboot, open_booted_board, finish, run_checks, check_sleep, reboots_during_reads, put_back, check_board
   - → scripts/board_link.py, scripts/firmware_facts.py
   - ← mise.toml
-- **codemap.mjs** (653) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
+- **codemap.ts** (675) — Code map for AI assistants and new contributors: every source file with its purpose, exports, local imports and the files that use it, the data and...
   - exports: kindOf, isTest, scanJs, firstSentence, purposeOf, cSymbols, jsExports, jsSpecifiers, repository, usesOf, collapse, miseTasks, buildMap
   - ← .husky/pre-commit, package.json
-- **data.mjs** (28) — Where the data files and the C tables generated from them are, and the look a scene wears: shared by the scripts that read them (the validator, the...
-  - exports: LOOKS, EMOTIONS, SCENES, EMOTIONS_TABLE, LOOKS_TABLE, SCENES_TABLE, GENERATORS, readJson, swatchesById, lookOf
-  - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs, scripts/goldens.mjs, scripts/tables.mjs, scripts/validate-data.mjs
-- **expression.mjs** (22) — The fields of an emotion's expression (lp_expression in engine/include/lilpet/lilpet.h), in the order of the struct: the value an emotion of eyes/e...
-  - exports: EXPRESSION, withNeutral
-  - ← .lintstagedrc.mjs, engine/src/emotions_table.h, scripts/gen-emotions-table.mjs, scripts/validate-data.mjs
-- **files.mjs** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.mjs).
+- **data.ts** (116) — Where the data files and the C tables generated from them are, what they hold, and the look a scene wears: shared by the scripts that read them (th...
+  - exports: LOOKS, EMOTIONS, SCENES, EMOTIONS_TABLE, LOOKS_TABLE, SCENES_TABLE, GENERATORS, EXPRESSION, ExpressionField, Swatch, PupilShape, LooksFile, Emotion, Reaction, EmotionsFile, ReferenceScene, ScenesFile, Unchecked, readJson, swatchesById, lookOf, withNeutral
+  - → engine/wasm/engine.ts
+  - ← .lintstagedrc.ts, engine/src/emotions_table.h, scripts/gen-emotions-table.ts, scripts/gen-looks-table.ts, scripts/gen-scenes-table.ts, scripts/goldens.ts, scripts/tables.ts, scripts/validate-data.ts
+- **files.ts** (50) — The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the commit hook (.lintstagedrc.ts).
   - exports: GROUPS, trackedFiles
-  - ← .lintstagedrc.mjs, mise.toml, package.json
+  - ← .lintstagedrc.ts, mise.toml, package.json
 - **firmware_facts.py** (45) — What the board scripts know of the firmware and the engine, read from their sources where they can be: a define, a setting of sdkconfig.defaults, t...
   - exports: c_define, sdkconfig_default, default_look, pupil_types
   - ← scripts/check-device.py
@@ -404,36 +401,36 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - exports: running_board, before_flash
   - → scripts/board_link.py
   - ← mise.toml
-- **gen-common.mjs** (30) — What the generators of the engine's C files share (the gen-*-table.mjs of scripts/data.mjs)
+- **gen-common.ts** (30) — What the generators of the engine's C files share (the gen-*-table.ts of scripts/data.ts)
   - exports: emotionEnum, pupilEnum, hexColor, eventEnum, num, writeGenerated
-  - ← .lintstagedrc.mjs, scripts/gen-emotions-table.mjs, scripts/gen-looks-table.mjs, scripts/gen-scenes-table.mjs
-- **gen-emotions-table.mjs** (62) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (scripts/exp...
-  - → scripts/data.mjs, scripts/expression.mjs, scripts/gen-common.mjs
-  - ← scripts/data.mjs
-- **gen-looks-table.mjs** (60) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
-  - → scripts/data.mjs, scripts/gen-common.mjs
-  - ← scripts/data.mjs
-- **gen-scenes-table.mjs** (56) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json, as the fields of lp_scene that sceneFields (engine/wasm/en...
-  - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/gen-common.mjs
-  - ← scripts/data.mjs
-- **goldens.mjs** (229) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
-  - exports: strict, compare
-  - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/png.mjs
+  - ← .lintstagedrc.ts, scripts/gen-emotions-table.ts, scripts/gen-looks-table.ts, scripts/gen-scenes-table.ts
+- **gen-emotions-table.ts** (61) — Generates engine/src/emotions_table.h: the emotions and reactions of eyes/emotions.json, as C tables, each expression with every field (EXPRESSION ...
+  - → scripts/data.ts, scripts/gen-common.ts
+  - ← scripts/data.ts
+- **gen-looks-table.ts** (60) — Generates engine/src/looks_table.h: what eyes/looks.json says about every look, as C tables: the default look, the eye shape and the pupil shapes.
+  - → scripts/data.ts, scripts/gen-common.ts
+  - ← scripts/data.ts
+- **gen-scenes-table.ts** (56) — Generates engine/tests/scenes_table.h: the reference scenes of engine/tests/scenes.json, as the fields of lp_scene that sceneFields (engine/wasm/en...
+  - → engine/wasm/engine.ts, scripts/data.ts, scripts/gen-common.ts
+  - ← scripts/data.ts
+- **goldens.ts** (246) — Reference renders of the eyes, drawn by the WebAssembly engine, which gives the same pixels on every machine (no fused multiply-add, its own libm),...
+  - exports: strict, Drawn, compare
+  - → engine/wasm/engine.ts, scripts/data.ts, scripts/png.ts
   - ← mise.toml, package.json
 - **monitor.py** (21) — Shows what the board prints over USB, on the port that firmware:flash and firmware:check-device use: PORT, or the only board plugged in.
   - exports: main
   - → scripts/board_link.py
   - ← mise.toml
-- **png.mjs** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
+- **png.ts** (85) — PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for the reference renders of scrip...
   - exports: encodePng, decodePng, rgbOf, differingPixels
-  - ← scripts/goldens.mjs
-- **tables.mjs** (11) — Runs every table generator of scripts/data.mjs (npm run tables), each in its own process, so that a fault in one data file never stops the tables o...
-  - → scripts/data.mjs
-  - ← .lintstagedrc.mjs, package.json
-- **validate-data.mjs** (239) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
-  - → engine/wasm/engine.mjs, scripts/data.mjs, scripts/expression.mjs
-  - ← .lintstagedrc.mjs, package.json
-- tests: boards.test.mjs, ci.test.mjs, codemap.test.mjs, docs.test.mjs, files.test.mjs, goldens.test.mjs, links.test.mjs, mise.test.mjs, partitions.test.mjs, png.test.mjs, test_board_scripts.py, validate-data.test.mjs
+  - ← scripts/goldens.ts
+- **tables.ts** (11) — Runs every table generator of scripts/data.ts (npm run tables), each in its own process, so that a fault in one data file never stops the tables of...
+  - → scripts/data.ts
+  - ← .lintstagedrc.ts, package.json
+- **validate-data.ts** (250) — Checks the data files the renderers read: - eyes/looks.json: the swatches of the catalogue, with unique ids and hex colors; the default look, eye s...
+  - → engine/wasm/engine.ts, scripts/data.ts
+  - ← .lintstagedrc.ts, package.json
+- tests: boards.test.ts, ci.test.ts, codemap.test.ts, docs.test.ts, files.test.ts, goldens.test.ts, links.test.ts, mise.test.ts, partitions.test.ts, png.test.ts, test_board_scripts.py, validate-data.test.ts
 
 ## Commands
 
@@ -464,28 +461,28 @@ npm (`npm run <script>`, workspace app):
 - `test:playwright`: `playwright test`
 
 npm (`npm run <script>`):
-- `lint`: `npm run lint:js && npm run lint:shell && npm run lint:actions && npm run lint:python`
-- `lint:js`: `node scripts/files.mjs js | xargs -0 -r oxlint --deny-warnings`
-- `lint:shell`: `node scripts/files.mjs hooks | xargs -0 -r shellcheck -x`
-- `lint:actions`: `node scripts/files.mjs workflows | xargs -0 -r actionlint`
-- `lint:python`: `node scripts/files.mjs python | xargs -0 -r ruff check`
-- `lint:fix`: `node scripts/files.mjs js | xargs -0 -r oxlint --fix && node scripts/files.mjs python | xargs -0 -r ruff check --fix`
-- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.mjs python | xargs -0 -r ruff format`
-- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.mjs python | xargs -0 -r ruff format --check`
-- `check:data`: `node scripts/validate-data.mjs`
-- `check:tables`: `node scripts/tables.mjs --check`
+- `lint`: `npm run lint:ts && npm run lint:shell && npm run lint:actions && npm run lint:python`
+- `lint:ts`: `node scripts/files.ts ts | xargs -0 -r oxlint --deny-warnings`
+- `lint:shell`: `node scripts/files.ts hooks | xargs -0 -r shellcheck -x`
+- `lint:actions`: `node scripts/files.ts workflows | xargs -0 -r actionlint`
+- `lint:python`: `node scripts/files.ts python | xargs -0 -r ruff check`
+- `lint:fix`: `node scripts/files.ts ts | xargs -0 -r oxlint --fix && node scripts/files.ts python | xargs -0 -r ruff check --fix`
+- `format`: `git ls-files -z | xargs -0 prettier --write --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.ts python | xargs -0 -r ruff format`
+- `format:check`: `git ls-files -z | xargs -0 prettier --check --ignore-unknown --no-error-on-unmatched-pattern && node scripts/files.ts python | xargs -0 -r ruff format --check`
+- `check:types`: `tsc -p . && tsc -p app && tsc -p app/tsconfig.node.json`
+- `check:data`: `node scripts/validate-data.ts`
+- `check:tables`: `node scripts/tables.ts --check`
 - `check:scripts`: `node --test scripts/ engine/wasm/ && uv run scripts/test_board_scripts.py`
-- `check:codemap`: `node scripts/codemap.mjs --check`
-- `codemap`: `node scripts/codemap.mjs`
-- `goldens`: `node scripts/goldens.mjs`
-- `tables`: `node scripts/tables.mjs`
+- `check:codemap`: `node scripts/codemap.ts --check`
+- `codemap`: `node scripts/codemap.ts`
+- `goldens`: `node scripts/goldens.ts`
+- `tables`: `node scripts/tables.ts`
 - `test:playwright`: `npm run app:build && npm run test:playwright -w app`
-- `check`: `npm run format:check && npm run lint && npm run check:data && npm run check:tables && npm run check:scripts && npm run check:codemap && npm run check:app`
+- `check`: `npm run format:check && npm run lint && npm run check:types && npm run check:data && npm run check:tables && npm run check:scripts && npm run check:codemap && npm run app:test`
 - `prepare`: `husky`
 - `app:dev`: `npm run dev -w app`
 - `app:build`: `npm run build -w app`
 - `app:test`: `npm run test -w app`
-- `check:app`: `tsc -p app && npm run app:test`
 
 ## npm packages
 
@@ -496,10 +493,11 @@ npm (`npm run <script>`):
 - `@vitejs/plugin-react` (app/package.json) — imported by 1 file, named in scripts or config
 - `react` (app/package.json) — imported by 9 files, named in scripts or config
 - `react-dom` (app/package.json) — imported by 1 file, named in scripts or config
-- `typescript` (app/package.json) — named in scripts or config
-- `vite` (app/package.json) — named in scripts or config
+- `vite` (app/package.json) — imported by 1 file, named in scripts or config
 - `vitest` (app/package.json) — imported by 5 files, named in scripts or config
+- `@types/node` (package.json) — types for TypeScript
 - `husky` (package.json) — named in scripts or config
 - `lint-staged` (package.json) — named in scripts or config
 - `oxlint` (package.json) — named in scripts or config
 - `prettier` (package.json) — named in scripts or config
+- `typescript` (package.json) — named in scripts or config

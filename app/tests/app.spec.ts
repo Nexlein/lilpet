@@ -2,21 +2,46 @@
 // port. npm run test:playwright builds it first. Run alone, these tests are skipped until the app is built, and fail
 // in CI if the build is missing.
 import { existsSync, readFileSync } from 'node:fs';
-import { expect, test as base } from '@playwright/test';
+import { expect, test as base, type Locator, type Page } from '@playwright/test';
 import { FAKE_HELLO, FAKE_INFO, fakePort } from '../src/device/fake-port.ts';
 
-const APP = '/dist/index.html'; // served from app/ (playwright.config.mjs)
+const APP = '/dist/index.html'; // served from app/ (playwright.config.ts)
+
+// The board the page drives through window.board (plugBoard), and what watchScreen reads off the canvas
+interface Board {
+    hello: string | null;
+    replies: Record<string, string | null>;
+    delay: number;
+    quiet: boolean;
+    sent: string[];
+    log: (line: string) => void;
+    unplug: () => void;
+}
+interface Frame {
+    lit: number;
+    height: number;
+    color: [number, number, number];
+}
+declare global {
+    interface Window {
+        board: Board;
+        drawn: number;
+        readScreen: () => Frame;
+        watch: (ms: number) => Promise<Frame[]>;
+        watchStart: (click: boolean, ms: number) => Promise<Frame[]>;
+    }
+}
 
 // What a page reports as an error: tests end by expecting none
-function collectErrors(page) {
-    const errors = [];
-    page.on('pageerror', (err) => errors.push(err.message));
+function collectErrors(page: Page) {
+    const errors: string[] = [];
+    page.on('pageerror', (err: Error) => errors.push(err.message));
     page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
     return errors;
 }
 
 // Every test ends with no error in the page
-const test = base.extend({
+const test = base.extend<{ errors: string[] }>({
     errors: [
         async ({ page }, use) => {
             const errors = collectErrors(page);
@@ -37,12 +62,12 @@ const SHOWN_INFO = `${FAKE_INFO.board}, firmware ${FAKE_INFO.firmware}, moteur $
 // The engine version of the app's preview, from engine/include/lilpet/lilpet.h: the fake board's is another one
 const ENGINE_H = readFileSync(new URL('../../engine/include/lilpet/lilpet.h', import.meta.url), 'utf8');
 const APP_ENGINE = ['MAJOR', 'MINOR', 'PATCH'].map(
-    (part) => new RegExp(`#define LP_VERSION_${part} (\\d+)`).exec(ENGINE_H)[1]
+    (part) => new RegExp(`#define LP_VERSION_${part} (\\d+)`).exec(ENGINE_H)![1]
 );
 
 // Runs in the page, on the fake port of the Vitest tests: a board on navigator.serial, driven through window.board
-function plugBoard(makePort, hello) {
-    const board = {
+function plugBoard(makePort: typeof fakePort, hello: string) {
+    const board: Pick<Board, 'hello' | 'replies' | 'delay' | 'quiet'> = {
         hello,
         replies: { look: 'ok', emotion: 'ok', react: 'ok' }, // null: the board stays silent
         delay: 0,
@@ -51,7 +76,7 @@ function plugBoard(makePort, hello) {
     const device = makePort(
         (command) => {
             const word = command.split(' ')[1];
-            return word === 'hello' ? board.hello : board.replies[word];
+            return word === 'hello' ? board.hello : (board.replies[word!] ?? null);
         },
         { delay: () => board.delay, quiet: () => board.quiet }
     );
@@ -69,9 +94,12 @@ const fakeSerial = `(${plugBoard})(${fakePort}, ${JSON.stringify(FAKE_HELLO)})`;
 function countFrames() {
     const { putImageData } = CanvasRenderingContext2D.prototype;
     window.drawn = 0;
-    CanvasRenderingContext2D.prototype.putImageData = function draw(...args) {
+    CanvasRenderingContext2D.prototype.putImageData = function draw(
+        this: CanvasRenderingContext2D,
+        ...args: [ImageData, number, number]
+    ) {
         window.drawn++;
-        putImageData.apply(this, args);
+        Reflect.apply(putImageData, this, args);
     };
 }
 
@@ -79,19 +107,19 @@ function countFrames() {
 // over too soon to be seen from outside the page.
 function watchScreen() {
     window.readScreen = () => {
-        const canvas = document.querySelector('canvas.screen');
-        const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-        const colors = new Map();
+        const canvas = document.querySelector<HTMLCanvasElement>('canvas.screen')!;
+        const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+        const colors = new Map<number, number>();
         let lit = 0;
         let rows = 0;
         for (let i = 0; i < data.length; i += 4) {
-            const color = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+            const color = (data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!;
             if (color === 0) continue;
             lit++;
             rows += Math.floor(i / 4 / canvas.width);
             colors.set(color, (colors.get(color) ?? 0) + 1);
         }
-        const [top] = [...colors].toSorted((a, b) => b[1] - a[1])[0] ?? [0];
+        const [top] = [...colors].toSorted((a, b) => b[1] - a[1])[0] ?? [0, 0];
         return {
             lit: lit / (canvas.width * canvas.height), // share of lit pixels
             height: rows / lit / canvas.height, // of the middle of the eyes: 0 at the top of the screen, 1 at the bottom
@@ -100,7 +128,7 @@ function watchScreen() {
     };
 
     window.watch = async (ms) => {
-        const seen = [];
+        const seen: Frame[] = [];
         const end = performance.now() + ms;
         while (performance.now() < end) {
             seen.push(window.readScreen());
@@ -115,7 +143,7 @@ function watchScreen() {
         while (!document.querySelector('canvas.screen') || window.readScreen().lit === 0)
             // oxlint-disable-next-line no-await-in-loop -- one frame after the other
             await new Promise(requestAnimationFrame);
-        if (click) [...document.querySelectorAll('button')].find((b) => b.textContent === 'Cligner').click();
+        if (click) [...document.querySelectorAll('button')].find((b) => b.textContent === 'Cligner')!.click();
         return window.watch(ms);
     };
 }
@@ -124,22 +152,23 @@ function watchScreen() {
 // with this seed none comes earlier, while others hide the first saccade behind a blink, as soon as the first frames.
 const QUIET_SEED = 1;
 
-const frames = (page) => page.evaluate(() => window.drawn);
-const sent = (page) => page.evaluate(() => window.board.sent);
-const looks = async (page) => (await sent(page)).filter((line) => line.startsWith('> look'));
-const note = (page) => page.locator('.send-note');
-const chip = (page, name) => page.locator('.grid .chip', { hasText: name });
-const place = (locator) => locator.evaluate((el) => ({ x: el.offsetLeft, y: el.offsetTop }));
-const picture = (page) => page.locator('canvas.screen').evaluate((canvas) => canvas.toDataURL());
+const frames = (page: Page) => page.evaluate(() => window.drawn);
+const sent = (page: Page) => page.evaluate(() => window.board.sent);
+const looks = async (page: Page) => (await sent(page)).filter((line: string) => line.startsWith('> look'));
+const note = (page: Page) => page.locator('.send-note');
+const chip = (page: Page, name: string) => page.locator('.grid .chip', { hasText: name });
+const place = (locator: Locator) => locator.evaluate((el: HTMLElement) => ({ x: el.offsetLeft, y: el.offsetTop }));
+const picture = (page: Page) =>
+    page.locator('canvas.screen').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
 
 // The screen with the eyes open: the frame with the most lit pixels of the time a blink takes
-async function openEyes(page) {
+async function openEyes(page: Page) {
     const seen = await page.locator('canvas.screen').evaluate(() => window.watch(700));
     return seen.reduce((best, frame) => (frame.lit > best.lit ? frame : best));
 }
 
 // Where the eyes come to rest: they ease toward their target, so two readings in a row must agree
-async function settledHeight(page) {
+async function settledHeight(page: Page) {
     let before = Number.NaN;
     let height = Number.NaN;
     await expect
@@ -156,18 +185,18 @@ async function settledHeight(page) {
 }
 
 // The engine draws in RGB565 and shades the eyes: near the color of the swatch, not exactly it
-const wears = async (page, [r, g, b]) => {
+const wears = async (page: Page, [r, g, b]: [number, number, number]) => {
     const { color } = await openEyes(page);
     return Math.max(Math.abs(color[0] - r), Math.abs(color[1] - g), Math.abs(color[2] - b)) <= 8;
 };
 
 // Where an element ends on the page, in pixels from the left
-async function rightEdge(locator) {
-    const box = await locator.boundingBox();
+async function rightEdge(locator: Locator) {
+    const box = (await locator.boundingBox())!;
     return box.x + box.width;
 }
 
-async function plugIn(page) {
+async function plugIn(page: Page) {
     await page.getByRole('button', { name: 'Brancher lilpet' }).click();
     await expect(page.locator('.device [role=status]')).toContainText('lilpet est branché');
 }
@@ -180,10 +209,10 @@ test('the PC app shows live eyes and picks looks', async ({ page }) => {
     // The engine draws: some pixels of the screen are lit
     await expect
         .poll(() =>
-            page.locator('canvas.screen').evaluate((canvas) => {
-                const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+            page.locator('canvas.screen').evaluate((canvas: HTMLCanvasElement) => {
+                const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
                 let lit = 0;
-                for (let i = 0; i < data.length; i += 4) if (data[i] + data[i + 1] + data[i + 2] > 0) lit++;
+                for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 0) lit++;
                 return lit / (canvas.width * canvas.height);
             })
         )
@@ -307,7 +336,7 @@ base('says when the eye engine cannot load, and the rest goes on', async ({ page
 test('Cligner shuts the eyes, which stay open at first without it', async ({ page }) => {
     await page.addInitScript(watchScreen);
     await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
-    const litAtStart = async (click) => {
+    const litAtStart = async (click: boolean) => {
         await page.goto(APP);
         return (await page.evaluate((press) => window.watchStart(press, 450), click)).map((frame) => frame.lit);
     };
@@ -339,7 +368,7 @@ test('the live eyes follow the pointer, and let go when it leaves the page', asy
     // Seeded: with another seed, saccades could cover most of the pointer's move and the test would fail now and then
     await page.addInitScript((seed) => (Date.now = () => seed), QUIET_SEED);
     await page.goto(APP);
-    const screen = await page.locator('canvas.screen').boundingBox();
+    const screen = (await page.locator('canvas.screen').boundingBox())!;
     const middle = screen.x + screen.width / 2;
 
     await page.mouse.move(middle, screen.y);
@@ -572,12 +601,12 @@ test('the log follows the last line, unless it was scrolled up', async ({ page }
     await expect(page.getByRole('region', { name: 'Journal de lilpet' }), 'a landmark to jump to').toBeVisible();
 
     const log = page.locator('.log pre');
-    const write = (from, to) =>
+    const write = (from: number, to: number) =>
         page.evaluate(
-            ([first, last]) => {
+            ([first, last]: [number, number]) => {
                 for (let i = first; i < last; i++) window.board.log(`line ${i}`);
             },
-            [from, to]
+            [from, to] satisfies [number, number]
         );
     const fromEnd = () => log.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight);
 
@@ -633,7 +662,7 @@ test('the color grid is one stop of the Tab key, walked with the arrows', async 
     await expect(stop).toContainText('cherry');
 
     const names = await chips.allInnerTexts();
-    const next = names[names.indexOf('cherry') + 1];
+    const next = names[names.indexOf('cherry') + 1]!;
     const focused = page.locator('.grid .chip:focus');
     await stop.focus();
     const first = await place(focused);
@@ -752,7 +781,7 @@ test('a send note on two lines fits the window with the rest of the stage', asyn
     await page.evaluate(() => (window.board.replies.look = 'err cannot read this look: the third color is too long'));
     await page.locator('.primary').click();
     await expect(note(page)).toContainText('n’est pas envoyé');
-    expect((await note(page).boundingBox()).height, 'two lines').toBeGreaterThan(30);
+    expect((await note(page).boundingBox())!.height, 'two lines').toBeGreaterThan(30);
     await expect(note(page)).toBeInViewport({ ratio: 1 });
 });
 

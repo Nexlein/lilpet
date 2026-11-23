@@ -1,9 +1,9 @@
-# Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.mjs), and the code map
+# Before each commit: no secret staged, the staged files linted and formatted (.lintstagedrc.ts), and the code map
 # regenerated from what is staged. The tools come from mise.toml: the hook runs inside mise (in-mise.sh).
 . .husky/in-mise.sh
 sh .husky/no-secrets.sh
 # One glob after the other: a check of the generated files must not read a file another glob is formatting
 # The installed lint-staged only: npx would fetch one from the registry in a clone without node_modules
 npm exec --no -- lint-staged --concurrent false
-node scripts/codemap.mjs >/dev/null
+node scripts/codemap.ts >/dev/null
 git add .claude/codemap.md

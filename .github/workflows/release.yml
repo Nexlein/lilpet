@@ -101,7 +101,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" lilpet-*.zip
 
   # The PC app the CI built and tested on the tagged commit, with its engine, at https://nexlein.github.io/lilpet/. Its
-  # paths are relative (app/vite.config.mjs), so it works from that folder. The github-pages environment allows the v*
+  # paths are relative (app/vite.config.ts), so it works from that folder. The github-pages environment allows the v*
   # tags to deploy.
   pages:
     name: PC app on GitHub Pages

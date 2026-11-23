@@ -1,11 +1,11 @@
-// Tests of scripts/png.mjs, the PNG files of the reference renders: what is written reads back pixel for pixel, a
+// Tests of scripts/png.ts, the PNG files of the reference renders: what is written reads back pixel for pixel, a
 // difference is counted per pixel, and a file it did not write is refused rather than misread. Built-in test runner,
-// no dependency. The renders themselves are compared by mise run engine:goldens (scripts/goldens.mjs).
+// no dependency. The renders themselves are compared by mise run engine:goldens (scripts/goldens.ts).
 // Usage: npm run check:scripts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { deflateSync } from 'node:zlib';
-import { decodePng, differingPixels, encodePng, rgbOf } from './png.mjs';
+import { decodePng, differingPixels, encodePng, rgbOf } from './png.ts';
 
 test('reads back every pixel it writes', () => {
     const [width, height] = [7, 5];

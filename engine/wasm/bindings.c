@@ -145,10 +145,10 @@ EMSCRIPTEN_KEEPALIVE const uint8_t *lpw_render(void)
     return rgba;
 }
 
-/* engine.mjs reads it as four ints in a row */
+/* engine.ts reads it as four ints in a row */
 _Static_assert(sizeof(lp_rect) == 4 * sizeof(int) && offsetof(lp_rect, y0) == sizeof(int) &&
                    offsetof(lp_rect, x1) == 2 * sizeof(int) && offsetof(lp_rect, y1) == 3 * sizeof(int),
-               "engine.mjs reads lp_rect as x0, y0, x1, y1");
+               "engine.ts reads lp_rect as x0, y0, x1, y1");
 
 EMSCRIPTEN_KEEPALIVE const lp_rect *lpw_dirty(void)
 {

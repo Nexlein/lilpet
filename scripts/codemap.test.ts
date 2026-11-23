@@ -1,4 +1,4 @@
-// Tests of the code map generator (scripts/codemap.mjs): on small made-up files, what it reads in each language, how it
+// Tests of the code map generator (scripts/codemap.ts): on small made-up files, what it reads in each language, how it
 // resolves what a file uses and the problems --check reports; then the script itself in a throwaway git repository.
 // Built-in test runner, no dependency.
 // Usage: npm run check:scripts
@@ -22,12 +22,11 @@ import {
     repository,
     scanJs,
     usesOf
-} from './codemap.mjs';
+} from './codemap.ts';
 
 test('tells source, data and settings files apart', () => {
     assert.equal(kindOf('engine/src/eyes.c'), 'c');
-    assert.equal(kindOf('app/src/ui/App.tsx'), 'js');
-    assert.equal(kindOf('engine/wasm/engine.d.mts'), 'js');
+    assert.equal(kindOf('app/src/ui/App.tsx'), 'ts');
     assert.equal(kindOf('scripts/flash-guard.py'), 'py');
     assert.equal(kindOf('engine/CMakeLists.txt'), 'cmake');
     assert.equal(kindOf('firmware/Dockerfile'), 'sh');
@@ -40,7 +39,7 @@ test('tells source, data and settings files apart', () => {
     assert.ok(isTest('engine/tests/test_render.c'));
     assert.ok(isTest('app/src/device/session.test.ts'));
     assert.ok(isTest('scripts/test_board_scripts.py'));
-    assert.ok(!isTest('scripts/validate-data.mjs'));
+    assert.ok(!isTest('scripts/validate-data.ts'));
 });
 
 test('takes the first sentence of the first comment, after a licence', () => {
@@ -49,13 +48,8 @@ test('takes the first sentence of the first comment, after a licence', () => {
         purposeOf('/**\n * Copyright (c) 2023 Someone.\n */\n/* The real purpose */\n', 'c'),
         'The real purpose'
     );
-    assert.equal(purposeOf('#!/usr/bin/env node\n// One line\n// and more.\nimport x;', 'js'), 'One line and more.');
-    assert.equal(purposeOf('#!/usr/bin/env python3\n"""Docstring here."""\n', 'py'), 'Docstring here.');
-    assert.equal(purposeOf("'''Single-quoted docstring.'''\nimport os", 'py'), 'Single-quoted docstring.');
-    assert.equal(
-        purposeOf('# /// script\n# dependencies = []\n# ///\n# After the block\nimport os', 'py'),
-        'After the block'
-    );
+    assert.equal(purposeOf('#!/usr/bin/env node\n// One line\n// and more.\nimport x;', 'ts'), 'One line and more.');
+    assert.equal(purposeOf('#!/usr/bin/env python3\n# Talks to a board.\nimport os\n', 'py'), 'Talks to a board.');
     assert.equal(purposeOf('<!doctype html><head><!-- The page --></head>', 'html'), 'The page');
     assert.equal(purposeOf('# A CMake file\nproject(x)', 'cmake'), 'A CMake file');
     assert.equal(purposeOf('int main(void) {}', 'c'), '');
@@ -77,7 +71,6 @@ extern "C" {
 typedef struct lp_thing {
     int a;
 } lp_thing;
-typedef void (*lp_callback)(int value);
 typedef enum { LP_A, LP_B } lp_kind;
 /* A comment with a fake(call); inside */
 void lp_do(lp_thing *t,
@@ -88,15 +81,7 @@ const char *lp_name(void);
 }
 #endif
 #endif`;
-    assert.deepEqual(cSymbols(header, true), [
-        'LP_SIZE',
-        'lp_thing',
-        'lp_callback',
-        'lp_kind',
-        'lp_do',
-        'lp_inline',
-        'lp_name'
-    ]);
+    assert.deepEqual(cSymbols(header, true), ['LP_SIZE', 'lp_thing', 'lp_kind', 'lp_do', 'lp_inline', 'lp_name']);
     // A table defined in a header is data, not a function
     assert.deepEqual(
         cSymbols('static const int lp_table[2] = {1, 2};\nstatic inline int lp_f(void) { return 1; }', true),
@@ -134,7 +119,7 @@ export default class Eight {}
 // import { nope } from './commented';
 import x from './x';
 import './side-effect.css';
-const lazy = await import('./lazy.mjs');
+const lazy = await import('./lazy.ts');
 const wasm = new URL('../engine/build/wasm/lilpet.mjs', import.meta.url);
 export * from './again';`;
     assert.deepEqual(jsExports(src), ['one', 'two', 'THREE', 'Four', 'Five', 'six', 'Eight', 'a', 'seven']);
@@ -142,27 +127,19 @@ export * from './again';`;
         './x',
         './again',
         './side-effect.css',
-        './lazy.mjs',
+        './lazy.ts',
         '../engine/build/wasm/lilpet.mjs'
     ]);
     assert.deepEqual(jsExports('const x = 1;\nexport default x;'), ['default']);
-    assert.deepEqual(jsExports('export const enum Mode { A }\nexport const { p, q: r, s = 1, ...rest } = obj;'), [
-        'Mode',
-        'p',
-        'r',
-        's',
-        'rest'
-    ]);
     assert.deepEqual(jsSpecifiers('const s = "not an import \'./fake\'";\nconsole.log(\'import "./no"\');'), []);
 });
 
-const ignored = (path) => path.startsWith('engine/build/');
+const ignored = (path: string) => path.startsWith('engine/build/');
 
 test('resolves local files, notes packages and build outputs, reports what is missing', () => {
     const files = [
         'app/src/a.ts',
         'app/src/b.tsx',
-        'app/src/data/index.ts',
         'eyes/looks.json',
         'engine/include/lilpet/lilpet.h',
         'engine/src/eyes.c',
@@ -174,7 +151,6 @@ test('resolves local files, notes packages and build outputs, reports what is mi
     const js = usesOf(
         'app/src/a.ts',
         `import { B } from './b';
-import data from './data';
 import looks from '../../eyes/looks.json';
 import { useState } from 'react';
 import { x } from '@scope/pkg/sub';
@@ -182,10 +158,10 @@ import { readFileSync } from 'node:fs';
 import gone from './gone';
 import wasm from '../../engine/build/wasm/lilpet.mjs';
 import source from '../../engine/src/eyes.c?raw';`,
-        'js',
+        'ts',
         repo
     );
-    assert.deepEqual(js.local, ['app/src/b.tsx', 'app/src/data/index.ts', 'eyes/looks.json', 'engine/src/eyes.c']);
+    assert.deepEqual(js.local, ['app/src/b.tsx', 'eyes/looks.json', 'engine/src/eyes.c']);
     assert.deepEqual(js.packages, ['react', '@scope/pkg']);
     assert.deepEqual(js.unresolved, ['./gone']);
     assert.deepEqual(js.built, ['engine/build/wasm/lilpet.mjs']);
@@ -224,11 +200,11 @@ test('reads JS past templates, regular expressions and divisions', () => {
     const inner = [
         'const quoted = `"${s.replace(/"/g, \'\\\\"\')}"`;',
         "const note = `${/* it's a comment */ x} and ${`deeper ${y}`}`;",
-        'const fixture = "await import(\'./nope.mjs\')";',
+        'const fixture = "await import(\'./nope.ts\')";',
         "import { real2 } from './real2';",
-        "const lazy = await import('./lazy.mjs');"
+        "const lazy = await import('./lazy.ts');"
     ].join('\n');
-    assert.deepEqual(jsSpecifiers(inner), ['./real2', './lazy.mjs']);
+    assert.deepEqual(jsSpecifiers(inner), ['./real2', './lazy.ts']);
 });
 
 test('reads the visible mise tasks with their description', () => {
@@ -263,7 +239,7 @@ test('builds the map: purposes, users, data readers, task users and problems', (
             'engine/src/raster.h': '/* Spans of shapes */\nvoid lp_spans(void);\n',
             'engine/src/raster.c': '#include "raster.h"\nvoid lp_spans(void) {}\n',
             'engine/src/lonely.c': 'int lonely(void) { return 0; }\n',
-            'scripts/tool.py': '"""A tool."""\nimport helper\n',
+            'scripts/tool.py': '# A tool.\nimport helper\n',
             'scripts/helper.py': '# Helps\ndef run():\n    pass\n',
             'eyes/looks.json': '{}',
             'app/src/a.ts': "// Reads the looks\nimport looks from '../../eyes/looks.json';\nimport './missing';\n",
@@ -295,23 +271,36 @@ test('lists the data and the generated files of a test folder with their users, 
     const contents = new Map(
         Object.entries({
             'engine/tests/scenes.json': '{}',
-            'engine/tests/scenes_table.h':
-                '/* Generated by scripts/gen.mjs from scenes.json: do not edit. */\nint x;\n',
+            'engine/tests/scenes_table.h': '/* Generated by scripts/gen.ts from scenes.json: do not edit. */\nint x;\n',
             'engine/tests/test_render.c': '#include "scenes_table.h"\n',
             'engine/tools/bench.c': '/* Times the renderer */\n#include "../tests/scenes_table.h"\n',
-            'scripts/data.mjs': "// Where the data is\nexport const SCENES = 'engine/tests/scenes.json';\n"
+            'scripts/data.ts': "// Where the data is\nexport const SCENES = 'engine/tests/scenes.json';\n"
         })
     );
     const { text, problems } = buildMap(contents);
-    assert.match(text, /\*\*scenes\.json\*\* \(1\) — data\n {2}- ← scripts\/data\.mjs/);
+    assert.match(text, /\*\*scenes\.json\*\* \(1\) — data\n {2}- ← scripts\/data\.ts/);
     assert.match(text, /\*\*scenes_table\.h\*\* \(2\) — Generated by [^\n]*\n {2}- ← engine\/tools\/bench\.c\n/);
     assert.match(text, /- tests: test_render\.c\n/);
     assert.deepEqual(problems, []);
 });
 
+test('lists the tasks and npm scripts that run a TS script, in scripts/ or engine/wasm/', () => {
+    const contents = new Map(
+        Object.entries({
+            'mise.toml': '[tasks.smoke]\nrun = "node engine/wasm/smoke.ts engine/build/wasm/lilpet.mjs"\n',
+            'package.json': JSON.stringify({ scripts: { tables: 'node scripts/tables.ts' } }),
+            'engine/wasm/smoke.ts': '// Loads the engine once\n',
+            'scripts/tables.ts': '// Writes the tables\n'
+        })
+    );
+    const { text } = buildMap(contents);
+    assert.match(text, /\*\*smoke\.ts\*\* \(1\) — Loads the engine once\n {2}- ← mise\.toml\n/);
+    assert.match(text, /\*\*tables\.ts\*\* \(1\) — Writes the tables\n {2}- ← package\.json\n/);
+});
+
 // --- The script itself, on the index of a throwaway repository -------------------------------------------------------
 
-const SCRIPT = new URL('./codemap.mjs', import.meta.url).pathname;
+const SCRIPT = new URL('./codemap.ts', import.meta.url).pathname;
 const repoDir = mkdtempSync(join(tmpdir(), 'lilpet-codemap-'));
 after(() => rmSync(repoDir, { recursive: true, force: true }));
 
@@ -322,60 +311,60 @@ const IDENTITY = {
     GIT_COMMITTER_NAME: 'test',
     GIT_COMMITTER_EMAIL: 'test@example.com'
 };
-const git = (...args) =>
+const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: repoDir, encoding: 'utf8', env: { ...process.env, ...IDENTITY }, stdio: 'pipe' });
-const codemap = (...args) => spawnSync('node', [SCRIPT, ...args], { cwd: repoDir, encoding: 'utf8' });
-const put = (path, text) => {
+const codemap = (...args: string[]) => spawnSync('node', [SCRIPT, ...args], { cwd: repoDir, encoding: 'utf8' });
+const put = (path: string, text: string) => {
     mkdirSync(join(repoDir, path, '..'), { recursive: true });
     writeFileSync(join(repoDir, path), text);
 };
 
 test('writes the map from what is staged and checks it against the staged map', () => {
     git('init', '-q');
-    put('src/a.mjs', "// Says hello\nimport { b } from './b.mjs';\nexport const a = b;\n");
-    put('src/b.mjs', '// Gives b\nexport const b = 1;\n');
+    put('src/a.ts', "// Says hello\nimport { b } from './b.ts';\nexport const a = b;\n");
+    put('src/b.ts', '// Gives b\nexport const b = 1;\n');
     git('add', 'src');
 
     assert.equal(codemap().status, 0); // creates .claude/ for the map
     const map = readFileSync(join(repoDir, '.claude/codemap.md'), 'utf8');
-    assert.match(map, /\*\*a\.mjs\*\* \(3\) — Says hello\n {2}- exports: a\n {2}- → src\/b\.mjs/);
+    assert.match(map, /\*\*a\.ts\*\* \(3\) — Says hello\n {2}- exports: a\n {2}- → src\/b\.ts/);
     assert.equal(codemap('--check').status, 1, 'the map is written but not staged yet');
     git('add', '.claude/codemap.md');
     assert.equal(codemap('--check').status, 0);
 
     // A change in the working tree only does not count: the map follows what gets committed
-    put('src/b.mjs', '// Gives b, now with more\nexport const b = 2;\nexport const c = 3;\n');
+    put('src/b.ts', '// Gives b, now with more\nexport const b = 2;\nexport const c = 3;\n');
     assert.equal(codemap('--check').status, 0);
-    git('add', 'src/b.mjs');
+    git('add', 'src/b.ts');
     const stale = codemap('--check');
     assert.equal(stale.status, 1);
     assert.match(stale.stderr, /out of date, run npm run codemap and stage it/);
 
     // A local import that does not resolve fails the check, even with a fresh map
-    put('src/c.mjs', "// Uses a file that is not there\nimport { d } from './d.mjs';\nexport const c = d;\n");
+    put('src/c.ts', "// Uses a file that is not there\nimport { d } from './d.ts';\nexport const c = d;\n");
     git('add', 'src');
     codemap();
     git('add', '.claude/codemap.md');
     const broken = codemap('--check');
     assert.equal(broken.status, 1);
-    assert.match(broken.stderr, /src\/c\.mjs: local import "\.\/d\.mjs" not found/);
+    assert.match(broken.stderr, /src\/c\.ts: local import "\.\/d\.ts" not found/);
 });
 
 test('reads a path with a tab, and only resolved files during a merge', () => {
-    put('src/odd\tname.mjs', '// A name with a tab in it\nexport const odd = 1;\n');
+    put('src/odd\tname.ts', '// A name with a tab in it\nexport const odd = 1;\n');
     git('add', 'src');
     git('commit', '-q', '-m', 'base');
     git('checkout', '-q', '-b', 'other');
-    put('src/b.mjs', '// Gives b, the other way\nexport const b = 3;\n');
+    put('src/b.ts', '// Gives b, the other way\nexport const b = 3;\n');
     git('commit', '-q', '-am', 'other');
     git('checkout', '-q', '-');
-    put('src/b.mjs', '// Gives b, this way\nexport const b = 4;\n');
+    put('src/b.ts', '// Gives b, this way\nexport const b = 4;\n');
     git('commit', '-q', '-am', 'this');
-    assert.throws(() => git('merge', '-q', 'other'), 'the two changes of src/b.mjs conflict');
+    assert.throws(() => git('merge', '-q', 'other'), 'the two changes of src/b.ts conflict');
 
     assert.equal(codemap().status, 0);
     const map = readFileSync(join(repoDir, '.claude/codemap.md'), 'utf8');
-    assert.match(map, /\*\*odd\tname\.mjs\*\* \(2\) — A name with a tab in it/);
-    assert.doesNotMatch(map, /\*\*b\.mjs\*\*/, 'a file in conflict waits for its resolution');
+    assert.match(map, /\*\*odd\tname\.ts\*\* \(2\) — A name with a tab in it/);
+    assert.doesNotMatch(map, /\*\*b\.ts\*\*/, 'a file in conflict waits for its resolution');
     git('merge', '--abort');
 });

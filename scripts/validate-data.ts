@@ -5,11 +5,14 @@
 //   those the code asks for by name exist, and the ones held while their cause lasts bring no sparkles
 // - engine/tests/scenes.json: unique ids, known swatches, pupil types and emotions, valid blink, head, gaze and particle
 //   fields (that each scene with particles shows some is an engine test: it takes a simulation)
-// Usage: node scripts/validate-data.mjs
+// Usage: node scripts/validate-data.ts
 import { readFileSync } from 'node:fs';
-import { BLINK_PHASES, PUPILS } from '../engine/wasm/engine.mjs';
-import { EMOTIONS, LOOKS, SCENES } from './data.mjs';
-import { EXPRESSION } from './expression.mjs';
+import { BLINK_PHASES, PUPILS } from '../engine/wasm/engine.ts';
+import { EMOTIONS, EXPRESSION, LOOKS, SCENES, type Unchecked } from './data.ts';
+
+type Fail = (msg: string) => void;
+
+const PUPIL_NAMES: readonly string[] = PUPILS;
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 const ID = /^[a-z0-9-]+$/; // ends up in a C string and in a file name (engine/tests/goldens)
@@ -17,7 +20,7 @@ const NAME = /^[a-z][a-z0-9_]*$/; // ends up in a C enumerator
 const SWATCH_COUNT = 100; // the catalogue: 100 colors and 4 pupils, 400 looks
 // From the engine's screen.h: the biggest eye radius and gap the drawing is made for, and the particles it shows
 const SCREEN_H = readFileSync('engine/include/lilpet/screen.h', 'utf8');
-function screenDefine(name) {
+function screenDefine(name: string) {
     const found = new RegExp(`#define ${name}\\s+(\\d+)`).exec(SCREEN_H);
     if (!found) throw new Error(`engine/include/lilpet/screen.h: no "#define ${name} <number>"`);
     return Number(found[1]);
@@ -25,17 +28,18 @@ function screenDefine(name) {
 const HALF_SCREEN = screenDefine('LP_SCREEN_SIZE') / 2;
 const MAX_SPARKLES = screenDefine('LP_MAX_PARTICLES');
 const MEASURED_TILT = 0.37; // radians: the emotions' turns were tuned for it (docs/architecture.md)
-const errors = [];
-const isHex = (v) => typeof v === 'string' && HEX.test(v);
-const isNum = (v, min = -Infinity, max = Infinity) =>
+const errors: string[] = [];
+const isHex = (v: unknown): v is string => typeof v === 'string' && HEX.test(v);
+const isNum = (v: unknown, min = -Infinity, max = Infinity): v is number =>
     typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
-const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isObject = (v: unknown): v is Record<string, Unchecked> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
 
-function load(path) {
+function load(path: string): Unchecked {
     try {
         return JSON.parse(readFileSync(path, 'utf8'));
     } catch (err) {
-        errors.push(`${path}: ${err.message}`);
+        errors.push(`${path}: ${(err as Error).message}`);
         return null;
     }
 }
@@ -47,7 +51,7 @@ function report() {
 }
 
 // Checks the shared "list of objects with a unique id" part and calls `check` on each item
-function eachItem(path, list, name, check) {
+function eachItem(path: string, list: Unchecked, name: string, check: (item: Unchecked, fail: Fail) => void) {
     if (!Array.isArray(list) || list.length === 0) {
         errors.push(`${path}: "${name}" must be a non-empty array`);
         return;
@@ -62,13 +66,20 @@ function eachItem(path, list, name, check) {
         if (typeof item.id !== 'string' || !ID.test(item.id)) errors.push(`${at}: "id" must match ${ID}`);
         else if (seen.has(item.id)) errors.push(`${at}: duplicate id`);
         else seen.add(item.id);
-        check(item, (msg) => errors.push(`${at}: ${msg}`));
+        check(item, (msg: string) => errors.push(`${at}: ${msg}`));
     }
 }
 
 // Same for an object of named rows, the ones the code asks for by name, and each row's keys: a misspelled one would be
 // ignored
-function eachRow(path, rows, name, required, keys, check) {
+function eachRow(
+    path: string,
+    rows: Unchecked,
+    name: string,
+    required: readonly string[],
+    keys: readonly string[],
+    check: (row: Unchecked, fail: Fail, id: string) => void
+) {
     if (!isObject(rows) || Object.keys(rows).length === 0) {
         errors.push(`${path}: "${name}" must be a non-empty object`);
         return;
@@ -76,7 +87,7 @@ function eachRow(path, rows, name, required, keys, check) {
     for (const id of required)
         if (!Object.hasOwn(rows, id)) errors.push(`${path}: "${name}.${id}" is missing, the eyes need it`);
     for (const [id, row] of Object.entries(rows)) {
-        const fail = (msg) => errors.push(`${path} ${name}.${id}: ${msg}`);
+        const fail = (msg: string) => errors.push(`${path} ${name}.${id}: ${msg}`);
         if (!NAME.test(id)) fail(`the name must match ${NAME}`);
         if (!isObject(row)) {
             fail('must be an object');
@@ -99,9 +110,9 @@ eachItem(LOOKS, looks?.swatches, 'swatches', (swatch, fail) => {
 });
 if (Array.isArray(looks?.swatches) && looks.swatches.length !== SWATCH_COUNT)
     errors.push(`${LOOKS}: ${looks.swatches.length} swatches, the catalogue has ${SWATCH_COUNT}`);
-if (!looks?.swatches?.some?.((s) => s?.id === looks?.default?.swatch))
+if (!looks?.swatches?.some?.((s: Unchecked) => s?.id === looks?.default?.swatch))
     errors.push(`${LOOKS}: "default.swatch" must be a swatch id`);
-if (!PUPILS.includes(looks?.default?.pupil))
+if (!PUPIL_NAMES.includes(looks?.default?.pupil))
     errors.push(`${LOOKS}: "default.pupil" must be one of ${PUPILS.join(', ')}`);
 // The eye shape the drawing is made for
 for (const [k, min, max] of [
@@ -109,7 +120,7 @@ for (const [k, min, max] of [
     ['ry', 1, HALF_SCREEN],
     ['gap', 0, HALF_SCREEN],
     ['tilt', 0, MEASURED_TILT]
-])
+] as const)
     if (!isNum(looks?.eye?.[k], min, max)) errors.push(`${LOOKS}: "eye.${k}" must be between ${min} and ${max}`);
 // At rest, each eye is its tilted ellipse, gap from the middle (engine/src/pose.c): its outline, sampled every degree,
 // stays on the round screen
@@ -130,7 +141,7 @@ if (['rx', 'ry', 'gap', 'tilt'].every((k) => isNum(eye[k]))) {
 if (!isNum(looks?.pupilLean, 0, 0.5)) errors.push(`${LOOKS}: "pupilLean" must be between 0 and 0.5 radians`);
 // Every pupil type of the engine, in fractions of the eye radii; the renderer draws circle as a disc (r)
 eachRow(LOOKS, looks?.pupils, 'pupils', PUPILS, ['rx', 'ry', 'r', 'x', 'y'], (pupil, fail, id) => {
-    if (!PUPILS.includes(id)) fail(`must be one of ${PUPILS.join(', ')}`);
+    if (!PUPIL_NAMES.includes(id)) fail(`must be one of ${PUPILS.join(', ')}`);
     const radii = id === 'circle' ? ['r'] : ['rx', 'ry'];
     for (const k of ['rx', 'ry', 'r'])
         if (radii.includes(k) ? !isNum(pupil[k], 0.01, 1.2) : pupil[k] !== undefined)
@@ -181,7 +192,7 @@ eachRow(
 report(); // the scenes are checked against the swatches and the emotions: they must be right first
 
 const scenes = load(SCENES);
-const swatchIds = new Set(looks.swatches.map((s) => s.id));
+const swatchIds = new Set(looks.swatches.map((s: Unchecked) => s.id));
 const SCENE_KEYS = ['id', 'swatch', 'pupil', 'emotion', 'blink', 'head', 'gaze', 'particles'];
 const MAX_SEED = 2 ** 32 - 1; // a uint32_t in the engine: the C scene table would not compile past it
 eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
@@ -191,7 +202,7 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
     for (const k of ['blink', 'head', 'gaze', 'particles'])
         if (scene[k] !== undefined && !isObject(scene[k])) fail(`"${k}" must be an object`);
     if (!swatchIds.has(scene.swatch)) fail(`"swatch" must be a swatch id from ${LOOKS}`);
-    if (!PUPILS.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPILS.join(', ')}`);
+    if (!PUPIL_NAMES.includes(scene.pupil)) fail(`"pupil" must be one of ${PUPILS.join(', ')}`);
     const emotion = scene.emotion ?? 'neutral';
     const known = Object.hasOwn(emotions, emotion);
     if (!known) fail(`"emotion" must be one of ${Object.keys(emotions).join(', ')}`);
@@ -224,10 +235,10 @@ eachItem(SCENES, scenes?.scenes, 'scenes', (scene, fail) => {
 if (Array.isArray(scenes?.scenes)) {
     const shown = scenes.scenes.filter(isObject);
     for (const emotion of Object.keys(emotions))
-        if (!shown.some((scene) => (scene.emotion ?? 'neutral') === emotion))
+        if (!shown.some((scene: Unchecked) => (scene.emotion ?? 'neutral') === emotion))
             errors.push(`${SCENES}: no scene shows the emotion "${emotion}"`);
     for (const pupil of PUPILS)
-        if (!shown.some((scene) => scene.pupil === pupil))
+        if (!shown.some((scene: Unchecked) => scene.pupil === pupil))
             errors.push(`${SCENES}: no scene shows the pupil "${pupil}"`);
 }
 
