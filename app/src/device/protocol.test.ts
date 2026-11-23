@@ -19,7 +19,7 @@ import { NotLilpet, command, hello, sendLook } from './device';
 import { FAKE_HELLO, FAKE_INFO, fakePort, firmware } from './fake-port';
 
 // The field names of a hello reply
-const fieldNames = (reply: string) => reply.split(' ').map((word) => word.split('=')[0]);
+const fieldNames = (reply: string) => reply.split(' ').map((word) => word.split('=')[0] ?? '');
 
 // What the app reads of the firmware's replies, compared with what firmware/main/commands.c prints
 describe('the firmware', () => {

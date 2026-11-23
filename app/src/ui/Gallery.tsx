@@ -9,7 +9,7 @@ interface Props {
     swatch: Swatch;
     pupil: PupilType;
     favorites: readonly string[];
-    onPick(choice: LookChoice): void;
+    onPick: (choice: LookChoice) => void;
 }
 
 // The arrow keys walk the grid, so that its colors take a single stop of the Tab key

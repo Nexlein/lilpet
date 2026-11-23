@@ -28,8 +28,8 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
   et Ninja avec des presets (`host-debug` avec AddressSanitizer et UBSan, `host-release`, `wasm`), clang-format et
   clang-tidy pour le C, avertissements traités comme des erreurs, un mini-lanceur de tests sans dépendance
   (`engine/tests/test.h`), qui fait aussi tourner les parties pures du firmware (`firmware/tests`) ; côté TypeScript,
-  sans JavaScript ni build ([décision 13](adr/0013-typescript-sans-build.md)), tsc, Prettier et oxlint ; des hooks git
-  et une carte du code générée, vérifiée en CI.
+  sans JavaScript ni build ([décision 13](adr/0013-typescript-sans-build.md)), tsc, Prettier et oxlint, qui lit
+  aussi les types ; des hooks git et une carte du code générée, vérifiée en CI.
 
 ## Décisions
 

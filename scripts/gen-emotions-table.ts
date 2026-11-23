@@ -3,10 +3,10 @@
 // gen-scenes-table.ts, so that a fault in the scenes never stops the tables that the engine builds from.
 // Run it after changing emotions.json (npm run tables runs every generator).
 // Usage: node scripts/gen-emotions-table.ts [--check]   (--check: fail if the committed file is out of date)
-import { EMOTIONS, EMOTIONS_TABLE, EXPRESSION, readJson, withNeutral, type EmotionsFile } from './data.ts';
+import { EMOTIONS_TABLE, EXPRESSION, readEmotions, withNeutral } from './data.ts';
 import { emotionEnum, eventEnum, num, writeGenerated } from './gen-common.ts';
 
-const data = readJson<EmotionsFile>(EMOTIONS);
+const data = readEmotions();
 const emotions = Object.fromEntries(Object.entries(data.emotions).map(([name, e]) => [name, withNeutral(e)]));
 const reactions = data.reactions;
 
