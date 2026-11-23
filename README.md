@@ -105,10 +105,10 @@ Pour mesurer la vitesse du rendu (temps par image, à comparer sur une même mac
 mise run engine:bench
 ```
 
-La CI GitHub lance tout ça sur `main`, `dev` et chaque pull request, plus la compilation du firmware pour chaque carte
-et une recherche de secrets dans tout l'historique (le hook ne voit que ce qu'on commite avec lui).
-Tout changement passe par une pull request vers `dev`, la branche par défaut, et n'est mergé qu'avec la CI verte ;
-`main` ne reçoit que des merges de `dev`.
+La CI GitHub lance tout ça sur `main` et chaque pull request, plus la compilation du firmware pour chaque carte et
+une recherche de secrets dans tout l'historique (le hook ne voit que ce qu'on commite avec lui). `main` est la seule
+branche : tout changement y passe par une pull request, mergée seulement avec la CI verte, et une version publiée est
+un tag ([décision 14](docs/adr/0014-une-seule-branche.md)).
 
 ## Tester sur un ESP32-S3
 

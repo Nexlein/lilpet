@@ -11,8 +11,8 @@ ce que rien ne vérifie : c'est là qu'il faut être attentif.
    au démarrage avant de toucher une broche ([décision 6](adr/0006-une-image-par-carte.md)). Un fait mal orthographié,
    ou une puce identique à celle de la carte vision, fait échouer `scripts/boards.test.ts`.
 2. Ajouter son nom à la liste des cartes de `.github/workflows/ci.yml`, et son job (« ESP32-S3 firmware build
-   (<carte>) ») aux checks requis de `.github/rulesets/dev.json` et `main.json`. `scripts/ci.test.ts` compare les
-   trois aux dossiers.
+   (<carte>) ») aux checks requis de `.github/rulesets/main.json`. `scripts/ci.test.ts` compare les deux aux
+   dossiers.
 3. Ajouter sa ligne au [tableau des cartes](firmware.md#les-cartes), que `scripts/ci.test.ts` vérifie aussi.
 4. Une fois la pull request fusionnée, appliquer les règles avec `mise run github:rulesets` (gh connecté). **Rien ne le
    vérifie** : sans cela, GitHub n'exige pas la compilation de la nouvelle carte. Renommer ou retirer une carte ou un
@@ -100,11 +100,12 @@ Ce que la CI ne peut pas faire, faute de carte :
 
 1. Une pull request qui monte les versions : celle du firmware, `PROJECT_VER` dans `firmware/CMakeLists.txt`, et celle
    du moteur, `LP_VERSION_*` dans `lilpet.h`. Un changement du dessin monte au moins sa version mineure : l'app PC s'en
-   sert pour dire qu'une carte ne dessine pas comme son aperçu.
-2. Les essais à la main, sur le firmware de cette version.
-3. Une pull request de `dev` vers `main`, fusionnée quand sa CI est verte.
-4. Un tag annoté sur le commit de fusion de `main`, dont le message devient les notes de la Release :
-   `git tag -a vX.Y.Z <commit> -F <notes>`, puis `git push origin vX.Y.Z`.
-5. `release.yml` vérifie que le tag est annoté, porte la version du firmware, est sur `main`, et que la version mineure
+   sert pour dire qu'une carte ne dessine pas comme son aperçu. Elle se fusionne dans `main` quand sa CI est verte.
+2. Les essais à la main, sur le firmware du commit de cette fusion, celui qu'on va tagger.
+3. Un tag annoté sur ce commit, dont le message devient les notes de la Release :
+   `git tag -a vX.Y.Z <commit> -F <notes>`, puis `git push origin vX.Y.Z`. Un tag de version ne se déplace ni ne
+   s'efface (ruleset `tags.json`) : une erreur se corrige par la version suivante. Avant de le pousser, vérifier qu'il
+   est annoté (`git cat-file -t vX.Y.Z` donne `tag`) et qu'il désigne le bon commit (`git show vX.Y.Z`).
+4. `release.yml` vérifie que le tag est annoté, porte la version du firmware, est sur `main`, et que la version mineure
    du moteur a monté si le dessin a changé depuis la dernière Release. Puis il relance la CI, publie la Release avec un
    zip par carte et met l'app PC à jour sur GitHub Pages.
