@@ -27,8 +27,9 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
 - **Outillage** : les mêmes outils aux mêmes versions en local et en CI ([décision 8](adr/0008-outils-figes.md)). CMake
   et Ninja avec des presets (`host-debug` avec AddressSanitizer et UBSan, `host-release`, `wasm`), clang-format et
   clang-tidy pour le C, avertissements traités comme des erreurs, un mini-lanceur de tests sans dépendance
-  (`engine/tests/test.h`), qui fait aussi tourner les parties pures du firmware (`firmware/tests`) ; côté JS, Prettier
-  et oxlint ; des hooks git et une carte du code générée, vérifiée en CI.
+  (`engine/tests/test.h`), qui fait aussi tourner les parties pures du firmware (`firmware/tests`) ; côté TypeScript,
+  sans JavaScript ni build ([décision 13](adr/0013-typescript-sans-build.md)), tsc, Prettier et oxlint ; des hooks git
+  et une carte du code générée, vérifiée en CI.
 
 ## Décisions
 
@@ -44,6 +45,7 @@ le détail de chaque fichier dans la carte du code (`.claude/codemap.md`), ce qu
 10. [Linux d'abord ; sous Windows, le code dans WSL et les cartes en natif](adr/0010-plateformes-de-developpement.md)
 11. [La NVS reste à sa place, et la flash se remplit après elle](adr/0011-disposition-de-la-flash.md)
 12. [Les yeux s'endorment, et la veille légère attend que le PC soit débranché](adr/0012-energie.md)
+13. [Les scripts en TypeScript, que Node lance tel quel](adr/0013-typescript-sans-build.md)
 
 Chaque décision tient en quatre parties : contexte, options étudiées (s'il y en a eu), décision, conséquences. Une
 nouvelle décision prend le numéro suivant ; une décision remplacée garde son fichier, avec le statut « remplacée par »
