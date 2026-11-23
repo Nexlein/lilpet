@@ -11,7 +11,7 @@ file). Tests are listed, not detailed. Commands and npm packages at the end.
   - → scripts/data.ts, scripts/files.ts
 
 ## .github/rulesets
-- **main.json** (70) — data
+- **main.json** (82) — data
 - **tags.json** (23) — data
 
 ## .husky

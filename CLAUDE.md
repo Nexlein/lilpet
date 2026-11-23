@@ -37,12 +37,12 @@ model that will choose the reactions does not exist yet; what it will send is re
   What Node runs imports with the `.ts` extension, types with `import type`, and uses no `enum` or `namespace`
   (`erasableSyntaxOnly`). `scripts/files.test.ts` fails on a tracked `.js`, `.mjs` or `.cjs` file, and on `.mts` or
   `.cts` (TypeScript is `.ts` and `.tsx`, which the linters and the code map read).
-- Branches: `main` is the only branch (`docs/adr/0014-une-seule-branche.md`). It changes only through pull requests
-  with every required CI check green, merged with a merge commit; a release is an annotated tag on it, never moved or
-  deleted (GitHub rulesets, kept in `.github/rulesets/`: no direct push, no force push, no deletion). The ruleset of
-  `main` names the required checks by job name, which a test checks against ci.yml: renaming a CI job, or adding,
-  renaming or removing a board (also in ci.yml's board list), means editing both files, then applying them with
-  `mise run github:rulesets`.
+- Branches: `main` is the only branch (`docs/adr/0014-une-seule-branche.md`). It changes only through pull requests with
+  every required CI check green and no new high CodeQL alert, merged with a merge commit; a release is an annotated tag
+  on it, never moved or deleted (GitHub rulesets, kept in `.github/rulesets/`: no direct push, no force push, no
+  deletion). The ruleset of `main` names the required checks by job name, which a test checks against ci.yml: renaming a
+  CI job, or adding, renaming or removing a board (also in ci.yml's board list), means editing both files, then applying
+  them with `mise run github:rulesets`.
 - C: float literals with `f`, no `double`, warnings are errors (the firmware adds the engine's); in the engine, also the
   `lp_` prefix, no `malloc` and no globals.
 - Only `app/src/ui` and `main.tsx` may import React (a lint rule checks it).

@@ -37,6 +37,14 @@ suit la branche de développement (`master`), trop instable pour flasher une vra
   `mise run github:rulesets` les applique ([décision 14](0014-une-seule-branche.md) : une seule branche depuis le
   2026-11-23). Un tag de version publie le firmware de chaque carte dans une Release (`release.yml`), après avoir
   relancé la CI sur ce commit, au lieu de dépendre des artefacts de la CI, gardés 30 jours.
+- **Les réglages de sécurité du dépôt**, que rien d'autre ne garde (à refaire si le dépôt est recréé, état du
+  2026-11-23) : CodeQL, dans la configuration par défaut de GitHub (Actions, C, TypeScript, Python), sur chaque pull
+  request et sur `main`, dont une alerte de sécurité haute ou critique bloque la fusion (ruleset de `main`) ; la
+  recherche de secrets avec blocage au push ; les alertes et correctifs de sécurité de Dependabot ; le signalement
+  privé des failles (`SECURITY.md`) ; des actions épinglées par commit, exigées par GitHub ; un jeton des workflows en
+  lecture seule, qui n'approuve pas de pull request ; les workflows d'une pull request venue d'ailleurs lancés après
+  approbation seulement ; fusion par commit de fusion seulement, branche supprimée après fusion ; ni wiki, ni
+  Discussions, ni Projects.
 - **Un seul point d'entrée** : `mise run check` lance tout ce qu'un changement doit passer (`npm run check`,
   `engine:check`, les tests Playwright). La CI lance ces trois commandes, chacune dans son job pour aller plus vite, au
   lieu de recopier leurs étapes : une étape ajoutée au contrôle ne peut pas manquer en CI. `npm run check`, la partie

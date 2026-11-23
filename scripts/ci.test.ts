@@ -85,7 +85,7 @@ test('the ruleset of main requires every CI job, and nothing else', () => {
         .find(({ type }) => type === 'required_status_checks')
         ?.parameters?.required_status_checks?.map(({ context }) => context);
     assert.deepEqual(required?.toSorted(), checks.toSorted());
-    for (const type of ['deletion', 'non_fast_forward', 'pull_request'])
+    for (const type of ['deletion', 'non_fast_forward', 'pull_request', 'code_scanning'])
         assert.ok(
             ruleset.rules.some((rule) => rule.type === type),
             `main.json lacks the ${type} rule`
