@@ -8,7 +8,7 @@ import type { DeviceState } from '../device/session';
 interface Props {
     choice: LookChoice;
     device: DeviceState;
-    onSend(look: Look): Promise<LookSent>;
+    onSend: (look: Look) => Promise<LookSent>;
 }
 
 // The last send: the look and the connection it was about, and how it went

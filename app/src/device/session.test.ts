@@ -286,7 +286,7 @@ describe('device session', () => {
         device.log(BOOT_LINE);
         device.log(BOOT_LINE);
         await vi.waitFor(() => expect(device.sent).toHaveLength(2));
-        const close = device.port.close;
+        const close = device.port.close.bind(device.port);
         device.port.close = async () => {
             await new Promise((r) => setTimeout(r, 20)); // as a real port: the session hears of it a moment later
             await close();

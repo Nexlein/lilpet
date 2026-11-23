@@ -5,8 +5,8 @@ import type { DeviceState } from '../device/session';
 interface Props {
     state: DeviceState;
     appEngine: string | null; // the version of the engine that draws the preview, once loaded
-    onConnect(): void;
-    onDisconnect(): void;
+    onConnect: () => void;
+    onDisconnect: () => void;
 }
 
 export function DeviceBar({ state, appEngine, onConnect, onDisconnect }: Props) {

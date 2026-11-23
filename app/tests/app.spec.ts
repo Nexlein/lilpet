@@ -88,10 +88,12 @@ function plugBoard(makePort: typeof fakePort, hello: string) {
     Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => device.port } });
 }
 
-const fakeSerial = `(${plugBoard})(${fakePort}, ${JSON.stringify(FAKE_HELLO)})`;
+const fakeSerial = `(${plugBoard.toString()})(${fakePort.toString()}, ${JSON.stringify(FAKE_HELLO)})`;
 
 // Runs in the page: counts the frames drawn on the canvas
 function countFrames() {
+    // Called back below with Reflect.apply and the canvas as this
+    // oxlint-disable-next-line typescript/unbound-method
     const { putImageData } = CanvasRenderingContext2D.prototype;
     window.drawn = 0;
     CanvasRenderingContext2D.prototype.putImageData = function draw(

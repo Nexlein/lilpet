@@ -16,11 +16,11 @@ interface Props {
     choice: LookChoice;
     favorite: boolean;
     device: DeviceState;
-    onPupil(pupil: PupilType): void;
-    onFavorite(): void;
-    onSend(look: Look): Promise<LookSent>;
-    onEmotion(name: string): void;
-    onPet(): void;
+    onPupil: (pupil: PupilType) => void;
+    onFavorite: () => void;
+    onSend: (look: Look) => Promise<LookSent>;
+    onEmotion: (name: string) => void;
+    onPet: () => void;
 }
 
 export function Stage({ engine, choice, favorite, device, onPupil, onFavorite, onSend, onEmotion, onPet }: Props) {

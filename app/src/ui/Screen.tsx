@@ -9,7 +9,7 @@ interface Props {
     engine: Engine;
     look: Look;
     emotion: string;
-    onPet(): void;
+    onPet: () => void;
 }
 
 export function Screen({ engine, look, emotion, onPet }: Props) {
