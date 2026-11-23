@@ -1,7 +1,8 @@
 // Tests .github/workflows/ci.yml against what depends on it. Its board list must be the folders of firmware/boards
 // that hold a board.cmake, so that a board added there cannot go unbuilt, and the board table of docs/firmware.md
 // lists them. It must run every part of `mise run check`.
-// The rulesets of .github/rulesets must require its jobs by their names. Built-in test runner, no dependency.
+// The ruleset of main must require its jobs by their names, and release tags must stay where they were pushed. Built-in
+// test runner, no dependency.
 // Usage: npm run check:scripts
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -54,14 +55,22 @@ test('the CI runs every part of mise run check', () => {
 // The part of a ruleset of .github/rulesets this test reads
 interface Ruleset {
     name: string;
+    target: string;
     conditions: { ref_name: { include: string[] } };
     rules: { type: string; parameters?: { required_status_checks?: { context: string }[] } }[];
 }
 
+const readRuleset = (file: string): Ruleset => JSON.parse(readFileSync(`.github/rulesets/${file}`, 'utf8'));
+
+// main is the only branch (docs/adr/0014-une-seule-branche.md), and release tags have their own ruleset
+test('the rulesets are those of main and of the release tags', () => {
+    assert.deepEqual(readdirSync('.github/rulesets').toSorted(), ['main.json', 'tags.json']);
+});
+
 // GitHub names a required check after its job, and a matrix job once per board. A required check that no job reports
-// blocks every pull request; a job missing from the rulesets can fail and still be merged. The files reach GitHub
+// blocks every pull request; a job missing from the ruleset can fail and still be merged. The files reach GitHub
 // through `mise run github:rulesets`, so this checks what GitHub enforces as long as they are kept applied.
-test('the rulesets of dev and main require every CI job, and nothing else', () => {
+test('the ruleset of main requires every CI job, and nothing else', () => {
     const names = [...jobsSection.matchAll(/^ {4}name: (.+)$/gm)].map(([, name = '']) => name);
     assert.equal(names.length, [...jobsSection.matchAll(/^ {2}[\w-]+:$/gm)].length, 'a job of ci.yml has no name');
     const checks = names.flatMap((name) =>
@@ -69,18 +78,24 @@ test('the rulesets of dev and main require every CI job, and nothing else', () =
             ? builtBoards().map((board) => name.replace('${{ matrix.board }}', board))
             : [name]
     );
-    assert.deepEqual(readdirSync('.github/rulesets').toSorted(), ['dev.json', 'main.json']);
-    const rulesets = ['dev', 'main'].map((branch) => {
-        const ruleset: Ruleset = JSON.parse(readFileSync(`.github/rulesets/${branch}.json`, 'utf8'));
-        assert.deepEqual(ruleset.conditions.ref_name.include, [`refs/heads/${branch}`]);
-        const required = ruleset.rules
-            .find(({ type }) => type === 'required_status_checks')
-            ?.parameters?.required_status_checks?.map(({ context }) => context);
-        assert.deepEqual(required?.toSorted(), checks.toSorted(), `${branch}.json`);
-        // What may differ between the two: the name (which github:rulesets matches) and the branch
-        const { name, conditions: _branch, ...rules } = ruleset;
-        assert.ok(name.startsWith(`${branch}:`), `${branch}.json: a name of its own, starting with "${branch}:"`);
-        return rules;
-    });
-    assert.deepEqual(rulesets[0], rulesets[1], 'dev.json and main.json differ in more than their name and branch');
+    const ruleset = readRuleset('main.json');
+    assert.equal(ruleset.target, 'branch');
+    assert.deepEqual(ruleset.conditions.ref_name.include, ['refs/heads/main']);
+    const required = ruleset.rules
+        .find(({ type }) => type === 'required_status_checks')
+        ?.parameters?.required_status_checks?.map(({ context }) => context);
+    assert.deepEqual(required?.toSorted(), checks.toSorted());
+    for (const type of ['deletion', 'non_fast_forward', 'pull_request'])
+        assert.ok(
+            ruleset.rules.some((rule) => rule.type === type),
+            `main.json lacks the ${type} rule`
+        );
+});
+
+// A release tag names the commit its Release and its firmware zips were built from: moved, it would name another one
+test('a release tag can be neither moved nor deleted', () => {
+    const ruleset = readRuleset('tags.json');
+    assert.equal(ruleset.target, 'tag');
+    assert.deepEqual(ruleset.conditions.ref_name.include, ['refs/tags/v*']);
+    assert.deepEqual(ruleset.rules.map(({ type }) => type).toSorted(), ['deletion', 'non_fast_forward', 'update']);
 });
