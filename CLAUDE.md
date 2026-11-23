@@ -91,3 +91,18 @@ model that will choose the reactions does not exist yet; what it will send is re
 
 `mise run check` passes: what CI runs, as parallel jobs. Firmware changes: `mise run firmware:build-all` too.
 `firmware:check-device` on a plugged board is the one check CI cannot run.
+
+## Reviews
+
+As much review as the change can break, each tier adding to the one before:
+
+1. Every change: the checks of Done, and a look at what they cannot run (`release.yml` on a tag, the git hooks, a
+   board).
+2. Docs, comments, tooling, CI, bot updates: one review of the diff (`/code-review`). For a bot update, also each
+   release's notes, and its pins (an action's commit is its tag's, an image's digest is its tag's).
+3. Code of the app or the scripts: `/review` too, against its issue when it has one.
+4. What a board runs or keeps (engine, firmware, protocol, saved data): a first audit before the plan, an independent
+   review of the pushed branch, `firmware:check-device` on a board, and before a release the hand tests of
+   `docs/recettes.md`.
+
+Another round only when the last one found a bug; a finding about wording is fixed without one.
