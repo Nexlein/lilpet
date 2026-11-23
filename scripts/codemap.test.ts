@@ -118,6 +118,9 @@ export { a, b as seven };
 export default class Eight {}
 export abstract class Nine {}
 export function* ten() {}
+export enum Eleven {}
+export const enum Twelve {}
+export namespace Thirteen {}
 // import { nope } from './commented';
 import x from './x';
 import './side-effect.css';
@@ -134,6 +137,9 @@ export * from './again';`;
         'Eight',
         'Nine',
         'ten',
+        'Eleven',
+        'Twelve',
+        'Thirteen',
         'a',
         'seven'
     ]);
