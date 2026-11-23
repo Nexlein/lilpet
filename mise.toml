@@ -5,21 +5,21 @@ min_version = "2026.11.0"
 [tools]
 # Exact versions, the same locally and in CI (jdx/mise-action): a new release cannot turn CI red on unchanged code.
 # Renovate groups the new releases in one weekly pull request (.github/renovate.json5), which CI checks first.
-node = "26.13.0" # the current LTS line
+node = "26.13.1" # the current LTS line
 # Secret scan of the git pre-commit hook (.husky/no-secrets.sh)
 gitleaks = "8.30.1"
 # C engine: build (CMake + Ninja), formatting and static analysis
-cmake = "4.4.5"
+cmake = "4.5.1"
 ninja = "1.13.2"
 "pypi:clang-format" = "23.1.5"
 "pypi:clang-tidy" = "23.1.4"
 # Runs the Python scripts that talk to a board, with the dependency of scripts/requirements.txt, on the Python below
-uv = "0.13.7"
+uv = "0.13.9"
 python = "3.15.2"
 # Linters of the git hooks (shell), the CI workflow and the Python scripts (ruff.toml), run by npm run lint
 shellcheck = "0.11.0"
 actionlint = "1.7.12"
-ruff = "0.17.4"
+ruff = "0.17.6"
 
 [env]
 # uv runs the scripts on the Python of mise, not on one it downloads itself: one pinned version, here
