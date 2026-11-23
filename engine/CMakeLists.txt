@@ -22,7 +22,7 @@ target_compile_options(lilpet_warnings INTERFACE ${LILPET_WARNINGS})
 
 if(EMSCRIPTEN)
     # ES module exposing the C API to JavaScript (browser and Node): lilpet.mjs + lilpet.wasm.
-    # wasm/bindings.c exports the lpw_* functions (EMSCRIPTEN_KEEPALIVE); engine/wasm/engine.mjs wraps them.
+    # wasm/bindings.c exports the lpw_* functions (EMSCRIPTEN_KEEPALIVE); engine/wasm/engine.ts wraps them.
     add_executable(lilpet_wasm ${LILPET_SOURCES} wasm/bindings.c)
     target_include_directories(lilpet_wasm PRIVATE include)
     target_link_libraries(lilpet_wasm PRIVATE lilpet_warnings)

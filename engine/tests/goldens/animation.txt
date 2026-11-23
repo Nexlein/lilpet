@@ -1,4 +1,4 @@
-# Frame hashes of the scripted animation of scripts/goldens.mjs (npm run goldens): do not edit.
+# Frame hashes of the scripted animation of scripts/goldens.ts (npm run goldens): do not edit.
 # run | part | steps into the part: first 16 hex digits of the SHA-256 of the RGB pixels
 seed 1234 cherry dot | 1 idle, saccades and blinks | 16: e742c2c46719b524
 seed 1234 cherry dot | 1 idle, saccades and blinks | 32: 9ff3806c3ec9c252

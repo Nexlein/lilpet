@@ -1,11 +1,11 @@
 // The groups of tracked files the formatters and linters work on, in one place for package.json, mise.toml and the
-// commit hook (.lintstagedrc.mjs). The globs mean the same to git and to lint-staged: one without a slash takes a file
+// commit hook (.lintstagedrc.ts). The globs mean the same to git and to lint-staged: one without a slash takes a file
 // name in any folder, dotfiles too; one with a slash is a path, where * stays within a folder; [ch] is one of the letters.
-// Usage: node scripts/files.mjs <group>   prints the tracked files of the group, NUL-separated, for xargs -0
+// Usage: node scripts/files.ts <group>   prints the tracked files of the group, NUL-separated, for xargs -0
 import { execFileSync } from 'node:child_process';
 
 export const GROUPS = {
-    js: ['*.js', '*.mjs', '*.mts', '*.ts', '*.tsx'],
+    ts: ['*.ts', '*.tsx'], // no JavaScript: scripts/files.test.ts checks none is tracked
     python: ['scripts/*.py'],
     // Ours only: in firmware/third_party, the others' sources stay as they are
     c: [
@@ -28,22 +28,22 @@ export const GROUPS = {
 
 // As a git pathspec from the top of the repository, wherever it runs: a name alone is looked for in every folder, as
 // lint-staged does
-const pathspec = (glob) => `:(top,glob)${glob.includes('/') ? '' : '**/'}${glob}`;
+const pathspec = (glob: string) => `:(top,glob)${glob.includes('/') ? '' : '**/'}${glob}`;
 
 /** The tracked files of a group */
-export function trackedFiles(group) {
+export function trackedFiles(group: keyof typeof GROUPS) {
     const out = execFileSync('git', ['ls-files', '-z', '--', ...GROUPS[group].map(pathspec)], { encoding: 'utf8' });
     return out.split('\0').filter(Boolean);
 }
 
 if (import.meta.main) {
-    const group = process.argv[2];
+    const group = process.argv[2] ?? '';
     if (!Object.hasOwn(GROUPS, group)) {
-        console.error(`Usage: node scripts/files.mjs <${Object.keys(GROUPS).join('|')}>`);
+        console.error(`Usage: node scripts/files.ts <${Object.keys(GROUPS).join('|')}>`);
         process.exit(2);
     }
     process.stdout.write(
-        trackedFiles(group)
+        trackedFiles(group as keyof typeof GROUPS)
             .map((path) => `${path}\0`)
             .join('')
     );

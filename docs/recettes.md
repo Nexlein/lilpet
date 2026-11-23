@@ -9,11 +9,11 @@ ce que rien ne vérifie : c'est là qu'il faut être attentif.
 1. Créer `firmware/boards/<carte>/` avec `board.cmake`, qui liste ses pilotes, et `board_config.h`, ses broches et ses
    faits. Parmi eux, `BOARD_CHIP_PICO`, `BOARD_FLASH_MB` et `BOARD_PSRAM_MB` décrivent sa puce, que le firmware compare
    au démarrage avant de toucher une broche ([décision 6](adr/0006-une-image-par-carte.md)). Un fait mal orthographié,
-   ou une puce identique à celle de la carte vision, fait échouer `scripts/boards.test.mjs`.
+   ou une puce identique à celle de la carte vision, fait échouer `scripts/boards.test.ts`.
 2. Ajouter son nom à la liste des cartes de `.github/workflows/ci.yml`, et son job (« ESP32-S3 firmware build
-   (<carte>) ») aux checks requis de `.github/rulesets/dev.json` et `main.json`. `scripts/ci.test.mjs` compare les
+   (<carte>) ») aux checks requis de `.github/rulesets/dev.json` et `main.json`. `scripts/ci.test.ts` compare les
    trois aux dossiers.
-3. Ajouter sa ligne au [tableau des cartes](firmware.md#les-cartes), que `scripts/ci.test.mjs` vérifie aussi.
+3. Ajouter sa ligne au [tableau des cartes](firmware.md#les-cartes), que `scripts/ci.test.ts` vérifie aussi.
 4. Une fois la pull request fusionnée, appliquer les règles avec `mise run github:rulesets` (gh connecté). **Rien ne le
    vérifie** : sans cela, GitHub n'exige pas la compilation de la nouvelle carte. Renommer ou retirer une carte ou un
    job suit le même chemin ; un check requis dont le job n'existe plus bloque chaque pull request.
@@ -50,15 +50,15 @@ endormie sur batterie, la carte ne le lit qu'une fois par seconde. **Rien ne vé
 5. Le dessin a changé : la prochaine version augmente la version mineure du moteur (voir plus bas).
 
 Une réaction qui se répète tant que sa cause dure (comme `shake`) doit aussi entrer dans la liste `HELD` de
-`scripts/validate-data.mjs`, qui lui interdit les étincelles. **Rien ne vérifie** que cette liste suit le moteur.
+`scripts/validate-data.ts`, qui lui interdit les étincelles. **Rien ne vérifie** que cette liste suit le moteur.
 
 L'app PC prend la nouvelle émotion d'elle-même, son libellé compris : `app/src/ui/labels.ts` le lit dans le JSON.
 
 ## Ajouter une pupille
 
-`eyes/looks.json`, l'énumération `lp_pupil` de `lilpet.h`, `PUPILS` dans `engine/wasm/engine.mjs` et son type dans
-`engine.d.mts`, son dessin dans `engine/src/render.c`, son libellé dans `app/src/ui/labels.ts`, et une scène. Les
-tables, `engine/wasm/engine.test.mjs`, le `switch` de `render.c` et `tsc` échouent chacun quand il manque sa part.
+`eyes/looks.json`, l'énumération `lp_pupil` de `lilpet.h`, `PUPILS` dans `engine/wasm/engine.ts` (dont son type
+découle), son dessin dans `engine/src/render.c`, son libellé dans `app/src/ui/labels.ts`, et une scène. Les
+tables, `engine/wasm/engine.test.ts`, le `switch` de `render.c` et `tsc` échouent chacun quand il manque sa part.
 
 ## Ajouter une commande
 
@@ -73,7 +73,7 @@ Le protocole est dans [protocole.md](protocole.md). Une commande touche :
   `scripts/test_board_scripts.py` ;
 - [protocole.md](protocole.md).
 
-`scripts/docs.test.mjs` vérifie que [protocole.md](protocole.md) nomme la commande, pas ce qu'elle prend ni ce qu'elle
+`scripts/docs.test.ts` vérifie que [protocole.md](protocole.md) nomme la commande, pas ce qu'elle prend ni ce qu'elle
 répond. **Rien ne vérifie** que `check-device` l'essaie.
 
 ## Ajouter un champ à `hello`

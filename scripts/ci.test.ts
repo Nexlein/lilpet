@@ -39,23 +39,30 @@ test('the CI runs every part of mise run check', () => {
     const task = /^\[tasks\.check\]$[^[]*?^run = \[([^\n]*)\]$/m.exec(readFileSync('mise.toml', 'utf8'))?.[1];
     assert.ok(task !== undefined, 'no "run = [...]" in the [tasks.check] of mise.toml');
     const parts = [...task.matchAll(/\{\s*task\s*=\s*"([^"]+)"\s*\}|"([^"]+)"/g)].map(([, name, command]) =>
-        name ? `mise run ${name}` : command
+        name ? `mise run ${name}` : (command ?? '')
     );
     assert.ok(parts.length > 0);
     // The steps of each job
     const runs = jobsSection
         .split(/^ {2}[\w-]+:/m)
-        .map((job) => [...job.matchAll(/^\s+(?:- )?run: (.+)$/gm)].map(([, command]) => command.trim()));
-    const jobOf = (part) => runs.findIndex((commands) => commands.includes(part));
+        .map((job) => [...job.matchAll(/^\s+(?:- )?run: (.+)$/gm)].map(([, command = '']) => command.trim()));
+    const jobOf = (part: string) => runs.findIndex((commands) => commands.includes(part));
     for (const part of parts) assert.ok(jobOf(part) >= 0, `the CI does not run "${part}"`);
     assert.equal(new Set(parts.map(jobOf)).size, parts.length, 'two parts of mise run check share a CI job');
 });
+
+// The part of a ruleset of .github/rulesets this test reads
+interface Ruleset {
+    name: string;
+    conditions: { ref_name: { include: string[] } };
+    rules: { type: string; parameters?: { required_status_checks?: { context: string }[] } }[];
+}
 
 // GitHub names a required check after its job, and a matrix job once per board. A required check that no job reports
 // blocks every pull request; a job missing from the rulesets can fail and still be merged. The files reach GitHub
 // through `mise run github:rulesets`, so this checks what GitHub enforces as long as they are kept applied.
 test('the rulesets of dev and main require every CI job, and nothing else', () => {
-    const names = [...jobsSection.matchAll(/^ {4}name: (.+)$/gm)].map(([, name]) => name);
+    const names = [...jobsSection.matchAll(/^ {4}name: (.+)$/gm)].map(([, name = '']) => name);
     assert.equal(names.length, [...jobsSection.matchAll(/^ {2}[\w-]+:$/gm)].length, 'a job of ci.yml has no name');
     const checks = names.flatMap((name) =>
         name.includes('${{ matrix.board }}')
@@ -64,11 +71,11 @@ test('the rulesets of dev and main require every CI job, and nothing else', () =
     );
     assert.deepEqual(readdirSync('.github/rulesets').toSorted(), ['dev.json', 'main.json']);
     const rulesets = ['dev', 'main'].map((branch) => {
-        const ruleset = JSON.parse(readFileSync(`.github/rulesets/${branch}.json`, 'utf8'));
+        const ruleset: Ruleset = JSON.parse(readFileSync(`.github/rulesets/${branch}.json`, 'utf8'));
         assert.deepEqual(ruleset.conditions.ref_name.include, [`refs/heads/${branch}`]);
         const required = ruleset.rules
             .find(({ type }) => type === 'required_status_checks')
-            ?.parameters.required_status_checks.map(({ context }) => context);
+            ?.parameters?.required_status_checks?.map(({ context }) => context);
         assert.deepEqual(required?.toSorted(), checks.toSorted(), `${branch}.json`);
         // What may differ between the two: the name (which github:rulesets matches) and the branch
         const { name, conditions: _branch, ...rules } = ruleset;

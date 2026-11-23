@@ -12,7 +12,7 @@ Il fallait une référence tirée du moteur lui-même, qui ne bouge que quand on
 
 ## Décision
 
-- `scripts/goldens.mjs` fait dessiner par le moteur compilé en WebAssembly chaque scène de `engine/tests/scenes.json`
+- `scripts/goldens.ts` fait dessiner par le moteur compilé en WebAssembly chaque scène de `engine/tests/scenes.json`
   (look, émotion, phase du clignement, pose de la tête, regard, particules à graine), gardée en PNG dans
   `engine/tests/goldens/`.
 - Il joue aussi une animation scriptée (repos, suivi du pointeur, objet tourné, presque à plat, à l'envers, secoué,

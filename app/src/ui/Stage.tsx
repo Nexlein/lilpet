@@ -1,6 +1,6 @@
 // Left column: the device with the eyes, the chosen look and what can be done with it
 import { useMemo, useState } from 'react';
-import { PUPILS } from '../../../engine/wasm/engine.mjs';
+import { PUPILS } from '../../../engine/wasm/engine';
 import type { LookChoice } from '../data/favorites';
 import { makeLook, type Look, type PupilType } from '../data/looks';
 import type { LookSent } from '../device/device';

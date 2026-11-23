@@ -1,5 +1,5 @@
 /*
- * JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.mjs).
+ * JavaScript bindings of the engine for the WebAssembly build (used through engine/wasm/engine.ts).
  * The module holds one eyes state, one renderer and one frame; plain scalar arguments keep the JS side simple.
  */
 #ifndef LILPET_WASM_BINDINGS_H

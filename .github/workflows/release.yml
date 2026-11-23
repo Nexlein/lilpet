@@ -42,21 +42,35 @@ jobs:
           fi
           # A drawing change bumps the engine's minor version at least: the PC app tells a board that draws unlike its
           # preview by it (drawsLike, app/src/device/protocol.ts). Drawing changed when the goldens did since the last
-          # Release: their folder's tree differs. Each value is read on its own line, so that a failed call stops here.
+          # Release: an image (its blob), or the frame hashes of animation.txt, in order. The rest of that file (its
+          # comments, the run and part labels) names the script and the parts, not what is drawn. Each value is read on
+          # its own line, so that a failed call stops here.
           previous=$(gh api "repos/$GH_REPO/releases/latest" -q .tag_name)
-          goldens() { gh api "repos/$GH_REPO/contents/engine/tests?ref=$1" -q '.[] | select(.name == "goldens") | .sha'; }
+          images() {
+            gh api "repos/$GH_REPO/contents/engine/tests/goldens?ref=$1" \
+              -q '.[] | select(.name != "animation.txt") | "\(.name) \(.sha)"'
+          }
+          frames() {
+            gh api "repos/$GH_REPO/contents/engine/tests/goldens/animation.txt?ref=$1" \
+              -H 'Accept: application/vnd.github.raw' | sed -En 's/^[^#].*: ([0-9a-f]+)$/\1/p'
+          }
           engine() {
             gh api "repos/$GH_REPO/contents/engine/include/lilpet/lilpet.h?ref=$1" -H 'Accept: application/vnd.github.raw' |
               sed -n 's/^#define LP_VERSION_\(MAJOR\|MINOR\) *\([0-9]*\).*/\2/p' | paste -sd.
           }
-          goldens_before=$(goldens "$previous")
-          goldens_now=$(goldens "$GITHUB_SHA")
+          images_before=$(images "$previous")
+          images_now=$(images "$GITHUB_SHA")
+          frames_before=$(frames "$previous")
+          frames_now=$(frames "$GITHUB_SHA")
           engine_before=$(engine "$previous")
           engine_now=$(engine "$GITHUB_SHA")
-          if [ -z "$goldens_before" ] || [ -z "$goldens_now" ] || [ -z "$engine_before" ] || [ -z "$engine_now" ]; then
-            echo "::error::cannot read the goldens or the engine's version at $previous and $GITHUB_SHA" && exit 1
-          fi
-          if [ "$goldens_before" != "$goldens_now" ] && [ "$engine_before" = "$engine_now" ]; then
+          for value in "$images_before" "$images_now" "$frames_before" "$frames_now" "$engine_before" "$engine_now"; do
+            if [ -z "$value" ]; then
+              echo "::error::cannot read the goldens or the engine's version at $previous and $GITHUB_SHA" && exit 1
+            fi
+          done
+          if { [ "$images_before" != "$images_now" ] || [ "$frames_before" != "$frames_now" ]; } &&
+            [ "$engine_before" = "$engine_now" ]; then
             echo "::error::the goldens changed since $previous, the engine's minor version did not (lilpet.h)" && exit 1
           fi
           echo "object=$object" >> "$GITHUB_OUTPUT"
@@ -101,7 +115,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" lilpet-*.zip
 
   # The PC app the CI built and tested on the tagged commit, with its engine, at https://nexlein.github.io/lilpet/. Its
-  # paths are relative (app/vite.config.mjs), so it works from that folder. The github-pages environment allows the v*
+  # paths are relative (app/vite.config.ts), so it works from that folder. The github-pages environment allows the v*
   # tags to deploy.
   pages:
     name: PC app on GitHub Pages

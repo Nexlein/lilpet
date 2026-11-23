@@ -15,19 +15,13 @@
     },
     "overrides": [
         {
-            "files": [
-                "scripts/**",
-                "engine/**/*.mjs",
-                "app/tests/**",
-                "app/playwright.config.mjs",
-                "app/vite.config.mjs"
-            ],
+            "files": ["scripts/**", "engine/wasm/**", "app/tests/**", "app/playwright.config.ts", "app/vite.config.ts"],
             "env": {
                 "node": true
             }
         },
         {
-            "files": ["engine/**/*.mjs"],
+            "files": ["engine/wasm/*.ts"],
             "rules": {
                 "no-underscore-dangle": "off"
             }

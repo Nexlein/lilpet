@@ -1,21 +1,7 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["ES2023", "DOM", "DOM.Iterable"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "jsx": "react-jsx",
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUncheckedIndexedAccess": true,
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "verbatimModuleSyntax": true,
-        "skipLibCheck": true,
-        "noEmit": true,
-        "types": ["vite/client"]
-    },
-    "include": ["src"]
+    // What editors and Vite (Vitest too) open first, as the nearest tsconfig.json: it names the app's two configs, the
+    // app itself (tsconfig.app.json, browser) and what runs in Node around it (tsconfig.node.json). npm run check:types
+    // checks each one: tsc -p app checks nothing.
+    "files": [],
+    "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

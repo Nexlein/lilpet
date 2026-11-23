@@ -22,7 +22,7 @@ seulement que la carte a planté (`reset=task_wdt`), pas où.
 ## Décision
 
 - **La NVS reste à 0x9000, sur 0x6000**, là où la table par défaut l'avait mise. C'est une règle :
-  `scripts/partitions.test.mjs` la vérifie.
+  `scripts/partitions.test.ts` la vérifie.
 - **Les partitions se suivent, et une nouvelle va après la dernière.** `firmware/partitions.csv` écrit chaque adresse
   et chaque taille, sans calcul laissé à ESP-IDF.
 - **L'appli a 2 Mo**, de quoi grandir.

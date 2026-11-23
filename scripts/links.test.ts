@@ -12,10 +12,10 @@ const TRACKED = new Set(execFileSync('git', ['ls-files', '-z'], { encoding: 'utf
 const DOCS = [...TRACKED].filter((path) => path.endsWith('.md'));
 
 // GitHub's anchor for a heading: lower case, without punctuation, spaces made hyphens; a repeat gets -1, -2...
-function anchors(markdown) {
-    const seen = new Map();
-    const found = new Set();
-    for (const [, heading] of markdown.replace(/^\s*```[\s\S]*?^\s*```/gm, '').matchAll(/^#{1,6} (.+)$/gm)) {
+function anchors(markdown: string) {
+    const seen = new Map<string, number>();
+    const found = new Set<string>();
+    for (const [, heading = ''] of markdown.replace(/^\s*```[\s\S]*?^\s*```/gm, '').matchAll(/^#{1,6} (.+)$/gm)) {
         const base = heading
             .trim()
             .toLowerCase()
@@ -29,10 +29,10 @@ function anchors(markdown) {
 }
 
 test('every link between the docs leads somewhere', () => {
-    const broken = [];
+    const broken: string[] = [];
     for (const doc of DOCS) {
         const text = readFileSync(doc, 'utf8').replace(/^\s*```[\s\S]*?^\s*```/gm, ''); // code, indented in lists too
-        for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+        for (const [, target = ''] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
             if (/^[a-z]+:/.test(target)) continue; // a web address
             const [file, anchor] = target.split('#');
             const path = file ? normalize(join(dirname(doc), decodeURI(file))).replace(/\/$/, '') : doc;

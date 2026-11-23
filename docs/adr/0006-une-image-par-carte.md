@@ -36,5 +36,5 @@ l'AtomS3R et le Waveshare 1,32" ont le même boîtier de puce (ESP32-S3-PICO), e
   `FORCE=1` le laisse chercher.
 - La XIAO, la carte caméra, partage le boîtier QFN56 de la 1,75" et du M5Stamp S3A, et son firmware d'origine ne répond
   pas à `> hello` : la seconde garde l'arrête quand même, par sa flash (8 Mo contre 16 sur la 1,75") ou sa PSRAM (8 Mo,
-  aucune sur le M5Stamp). Un test (`scripts/boards.test.mjs`) refuse une carte qui aurait la puce de la XIAO. Deux cartes
+  aucune sur le M5Stamp). Un test (`scripts/boards.test.ts`) refuse une carte qui aurait la puce de la XIAO. Deux cartes
   à la même puce (l'AtomS3R et la 1,32") ne se distinguent que par la première garde.

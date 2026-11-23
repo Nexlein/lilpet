@@ -1,0 +1,10 @@
+{
+    // Type checks what runs in Node around the PC app: the Vite and Playwright configs and the browser tests (their
+    // page.evaluate callbacks run in the page, hence the DOM of tsconfig.app.json). The app itself: tsconfig.app.json.
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+        "types": ["node", "vite/client"],
+        "allowImportingTsExtensions": true
+    },
+    "include": ["vite.config.ts", "playwright.config.ts", "tests"]
+}

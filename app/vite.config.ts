@@ -3,12 +3,14 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 const ENGINE_DIR = fileURLToPath(new URL('../engine/build/wasm/', import.meta.url));
-const ENGINE_FILES = { 'lilpet.mjs': 'text/javascript', 'lilpet.wasm': 'application/wasm' };
+const ENGINE_FILES = { 'lilpet.mjs': 'text/javascript', 'lilpet.wasm': 'application/wasm' } as const;
+type EngineFile = keyof typeof ENGINE_FILES;
 
-function readEngine(file) {
+function readEngine(file: EngineFile) {
     try {
         return readFileSync(ENGINE_DIR + file);
     } catch {
@@ -16,19 +18,19 @@ function readEngine(file) {
     }
 }
 
-function engineFiles() {
+function engineFiles(): Plugin {
     return {
         name: 'lilpet-engine',
         configureServer(server) {
             server.middlewares.use('/engine/', (req, res, next) => {
-                const file = req.url.split('?')[0].slice(1);
+                const file = (req.url ?? '').split('?')[0]?.slice(1) ?? '';
                 if (!Object.hasOwn(ENGINE_FILES, file)) return next();
-                res.setHeader('Content-Type', ENGINE_FILES[file]);
-                res.end(readEngine(file));
+                res.setHeader('Content-Type', ENGINE_FILES[file as EngineFile]);
+                res.end(readEngine(file as EngineFile));
             });
         },
         generateBundle() {
-            for (const file of Object.keys(ENGINE_FILES))
+            for (const file of Object.keys(ENGINE_FILES) as EngineFile[])
                 this.emitFile({ type: 'asset', fileName: `engine/${file}`, source: readEngine(file) });
         }
     };

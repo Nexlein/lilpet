@@ -1,12 +1,12 @@
 // PNG files of RGB images, 8 bits per channel, each row filtered with "Sub" (enough for flat eye colors on black), for
-// the reference renders of scripts/goldens.mjs: written and read back with node:zlib only, no dependency. Only files
+// the reference renders of scripts/goldens.ts: written and read back with node:zlib only, no dependency. Only files
 // like those encodePng writes are read (8-bit RGB, not interlaced, rows filtered with None or Sub, all there): anything
 // else is refused rather than misread.
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-function chunk(type, data) {
+function chunk(type: string, data: Buffer) {
     const head = Buffer.alloc(8);
     head.writeUInt32BE(data.length, 0);
     head.write(type, 4, 'latin1');
@@ -16,14 +16,14 @@ function chunk(type, data) {
 }
 
 /** A PNG of `rgb` (width × height × 3 bytes). */
-export function encodePng(width, height, rgb) {
+export function encodePng(width: number, height: number, rgb: Uint8Array) {
     const stride = width * 3;
     const raw = Buffer.alloc((stride + 1) * height);
     for (let y = 0; y < height; y++) {
         const row = y * (stride + 1);
         raw[row] = 1; // Sub: each byte minus the same byte of the pixel to its left
         for (let i = 0; i < stride; i++)
-            raw[row + 1 + i] = (rgb[y * stride + i] - (i >= 3 ? rgb[y * stride + i - 3] : 0)) & 0xff;
+            raw[row + 1 + i] = (rgb[y * stride + i]! - (i >= 3 ? rgb[y * stride + i - 3]! : 0)) & 0xff;
     }
     const header = Buffer.alloc(13);
     header.writeUInt32BE(width, 0);
@@ -38,11 +38,11 @@ export function encodePng(width, height, rgb) {
 }
 
 /** The pixels of a PNG written by encodePng: { width, height, rgb }. */
-export function decodePng(file) {
+export function decodePng(file: Buffer) {
     if (!file.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error('not a PNG file');
     let width = 0;
     let height = 0;
-    const data = [];
+    const data: Buffer[] = [];
     for (let at = 8; at < file.length;) {
         const length = file.readUInt32BE(at);
         const type = file.toString('latin1', at + 4, at + 8);
@@ -60,25 +60,25 @@ export function decodePng(file) {
     if (raw.length !== (stride + 1) * height) throw new Error(`${raw.length} bytes of rows for ${width} × ${height}`);
     const rgb = Buffer.alloc(stride * height);
     for (let y = 0; y < height; y++) {
-        const filter = raw[y * (stride + 1)];
+        const filter = raw[y * (stride + 1)]!;
         if (filter > 1) throw new Error(`row ${y}: filter ${filter}, only None and Sub are read`);
         for (let i = 0; i < stride; i++) {
-            const left = filter === 1 && i >= 3 ? rgb[y * stride + i - 3] : 0;
-            rgb[y * stride + i] = (raw[y * (stride + 1) + 1 + i] + left) & 0xff;
+            const left = filter === 1 && i >= 3 ? rgb[y * stride + i - 3]! : 0;
+            rgb[y * stride + i] = (raw[y * (stride + 1) + 1 + i]! + left) & 0xff;
         }
     }
     return { width, height, rgb };
 }
 
 /** The RGB bytes of RGBA pixels. */
-export function rgbOf(rgba) {
+export function rgbOf(rgba: Uint8Array | Uint8ClampedArray) {
     const rgb = Buffer.alloc((rgba.length / 4) * 3);
     for (let p = 0, q = 0; p < rgba.length; p += 4, q += 3) rgb.set(rgba.subarray(p, p + 3), q);
     return rgb;
 }
 
 /** How many pixels of two RGB images of the same size differ. */
-export function differingPixels(a, b) {
+export function differingPixels(a: Uint8Array, b: Uint8Array) {
     let count = 0;
     for (let i = 0; i < a.length; i += 3) if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]) count++;
     return count;

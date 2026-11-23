@@ -9,9 +9,9 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadEngine } from '../engine/wasm/engine.mjs';
-import { EMOTIONS, SCENES, lookOf, readJson, swatchesById } from './data.mjs';
-import { decodePng, differingPixels, encodePng, rgbOf } from './png.mjs';
+import { loadEngine, type Engine, type PupilType } from '../engine/wasm/engine.ts';
+import { EMOTIONS, SCENES, lookOf, readJson, swatchesById, type EmotionsFile, type ScenesFile } from './data.ts';
+import { decodePng, differingPixels, encodePng, rgbOf } from './png.ts';
 
 const MODULE = 'engine/build/wasm/lilpet.mjs';
 const DIR = 'engine/tests/goldens';
@@ -23,14 +23,14 @@ const STEP = 1 / 64; // exact in float, as the engine's tests step
 const SAMPLE = 16; // steps between two hashed frames
 
 // The runs of the animation (seed and look), each playing every part from a fresh start
-const RUNS = [
+const RUNS: { seed: number; swatch: string; pupil: PupilType }[] = [
     { seed: 1234, swatch: 'cherry', pupil: 'dot' },
     { seed: 99, swatch: 'popcorn', pupil: 'cat' },
     { seed: 2026, swatch: 'bumblebee', pupil: 'acorn' },
     { seed: 7, swatch: 'laser', pupil: 'circle' }
 ];
 // [label, steps, input given at the start]
-const PARTS = [
+const PARTS: [label: string, steps: number, start: (engine: Engine) => void][] = [
     ['idle, saccades and blinks', 320, () => {}],
     ['following a pointer', 128, (e) => e.setPointer({ x: 0.6, y: -0.3 })],
     ['object turned', 128, (e) => (e.setPointer(null), e.setGravity({ x: Math.sin(1.2), y: Math.cos(1.2) }))],
@@ -51,10 +51,10 @@ const PARTS = [
 for (const [label, steps] of PARTS)
     if (steps % SAMPLE !== 0) throw new Error(`part "${label}": ${steps} steps, not a multiple of ${SAMPLE}`);
 
-const hash = (rgb) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
-const pixelsDiffer = (n) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
+const hash = (rgb: Buffer) => createHash('sha256').update(rgb).digest('hex').slice(0, 16);
+const pixelsDiffer = (n: number) => (n === 1 ? '1 pixel differs' : `${n} pixels differ`);
 
-function requireKnown(names, name, what) {
+function requireKnown(names: string[], name: string, what: string) {
     if (!names.includes(name)) throw new Error(`the reference animation names an unknown ${what}: "${name}"`);
 }
 
@@ -62,7 +62,7 @@ function requireKnown(names, name, what) {
  * The engine, refusing an emotion or an event it does not know: it would ignore it, and a part of the animation would
  * test nothing while its frames still matched.
  */
-export function strict(engine, events) {
+export function strict(engine: Engine, events: string[]): Engine {
     return {
         ...engine,
         setEmotion: (name) => (requireKnown(engine.emotions, name, 'emotion'), engine.setEmotion(name)),
@@ -71,31 +71,45 @@ export function strict(engine, events) {
 }
 
 /** The frame lines of the text of animation.txt, without its comments */
-const framesOf = (text) => text.split('\n').filter((line) => line && !line.startsWith('#'));
+const framesOf = (text: string) => text.split('\n').filter((line) => line && !line.startsWith('#'));
+
+interface Image {
+    name: string;
+    label: string;
+    height: number;
+    rgb: Buffer;
+}
+
+export interface Drawn {
+    size: number;
+    images: Image[];
+    hashes: string; // the text of animation.txt
+    firstDifferent: { line: string; rgb: Buffer } | null;
+}
 
 /**
  * What the engine draws: { size, images: [{ name, label, height, rgb }], hashes: the text of animation.txt,
  * firstDifferent: the first frame whose line is not the one of `expected` at its place, { line, rgb } }. Only that
  * frame is kept, not the hundreds of others.
  */
-async function renders(expected) {
+async function renders(expected: string[]): Promise<Drawn> {
     const engine = strict(
         await loadEngine(pathToFileURL(resolve(MODULE)).href),
-        Object.keys(readJson(EMOTIONS).reactions)
+        Object.keys(readJson<EmotionsFile>(EMOTIONS).reactions)
     );
     const swatches = swatchesById();
-    const images = [];
-    for (const scene of readJson(SCENES).scenes) {
+    const images: Image[] = [];
+    for (const scene of readJson<ScenesFile>(SCENES).scenes) {
         const rgb = rgbOf(engine.renderScene(scene, lookOf(swatches, scene)));
         images.push({ name: `scene-${scene.id}`, label: `scene ${scene.id}`, height: engine.size, rgb });
     }
     const lines = [
-        '# Frame hashes of the scripted animation of scripts/goldens.mjs (npm run goldens): do not edit.',
+        '# Frame hashes of the scripted animation of scripts/goldens.ts (npm run goldens): do not edit.',
         '# run | part | steps into the part: first 16 hex digits of the SHA-256 of the RGB pixels'
     ];
-    let firstDifferent = null;
+    let firstDifferent: Drawn['firstDifferent'] = null;
     let sample = 0;
-    const ends = [];
+    const ends: Buffer[] = [];
     for (const [r, run] of RUNS.entries()) {
         engine.init(run.seed);
         engine.setLook(lookOf(swatches, run));
@@ -124,7 +138,7 @@ async function renders(expected) {
     return { size: engine.size, images, hashes: `${lines.join('\n')}\n`, firstDifferent };
 }
 
-function readText(path) {
+function readText(path: string) {
     try {
         return readFileSync(path, 'utf8');
     } catch {
@@ -132,7 +146,7 @@ function readText(path) {
     }
 }
 
-function readImage(path) {
+function readImage(path: string) {
     try {
         return decodePng(readFileSync(path));
     } catch {
@@ -146,19 +160,22 @@ function readImage(path) {
  * the references that differ are rewritten and those that nothing draws any more are removed.
  * Returns { problems: what a check found, rewritten: how many files were written otherwise }.
  */
-export function compare({ size, images, hashes, firstDifferent }, { dir, failed, check }) {
-    const problems = [];
+export function compare(
+    { size, images, hashes, firstDifferent }: Drawn,
+    { dir, failed, check }: { dir: string; failed: string; check: boolean }
+) {
+    const problems: string[] = [];
     let rewritten = 0;
     mkdirSync(dir, { recursive: true });
-    const put = (name, data) => {
+    const put = (name: string, data: Buffer | string) => {
         mkdirSync(failed, { recursive: true });
         writeFileSync(`${failed}/${name}`, data);
     };
-    const fail = (name, data, message) => {
+    const fail = (name: string, data: Buffer | string, message: string) => {
         put(name, data);
         problems.push(message);
     };
-    const clear = (name) => check && rmSync(`${failed}/${name}`, { force: true }); // left by an earlier failure
+    const clear = (name: string) => check && rmSync(`${failed}/${name}`, { force: true }); // left by an earlier failure
     for (const image of images) {
         const path = `${dir}/${image.name}.png`;
         const reference = readImage(path);

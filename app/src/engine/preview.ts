@@ -1,5 +1,5 @@
 // Live preview: the C engine (WebAssembly) animated in a canvas, in fixed 1/64 s steps (exact in float).
-import { loadEngine, type Engine, type Look, type Region, type Scene } from '../../../engine/wasm/engine.mjs';
+import { loadEngine, type Engine, type Look, type Region, type Scene } from '../../../engine/wasm/engine';
 
 export type { Engine };
 
@@ -8,7 +8,7 @@ const MAX_STEPS = 8; // per frame, so a slow frame does not snowball
 
 let loading: Promise<Engine> | undefined;
 
-// The WebAssembly build is served next to the app, under engine/ (see vite.config.mjs). Loaded once: StrictMode asks twice
+// The WebAssembly build is served next to the app, under engine/ (see vite.config.ts). Loaded once: StrictMode asks twice
 export function loadEyeEngine(): Promise<Engine> {
     loading ??= loadEngine(new URL(`${import.meta.env.BASE_URL}engine/lilpet.mjs`, location.href).href);
     return loading;

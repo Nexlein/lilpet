@@ -12,14 +12,16 @@ const OUT = '.claude/codemap.md';
 const { basename, dirname, join, normalize } = posix;
 
 // The same order on every machine (localeCompare would follow the locale's collation)
-const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+const byCodeUnit = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
 // --- What a file is ----------------------------------------------------------------------------------------------
 
-const KINDS = [
+type Kind = 'c' | 'ts' | 'py' | 'cmake' | 'html' | 'css' | 'sh' | 'data';
+
+const KINDS: [RegExp, Kind][] = [
     [/\.[ch]$/, 'c'],
-    [/\.(tsx?|mts|mjs|js)$/, 'js'],
+    [/\.tsx?$/, 'ts'],
     [/\.py$/, 'py'],
     [/(^|\/)CMakeLists\.txt$|\.cmake$/, 'cmake'],
     [/\.html$/, 'html'],
@@ -29,33 +31,32 @@ const KINDS = [
 // JSON files that hold settings, not data the code reads
 const CONFIG_JSON = /(^|\/)(package(-lock)?|tsconfig[^/]*|CMakePresets)\.json$|^\.(vscode|claude)\/|^\.[^/]+rc\.json$/;
 
-export function kindOf(path) {
+export function kindOf(path: string): Kind | null {
     if (path.endsWith('.json')) return CONFIG_JSON.test(path) ? null : 'data';
     return KINDS.find(([re]) => re.test(path))?.[1] ?? null;
 }
 
-export const isTest = (path) =>
-    /(^|\/)tests?\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path) || /(^|\/)test_[^/]+$/.test(path);
+export const isTest = (path: string) =>
+    /(^|\/)tests?\//.test(path) || /\.(test|spec)\.tsx?$/.test(path) || /(^|\/)test_[^/]+$/.test(path);
 
 // --- Comments -----------------------------------------------------------------------------------------------------
 
 const SLASH_COMMENT = /^\s*(?:\/\*([\s\S]*?)\*\/|((?:[ \t]*\/\/.*\n?)+))/;
 const HASH_COMMENT = /^\s*((?:[ \t]*#.*\n?)+)/;
-const LEADING_COMMENT = {
+const LEADING_COMMENT: Record<Exclude<Kind, 'html' | 'data'>, RegExp> = {
     c: SLASH_COMMENT,
-    js: SLASH_COMMENT,
+    ts: SLASH_COMMENT,
     css: /^\s*\/\*([\s\S]*?)\*\//,
-    py: /^\s*(?:"""([\s\S]*?)"""|'''([\s\S]*?)'''|((?:[ \t]*#.*\n?)+))/,
+    py: HASH_COMMENT,
     cmake: HASH_COMMENT,
     sh: HASH_COMMENT
 };
 
 /** The comments at the top of a file, in order (a licence first, then the file's own description). */
-function leadingComments(src, kind) {
+function leadingComments(src: string, kind: Exclude<Kind, 'data'>) {
     let s = src.replace(/^\uFEFF/, '').replace(/^#!.*\n/, '');
-    if (kind === 'html') return [...s.slice(0, 4000).matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]);
-    if (kind === 'py') s = s.replace(/^# \/\/\/ script[\s\S]*?^# \/\/\/\n/m, '');
-    const comments = [];
+    if (kind === 'html') return [...s.slice(0, 4000).matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]!);
+    const comments: string[] = [];
     for (;;) {
         const m = s.match(LEADING_COMMENT[kind]);
         if (!m) return comments;
@@ -68,7 +69,7 @@ function leadingComments(src, kind) {
  * C read character by character: comments become spaces (line breaks kept), and with `strings` false the contents of
  * string and character literals go too, so that neither a `//` in a string nor a quote in a comment misleads.
  */
-function scanC(src, strings) {
+function scanC(src: string, strings: boolean) {
     let out = '';
     let i = 0;
     while (i < src.length) {
@@ -84,7 +85,7 @@ function scanC(src, strings) {
         } else if (src[i] === '"' || src[i] === "'") {
             let j = i + 1;
             while (j < src.length && src[j] !== src[i] && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
-            out += strings ? src.slice(i, j + 1) : src[i] + src[i];
+            out += strings ? src.slice(i, j + 1) : src[i]! + src[i]!;
             i = src[j] === '\n' ? j : j + 1; // an unclosed literal ends with its line
         } else out += src[i++];
     }
@@ -92,7 +93,7 @@ function scanC(src, strings) {
 }
 
 // What is left of skipped text: its line breaks, so that the lines after it keep their number
-const keepLines = (text) => text.replace(/[^\n]/g, '');
+const keepLines = (text: string) => text.replace(/[^\n]/g, '');
 
 // After these, a `/` starts a regular expression, not a division
 const REGEX_AFTER =
@@ -106,20 +107,20 @@ const SPECIFIER_AFTER = /((^|[^\w$.])(from|import)|\bimport\s*\(|\bnew\s+URL\s*\
  * kept only where a module specifier goes, line breaks kept so that a statement still starts its line. The code of a
  * `${...}` is read with the same rules, to find where its template ends.
  */
-export function scanJs(src) {
+export function scanJs(src: string) {
     let out = '';
     // Reads code from `from`, written to `out` unless inside a template; returns where it stops: the end of the
     // source, or, inside, after the `}` that closes the `${`
-    const code = (from, inside) => {
+    const code = (from: number, inside: boolean): number => {
         let i = from;
         let depth = 0;
         let before = ''; // the end of the code read so far, spaces collapsed: what tells a regex from a division
-        const emit = (text, seen = text) => {
+        const emit = (text: string, seen = text) => {
             if (!inside) out += text;
             before = (before + seen).replace(/\s+/g, ' ').slice(-32);
         };
         while (i < src.length) {
-            const c = src[i];
+            const c = src[i]!;
             if (src.startsWith('//', i)) {
                 const end = src.indexOf('\n', i);
                 i = end < 0 ? src.length : end;
@@ -162,7 +163,7 @@ export function scanJs(src) {
         return i;
     };
     // Skips a template literal from its opening backtick; returns the index after its closing one
-    const template = (from) => {
+    const template = (from: number): number => {
         let j = from + 1;
         while (j < src.length && src[j] !== '`') {
             if (src[j] === '\\') j += 2;
@@ -176,10 +177,10 @@ export function scanJs(src) {
 }
 
 /** The text of a file without its comments, strings kept: what the code itself names. */
-function withoutComments(src, kind) {
+function withoutComments(src: string, kind: Kind) {
     if (kind === 'c') return scanC(src, true);
     if (kind === 'css') return src.replace(/\/\*[\s\S]*?\*\//g, '');
-    if (kind === 'js') return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+    if (kind === 'ts') return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
     if (kind === 'py' || kind === 'sh' || kind === 'cmake') return src.replace(/^[ \t]*#.*$/gm, '');
     if (kind === 'html') return src.replace(/<!--[\s\S]*?-->/g, '');
     return src;
@@ -191,7 +192,7 @@ const LICENSE = /^\s*(copyright|spdx|licen[cs]e|\(c\))/i;
 const ABBREVIATION = /\b(e\.g|i\.e|etc|vs|cf)\.$/i;
 const PURPOSE_MAX = 150;
 
-export function firstSentence(text) {
+export function firstSentence(text: string) {
     const flat = text
         .replace(/^[ \t]*(\*|\/\/|#)[ \t]?/gm, '')
         .replace(/\s+/g, ' ')
@@ -201,7 +202,7 @@ export function firstSentence(text) {
     return first.length > PURPOSE_MAX ? `${first.slice(0, PURPOSE_MAX - 3)}...` : first;
 }
 
-export function purposeOf(src, kind) {
+export function purposeOf(src: string, kind: Kind) {
     if (kind === 'data') return '';
     const own = leadingComments(src, kind).find((c) => c.trim() && !LICENSE.test(firstSentence(c)));
     return own ? firstSentence(own) : '';
@@ -213,16 +214,16 @@ export function purposeOf(src, kind) {
  * Functions, types and macros a C header declares, with the static inline functions it defines (every file that
  * includes it gets them), or the functions a C source defines (static ones excluded).
  */
-export function cSymbols(src, header) {
+export function cSymbols(src: string, header: boolean) {
     // The extern "C" wrapper for C++ would put every declaration inside braces
     const code = scanC(src, false).replace(
         /^[ \t]*#[ \t]*ifdef[ \t]+__cplusplus\b[\s\S]*?^[ \t]*#[ \t]*endif.*$/gm,
         ''
     );
-    const names = [];
+    const names: string[] = [];
     if (header) {
         for (const m of code.matchAll(/^[ \t]*#[ \t]*define[ \t]+([A-Z][A-Z0-9_]*)\b/gm))
-            if (!/_H_?$/.test(m[1])) names.push(m[1]);
+            if (!/_H_?$/.test(m[1]!)) names.push(m[1]!);
     }
     const flat = code.replace(/^[ \t]*#(?:[^\n]*\\\n)*[^\n]*$/gm, ' '); // a line ending in \ goes on
     let depth = 0;
@@ -233,7 +234,7 @@ export function cSymbols(src, header) {
             if (depth === 0) {
                 const fn = statement.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/);
                 const exported = header ? /\bstatic\s+inline\b/.test(statement) : !/\bstatic\b/.test(statement);
-                if (fn && exported && !/[=]/.test(statement)) names.push(fn[1]);
+                if (fn && exported && !/[=]/.test(statement)) names.push(fn[1]!);
                 beforeBraces = statement;
                 statement = '';
             }
@@ -246,12 +247,11 @@ export function cSymbols(src, header) {
             if (ch === ';') {
                 const whole = `${beforeBraces} ${statement}`.replace(/\s+/g, ' ').trim();
                 if (header && /^typedef\b/.test(whole)) {
-                    const name =
-                        whole.match(/\(\s*\*\s*([A-Za-z_]\w*)\s*\)/)?.[1] ?? whole.match(/([A-Za-z_]\w*)\s*$/)?.[1];
+                    const name = whole.match(/([A-Za-z_]\w*)\s*$/)?.[1];
                     if (name) names.push(name);
                 } else if (header && !beforeBraces) {
                     const fn = statement.match(/\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*$/s);
-                    if (fn && !/\b(static|typedef)\b/.test(statement) && !/\(\s*\*/.test(statement)) names.push(fn[1]);
+                    if (fn && !/\b(static|typedef)\b/.test(statement) && !/\(\s*\*/.test(statement)) names.push(fn[1]!);
                 }
                 statement = '';
                 beforeBraces = '';
@@ -261,22 +261,21 @@ export function cSymbols(src, header) {
     return [...new Set(names)];
 }
 
-export function jsExports(src) {
+export function jsExports(src: string) {
     const code = scanJs(src);
-    const names = [];
+    const names: string[] = [];
     for (const m of code.matchAll(
-        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|abstract\s+class|class|const\s+enum|const|let|var|interface|type|enum)\s+([A-Za-z_$][\w$]*)/gm
+        /^[ \t]*export\s+(?:declare\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|abstract\s+class|class|const\s+enum|const|let|var|interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)/gm
     ))
-        names.push(m[1]);
-    // export { a, b as c } and export const { a, b: c, d = 1, ...e } = ...
-    for (const m of code.matchAll(/^[ \t]*export\s+(?:type\s+|const\s+|let\s+|var\s+)?\{([^}]*)\}/gm))
-        for (const part of m[1].split(',')) {
+        names.push(m[1]!);
+    // export { a, b as c }
+    for (const m of code.matchAll(/^[ \t]*export\s+(?:type\s+)?\{([^}]*)\}/gm))
+        for (const part of m[1]!.split(',')) {
             const name = part
-                .replace(/^\s*(type\s+|\.\.\.)/, '')
-                .split(/\s+as\s+|:/)
+                .replace(/^\s*type\s+/, '')
+                .split(/\s+as\s+/)
                 .pop()
-                .replace(/=.*$/, '')
-                .trim();
+                ?.trim();
             if (name) names.push(name);
         }
     if (/^[ \t]*export\s+default\s+(?!(?:async\s+)?(?:function|class)\s+[A-Za-z_$])/m.test(code)) names.push('default');
@@ -284,7 +283,7 @@ export function jsExports(src) {
 }
 
 /** Every module specifier a JS or TS file loads, static or dynamic. */
-export function jsSpecifiers(src) {
+export function jsSpecifiers(src: string) {
     const code = scanJs(src);
     const res = [
         // Static imports and re-exports start a line (Prettier keeps them so); a string that only looks like one does not
@@ -293,47 +292,49 @@ export function jsSpecifiers(src) {
         /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
         /\bnew URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url/g
     ];
-    return [...new Set(res.flatMap((re) => [...code.matchAll(re)].map((m) => m[1])))];
+    return [...new Set(res.flatMap((re) => [...code.matchAll(re)].map((m) => m[1]!)))];
 }
 
-function pySymbols(src) {
-    return [...src.matchAll(/^(?:async\s+)?(?:def|class)\s+([A-Za-z]\w*)/gm)].map((m) => m[1]);
+function pySymbols(src: string) {
+    return [...src.matchAll(/^(?:async\s+)?(?:def|class)\s+([A-Za-z]\w*)/gm)].map((m) => m[1]!);
 }
 
-function pyModules(src) {
+function pyModules(src: string) {
     return [
-        ...[...src.matchAll(/^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)/gm)].flatMap((m) => m[1].split(/\s*,\s*/)),
-        ...[...src.matchAll(/^\s*from\s+([\w.]+)\s+import\b/gm)].map((m) => m[1])
+        ...[...src.matchAll(/^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)/gm)].flatMap((m) => m[1]!.split(/\s*,\s*/)),
+        ...[...src.matchAll(/^\s*from\s+([\w.]+)\s+import\b/gm)].map((m) => m[1]!)
     ];
 }
 
-function symbolsOf(path, src, kind) {
+function symbolsOf(path: string, src: string, kind: Kind) {
     if (kind === 'c') return cSymbols(src, path.endsWith('.h'));
-    if (kind === 'js') return jsExports(src);
+    if (kind === 'ts') return jsExports(src);
     if (kind === 'py') return pySymbols(src);
     return [];
 }
 
 // --- Resolving what a file uses -----------------------------------------------------------------------------------
 
-const JS_EXTENSIONS = ['', '.ts', '.tsx', '.mts', '.mjs', '.js', '.json', '.d.mts'];
+const JS_EXTENSIONS = ['', '.ts', '.tsx', '.json'];
+
+interface Repository {
+    files: string[];
+    known: Set<string>;
+    isIgnored: (path: string) => boolean;
+}
 
 /** The files of the repository, and the git rule for a path that is not one of them. */
-export function repository(files, isIgnored = () => false) {
+export function repository(files: string[], isIgnored: (path: string) => boolean = () => false): Repository {
     return { files, known: new Set(files), isIgnored };
 }
 
-function resolveRelative(from, spec, repo) {
+function resolveRelative(from: string, spec: string, repo: Repository) {
     const base = spec.startsWith('/') ? join(dirname(from), spec.slice(1)) : normalize(join(dirname(from), spec));
-    const candidates = [
-        ...JS_EXTENSIONS.map((e) => base + e),
-        ...['ts', 'tsx', 'mjs', 'js'].map((e) => `${base}/index.${e}`)
-    ];
-    return candidates.find((c) => repo.known.has(c));
+    return JS_EXTENSIONS.map((e) => base + e).find((c) => repo.known.has(c));
 }
 
 /** A C include or a CMake file by the end of its path ("lilpet/lilpet.h"): the one file, or each board's. */
-function resolveBySuffix(spec, from, repo) {
+function resolveBySuffix(spec: string, from: string, repo: Repository) {
     const near = normalize(join(dirname(from), spec));
     if (repo.known.has(near)) return [near];
     const hits = repo.files.filter((f) => f === spec || f.endsWith(`/${spec}`));
@@ -342,16 +343,23 @@ function resolveBySuffix(spec, from, repo) {
     return sameTop.length ? sameTop : hits;
 }
 
-const packageOf = (spec) =>
+const packageOf = (spec: string) =>
     spec.startsWith('node:') ? null : spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
 
+interface Uses {
+    local: string[];
+    packages: string[];
+    built: string[];
+    unresolved: string[];
+}
+
 /** The local files a file uses, the npm packages it imports, the build outputs it loads and what does not resolve. */
-export function usesOf(file, src, kind, repo) {
-    const local = [];
-    const packages = [];
-    const unresolved = [];
-    const built = [];
-    const relative = (spec) => {
+export function usesOf(file: string, src: string, kind: Kind, repo: Repository): Uses {
+    const local: string[] = [];
+    const packages: string[] = [];
+    const unresolved: string[] = [];
+    const built: string[] = [];
+    const relative = (spec: string) => {
         const bare = spec.replace(/\?[^/]*$/, ''); // Vite's queries, as in "x.c?raw", name the same file
         const hit = resolveRelative(file, bare, repo);
         const path = normalize(join(dirname(file), bare.startsWith('/') ? bare.slice(1) : bare));
@@ -360,7 +368,7 @@ export function usesOf(file, src, kind, repo) {
             built.push(path); // a build output, absent until built
         else unresolved.push(spec);
     };
-    if (kind === 'js') {
+    if (kind === 'ts') {
         for (const spec of jsSpecifiers(src)) {
             if (/^\.{1,2}\//.test(spec)) relative(spec);
             else if (!/^[a-z]+:/.test(spec) || spec.startsWith('node:')) {
@@ -370,19 +378,15 @@ export function usesOf(file, src, kind, repo) {
         }
     } else if (kind === 'html') {
         const specs = [
-            ...[...src.matchAll(/<(?:script|img)\b[^>]*\ssrc=["']([^"']+)["']/g)].map((m) => m[1]),
-            ...[...src.matchAll(/<link\b[^>]*\shref=["']([^"']+)["']/g)].map((m) => m[1]),
+            ...[...src.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)["']/g)].map((m) => m[1]!),
             ...[...src.matchAll(/<script\b[^>]*type=["']module["'][^>]*>([\s\S]*?)<\/script>/g)].flatMap((m) =>
-                jsSpecifiers(m[1])
+                jsSpecifiers(m[1]!)
             )
         ];
         for (const spec of specs) if (!/^[a-z]+:|^\/\//i.test(spec) && !spec.startsWith('#')) relative(spec);
-    } else if (kind === 'css') {
-        for (const m of src.matchAll(/@import\s+(?:url\()?\s*['"]?([^'")\s;]+)/g))
-            if (/^\.{1,2}\//.test(m[1])) relative(m[1]);
     } else if (kind === 'c') {
         for (const m of withoutComments(src, 'c').matchAll(/^[ \t]*#[ \t]*include[ \t]+"([^"]+)"/gm))
-            local.push(...resolveBySuffix(m[1], file, repo));
+            local.push(...resolveBySuffix(m[1]!, file, repo));
     } else if (kind === 'py') {
         for (const mod of pyModules(src)) {
             const path = join(dirname(file), `${mod.replace(/\./g, '/')}.py`);
@@ -390,7 +394,7 @@ export function usesOf(file, src, kind, repo) {
         }
     } else if (kind === 'cmake') {
         for (const m of withoutComments(src, 'cmake').matchAll(/\b(include|add_subdirectory)\s*\(\s*([^)\s]+)/g)) {
-            const arg = m[2].replace(/^"|"$/g, '').replace(/^\$\{[^}]+\}\//, '');
+            const arg = m[2]!.replace(/^"|"$/g, '').replace(/^\$\{[^}]+\}\//, '');
             if (/\$/.test(arg)) continue; // outside the repository (ESP-IDF, CMake modules)
             const target = m[1] === 'add_subdirectory' ? `${arg}/CMakeLists.txt` : arg;
             if (target.includes('.') || m[1] === 'add_subdirectory') local.push(...resolveBySuffix(target, file, repo));
@@ -405,41 +409,43 @@ export function usesOf(file, src, kind, repo) {
 }
 
 // Files that run or read other files by naming them: scripts in tasks and hooks, data read by the code
-const MENTION_SOURCES =
-    /^(package\.json|app\/package\.json|mise\.toml|\.lintstagedrc[^/]*|app\/playwright\.config\.mjs)$|^\.github\/workflows\/|^\.husky\/[^/.]+$/;
+const MENTION_SOURCES = /^(package\.json|app\/package\.json|mise\.toml)$|^\.github\/workflows\/|^\.husky\/[^/.]+$/;
 
-function mentionTargets(files, kinds) {
+function mentionTargets(files: string[], kinds: Map<string, Kind | null>) {
     return files.filter(
-        (f) => kinds.get(f) === 'data' || /^scripts\/[^/]+\.(py|mjs|sh)$/.test(f) || /(^|\/)Dockerfile$/.test(f)
+        (f) =>
+            kinds.get(f) === 'data' ||
+            /^(scripts|engine\/wasm)\/[^/]+\.(py|ts|sh)$/.test(f) ||
+            /(^|\/)Dockerfile$/.test(f)
     );
 }
 
-function mentionPattern(target, files) {
+function mentionPattern(target: string, files: string[]) {
     const name = basename(target);
     const unique = files.filter((f) => basename(f) === name).length === 1 && name !== 'Dockerfile';
     return new RegExp(`(^|[^\\w.-])${unique ? '(?:[\\w./-]*/)?' : ''}${escapeRe(unique ? name : target)}(?![\\w-])`);
 }
 
 // The same file name in any folder of the same parent: firmware/boards/*/board_config.h
-function folderKey(path) {
+function folderKey(path: string) {
     const parts = path.split('/');
     return parts.length > 2 ? `${parts.slice(0, -2).join('/')}/*/${parts.at(-1)}` : path;
 }
 
 /** Paths of the same file in every folder of one parent (each board of firmware/boards), written once with `*`. */
-export function collapse(paths, files = paths) {
-    const groups = new Map();
+export function collapse(paths: string[], files = paths) {
+    const groups = new Map<string, string[]>();
     for (const p of paths) groups.set(folderKey(p), [...(groups.get(folderKey(p)) ?? []), p]);
     // `*` only when the list holds that file of every such folder, not just some of them
-    const everywhere = (key, list) =>
+    const everywhere = (key: string, list: string[]) =>
         list.length > 1 && files.filter((f) => folderKey(f) === key).length === list.length;
     return [...groups].flatMap(([key, list]) => (everywhere(key, list) ? [key] : list));
 }
 
 // --- Commands -----------------------------------------------------------------------------------------------------
 
-export function miseTasks(toml) {
-    const tasks = [];
+export function miseTasks(toml: string) {
+    const tasks: { name: string; description: string }[] = [];
     for (const section of toml.split(/^(?=\[)/m)) {
         const name = section
             .match(/^\[tasks\.(?:"([^"]+)"|([\w:.-]+))\]/)
@@ -455,7 +461,14 @@ export function miseTasks(toml) {
     return tasks.toSorted((a, b) => byCodeUnit(a.name, b.name));
 }
 
-function commandLines(contents, manifests) {
+// What the map reads of a package.json
+interface Manifest {
+    scripts?: Record<string, string>;
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+}
+
+function commandLines(contents: Map<string, string>, manifests: string[]) {
     const lines = ['## Commands', ''];
     const toml = contents.get('mise.toml');
     if (toml) {
@@ -464,7 +477,7 @@ function commandLines(contents, manifests) {
         lines.push('');
     }
     for (const m of manifests) {
-        const scripts = Object.entries(JSON.parse(contents.get(m)).scripts ?? {});
+        const scripts = Object.entries((JSON.parse(contents.get(m)!) as Manifest).scripts ?? {});
         if (!scripts.length) continue;
         lines.push(`npm (\`npm run <script>\`${m === 'package.json' ? '' : `, workspace ${dirname(m)}`}):`);
         for (const [name, cmd] of scripts) lines.push(`- \`${name}\`: \`${cmd}\``);
@@ -473,23 +486,22 @@ function commandLines(contents, manifests) {
     return lines;
 }
 
-function packageLines(contents, manifests, all, info) {
-    const importers = new Map();
+function packageLines(contents: Map<string, string>, manifests: string[], all: string[], info: Map<string, FileInfo>) {
+    const importers = new Map<string, string[]>();
     for (const [f, i] of info) for (const p of i.packages) importers.set(p, [...(importers.get(p) ?? []), f]);
     // Where a package used only as a command or a plugin shows up: npm scripts, tasks, hooks and config files
     const configText = [
-        ...manifests.map((m) => Object.values(JSON.parse(contents.get(m)).scripts ?? {}).join('\n')),
+        ...manifests.map((m) => Object.values((JSON.parse(contents.get(m)!) as Manifest).scripts ?? {}).join('\n')),
         ...all
             .filter((f) => !manifests.includes(f))
             .filter(
-                (f) =>
-                    MENTION_SOURCES.test(f) || /\.config\.m?[jt]s$|^\.[^/]*rc[^/]*$|(^|\/)tsconfig[^/]*\.json$/.test(f)
+                (f) => MENTION_SOURCES.test(f) || /\.config\.ts$|^\.[^/]*rc[^/]*$|(^|\/)tsconfig[^/]*\.json$/.test(f)
             )
             .map((f) => contents.get(f))
     ].join('\n');
     const lines = ['## npm packages', ''];
     for (const m of manifests) {
-        const pkg = JSON.parse(contents.get(m));
+        const pkg: Manifest = JSON.parse(contents.get(m)!);
         for (const name of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).toSorted(byCodeUnit)) {
             const users = importers.get(name) ?? [];
             const notes = [
@@ -508,15 +520,23 @@ function packageLines(contents, manifests, all, info) {
 
 // --- The map ------------------------------------------------------------------------------------------------------
 
-export function buildMap(contents, isIgnored = () => false) {
+interface FileInfo extends Uses {
+    kind: Kind;
+    generated: boolean;
+    lines: number;
+    purpose: string;
+    exports: string[];
+}
+
+export function buildMap(contents: Map<string, string>, isIgnored: (path: string) => boolean = () => false) {
     const all = [...contents.keys()].toSorted(byCodeUnit);
-    const kinds = new Map(all.map((f) => [f, kindOf(f)]));
+    const kinds = new Map<string, Kind | null>(all.map((f) => [f, kindOf(f)]));
     const files = all.filter((f) => kinds.get(f));
     const repo = repository(files, isIgnored);
-    const info = new Map();
+    const info = new Map<string, FileInfo>();
     for (const f of files) {
-        const src = contents.get(f);
-        const kind = kinds.get(f);
+        const src = contents.get(f)!;
+        const kind = kinds.get(f)!;
         const purpose = purposeOf(src, kind);
         const generated = /^generated\b/i.test(purpose);
         info.set(f, {
@@ -532,23 +552,25 @@ export function buildMap(contents, isIgnored = () => false) {
     for (const [f, i] of info) {
         if (i.purpose || i.kind !== 'c' || !f.endsWith('.c')) continue;
         const header = i.local.find((h) => basename(h) === `${basename(f, '.c')}.h`);
-        const said = info.get(header)?.purpose;
-        if (said)
-            i.purpose = `Implements ${basename(header)}: ${/^[A-Z][a-z]/.test(said) ? said[0].toLowerCase() + said.slice(1) : said}`;
+        const said = header && info.get(header)?.purpose;
+        if (header && said)
+            i.purpose = `Implements ${basename(header)}: ${/^[A-Z][a-z]/.test(said) ? said[0]!.toLowerCase() + said.slice(1) : said}`;
     }
 
     // A test folder also holds data and generated files: they are listed with their users, not as tests
-    const test = (f) => isTest(f) && kinds.get(f) !== 'data' && !info.get(f)?.generated;
-    const usedBy = new Map(files.map((f) => [f, new Set()]));
+    const test = (f: string) => isTest(f) && kinds.get(f) !== 'data' && !info.get(f)?.generated;
+    const usedBy = new Map<string, Set<string>>(files.map((f) => [f, new Set()]));
     for (const [f, i] of info) for (const dep of i.local) usedBy.get(dep)?.add(f);
     const mentioners = all.filter((f) => MENTION_SOURCES.test(f) || (kinds.get(f) && kinds.get(f) !== 'data'));
-    const code = new Map(mentioners.map((m) => [m, withoutComments(contents.get(m), kinds.get(m) ?? 'sh')]));
+    const code = new Map<string, string>(
+        mentioners.map((m) => [m, withoutComments(contents.get(m)!, kinds.get(m) ?? 'sh')])
+    );
     for (const target of mentionTargets(files, kinds)) {
         const re = mentionPattern(target, all);
-        for (const m of mentioners) if (m !== target && re.test(code.get(m))) usedBy.get(target).add(m);
+        for (const m of mentioners) if (m !== target && re.test(code.get(m)!)) usedBy.get(target)!.add(m);
     }
 
-    const problems = [];
+    const problems: string[] = [];
     for (const [f, i] of info) {
         for (const spec of i.unresolved) problems.push(`${f}: local import "${spec}" not found`);
         if (!i.purpose && !test(f) && i.kind !== 'data')
@@ -564,7 +586,7 @@ export function buildMap(contents, isIgnored = () => false) {
         'file). Tests are listed, not detailed. Commands and npm packages at the end.',
         ''
     ];
-    const groups = new Map();
+    const groups = new Map<string, string[]>();
     for (const f of files) {
         const dir = f.includes('/') ? dirname(f) : '(root)';
         groups.set(dir, [...(groups.get(dir) ?? []), f]);
@@ -573,14 +595,14 @@ export function buildMap(contents, isIgnored = () => false) {
         lines.push(`## ${dir}`);
         const tests = list.filter(test);
         for (const f of list.filter((x) => !test(x))) {
-            const i = info.get(f);
+            const i = info.get(f)!;
             const label = i.kind === 'data' ? 'data' : i.purpose;
             lines.push(`- **${basename(f)}** (${i.lines})${label ? ` — ${label}` : ''}`);
             if (i.exports.length) lines.push(`  - exports: ${i.exports.join(', ')}`);
             if (i.local.length) lines.push(`  - → ${collapse(i.local, files).join(', ')}`);
             if (i.built.length) lines.push(`  - → built: ${i.built.join(', ')}`);
             if (i.packages.length) lines.push(`  - packages: ${i.packages.join(', ')}`);
-            const users = [...usedBy.get(f)].filter((u) => !test(u)).toSorted(byCodeUnit);
+            const users = [...usedBy.get(f)!].filter((u) => !test(u)).toSorted(byCodeUnit);
             if (users.length) lines.push(`  - ← ${collapse(users, files).join(', ')}`);
         }
         if (tests.length) lines.push(`- tests: ${tests.map((t) => basename(t)).join(', ')}`);
@@ -599,7 +621,7 @@ function stagedFiles() {
         .filter(Boolean)
         .map((line) => {
             const tab = line.indexOf('\t'); // a path may hold a tab, the fields before it never do
-            const [mode, sha, stage] = line.slice(0, tab).split(' ');
+            const [mode, sha, stage] = line.slice(0, tab).split(' ') as [string, string, string];
             return { mode, sha, stage, path: line.slice(tab + 1) };
         })
         // Files, not symbolic links or submodules; during a merge, only what is resolved (stage 0)
@@ -620,7 +642,7 @@ function stagedFiles() {
     return contents;
 }
 
-function ignoredByGit(path) {
+function ignoredByGit(path: string) {
     try {
         execFileSync('git', ['check-ignore', '-q', '--no-index', path], { stdio: 'ignore' });
         return true;

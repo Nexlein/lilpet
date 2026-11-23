@@ -1,4 +1,4 @@
-// Tests of how scripts/goldens.mjs compares what the engine drew with the reference renders, on small made-up images in
+// Tests of how scripts/goldens.ts compares what the engine drew with the reference renders, on small made-up images in
 // a throwaway folder: what a check reports, writes apart and clears, and what npm run goldens rewrites and removes. The
 // drawing itself is checked by mise run engine:goldens. Built-in test runner, no dependency.
 // Usage: npm run check:scripts
@@ -7,19 +7,20 @@ import { test } from 'node:test';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { compare, strict } from './goldens.mjs';
-import { decodePng, encodePng } from './png.mjs';
+import type { Engine, EyeEvent } from '../engine/wasm/engine.ts';
+import { compare, strict, type Drawn } from './goldens.ts';
+import { decodePng, encodePng } from './png.ts';
 
 const SIZE = 2;
 const HASHES = '# comment\nrun | 1 part | 16: 0000000000000001\nrun | 1 part | 32: 0000000000000002\n';
-const image = (name, value, height = SIZE) => ({
+const image = (name: string, value: number, height = SIZE) => ({
     name,
     label: name.replace('-', ' '),
     height,
     rgb: Buffer.alloc(SIZE * height * 3, value)
 });
 // What renders gives: two scenes, the strip of the animation and its hashes
-const drawn = (changes = {}) => ({
+const drawn = (changes: Partial<Drawn> = {}): Drawn => ({
     size: SIZE,
     images: [image('scene-a', 10), image('scene-b', 20), image('animation', 30, 2 * SIZE)],
     hashes: HASHES,
@@ -28,7 +29,7 @@ const drawn = (changes = {}) => ({
 });
 
 // Calls `use` with a folder of references written from `drawn()` and the folder where a check writes what differs
-function withReferences(use) {
+function withReferences(use: (dir: string, failed: string) => void) {
     const root = mkdtempSync(join(tmpdir(), 'lilpet-goldens-'));
     const dir = join(root, 'goldens');
     const failed = join(root, 'failed');
@@ -40,8 +41,9 @@ function withReferences(use) {
     }
 }
 
-const files = (dir) => (existsSync(dir) ? readdirSync(dir).toSorted() : []);
-const contents = (dir) => Object.fromEntries(files(dir).map((f) => [f, readFileSync(join(dir, f)).toString('hex')]));
+const files = (dir: string) => (existsSync(dir) ? readdirSync(dir).toSorted() : []);
+const contents = (dir: string) =>
+    Object.fromEntries(files(dir).map((f) => [f, readFileSync(join(dir, f)).toString('hex')]));
 
 test('writes every reference, which a check then finds the same', () =>
     withReferences((dir, failed) => {
@@ -147,16 +149,20 @@ test('npm run goldens leaves alone what is not a reference render', () =>
     }));
 
 test('the animation refuses an emotion or an event the engine does not know, which it would ignore', () => {
-    const called = [];
-    const engine = strict(
-        { emotions: ['sad'], setEmotion: (name) => called.push(name), react: (event) => called.push(event), size: 2 },
-        ['tap']
-    );
+    const called: string[] = [];
+    // Only what strict wraps, and a field it keeps
+    const fake = {
+        emotions: ['sad'],
+        setEmotion: (name: string) => called.push(name),
+        react: (event: string) => called.push(event),
+        size: 2
+    };
+    const engine = strict(fake as unknown as Engine, ['tap']);
     engine.setEmotion('sad');
     engine.react('tap');
     assert.deepEqual(called, ['sad', 'tap']);
     assert.equal(engine.size, 2);
     assert.throws(() => engine.setEmotion('glad'), /unknown emotion: "glad"/);
-    assert.throws(() => engine.react('gesture_dislik'), /unknown event: "gesture_dislik"/);
+    assert.throws(() => engine.react('gesture_dislik' as EyeEvent), /unknown event: "gesture_dislik"/);
     assert.deepEqual(called, ['sad', 'tap']);
 });
