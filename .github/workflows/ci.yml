@@ -38,7 +38,7 @@ jobs:
       # list here to keep in step with mise.toml. No cache: mise installs the 11 tools in about 4 s, and restoring the
       # 281 MB entry took as long. Actions are pinned by commit, since a tag can be moved; Dependabot updates the pin
       # and its comment.
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           cache: false
@@ -64,7 +64,7 @@ jobs:
           persist-credentials: false
 
       # CMake, Ninja, clang-format, clang-tidy and Node from mise.toml; the WebAssembly build runs in Docker
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           cache: false # as in the check job
@@ -103,7 +103,7 @@ jobs:
           persist-credentials: false
 
       # mise only runs the task: the build happens in the ESP-IDF image pinned in firmware/Dockerfile
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           install: false
@@ -164,7 +164,7 @@ jobs:
           persist-credentials: false
 
       # All tools from mise.toml: the engine:wasm task runs through mise
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           version: ${{ env.LILPET_MISE_VERSION }}
           cache: false # as in the check job
