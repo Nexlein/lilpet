@@ -47,6 +47,8 @@ en TypeScript.
 ## Conséquences
 
 - Une annotation fausse fait échouer `npm run check`, et donc la CI, avant que le script ne tourne.
+- oxlint lit aussi les types (`oxlint-tsgolint`, depuis le 2026-11-23) : une promesse ni attendue ni gérée, ou une
+  méthode passée sans son objet, échoue au lint.
 - Écrire un script demande de suivre les règles de la syntaxe effaçable (rappelées dans `CLAUDE.md`) ; `tsc` refuse
   l'essentiel de ce que Node ne saurait pas lancer : `enum`, `namespace`, un import relatif sans son extension.
 - Le jour où Renovate propose une nouvelle version majeure de Node, `@types/node` monte d'ordinaire dans la même pull

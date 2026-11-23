@@ -1,6 +1,10 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
     "plugins": ["unicorn", "oxc", "typescript", "react"],
+    // The rules that read the types run in tsgolint (the oxlint-tsgolint package), with each file's tsconfig.json
+    "options": {
+        "typeAware": true
+    },
     "categories": {
         "correctness": "error",
         "suspicious": "error",
@@ -11,7 +15,19 @@
         "builtin": true
     },
     "rules": {
-        "react/react-in-jsx-scope": "off"
+        "react/react-in-jsx-scope": "off",
+        // A cast here narrows what a check just proved, or what the data validator did (scripts/validate-data.ts),
+        // and tsc strict checks the rest: a guard for each would add code without catching more.
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-floating-promises": [
+            "error",
+            {
+                // node:test runs the tests it is given and awaits them itself
+                "allowForKnownSafeCalls": [
+                    { "from": "package", "package": "node:test", "name": ["test", "describe", "it", "suite"] }
+                ]
+            }
+        ]
     },
     "overrides": [
         {
@@ -45,7 +61,9 @@
         {
             "files": ["app/src/ui/**", "app/src/main.tsx"],
             "rules": {
-                "no-restricted-imports": "off"
+                "no-restricted-imports": "off",
+                // A React effect returns its cleanup only on the paths that set something up
+                "typescript/consistent-return": "off"
             }
         }
     ]

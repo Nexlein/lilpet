@@ -499,5 +499,6 @@ npm (`npm run <script>`):
 - `husky` (package.json) — named in scripts or config
 - `lint-staged` (package.json) — named in scripts or config
 - `oxlint` (package.json) — named in scripts or config
+- `oxlint-tsgolint` (package.json) — named in scripts or config
 - `prettier` (package.json) — named in scripts or config
 - `typescript` (package.json) — named in scripts or config
