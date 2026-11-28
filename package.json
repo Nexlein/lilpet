@@ -33,11 +33,11 @@
         "app:test": "npm run test -w app"
     },
     "devDependencies": {
-        "@types/node": "^26.6.6",
+        "@types/node": "^26.6.11",
         "husky": "^9.1.7",
-        "lint-staged": "^17.6.2",
-        "oxlint": "^1.94.0",
-        "oxlint-tsgolint": "^7.0.2008",
+        "lint-staged": "^17.6.3",
+        "oxlint": "^1.95.0",
+        "oxlint-tsgolint": "^7.0.2009",
         "prettier": "^3.10.1",
         "typescript": "^7.0.2"
     }

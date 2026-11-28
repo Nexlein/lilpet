@@ -19,7 +19,7 @@ concurrency:
 env:
   # The mise every job installs (min_version in mise.toml is the oldest that works); Renovate keeps it current. Not
   # named MISE_*: mise reads its own settings from that prefix.
-  LILPET_MISE_VERSION: 2026.11.12
+  LILPET_MISE_VERSION: 2026.11.14
 
 # The check, engine and playwright jobs are the three parts of `mise run check` (mise.toml), run in parallel: a part added
 # there goes here too. The firmware jobs are `mise run firmware:build-all`, one board each.
